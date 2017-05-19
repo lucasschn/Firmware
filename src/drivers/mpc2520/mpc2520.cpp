@@ -863,7 +863,7 @@ struct mpc2520_bus_option {
 	{ MPC2520_BUS_SPI_EXTERNAL, "/dev/mpc2520_spi_ext", &MPC2520_spi_interface, PX4_SPI_BUS_EXT, NULL },
 #endif
 #ifdef PX4_SPIDEV_BARO
-	{ MPC2520_BUS_SPI_INTERNAL, "/dev/mpc2520_spi_int", &MPC2520_spi_interface, PX4_SPI_BUS_BARO, NULL },
+	{ MPC2520_BUS_SPI_INTERNAL, "/dev/mpc2520_spi_int", NULL, PX4_SPI_BUS_BARO, NULL }, // TODO: add proper spi interface &MPC2520_spi_interface
 #endif
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ MPC2520_BUS_I2C_INTERNAL, "/dev/mpc2520_int", &MPC2520_i2c_interface, PX4_I2C_BUS_ONBOARD, NULL },

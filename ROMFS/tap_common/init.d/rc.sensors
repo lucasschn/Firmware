@@ -1,6 +1,6 @@
 #!nsh
 #
-# Standard startup script for TAP v1 onboard sensor drivers.
+# Standard startup script for TAP onboard sensor drivers.
 #
 
 adc start

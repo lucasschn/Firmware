@@ -2065,7 +2065,7 @@ int commander_thread_main(int argc, char *argv[])
 			// turn off LEDs
 			rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_OFF, 0, led_control_s::MAX_PRIORITY);
 			// play shutdown tune
-			set_tune_override(16); // FIXME: this definition needs to be added to drv_tone_alarm
+			set_tune_override(static_cast<int>(TuneID::SHUTDOWN));
 			power_state = power_state_e::commited;
 			power_state_next_timestamp = current_time + 500000; // wait 500ms until power off
 		} else if (power_state == power_state_e::commited && current_time > power_state_next_timestamp) {

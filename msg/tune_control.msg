@@ -18,6 +18,7 @@ uint8 TUNE_ID_EKF_WARNING = 12
 uint8 TUNE_ID_BARO_WARNING = 13
 uint8 TUNE_ID_SINGLE_BEEP = 14
 uint8 TUNE_ID_HOME_SET = 15
+uint8 TUNE_ID_SHUTDOWN = 16
 
 uint8 tune_id
 uint8 tune_override  # if set to 1 the tune which is playing will be stopped and the new started

@@ -865,13 +865,11 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			hil_state_t new_hil_state = (base_mode & VEHICLE_MODE_FLAG_HIL_ENABLED) ? vehicle_status_s::HIL_STATE_ON : vehicle_status_s::HIL_STATE_OFF;
 			transition_result_t hil_ret = hil_state_transition(new_hil_state, status_pub, status_local, &mavlink_log_pub);
 
-			/* If parameter COM_LOW_BAT_ACT configures an automatic low battery reaction (not only Warning 0) prevent switching out of it unless switching to MANUAL, AUTO_RTL or AUTO_LAND. */
-			bool no_mode_switch_low_battery = low_bat_action != 0 && ((critical_battery_voltage_actions_done &&
+			/* If parameter COM_LOW_BAT_ACT configures an automatic low battery reaction (not only Warning 0) prevent switching out of it unless switching to MANUAL, AUTO_RTL (critical battery only) or AUTO_LAND. */
+			bool no_mode_switch_low_battery = low_bat_action != 0 && critical_battery_voltage_actions_done &&
+					(emergency_battery_voltage_actions_done || custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_RTL) &&
 					custom_main_mode != PX4_CUSTOM_MAIN_MODE_MANUAL &&
-					custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_LAND &&
-					custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_RTL) || (emergency_battery_voltage_actions_done &&
-					custom_main_mode != PX4_CUSTOM_MAIN_MODE_MANUAL &&
-					custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_LAND));
+					custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 
 			/* if the UAV is outside the geofence radius or altitude and the action taken is either Loiter or RTL do not allow to switch to any mode other than AUTO_RTL. */
 			bool no_mode_switch_geofence = (geofence_loiter_on || geofence_rtl_on) && geofence_result.geofence_violated && custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_RTL;
@@ -3945,13 +3943,11 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 		//  if the UAV is outside the geofence radius or altitude and the action taken is either Loiter or RTL do not allow to switch to any mode other than AUTO_RTL.
 		bool no_mode_switch_geofence = (geofence_loiter_on || geofence_rtl_on) && geofence_result.geofence_violated && new_mode != commander_state_s::MAIN_STATE_AUTO_RTL;
 
-		/* If parameter COM_LOW_BAT_ACT configures an automatic low battery reaction (not only Warning 0) prevent switching out of it unless switching to MANUAL, AUTO_RTL or AUTO_LAND. */
-		bool no_mode_switch_low_battery = low_bat_action != 0 && ((critical_battery_voltage_actions_done &&
+		/* If parameter COM_LOW_BAT_ACT configures an automatic low battery reaction (not only Warning 0) prevent switching out of it unless switching to MANUAL, AUTO_RTL (critical battery only) or AUTO_LAND. */
+		bool no_mode_switch_low_battery = low_bat_action != 0 && critical_battery_voltage_actions_done &&
+				(emergency_battery_voltage_actions_done || new_mode != commander_state_s::MAIN_STATE_AUTO_RTL) &&
 				new_mode != commander_state_s::MAIN_STATE_MANUAL &&
-				new_mode != commander_state_s::MAIN_STATE_AUTO_LAND &&
-				new_mode != commander_state_s::MAIN_STATE_AUTO_RTL) || (emergency_battery_voltage_actions_done &&
-				new_mode != commander_state_s::MAIN_STATE_MANUAL &&
-				new_mode != commander_state_s::MAIN_STATE_AUTO_LAND));
+				new_mode != commander_state_s::MAIN_STATE_AUTO_LAND;
 
 		if (no_mode_switch_geofence) {
 			mavlink_log_critical(&mavlink_log_pub, "Geofence violated. Please, switch to RTL.");

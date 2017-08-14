@@ -76,6 +76,8 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
+#include <lib/FlightTasks/FlightTasks.hpp>
+
 /* --- tap specific headers */
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/realsense_avoidance_setpoint.h>
@@ -226,6 +228,8 @@ private:
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
+
+	FlightTasks _flight_tasks;
 
 	systemlib::Hysteresis _manual_direction_change_hysteresis;
 
@@ -2600,6 +2604,10 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 {
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
+
+		_pos_sp(0) = _flight_tasks.get_local_position_setpoint()->x;
+		_pos_sp(1) = _flight_tasks.get_local_position_setpoint()->y;
+		_pos_sp(2) = _flight_tasks.get_local_position_setpoint()->z;
 
 		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
 		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {

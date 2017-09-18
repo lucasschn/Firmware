@@ -161,7 +161,7 @@ private:
 	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
 
 	hrt_abstime _send_next_tune;
-	FaultTolerantControl *_fault_tolerant_control{nullptr};
+	FaultTolerantControl *_fault_tolerant_control = nullptr;
 	int esc_failure_check(uint8_t channel_id);
 	hrt_abstime
 	_wait_esc_save_log; // wait time for ESC saves log,because when motors stop ESC will do not has enough time to save log
@@ -227,7 +227,7 @@ TAP_ESC::TAP_ESC(int channels_count):
 	_outputs.noutputs = 0;
 
 #ifdef CONFIG_ARCH_BOARD_TAP_V2
-	_fault_tolerant_control = new FaultTolerantControl("6x");
+	_fault_tolerant_control = new FaultTolerantControl();
 #endif
 
 }

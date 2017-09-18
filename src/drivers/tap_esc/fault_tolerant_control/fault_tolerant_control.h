@@ -21,7 +21,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	FaultTolerantControl(const char *geomname);
+	FaultTolerantControl();
 
 	/**
 	 * Destructor

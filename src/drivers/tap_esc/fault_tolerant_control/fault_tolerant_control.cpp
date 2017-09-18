@@ -15,7 +15,7 @@
 #include <px4_defines.h>
 #include <lib/mathlib/mathlib.h>
 
-FaultTolerantControl::FaultTolerantControl(const char *geomname) :
+FaultTolerantControl::FaultTolerantControl() :
 	_filter_delta_pwm(100.0f, 50.0f),
 	_params_sub(-1)
 {

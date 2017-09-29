@@ -577,3 +577,14 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
+
+/**
+ * Distance at which the MAV starts to brake to stop
+ * in front of obstacles
+ *
+ * @min 0.5
+ * @max 10.0
+ * @unit m
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_DIST_BRAKE, 8.0f);

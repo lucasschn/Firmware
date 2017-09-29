@@ -64,6 +64,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -198,6 +199,7 @@ private:
 	int		_manual_sub;			/**< notification of manual control updates */
 	int		_local_pos_sub;			/**< vehicle local position */
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
+	int 	_global_pos_sub; 		/**< global position */
 	int		_home_pos_sub; 			/**< home position */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
@@ -214,6 +216,7 @@ private:
 	struct vehicle_local_position_s			_local_pos;		/**< vehicle local position */
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
+	struct vehicle_global_position_s 			_global_pos;		/**< vehicle global position */
 	struct home_position_s				_home_pos; 				/**< home position */
 
 	control::BlockParamFloat _manual_thr_min; /**< minimal throttle output when flying in manual mode */
@@ -228,6 +231,7 @@ private:
 	control::BlockParamFloat _acceleration_z_max_down; /** max acceleration down */
 	control::BlockParamFloat _cruise_speed_90; /**<speed when angle is 90 degrees between prev-current/current-next*/
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
+	control::BlockParamFloat _start_braking_distance; /**< distance from an obstacle at which braking starts */
 	control::BlockParamFloat _nav_rad; /**< radius that is used by navigator that defines when to update triplets */
 	control::BlockParamFloat _takeoff_ramp_time; /**< time contant for smooth takeoff ramp */
 	control::BlockParamFloat _jerk_hor_max; /**< maximum jerk in manual controlled mode when braking to zero */
@@ -335,6 +339,7 @@ private:
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 	math::Vector<3> _vel_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
+	math::Vector<3> _vel_sp_desired; /**< the desired velocity can be overwritten by realsense */
 	math::Vector<3> _curr_pos_sp;  /**< current setpoint of the triplets */
 	math::Vector<3> _prev_pos_sp; /**< previous setpoint of the triples */
 	matrix::Vector2f _stick_input_xy_prev; /**< for manual controlled mode to detect direction change */
@@ -512,6 +517,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_sub(-1),
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
+	_global_pos_sub(-1),
 	_home_pos_sub(-1),
 
 	/* publications */
@@ -527,6 +533,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos{},
 	_pos_sp_triplet{},
 	_local_pos_sp{},
+	_global_pos{},
 	_home_pos{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
@@ -544,6 +551,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
 	_jerk_hor_max(this, "JERK_MAX", true),
 	_jerk_hor_min(this, "JERK_MIN", true),
+	_start_braking_distance(this, "DIST_BRAKE", true),
 	_mis_yaw_error(this, "MIS_YAW_ERR", false),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
@@ -596,6 +604,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_prev.zero();
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
+	_vel_sp_desired.zero();
 	_curr_pos_sp.zero();
 	_prev_pos_sp.zero();
 	_stick_input_xy_prev.zero();
@@ -857,9 +866,28 @@ MulticopterPositionControl::obstacle_avoidance_sonar(float altitude_above_home)
 		_obstacle_lock_hysteresis.set_state_and_update(false);
 	}
 
-	if (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
-	    _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING) {
-		_vel_sp_before_realsense = _vel_sp;
+	// check if realsense is on
+	const bool realsense_avoidance_on = _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING
+					    &&
+					    _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+
+	// we don't want to use realsense during hover
+	const bool hover_state = _run_pos_control && _run_alt_control;
+
+	// the desire velocity is the velocity without obstacle avoidance adjustment
+	_vel_sp_desired = _vel_sp;
+
+	// do not consider realsense in hover state
+	if (realsense_avoidance_on && !hover_state)  {
+
+		// get velocity setpoint in heading frame
+		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, -1.0f), _yaw);
+		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_vel_sp(0), _vel_sp(1), 0.0f));
+
+		// due to realsense black box, we only use realsense data if the user does not strictly want to go backwards
+		const bool want_to_move_backwards = (vel_sp_heading(0) < 0.0f) && (fabsf(vel_sp_heading(1)) <= SIGMA_SINGLE_OP);
+
+		if (!want_to_move_backwards) {
 		_vel_sp(0) = _realsense_avoidance_setpoint.vx;
 		_vel_sp(1) = _realsense_avoidance_setpoint.vy;
 		_vel_sp(2) = _realsense_avoidance_setpoint.vz;
@@ -1040,6 +1068,12 @@ MulticopterPositionControl::poll_subscriptions()
 		    !PX4_ISFINITE(_pos_sp_triplet.previous.alt)) {
 			_pos_sp_triplet.previous.valid = false;
 		}
+	}
+
+	orb_check(_global_pos_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
 	}
 
 	orb_check(_home_pos_sub, &updated);
@@ -3106,8 +3140,12 @@ MulticopterPositionControl::generate_attitude_setpoint()
 
 		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
 
-		if (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON
-		    && _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING) {
+		// check if avoidance is on and the vehicle is not hovering
+		const bool realsense_avoidance_on = _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON
+						    && _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
+		const bool hover_state = _run_alt_control && _run_pos_control;
+
+		if (realsense_avoidance_on && !hover_state) {
 			_att_sp.yaw_sp_move_rate = _realsense_avoidance_setpoint.yawspeed;
 		}
 
@@ -3261,6 +3299,7 @@ MulticopterPositionControl::task_main()
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
 	/* --- tap specific subscription initializations */
@@ -3480,6 +3519,22 @@ MulticopterPositionControl::task_main()
 
 			publish_local_pos_sp();
 			publish_attitude();
+
+			/* publish desired velocity to realsense */
+			_realsense_avoidance_input.timestamp = hrt_absolute_time();
+			_realsense_avoidance_input.vx = _vel_sp_desired(0);
+			_realsense_avoidance_input.vy = _vel_sp_desired(1);
+			_realsense_avoidance_input.vz = _vel_sp_desired(2);
+			_realsense_avoidance_input.yawspeed = NAN; // not needed
+
+
+			/* publish realsense input */
+			if (_realsense_input_pub != nullptr) {
+				orb_publish(ORB_ID(realsense_avoidance_setpoint_input), _realsense_input_pub, &_realsense_avoidance_input);
+
+			} else {
+				_realsense_input_pub = orb_advertise(ORB_ID(realsense_avoidance_setpoint_input), &_realsense_avoidance_input);
+			}
 
 		} else {
 

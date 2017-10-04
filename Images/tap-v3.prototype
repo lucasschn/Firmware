@@ -1,0 +1,12 @@
+{
+    "board_id": 96,
+    "magic": "FIXME (was: PX4FWv1)",
+    "description": "Firmware for the TAPv3 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "TAPv3",
+    "version": "0.1",
+    "image_size": 0,
+    "git_identity": "",
+    "board_revision": 0
+}

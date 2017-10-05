@@ -298,7 +298,7 @@ then
 
 	# Check for an ESC update
 	# if there is one, flash each ESC
-	tap_esc checkcrc -d ${ESC_TTY} -n 6
+	# tap_esc checkcrc -d ${ESC_TTY} -n 6
 
 	# Reboot to be on the safe side that the ESC update
 	# did not consume RAM we are missing to fly

@@ -25,6 +25,24 @@ set +e
 # /dev/ttyS3: payload
 # /dev/ttyS4: RC input
 
+# V3 HW Serial map:
+# /dev/ttyS0: GPS     		(USART1)
+# /dev/ttyS1: TOF     		(USART2)
+# /dev/ttyS2: RC input 		(USART3)
+# /dev/ttyS3: GB      		(UART4)
+# /dev/ttyS4: esc bus 		(UART5)
+# /dev/ttyS5: Avoidance/Telem	(USART6)
+# /dev/ttyS6: Smart Battery	(UART7)
+# /dev/ttyS7: console  		(UART8)
+
+if ver hwcmp TAP_V3
+then
+#
+# Mount the procfs.
+#
+	mount -t procfs /proc
+fi
+
 #
 # Start CDC/ACM serial driver
 #
@@ -102,7 +120,7 @@ mtd start
 # Load parameters
 #
 
-if ver hwcmp TAP_V2
+if ver hwcmp TAP_V2 TAP_V3
 then
 
 	# now load from SD card, which can override the temp calib params
@@ -134,7 +152,7 @@ fi
 
 unset PARAM_FILE
 
-if ver hwcmp TAP_V2
+if ver hwcmp TAP_V2 TAP_V3
 then
 	camera_trigger start
 fi
@@ -191,11 +209,17 @@ set PWM_MAX none
 set FMU_MODE pwm
 set MAV_TYPE none
 set FAILSAFE none
+set GB_TTY /dev/ttyS1
 set ESC_TTY /dev/ttyS4
 
 if ver hwcmp TAP_V2
 then
 	set ESC_TTY /dev/ttyS2
+fi
+
+if ver hwcmp TAP_V3
+then
+	set GB_TTY /dev/ttyS3
 fi
 
 # Start canned airframe config
@@ -340,19 +364,31 @@ fi
 # later move this to a proper place
 param set MAV_PROTO_VER 2
 
-# multiplex mavlink 2 & ymavlink on the gimbal serial
-gimbal_protocol_splitter start /dev/ttyS1
-# seems we need to start vmount before mavlink (probably due to some ioctl's)
-vmount start -d /dev/ymavlink -b $BAUDRATE
-
-# run mavlink (the same instance) on USB and gimbal port
-mavlink_dup start -d /dev/mavlink_dup
-mavlink_dup add -d /dev/mavlink -b $BAUDRATE
-mavlink_dup add -d /dev/ttyACM0 -p
 # mavlink rate depends on baudrate
 set MAV_RATE 8000
-mavlink start -r $MAV_RATE -d /dev/mavlink_dup -m config -b $BAUDRATE
-mavlink stream -d /dev/mavlink_dup -s SYSTEM_TIME -r 0.5
+
+# starts a full mavlink instance for the gimbal port on TAP_V3 hardware
+if ver hwcmp TAP_V3
+then
+	# mavlink instance for the gimbal port
+	mavlink start -r $MAV_RATE -d $GB_TTY -m config -b $BAUDRATE
+	mavlink stream -d $GB_TTY -s SYSTEM_TIME -r 0.5
+	# mavlink instance for the USB port
+	mavlink start -r $MAV_RATE -d /dev/ttyACM0 -m config -b $BAUDRATE
+	mavlink stream -d /dev/ttyACM0 -s SYSTEM_TIME -r 0.5
+else
+	# multiplex mavlink 2 & ymavlink on the gimbal serial
+	gimbal_protocol_splitter start $GB_TTY
+	# seems we need to start vmount before mavlink (probably due to some ioctl's)
+	vmount start -d /dev/ymavlink -b $BAUDRATE
+
+	# run mavlink (the same instance) on USB and gimbal port
+	mavlink_dup start -d /dev/mavlink_dup
+	mavlink_dup add -d /dev/mavlink -b $BAUDRATE
+	mavlink_dup add -d /dev/ttyACM0 -p
+	mavlink start -r $MAV_RATE -d /dev/mavlink_dup -m config -b $BAUDRATE
+	mavlink stream -d /dev/mavlink_dup -s SYSTEM_TIME -r 0.5
+fi
 unset MAV_RATE
 
 #

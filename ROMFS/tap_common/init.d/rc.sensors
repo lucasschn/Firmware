@@ -27,7 +27,7 @@ fi
 # start hc_sr04 (forward-facing)
 hc_sr04 -R 0 -m -a start
 
-if ver hwcmp TAP_V2
+if ver hwcmp TAP_V2 TAP_V3
 then
 	# internal SPI bus
 	mpu6000 -s -R 8 -T 20602 -a 16 start

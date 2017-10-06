@@ -54,14 +54,6 @@
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
 
-/* Un-comment to support some RC00 polarities inversions
- * on test HW as well as R and G LEDs on UI LED are swapped
- */
-//#define PX4_FMUV5_RC00
-
-#define PX4_FMUV5_RC01
-#define BOARD_HAS_LTC4417
-
 #if defined(BOARD_HAS_LTC4417)
 #  define BOARD_HAS_LTC44XX_VALIDS      2 // No LTC or N Bricks
 #  define BOARD_HAS_USB_VALID           1 // LTC Has No USB valid

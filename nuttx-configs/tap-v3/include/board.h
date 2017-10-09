@@ -338,6 +338,9 @@
 #define GPIO_UART4_RX    GPIO_UART4_RX_4    /* PD0 */
 #define GPIO_UART4_TX    GPIO_UART4_TX_4    /* PD1 */
 
+#define GPIO_UART5_RX    GPIO_UART5_RX_3    /* PB12 N.B. Replaces CAN2 */
+#define GPIO_UART5_TX    GPIO_UART5_TX_3    /* PB13 N.B. Replaces CAN2 */
+
 #define GPIO_USART6_RX   GPIO_USART6_RX_2   /* PG9  */
 #define GPIO_USART6_TX   GPIO_USART6_TX_2   /* PG14 */
 #define GPIO_USART6_RTS  GPIO_USART6_RTS_2  /* PG8  */
@@ -365,8 +368,8 @@
  */
 #define GPIO_CAN1_RX     GPIO_CAN1_RX_5     /* PI9  */
 #define GPIO_CAN1_TX     GPIO_CAN1_TX_4     /* PH13 */
-#define GPIO_CAN2_RX     GPIO_CAN2_RX_1     /* PB12 */
-#define GPIO_CAN2_TX     GPIO_CAN2_TX_1     /* PB13 */
+// USED for Serial ESC on this board #define GPIO_CAN2_RX     GPIO_CAN2_RX_1     /* PB12 */
+// USED for Serial ESC on this board #define GPIO_CAN2_TX     GPIO_CAN2_TX_1     /* PB13 */
 #define GPIO_CAN3_RX     GPIO_CAN3_RX_1     /* PA8  */
 #define GPIO_CAN3_TX     GPIO_CAN3_TX_1     /* PA15 */
 

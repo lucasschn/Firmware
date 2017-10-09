@@ -55,7 +55,7 @@ script:
     # Exit if one of the scripts fails.
   - set -e
   - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      ./Tools/docker_run.sh 'PX4_RESTRICTED_BUILD=1 make tap-v2_default';
+      ./Tools/docker_run.sh 'PX4_RESTRICTED_BUILD=1 make check_tap-v2_default check_tap-v3_default';
     elif [[ "${BUILD_TARGET}" = "check_format" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'make check_format';
     elif [[ "${BUILD_TARGET}" = "tests_linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then

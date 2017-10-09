@@ -89,19 +89,7 @@ static int _uart_fd = -1; //todo:refactor in to class
 class TAP_ESC : public device::CDev
 {
 public:
-	enum Mode {
-		MODE_NONE,
-		MODE_2PWM,
-		MODE_2PWM2CAP,
-		MODE_3PWM,
-		MODE_3PWM1CAP,
-		MODE_4PWM,
-		MODE_6PWM,
-		MODE_8PWM,
-		MODE_4CAP,
-		MODE_5CAP,
-		MODE_6CAP,
-	};
+
 	TAP_ESC(int channels_count);
 	virtual ~TAP_ESC();
 	virtual int	init();
@@ -116,7 +104,6 @@ private:
 	bool _is_armed;
 
 	unsigned	_poll_fds_num;
-	Mode		_mode;
 	// subscriptions
 	int	_armed_sub;
 	int _test_motor_sub;
@@ -124,7 +111,7 @@ private:
 	int _tune_control_sub;
 	orb_advert_t        	_outputs_pub;
 	actuator_outputs_s      _outputs;
-	actuator_armed_s		_armed;
+	actuator_armed_s	_armed;
 
 	LedControlData _led_control_data;
 	LedController _led_controller;
@@ -195,7 +182,6 @@ TAP_ESC::TAP_ESC(int channels_count):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
 	_is_armed(false),
 	_poll_fds_num(0),
-	_mode(MODE_4PWM), //FIXME: what is this mode used for???
 	_armed_sub(-1),
 	_test_motor_sub(-1),
 	_led_control_sub(-1),
@@ -952,7 +938,7 @@ TAP_ESC::cycle()
 
 		/* Kill switch is enabled, emergency stop */
 		if (_armed.manual_lockdown) {
-			for (uint i = 0; i < esc_count; ++i) {
+			for (unsigned i = 0; i < esc_count; ++i) {
 				motor_out[i] = RPMSTOPPED;
 			}
 		}
@@ -1419,10 +1405,9 @@ int tap_esc_main(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	char *verb = nullptr;
-
-	if (argc >= 2) {
-		verb = argv[1];
+	if (argc < 2) {
+		tap_esc_drv::usage();
+		return 1;
 	}
 
 	while ((ch = px4_getopt(argc, argv, "d:n:", &myoptind, &myoptarg)) != EOF) {
@@ -1441,6 +1426,8 @@ int tap_esc_main(int argc, char *argv[])
 	if (!tap_esc && tap_esc_drv::_task_handle != -1) {
 		tap_esc_drv::_task_handle = -1;
 	}
+
+	const char *verb = argv[myoptind];
 
 	// Start/load the driver.
 	if (!strcmp(verb, "start")) {

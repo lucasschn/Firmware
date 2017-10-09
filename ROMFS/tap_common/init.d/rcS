@@ -374,8 +374,7 @@ then
 	mavlink start -r ${MAV_RATE} -d ${GIMBAL_TTY} -m config -b ${BAUDRATE}
 	mavlink stream -d ${GIMBAL_TTY} -s SYSTEM_TIME -r 0.5
 	# mavlink instance for the USB port
-	mavlink start -r ${MAV_RATE} -d /dev/ttyACM0 -m config -b ${BAUDRATE}
-	mavlink stream -d /dev/ttyACM0 -s SYSTEM_TIME -r 0.5
+	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 else
 	# multiplex mavlink 2 & ymavlink on the gimbal serial
 	gimbal_protocol_splitter start ${GIMBAL_TTY}

@@ -13,5 +13,6 @@
 #define	BOARD_NAME "TAP_V3"
 
 #define TAP_ESC_NO_VERIFY_CONFIG
+#define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
 
 #define PX4_I2C_BUS_ONBOARD 4 // wrong workaround to get the baro working

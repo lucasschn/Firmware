@@ -297,6 +297,8 @@ extern  bool esc_disabled_for_console;
 
 #define BOARD_MAX_LEDS 6 // Number external of LED's this board has
 
+#define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
+
 __BEGIN_DECLS
 
 /****************************************************************************************************

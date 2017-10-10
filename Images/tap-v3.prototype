@@ -1,6 +1,6 @@
 {
     "board_id": 96,
-    "magic": "TAPFWv1",
+    "magic": "TAPFWv3",
     "description": "Firmware for the TAPv3 board",
     "image": "",
     "build_time": 0,

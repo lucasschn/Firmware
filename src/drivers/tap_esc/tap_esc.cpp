@@ -345,6 +345,7 @@ TAP_ESC::init()
 		}
 
 		if (!valid) {
+			PX4_ERR("Verification of the configuration failed, ESC number: %d", cid);
 			return -EIO;
 		}
 

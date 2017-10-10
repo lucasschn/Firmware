@@ -39,6 +39,18 @@
 #include <px4_config.h>
 #include "tap_esc_common.h"
 
+// define
+#if  defined(GPIO_S0)
+#  define ESC_MUX_SELECT0 GPIO_S0
+#  define ESC_MUX_SELECT1 GPIO_S1
+#  define ESC_MUX_SELECT2 GPIO_S2
+#endif
+
+#if defined(GPIO_CAN1_SILENT_S0)
+#  define ESC_MUX_SELECT0 GPIO_CAN1_SILENT_S0
+#  define ESC_MUX_SELECT1 GPIO_CAN2_SILENT_S1
+#  define ESC_MUX_SELECT2 GPIO_CAN3_SILENT_S2
+#endif
 
 namespace tap_esc_common
 {
@@ -52,10 +64,10 @@ namespace tap_esc_common
  ****************************************************************************/
 void select_responder(uint8_t sel)
 {
-#if defined(GPIO_S0)
-	px4_arch_gpiowrite(GPIO_S0, sel & 1);
-	px4_arch_gpiowrite(GPIO_S1, sel & 2);
-	px4_arch_gpiowrite(GPIO_S2, sel & 4);
+#if defined(ESC_MUX_SELECT0)
+	px4_arch_gpiowrite(ESC_MUX_SELECT0, sel & 1);
+	px4_arch_gpiowrite(ESC_MUX_SELECT1, sel & 2);
+	px4_arch_gpiowrite(ESC_MUX_SELECT2, sel & 4);
 #endif
 }
 

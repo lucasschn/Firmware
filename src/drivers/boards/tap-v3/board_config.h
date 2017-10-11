@@ -12,6 +12,10 @@
 #undef BOARD_NAME
 #define	BOARD_NAME "TAP_V3"
 
+// define the serial port of the RC to be UART 6 since UART 5 is enabled
+#undef RC_SERIAL_PORT
+#define RC_SERIAL_PORT "/dev/ttyS5"
+
 #define TAP_ESC_NO_VERIFY_CONFIG
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
 

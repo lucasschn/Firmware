@@ -1,7 +1,6 @@
 #pragma once
 
 #undef BOARD_HAS_LTC4417
-#define PX4_FMUV5_RC00
 
 #define GPIO_EEPROM_WP  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN2)
 #define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))
@@ -21,5 +20,4 @@
 
 #define PX4_I2C_BUS_ONBOARD 4 // wrong workaround to get the baro working
 
-// Define the number of led this board has
-#define BOARD_MAX_LEDS 6
+#define BOARD_MAX_LEDS 6 // Define the number of led this board has

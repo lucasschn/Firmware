@@ -20,3 +20,6 @@
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
 
 #define PX4_I2C_BUS_ONBOARD 4 // wrong workaround to get the baro working
+
+// Define the number of led this board has
+#define BOARD_MAX_LEDS 6

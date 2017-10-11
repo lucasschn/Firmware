@@ -39,7 +39,7 @@
 #include <px4_config.h>
 #include "tap_esc_common.h"
 
-// define
+// define ESC_MUX_SELECT according to architecture
 #if  defined(GPIO_S0)
 #  define ESC_MUX_SELECT0 GPIO_S0
 #  define ESC_MUX_SELECT1 GPIO_S1

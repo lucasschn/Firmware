@@ -26,14 +26,14 @@ set +e
 # /dev/ttyS4: RC input
 
 # V3 HW Serial map:
-# /dev/ttyS0: GPS     		(USART1)
-# /dev/ttyS1: TOF     		(USART2)
-# /dev/ttyS2: RC input 		(USART3)
-# /dev/ttyS3: GIMBAL		(UART4)
-# /dev/ttyS4: esc bus 		(UART5)
-# /dev/ttyS5: Avoidance/Telem	(USART6)
-# /dev/ttyS6: Smart Battery	(UART7)
-# /dev/ttyS7: console  		(UART8)
+# /dev/ttyS0: GPS / J32   			(USART1)
+# /dev/ttyS1: OFS / J34 			(USART2)
+# /dev/ttyS2: OFDM / J47			(USART3)
+# /dev/ttyS3: GIMBAL / J29 (wired as CAN)	(UART4)
+# /dev/ttyS4: esc bus TX:J15 RX:J18  		(UART5)
+# /dev/ttyS5: RC  / J28 Receiver 		(USART6)
+# /dev/ttyS6: Smart Battery (Not connected on H520S-000-R1)(UART7)
+# /dev/ttyS7: console / J23			(UART8)
 
 if ver hwcmp TAP_V3
 then

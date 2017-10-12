@@ -1,6 +1,14 @@
 #pragma once
 
 #undef BOARD_HAS_LTC4417
+/**
+ * Definition for the prototype of H520S V01 hardware
+ * Schematics directory: H520S---000-R1
+ * Pin chart table column: BR
+ * Silkscreen desciptor: TYPHOON H520S V01 20170801
+ * This needs to be removed once a hardware with the correct pinning is configured
+ */
+#define PX4_FMUV5_RC00
 
 #define GPIO_EEPROM_WP  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN2)
 #define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))

@@ -54,8 +54,9 @@
  * Pin chart table column: BR
  * Silkscreen desciptor: TYPHOON H520S V01 20170801
  * This needs to be removed once a hardware with the correct pinning is configured
+ * TODO: remove when new hardware is available.
  */
-#define PX4_FMUV5_RC00
+#define H520S_000_R1
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -344,7 +345,7 @@
 #define GPIO_USART3_RTS  GPIO_USART3_RTS_2  /* PD12 */
 #define GPIO_USART3_CTS  GPIO_USART3_CTS_2  /* PD11 */
 
-#ifdef PX4_FMUV5_RC00
+#ifdef H520S_000_R1
 #  define GPIO_UART4_RX    GPIO_UART4_RX_6     /* PI9  */
 #  define GPIO_UART4_TX    GPIO_UART4_TX_5     /* PH13 */
 #else
@@ -380,7 +381,7 @@
  * CAN2 is routed to transceiver.
  * CAN3 is routed to transceiver.
  */
-#ifdef PX4_FMUV5_RC00
+#ifdef H520S_000_R1
 #else
 #  define GPIO_CAN1_RX     GPIO_CAN1_RX_5     /* PI9  */
 #  define GPIO_CAN1_TX     GPIO_CAN1_TX_4     /* PH13 */

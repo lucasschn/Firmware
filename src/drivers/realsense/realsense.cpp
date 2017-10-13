@@ -61,6 +61,7 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/param/param.h>
 #include <lib/rc/st24.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -120,8 +121,10 @@ private:
 	bool 	_taskShouldExit;
 	bool 	_taskIsRunning;
 	char 	_device_realsense[20];
+	uint8_t _realsense_output_flags;
 	uint16_t  read_write_count;
 	int		_measure_ticks;
+	int 		_armed_sub;
 	int		_vehicle_local_position_sub;
 	int		_vehicle_local_position_setpoint_sub;
 	int		_sensor_combined_sub;
@@ -145,7 +148,7 @@ private:
 	orb_advert_t _realsense_distance_360_pub;
 	orb_advert_t mavlink_log_pub;
 	static void _cycle_trampoline(void *arg);
-	bool _init_realsense();  							 // init - initialise the sensor
+	void _init_realsense();  							 // init - initialise the sensor
 	void update();     					 // update - check input and send out data
 	void poll_subscriptions();				 // update all msg
 	void _cycle_realsense();
@@ -162,8 +165,10 @@ REALSENSE::REALSENSE(const char *port):
 	_initialized(false),
 	_taskShouldExit(false),
 	_taskIsRunning(false),
+	_realsense_output_flags(0),
 	read_write_count(0),
 	_measure_ticks(0),
+	_armed_sub(-1),
 	_vehicle_local_position_sub(-1),
 	_vehicle_local_position_setpoint_sub(-1),
 	_sensor_combined_sub(-1),
@@ -271,6 +276,13 @@ REALSENSE::poll_subscriptions()				 // update all msg
 		orb_copy(ORB_ID(vehicle_local_position_setpoint), _vehicle_local_position_setpoint_sub, &_local_pos_sp);
 	}
 
+	orb_check(_armed_sub, &updated);
+	actuator_armed_s armed = {};
+
+	if (updated) {
+		orb_copy(ORB_ID(actuator_armed), _armed_sub, &armed);
+	}
+
 	orb_check(_sensor_combined_sub, &updated);
 
 	if (updated) {
@@ -284,7 +296,10 @@ REALSENSE::poll_subscriptions()				 // update all msg
 		gyro_stamped.z = sensor_combined.gyro_rad[2];
 
 		if (_rb_gyro->force(&gyro_stamped)) {
-			PX4_ERR("RealSense Flow: gyro buffer is overflowing!");
+			// Visualize the error only if the vehicle is armed and the RealSense module is present
+			if (armed.armed && _realsense_output_flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING) {
+				PX4_ERR("RealSense Flow: gyro buffer is overflowing!");
+			}
 		}
 	}
 
@@ -570,6 +585,7 @@ REALSENSE::_read_obstacle_avoidance_data()
 					realsense_avoidance_setpoint.vz = -packet_data_output.obstacleAvoidanceSpeed.z; //realsense U  -> UAV D
 					realsense_avoidance_setpoint.yawspeed = math::constrain(packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F, M_PI_F);
 					realsense_avoidance_setpoint.flags = packet_data_output.flags;
+					_realsense_output_flags = (uint8_t)packet_data_output.flags;
 					realsense_avoidance_setpoint.timestamp = hrt_absolute_time();
 
 					if (_realsense_avoidance_setpoint_pub == nullptr) {
@@ -707,10 +723,11 @@ REALSENSE::_read_obstacle_avoidance_data()
 	}
 }
 
-bool
+void
 REALSENSE::_init_realsense() 							 // init - initialise the sensor
 {
 	if (!_initialized) {
+		_armed_sub =  orb_subscribe(ORB_ID(actuator_armed));
 		_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 		_vehicle_local_position_setpoint_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 		_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
@@ -725,8 +742,6 @@ REALSENSE::_init_realsense() 							 // init - initialise the sensor
 
 		_initialized = true;
 	}
-
-	return true;
 }
 
 void

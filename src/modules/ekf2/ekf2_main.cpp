@@ -75,6 +75,7 @@ using control::BlockParamExtFloat;
 using control::BlockParamInt;
 using control::BlockParamExtInt;
 
+
 using math::constrain;
 
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
@@ -619,7 +620,7 @@ void Ekf2::run()
 						range_finder_updated = false;
 
 					} else {
-						range_finder.current_distance = _rng_gnd_clearance.get();
+						range_finder.current_distance = _params->rng_gnd_clearance;
 					}
 				}
 			}

@@ -42,6 +42,7 @@
 #include <px4_log.h>
 
 #include <unistd.h>
+#include <cstring>
 
 #include <lib/tunes/tunes.h>
 #include <uORB/topics/tune_control.h>

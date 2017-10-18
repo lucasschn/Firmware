@@ -151,6 +151,7 @@ private:
 	struct realsense_avoidance_setpoint_s _realsense_avoidance_setpoint; /** < realsense velocity setpoint message >*/
 	struct realsense_distance_info_s _realsense_distance_info; /**< realsense distance message >*/
 	struct realsense_distance_360_s _realsense_distance_360; /** < realsense distance message >*/
+	math::Vector<3> _vel_sp_before_realsense;
 	/* --- */
 
 	/** Time in us that direction change condition has to be true for direction change state */
@@ -320,11 +321,9 @@ private:
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 	math::Vector<3> _vel_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
-	math::Vector<3> _vel_sp_before_realsense;
 	math::Vector<3> _curr_pos_sp;  /**< current setpoint of the triplets */
 	math::Vector<3> _prev_pos_sp; /**< previous setpoint of the triples */
 	matrix::Vector2f _stick_input_xy_prev; /**< for manual controlled mode to detect direction change */
-
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -548,6 +547,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	/* tap specific: sonar obstacle avoidance initialization */
 	_obstacle_lock_hysteresis.set_hysteresis_time_from(true, OBSTACLE_LOCK_EXIT_TRIGGER_TIME_US);
+	_vel_sp_before_realsense.zero();
 
 	_params.pos_p.zero();
 	_params.vel_p.zero();
@@ -561,7 +561,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_prev.zero();
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
-	_vel_sp_before_realsense.zero();
 	_curr_pos_sp.zero();
 	_prev_pos_sp.zero();
 	_stick_input_xy_prev.zero();

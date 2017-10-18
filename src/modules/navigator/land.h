@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,7 @@
  * Helper class to land at the current position
  *
  * @author Andreas Antener <andreas@uaventure.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #ifndef NAVIGATOR_LAND_H
@@ -59,7 +60,28 @@ public:
 	virtual void on_activation();
 
 	virtual void on_active();
+private:
+	/**
+	 * Set the autoland item
+	 */
+	void		set_autoland_item();
 
+	/**
+	 * Move to next land item
+	 */
+	void		advance_land();
+
+	enum LANDState {
+		LAND_STATE_NONE = 0,
+		LAND_STATE_BRAKE,
+		LAND_STATE_DESCEND,
+		LAND_STATE_LOITER,
+		LAND_STATE_LAND,
+		LAND_STATE_LANDED,
+	} _land_state;
+
+	control::BlockParamFloat _param_land_delay;
+	control::BlockParamFloat _param_descend_alt;
 };
 
 #endif

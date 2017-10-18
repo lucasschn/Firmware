@@ -41,25 +41,29 @@
 #include <cmath>	// NAN
 
 #include <lib/mathlib/mathlib.h>
+#include <lib/led/led.h>
+#include <lib/tunes/tunes.h>
 #include <systemlib/px4_macros.h>
 #include <drivers/device/device.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/led_control.h>
 #include <uORB/topics/test_motor.h>
+#include <uORB/topics/tune_control.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/multirotor_motor_limits.h>
+#include <systemlib/mavlink_log.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
-
 #include "tap_esc_common.h"
-
+#include "fault_tolerant_control/fault_tolerant_control.h"
 #define NAN_VALUE	(0.0f/0.0f)
 
 #ifndef B250000
@@ -67,6 +71,7 @@
 #endif
 
 #include "drv_tap_esc.h"
+#include "tap_esc_uploader.h"
 
 #if !defined(BOARD_TAP_ESC_NO_VERIFY_CONFIG)
 #  define BOARD_TAP_ESC_NO_VERIFY_CONFIG 0
@@ -115,10 +120,20 @@ private:
 	// subscriptions
 	int	_armed_sub;
 	int _test_motor_sub;
+	int _led_control_sub;
+	int _tune_control_sub;
 	orb_advert_t        	_outputs_pub;
 	actuator_outputs_s      _outputs;
 	actuator_armed_s		_armed;
 
+	LedControlData _led_control_data;
+	LedController _led_controller;
+
+	Tunes _tunes;
+
+	tune_control_s _tune;
+	hrt_abstime _next_tone;
+	bool _play_tone = false;
 	//todo:refactor dynamic based on _channels_count
 	// It needs to support the number of ESC
 	int	_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -129,8 +144,9 @@ private:
 
 	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
-	orb_advert_t        _esc_feedback_pub = nullptr;
+	orb_advert_t      _esc_feedback_pub;
 	orb_advert_t      _to_mixer_status; 	///< mixer status flags
+	orb_advert_t      _mavlink_log_pub;
 	esc_status_s      _esc_feedback;
 	uint8_t           _channels_count; // The number of ESC channels
 
@@ -147,6 +163,7 @@ private:
 	void		work_start();
 	void		work_stop();
 	void send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm);
+	void send_tune_packet(EscbusTunePacket &tune_packet);
 	uint8_t crc8_esc(uint8_t *p, uint8_t len);
 	uint8_t crc_packet(EscPacket &p);
 	int send_packet(EscPacket &p, int responder);
@@ -155,6 +172,13 @@ private:
 	static int control_callback_trampoline(uintptr_t handle,
 					       uint8_t control_group, uint8_t control_index, float &input);
 	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
+
+	hrt_abstime _send_next_tune;
+	FaultTolerantControl *_fault_tolerant_control;
+	int esc_failure_check(uint8_t channel_id);
+	hrt_abstime
+	_wait_esc_save_log; // wait time for ESC saves log,because when motors stop ESC will do not has enough time to save log
+	int _stall_by_lost_prop; // the flag that when the motor stall by a collision of another motor's lost propeller
 };
 
 const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
@@ -174,10 +198,15 @@ TAP_ESC::TAP_ESC(int channels_count):
 	_mode(MODE_4PWM), //FIXME: what is this mode used for???
 	_armed_sub(-1),
 	_test_motor_sub(-1),
+	_led_control_sub(-1),
+	_tune_control_sub(-1),
 	_outputs_pub(nullptr),
 	_armed{},
+	_led_control_data{},
+	_tunes(120, 2, 4, Tunes::NoteMode::NORMAL),
 	_esc_feedback_pub(nullptr),
 	_to_mixer_status(nullptr),
+	_mavlink_log_pub(nullptr),
 	_esc_feedback{},
 	_channels_count(channels_count),
 	_mixers(nullptr),
@@ -185,8 +214,10 @@ TAP_ESC::TAP_ESC(int channels_count):
 	_groups_subscribed(0),
 	_initialized(false),
 	_pwm_default_rate(400),
-	_current_update_rate(0)
-
+	_current_update_rate(0),
+	_send_next_tune(0),
+	_wait_esc_save_log(0),
+	_stall_by_lost_prop(-1)
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
@@ -208,6 +239,11 @@ TAP_ESC::TAP_ESC(int channels_count):
 	}
 
 	_outputs.noutputs = 0;
+
+#ifdef CONFIG_ARCH_BOARD_TAP_V2
+	_fault_tolerant_control = new FaultTolerantControl("6x");
+#endif
+
 }
 
 TAP_ESC::~TAP_ESC()
@@ -228,7 +264,7 @@ TAP_ESC::~TAP_ESC()
 
 	// clean up the alternate device node
 	//unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
-
+	delete _fault_tolerant_control;
 	tap_esc = nullptr;
 }
 
@@ -265,6 +301,11 @@ TAP_ESC::init()
 				ESC_CHANNEL_MAP_RUNNING_DIRECTION;
 	}
 
+#ifdef CONFIG_ARCH_BOARD_TAP_V1
+	config.controlMode = 0;
+#else
+	config.controlMode = 2;
+#endif
 	config.maxChannelValue = RPMMAX;
 	config.minChannelValue = RPMMIN;
 
@@ -274,7 +315,10 @@ TAP_ESC::init()
 		return ret;
 	}
 
-#if !BOARD_TAP_ESC_NO_VERIFY_CONFIG
+	/* set wait time for tap esc configurate and write flash (0.02696s measure by Saleae logic Analyzer) */
+	usleep(30 * 1000);
+
+#if !defined(TAP_ESC_NO_VERIFY_CONFIG)
 
 	/* Verify All ESC got the config */
 
@@ -424,18 +468,57 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm)
 	uint8_t motor_cnt = num_pwm;
 	static uint8_t which_to_respone = 0;
 
+	_led_controller.update(_led_control_data);
+
 	for (uint8_t i = 0; i < motor_cnt; i++) {
 		rpm[i] = pwm[i];
 
-		if (rpm[i] > RPMMAX) {
-			rpm[i] = RPMMAX;
+		if ((rpm[i] & RUN_CHANNEL_VALUE_MASK) > RPMMAX) {
+			rpm[i] = (rpm[i] & ~RUN_CHANNEL_VALUE_MASK) | RPMMAX;
 
-		} else if (rpm[i] < RPMSTOPPED) {
-			rpm[i] = RPMSTOPPED;
+		} else if ((rpm[i] & RUN_CHANNEL_VALUE_MASK) < RPMSTOPPED) {
+			rpm[i] = (rpm[i] & ~RUN_CHANNEL_VALUE_MASK) | RPMSTOPPED;
+		}
+
+		// apply the led color
+		if (i < BOARD_MAX_LEDS) {
+			switch (_led_control_data.leds[i].color) {
+			case led_control_s::COLOR_RED:
+				rpm[i] |= RUN_RED_LED_ON_MASK;
+				break;
+
+			case led_control_s::COLOR_GREEN:
+				rpm[i] |= RUN_GREEN_LED_ON_MASK;
+				break;
+
+			case led_control_s::COLOR_BLUE:
+				rpm[i] |= RUN_BLUE_LED_ON_MASK;
+				break;
+
+			case led_control_s::COLOR_AMBER: //make it the same as yellow
+			case led_control_s::COLOR_YELLOW:
+				rpm[i] |= RUN_RED_LED_ON_MASK | RUN_GREEN_LED_ON_MASK;
+				break;
+
+			case led_control_s::COLOR_PURPLE:
+				rpm[i] |= RUN_RED_LED_ON_MASK | RUN_BLUE_LED_ON_MASK;
+				break;
+
+			case led_control_s::COLOR_CYAN:
+				rpm[i] |= RUN_GREEN_LED_ON_MASK | RUN_BLUE_LED_ON_MASK;
+				break;
+
+			case led_control_s::COLOR_WHITE:
+				rpm[i] |= RUN_RED_LED_ON_MASK | RUN_GREEN_LED_ON_MASK | RUN_BLUE_LED_ON_MASK;
+				break;
+
+			default: // led_control_s::COLOR_OFF
+				break;
+			}
 		}
 	}
 
-	rpm[which_to_respone] |= (RUN_FEEDBACK_ENABLE_MASK | RUN_BLUE_LED_ON_MASK);
+	rpm[which_to_respone] |= RUN_FEEDBACK_ENABLE_MASK;
 
 
 	EscPacket packet = {0xfe, _channels_count, ESCBUS_MSG_ID_RUN};
@@ -454,6 +537,13 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm)
 	if (ret < 1) {
 		PX4_WARN("TX ERROR: ret: %d, errno: %d", ret, errno);
 	}
+}
+
+void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
+{
+	EscPacket buzzer_packet = {0xfe, sizeof(EscbusTunePacket), ESCBUS_MSG_ID_TUNE};
+	buzzer_packet.d.tunePacket = tune_packet;
+	send_packet(buzzer_packet, -1);
 }
 
 void TAP_ESC::read_data_from_uart()
@@ -563,6 +653,42 @@ bool TAP_ESC::parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packet
 	return false;
 }
 
+int TAP_ESC::esc_failure_check(uint8_t channel_id)
+{
+	if (!_is_armed) {
+		// clear all motor state
+		_esc_feedback.engine_failure_report.motor_state = 0;
+
+	}
+
+	// the motor has happen failure so far it will not check esc state again when the vehicle is armed
+	if (_esc_feedback.engine_failure_report.motor_state & (1 << channel_id)) {
+		return channel_id;
+
+	} else {
+		// check esc feedback state is error
+		if (_esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_MOTOR_STALL
+		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_HARDWARE
+		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_CMD
+		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
+
+			// update ESC save log start time
+			_wait_esc_save_log = hrt_absolute_time();
+
+			// set this motor mask and has failure
+			_esc_feedback.engine_failure_report.motor_state |= 1 << channel_id;
+
+			// print error information for user when the motor has failure
+			mavlink_log_critical(&_mavlink_log_pub, "MOTOR %d ERROR IS %d,ENTER FAULT TOLERANT CONTROL",
+					     channel_id, _esc_feedback.esc[channel_id].esc_state);
+
+			return channel_id;
+		}
+	}
+
+	return PX4_ERROR;
+}
+
 void
 TAP_ESC::cycle()
 {
@@ -576,6 +702,9 @@ TAP_ESC::cycle()
 		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
 		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 		_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
+		_led_control_sub = orb_subscribe(ORB_ID(led_control));
+		_led_controller.init(_led_control_sub);
+		_tune_control_sub = orb_subscribe(ORB_ID(tune_control));
 		_initialized = true;
 	}
 
@@ -615,7 +744,9 @@ TAP_ESC::cycle()
 
 
 
-	/* check if anything updated */
+	/* check if anything updated.
+	 * the timeout needs to be small in order to react promptly to tune requests
+	 */
 	int ret = ::poll(_poll_fds, _poll_fds_num, 5);
 
 
@@ -738,6 +869,90 @@ TAP_ESC::cycle()
 			}
 		}
 
+#ifdef CONFIG_ARCH_BOARD_TAP_V2
+
+		int failure_motor_num = -1;
+
+		for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
+			failure_motor_num = esc_failure_check(channel_id);
+
+			// enter fault tolerant control
+			if (failure_motor_num == channel_id) {
+
+				// update fault tolerant controller parameters about PID or others, only for debug PID parameters
+				_fault_tolerant_control->parameter_update_poll();
+
+				// find the motor with the failure motor is diagonal
+				uint8_t diagonal_motor_num = 0;
+
+				// TODO: to distribute the vehicle motor number of QUAD_X ,this is only for vehicle is HEX_X now
+				// failure motor number: 0 1 2 3 4 5
+				// diagonal motor number:3 4 5 0 1 2
+				if (failure_motor_num + 3 > 5) {
+					diagonal_motor_num = failure_motor_num - 3;
+
+				} else {
+					diagonal_motor_num = failure_motor_num + 3;
+				}
+
+				// check the diagonal motor is failure,will stop it.
+				if (esc_failure_check(diagonal_motor_num) == diagonal_motor_num) {
+
+					// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
+					if (((hrt_absolute_time() - _wait_esc_save_log) > 5000000)
+					    || (_esc_feedback.esc[diagonal_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
+						// stop the failure motor
+						motor_out[diagonal_motor_num] = RPMSTOPPED;
+
+					}
+
+				} else {
+					// recalculate output of the motor with the failure motor is diagonal
+					motor_out[diagonal_motor_num] = _fault_tolerant_control->recalculate_pwm_outputs(motor_out[failure_motor_num],
+									motor_out[diagonal_motor_num], _esc_feedback.engine_failure_report.delta_pwm);
+
+					// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
+					if (((hrt_absolute_time() - _wait_esc_save_log) > 5000000)
+					    || (_esc_feedback.esc[failure_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
+						// stop the failure motor
+						motor_out[failure_motor_num] = RPMSTOPPED;
+
+					}
+				}
+
+				// check a motor stall is caused by a collision of another motor's lost propeller
+				if (_esc_feedback.esc[failure_motor_num].esc_state == ESC_STATUS_ERROR_MOTOR_STALL) {
+					// check whether the other motor is lost propeller
+					for (uint8_t lose_id = 0; lose_id < _channels_count; lose_id++) {
+						if (_esc_feedback.esc[lose_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
+							// stop the failure motor try restart this motor
+							motor_out[failure_motor_num] = RPMSTOPPED;
+							// set the flag when the motor stall by a collision of another motor's lost propeller
+							_stall_by_lost_prop = failure_motor_num;
+							break;
+						}
+					}
+
+				}
+
+				// when ESC unlock to clear motor failure mask
+				if ((hrt_absolute_time() - _wait_esc_save_log) > 50000 && (failure_motor_num == _stall_by_lost_prop)) {
+					// clear this motor mask and has failure
+					_esc_feedback.engine_failure_report.motor_state &= ~(1 << failure_motor_num);
+					_stall_by_lost_prop = -1;
+				}
+			}
+		}
+
+#endif
+
+		/* Kill switch is enabled, emergency stop */
+		if (_armed.manual_lockdown) {
+			for (uint i = 0; i < esc_count; ++i) {
+				motor_out[i] = RPMSTOPPED;
+			}
+		}
+
 		send_esc_outputs(motor_out, esc_count);
 		read_data_from_uart();
 
@@ -747,12 +962,20 @@ TAP_ESC::cycle()
 
 				if (feed_back_data.channelID < esc_status_s::CONNECTED_ESC_MAX) {
 					_esc_feedback.esc[feed_back_data.channelID].esc_rpm = feed_back_data.speed;
-//					_esc_feedback.esc[feed_back_data.channelID].esc_voltage = feed_back_data.voltage;
+#ifdef ESC_HAVE_VOLTAGE_SENSOR
+					_esc_feedback.esc[feed_back_data.channelID].esc_voltage = feed_back_data.voltage;
+#endif
+#ifdef ESC_HAVE_CURRENT_SENSOR
+					_esc_feedback.esc[feed_back_data.channelID].esc_current = feed_back_data.current;
+#endif
+#ifdef ESC_HAVE_TEMPERATURE_SENSOR
+					_esc_feedback.esc[feed_back_data.channelID].esc_temperature = feed_back_data.temperature;
+#endif
 					_esc_feedback.esc[feed_back_data.channelID].esc_state = feed_back_data.ESCStatus;
 					_esc_feedback.esc[feed_back_data.channelID].esc_vendor = esc_status_s::ESC_VENDOR_TAP;
-					// printf("vol is %d\n",feed_back_data.voltage );
-					// printf("speed is %d\n",feed_back_data.speed );
-
+					_esc_feedback.esc[feed_back_data.channelID].esc_setpoint_raw = motor_out[feed_back_data.channelID];
+					// PWM convert to RPM,PWM:1200~1900<-->RPM:1600~7500 so rpm = 1600 + (pwm - 1200)*((7500-1600)/(1900-1200))
+					_esc_feedback.esc[feed_back_data.channelID].esc_setpoint = (float)motor_out[feed_back_data.channelID] * 8.43f - 8514.3f;
 					_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 					_esc_feedback.counter++;
 					_esc_feedback.esc_count = esc_count;
@@ -787,7 +1010,46 @@ TAP_ESC::cycle()
 
 	}
 
+	updated = false;
+	orb_check(_tune_control_sub, &updated);
+	hrt_abstime now = hrt_absolute_time();
 
+	if (updated) {
+		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune);
+
+		if (_tunes.set_control(_tune) == 0) {
+			_next_tone = hrt_absolute_time();
+			_play_tone = true;
+
+		} else {
+			_play_tone = false;
+		}
+	}
+
+	unsigned frequency = 0, duration = 0, silence = 0;
+	EscbusTunePacket esc_tune_packet;
+
+	if ((now >= _next_tone) && _play_tone) {
+		_play_tone = false;
+		int parse_ret_val = _tunes.get_next_tune(frequency, duration, silence);
+
+		// the return value is 0 if one tone need to be played and 1 if the sequence needs to continue
+		if (parse_ret_val >= 0 && frequency > 0) {
+			esc_tune_packet.frequency = frequency;
+			esc_tune_packet.duration_ms = (uint16_t)(duration / 1000); // convert to ms
+			esc_tune_packet.strength = _tune.strength;
+			// set next tone call time
+			_next_tone = now + silence + duration;
+
+			if (parse_ret_val > 0) {
+				_play_tone = true;
+			}
+
+			if (!_is_armed || _armed.manual_lockdown) {
+				send_tune_packet(esc_tune_packet);
+			}
+		}
+	}
 }
 
 void TAP_ESC::work_stop()
@@ -803,6 +1065,16 @@ void TAP_ESC::work_stop()
 	_armed_sub = -1;
 	orb_unsubscribe(_test_motor_sub);
 	_test_motor_sub = -1;
+	orb_unsubscribe(_tune_control_sub);
+	_tune_control_sub = -1;
+	orb_unsubscribe(_led_control_sub);
+	_led_control_sub = -1;
+	orb_unadvertise(_outputs_pub);
+	_outputs_pub = nullptr;
+	orb_unadvertise(_esc_feedback_pub);
+	_esc_feedback_pub = nullptr;
+	orb_unadvertise(_to_mixer_status);
+	_to_mixer_status = nullptr;
 
 	DEVICE_LOG("stopping");
 	_initialized = false;
@@ -978,6 +1250,9 @@ int tap_esc_stop(void)
 
 int initialise_uart()
 {
+#if defined(CONFIG_ARCH_BOARD_TAP_V2) && defined(CONFIG_USART3_SERIAL_CONSOLE)
+	return -1;
+#else
 	// open uart
 	_uart_fd = open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
 	int termios_state = -1;
@@ -1014,6 +1289,7 @@ int initialise_uart()
 	}
 
 	return _uart_fd;
+#endif
 }
 
 int enable_flow_control(bool enabled)
@@ -1092,7 +1368,7 @@ void start()
 	_task_handle = px4_task_spawn_cmd("tap_esc",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-					  1100,
+					  1200,
 					  (px4_main_t)&task_main_trampoline,
 					  nullptr);
 
@@ -1122,6 +1398,9 @@ void usage()
 	PX4_INFO("usage: tap_esc start -d /dev/ttyS2 -n <1-8>");
 	PX4_INFO("       tap_esc stop");
 	PX4_INFO("       tap_esc status");
+	PX4_INFO("       tap_esc checkcrc -n <1-8>");
+	PX4_INFO("       tap_esc upload -n <1-8>");
+	PX4_INFO("       tap_esc upload -n <1-8> custom_file (e.g:tap_esc upload -n 6 /fs/microsd/tap_esc.bin)");
 }
 
 } // namespace tap_esc
@@ -1187,6 +1466,84 @@ int tap_esc_main(int argc, char *argv[])
 	else if (!strcmp(verb, "status")) {
 		PX4_WARN("tap_esc is %s", tap_esc_drv::_is_running ? "running" : "not running");
 		return 0;
+
+	}
+
+	else if (!strcmp(verb, "checkcrc")) {
+		// Check on required arguments
+		if (tap_esc_drv::_supported_channel_count == 0) {
+			tap_esc_drv::usage();
+			return 1;
+		}
+
+		tap_esc_drv::stop();
+		const char *fw[3] = TAP_ESC_FW_SEARCH_PATHS;
+		TAP_ESC_UPLOADER *check_up;
+		check_up = new TAP_ESC_UPLOADER(tap_esc_drv::_supported_channel_count);
+		int ret = check_up->checkcrc(&fw[0]);
+		delete check_up;
+
+		if (ret != OK) {
+			errx(1, "TAP_ESC firmware auto check crc and upload fail error %d", ret);
+		}
+
+		return ret;
+	}
+
+	else if (!strcmp(verb, "upload")) {
+		// Check on required arguments
+		if (tap_esc_drv::_supported_channel_count == 0) {
+			tap_esc_drv::usage();
+			return 1;
+		}
+
+		tap_esc_drv::stop();
+
+		TAP_ESC_UPLOADER *up;
+
+		/* Assume we are using default paths */
+
+		const char *fn[3] = TAP_ESC_FW_SEARCH_PATHS;
+
+		/* Override defaults if a path is passed on command line,use argv[4] path */
+		if (argc > 4) {
+			fn[0] = argv[4];
+			fn[1] = nullptr;
+		}
+
+		up = new TAP_ESC_UPLOADER(tap_esc_drv::_supported_channel_count);
+		int ret = up->upload(&fn[0]);
+		delete up;
+
+		switch (ret) {
+		case OK:
+#ifdef CONFIG_ARCH_BOARD_TAP_V2
+			/* reboot tap_esc when esc uploader success*/
+			device = "/dev/ttyS2";
+			strncpy(tap_esc_drv::_device, device, strlen(device));
+			tap_esc_drv::_supported_channel_count = 6;
+			tap_esc_drv::start();
+#endif
+			break;
+
+		case -ENOENT:
+			errx(1, "TAP_ESC firmware file not found");
+
+		case -EEXIST:
+		case -EIO:
+			errx(1, "error updating TAP_ESC - check that bootloader mode is enabled");
+
+		case -EINVAL:
+			errx(1, "verify failed - retry the update");
+
+		case -ETIMEDOUT:
+			errx(1, "timed out waiting for bootloader - power-cycle and try again");
+
+		default:
+			errx(1, "unexpected error %d", ret);
+		}
+
+		return ret;
 
 	} else {
 		tap_esc_drv::usage();

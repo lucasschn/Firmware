@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
+
 px4_add_module(
 	MODULE drivers__vmount
 	MAIN vmount
@@ -40,10 +42,12 @@ px4_add_module(
 		input.cpp
 		input_mavlink.cpp
 		input_rc.cpp
+		input_rc_st16.cpp
 		input_test.cpp
 		output.cpp
 		output_mavlink.cpp
 		output_rc.cpp
+		output_serial.cpp
 		vmount.cpp
 	DEPENDS
 		platforms__common

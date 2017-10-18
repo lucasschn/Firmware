@@ -71,6 +71,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
 #include <uORB/topics/multirotor_motor_limits.h>
@@ -141,6 +142,7 @@ private:
 	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
 	int		_sensor_correction_sub;	/**< sensor thermal correction subscription */
 	int		_sensor_bias_sub;	/**< sensor in-run bias correction subscription */
+	int _esc_status_sub; 	/**< esc status include engine failure subscription */
 
 	unsigned _gyro_count;
 	int _selected_gyro;
@@ -167,6 +169,7 @@ private:
 	struct sensor_gyro_s			_sensor_gyro;		/**< gyro data before thermal correctons and ekf bias estimates are applied */
 	struct sensor_correction_s		_sensor_correction;		/**< sensor thermal corrections */
 	struct sensor_bias_s		_sensor_bias;		/**< sensor in-run bias corrections */
+	struct esc_status_s  			_esc_status_report;/**< esc status report include engine failure report */
 
 	MultirotorMixer::saturation_status _saturation_status{};
 
@@ -234,6 +237,18 @@ private:
 
 		param_t board_offset[3];
 
+		param_t ftc_roll_rate_p;
+		param_t ftc_roll_rate_i;
+		param_t ftc_roll_rate_d;
+
+		param_t ftc_pitch_rate_p;
+		param_t ftc_pitch_rate_i;
+		param_t ftc_pitch_rate_d;
+
+		param_t ftc_yaw_rate_p;
+		param_t ftc_yaw_rate_i;
+		param_t ftc_yaw_rate_d;
+
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -271,6 +286,10 @@ private:
 		int board_rotation;
 
 		float board_offset[3];
+
+		math::Vector<3> ftc_rate_p;				/**< P gain for angular rate error for fault tolerant control */
+		math::Vector<3> ftc_rate_i;				/**< I gain for angular rate error for fault tolerant control */
+		math::Vector<3> ftc_rate_d;				/**< D gain for angular rate error for fault tolerant control */
 
 	}		_params;
 
@@ -352,6 +371,11 @@ private:
 	void		sensor_correction_poll();
 
 	/**
+	 * Check for engine failure report updates.
+	 */
+	void 		engine_failure_poll();
+
+	/**
 	 * Check for sensor in-run bias correction updates.
 	 */
 	void		sensor_bias_poll();
@@ -390,6 +414,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_battery_status_sub(-1),
 	_sensor_correction_sub(-1),
 	_sensor_bias_sub(-1),
+	_esc_status_sub(-1),
 
 	/* gyro selection */
 	_gyro_count(1),
@@ -417,7 +442,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_sensor_gyro{},
 	_sensor_correction{},
 	_sensor_bias{},
+	_esc_status_report{},
 	_saturation_status{},
+
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
@@ -449,6 +476,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.bat_scale_en = 0;
 
 	_params.board_rotation = 0;
+
+	_params.ftc_rate_p.zero();
+	_params.ftc_rate_i.zero();
+	_params.ftc_rate_d.zero();
 
 	_params.board_offset[0] = 0.0f;
 	_params.board_offset[1] = 0.0f;
@@ -514,7 +545,19 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.board_offset[1] = param_find("SENS_BOARD_Y_OFF");
 	_params_handles.board_offset[2] = param_find("SENS_BOARD_Z_OFF");
 
+	_params_handles.ftc_roll_rate_p = param_find("FTC_ROLLRATE_P");
+	_params_handles.ftc_roll_rate_i = param_find("FTC_ROLLRATE_I");
+	_params_handles.ftc_roll_rate_d = param_find("FTC_ROLLRATE_D");
 
+
+	_params_handles.ftc_pitch_rate_p = param_find("FTC_PITCHRATE_P");
+	_params_handles.ftc_pitch_rate_i = param_find("FTC_PITCHRATE_I");
+	_params_handles.ftc_pitch_rate_d = param_find("FTC_PITCHRATE_D");
+
+
+	_params_handles.ftc_yaw_rate_p = param_find("FTC_YAWRATE_P");
+	_params_handles.ftc_yaw_rate_i = param_find("FTC_YAWRATE_I");
+	_params_handles.ftc_yaw_rate_d = param_find("FTC_YAWRATE_D");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -683,6 +726,19 @@ MulticopterAttitudeControl::parameters_update()
 					 M_DEG_TO_RAD_F * _params.board_offset[2]);
 	_board_rotation = board_rotation_offset * _board_rotation;
 
+	/* get fault tolerant control pid parameters */
+	param_get(_params_handles.ftc_roll_rate_p, &_params.ftc_rate_p(0));
+	param_get(_params_handles.ftc_roll_rate_i, &_params.ftc_rate_i(0));
+	param_get(_params_handles.ftc_roll_rate_d, &_params.ftc_rate_d(0));
+
+	param_get(_params_handles.ftc_pitch_rate_p, &_params.ftc_rate_p(1));
+	param_get(_params_handles.ftc_pitch_rate_i, &_params.ftc_rate_i(1));
+	param_get(_params_handles.ftc_pitch_rate_d, &_params.ftc_rate_d(1));
+
+	param_get(_params_handles.ftc_yaw_rate_p, &_params.ftc_rate_p(2));
+	param_get(_params_handles.ftc_yaw_rate_i, &_params.ftc_rate_i(2));
+	param_get(_params_handles.ftc_yaw_rate_d, &_params.ftc_rate_d(2));
+
 	return OK;
 }
 
@@ -840,6 +896,18 @@ MulticopterAttitudeControl::sensor_correction_poll()
 	/* update the latest gyro selection */
 	if (_sensor_correction.selected_gyro_instance < _gyro_count) {
 		_selected_gyro = _sensor_correction.selected_gyro_instance;
+	}
+}
+
+void
+MulticopterAttitudeControl::engine_failure_poll()
+{
+	/* check if there is a new message */
+	bool updated;
+	orb_check(_esc_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(esc_status), _esc_status_sub, &_esc_status_report);
 	}
 }
 
@@ -1046,9 +1114,28 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	rates(1) -= _sensor_bias.gyro_y_bias;
 	rates(2) -= _sensor_bias.gyro_z_bias;
 
+	// TODO: check with upstream fro the i term
+	/* Upstream form
 	math::Vector<3> rates_p_scaled = _params.rate_p.emult(pid_attenuations(_params.tpa_breakpoint_p, _params.tpa_rate_p));
 	//math::Vector<3> rates_i_scaled = _params.rate_i.emult(pid_attenuations(_params.tpa_breakpoint_i, _params.tpa_rate_i));
 	math::Vector<3> rates_d_scaled = _params.rate_d.emult(pid_attenuations(_params.tpa_breakpoint_d, _params.tpa_rate_d));
+	*/
+
+	math::Vector<3> rates_p_scaled;
+	math::Vector<3> rates_i_scaled;
+	math::Vector<3> rates_d_scaled;
+
+	/* check engine failure mode */
+	if (_esc_status_report.engine_failure_report.motor_state != OK) {
+		rates_p_scaled = _params.ftc_rate_p;
+		rates_i_scaled = _params.ftc_rate_i;
+		rates_d_scaled = _params.ftc_rate_d;
+
+	} else {
+		rates_p_scaled = _params.rate_p.emult(pid_attenuations(_params.tpa_breakpoint_p, _params.tpa_rate_p));
+		rates_i_scaled = _params.rate_i.emult(pid_attenuations(_params.tpa_breakpoint_i, _params.tpa_rate_i));
+		rates_d_scaled = _params.rate_d.emult(pid_attenuations(_params.tpa_breakpoint_d, _params.tpa_rate_d));
+	}
 
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
@@ -1141,6 +1228,7 @@ MulticopterAttitudeControl::task_main()
 
 	_sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
+	_esc_status_sub = orb_subscribe(ORB_ID(esc_status));
 
 	/* initialize parameters cache */
 	parameters_update();
@@ -1199,6 +1287,7 @@ MulticopterAttitudeControl::task_main()
 			vehicle_attitude_poll();
 			sensor_correction_poll();
 			sensor_bias_poll();
+			engine_failure_poll();
 
 			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't

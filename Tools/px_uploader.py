@@ -79,6 +79,8 @@ class firmware(object):
 
     desc = {}
     image = bytes()
+    is_encrypted = False
+
     crctab = array.array('I', [
         0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
         0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91,
@@ -121,11 +123,20 @@ class firmware(object):
         self.desc = json.load(f)
         f.close()
 
-        self.image = bytearray(zlib.decompress(base64.b64decode(self.desc['image'])))
+        if len(self.desc['image']) == 0 and len(self.desc['image_encrypted']) > 0:
+            self.is_encrypted = True
+            print("Found encrypted firmware binary")
+        else:
+            self.is_encrypted = False
 
-        # pad image to 4-byte length
-        while ((len(self.image) % 4) != 0):
-            self.image.append('\xff')
+        if not self.is_encrypted:
+            self.image = bytearray(zlib.decompress(base64.b64decode(self.desc['image'])))
+            # pad image to 4-byte length
+            while ((len(self.image) % 4) != 0):
+                self.image.append('\xff')
+        else:
+            self.image_encrypted = bytearray(zlib.decompress(base64.b64decode(self.desc['image_encrypted'])))
+            self.image_encrypted_iv = bytearray(base64.b64decode(self.desc['image_encrypted_iv']))
 
     def property(self, propname):
         return self.desc[propname]
@@ -147,42 +158,56 @@ class uploader(object):
     '''Uploads a firmware file to the PX FMU bootloader'''
 
     # protocol bytes
-    INSYNC          = b'\x12'
-    EOC             = b'\x20'
+    CMD_INSYNC          = 0
+    CMD_EOC             = 1
 
     # reply bytes
-    OK              = b'\x10'
-    FAILED          = b'\x11'
-    INVALID         = b'\x13'     # rev3+
-    BAD_SILICON_REV = b'\x14'     # rev5+
+    CMD_OK              = 2
+    CMD_FAILED          = 3
+    CMD_INVALID         = 4       # rev3+
+    CMD_BAD_SILICON_REV = 5       # rev5+
+    CMD_BAD_KEY         = 27      # rev6+
 
     # command bytes
-    NOP             = b'\x00'     # guaranteed to be discarded by the bootloader
-    GET_SYNC        = b'\x21'
-    GET_DEVICE      = b'\x22'
-    CHIP_ERASE      = b'\x23'
-    CHIP_VERIFY     = b'\x24'     # rev2 only
-    PROG_MULTI      = b'\x27'
-    READ_MULTI      = b'\x28'     # rev2 only
-    GET_CRC         = b'\x29'     # rev3+
-    GET_OTP         = b'\x2a'     # rev4+  , get a word from OTP area
-    GET_SN          = b'\x2b'     # rev4+  , get a word from SN area
-    GET_CHIP        = b'\x2c'     # rev5+  , get chip version
-    SET_BOOT_DELAY  = b'\x2d'     # rev5+  , set boot delay
-    GET_CHIP_DES    = b'\x2e'     # rev5+  , get chip description in ASCII
-    MAX_DES_LENGTH  = 20
+    CMD_NOP             = 6       # guaranteed to be discarded by the bootloader
+    CMD_GET_SYNC        = 7
+    CMD_GET_DEVICE      = 8
+    CMD_CHIP_ERASE      = 9
+    CMD_CHIP_VERIFY     = 10      # rev2 only
+    CMD_PROG_MULTI      = 11
+    CMD_READ_MULTI      = 12      # rev2 only
+    CMD_GET_CRC         = 13      # rev3+
+    CMD_GET_OTP         = 14      # rev4+  , get a word from OTP area
+    CMD_GET_SN          = 15      # rev4+  , get a word from SN area
+    CMD_GET_CHIP        = 16      # rev5+  , get chip version
+    CMD_SET_BOOT_DELAY  = 17      # rev5+  , set boot delay
+    CMD_GET_CHIP_DES    = 18      # rev5+  , get chip description in ASCII
+    CMD_REBOOT          = 19
+    CMD_SET_IV          = 24      # rev6+  , Send AES-128 initialization vector (16 bytes)
+    CMD_PROG_MULTI_ENCRYPTED = 25 # rev6+  , like PROG_MULTI but encrypted with AES-128
+    CMD_CHECK_CRC       = 26      # rev6+  , check CRC on device which is included in the encrypted binary
+    CMD_CHECK_KEY       = 28      # rev7+  , check if there is a valid AES-128 key
 
-    REBOOT          = b'\x30'
+    MAX_DES_LENGTH      = 20
 
-    INFO_BL_REV     = b'\x01'        # bootloader protocol revision
-    BL_REV_MIN      = 2              # minimum supported bootloader protocol
-    BL_REV_MAX      = 5              # maximum supported bootloader protocol
-    INFO_BOARD_ID   = b'\x02'        # board type
-    INFO_BOARD_REV  = b'\x03'        # board revision
-    INFO_FLASH_SIZE = b'\x04'        # max firmware size in bytes
+    CMD_INFO_BL_REV     = 20      # bootloader protocol revision
+    CMD_INFO_BOARD_ID   = 21      # board type
+    CMD_INFO_BOARD_REV  = 22      # board revision
+    BL_REV_MIN          = 2       # minimum supported bootloader protocol
+    BL_REV_MAX          = 7       # maximum supported bootloader protocol
+    CMD_INFO_FLASH_SIZE = 23      # max firmware size in bytes
 
-    PROG_MULTI_MAX  = 252            # protocol max is 255, must be multiple of 4
-    READ_MULTI_MAX  = 252            # protocol max is 255
+    PROG_MULTI_MAX  = 252   # protocol max is 255, must be multiple of 4
+    READ_MULTI_MAX  = 252   # protocol max is 255
+
+    PROG_MULTI_MAX_ENCRYPTED = 240  # max 255, multiple of 16
+
+    PROTOCOL_UKN  = -1
+    PROTOCOL_0    = 0
+    PROTOCOL_1    = 1
+#                           0        1        2        3        4        5        6        7        8        9       10       11       12       13       14       15       16       17      18        19       20      21        22       23      24       25       26       27       28
+    protocol_cmds = [(b'\x12', b'\x20', b'\x10', b'\x11', b'\x13', b'\x14', b'\x00', b'\x21', b'\x22', b'\x23', b'\x24', b'\x27', b'\x28', b'\x29', b'\x2a', b'\x2b', b'\x2c', b'\x2d', b'\x2e', b'\x30', b'\x01', b'\x02', b'\x03', b'\x04', b'\x36', b'\x37', b'\x38', b'\x15', b'\x39'),
+                     (b'\xab', b'\xba', b'\xf0', b'\xf1', b'\xf3', b'\x14', b'\x00', b'\xe1', b'\xe2', b'\xe3', b'\x24', b'\xe4', b'\x28', b'\xe5', b'\xe6', b'\xe7', b'\x2c', b'\x2d', b'\x2e', b'\xe8', b'\x01', b'\x02', b'\x03', b'\x04', b'\x36', b'\x37', b'\x38', b'\x15', b'\x39')]
 
     NSH_INIT        = bytearray(b'\x0d\x0d\x0d')
     NSH_REBOOT_BL   = b"reboot -b\n"
@@ -198,6 +223,10 @@ class uploader(object):
         self.baudrate_bootloader = baudrate_bootloader
         self.baudrate_flightstack = baudrate_flightstack
         self.baudrate_flightstack_idx = -1
+        self.protocol = self.PROTOCOL_UKN
+
+    def __command(self, cmd):
+        return self.protocol_cmds[self.protocol][cmd]
 
     def close(self):
         if self.port is not None:
@@ -207,7 +236,7 @@ class uploader(object):
         # upload timeout
         timeout = time.time() + 0.2
 
-        # attempt to open the port while it exists and until timeout occurs
+        # Attempt to open the port while it exists and until timeout occurs
         while self.port is not None:
             portopen = True
             try:
@@ -247,36 +276,54 @@ class uploader(object):
     def __getSync(self):
         self.port.flush()
         c = bytes(self.__recv())
-        if c != self.INSYNC:
+        if c != self.__command(self.CMD_INSYNC):
             raise RuntimeError("unexpected %s instead of INSYNC" % c)
         c = self.__recv()
-        if c == self.INVALID:
+        if c == self.__command(self.CMD_INVALID):
             raise RuntimeError("bootloader reports INVALID OPERATION")
-        if c == self.FAILED:
+        if c == self.__command(self.CMD_FAILED):
             raise RuntimeError("bootloader reports OPERATION FAILED")
-        if c != self.OK:
+        if c == self.__command(self.CMD_BAD_KEY):
+            raise RuntimeError("bootloader key overwritten, encrypted flashing not possible")
+        if c != self.__command(self.CMD_OK):
             raise RuntimeError("unexpected response 0x%x instead of OK" % ord(c))
 
     # attempt to get back into sync with the bootloader
     def __sync(self):
         # send a stream of ignored bytes longer than the longest possible conversation
         # that we might still have in progress
-        # self.__send(uploader.NOP * (uploader.PROG_MULTI_MAX + 2))
+        # self.__send(self.__command(self.CMD_NOP) * (uploader.PROG_MULTI_MAX + 2))
         self.port.flushInput()
-        self.__send(uploader.GET_SYNC +
-                    uploader.EOC)
-        self.__getSync()
+        if (self.protocol == self.PROTOCOL_UKN):
+            self.protocol = self.PROTOCOL_0
+            self.__send(self.__command(self.CMD_GET_SYNC) +
+                        self.__command(self.CMD_EOC))
+            try:
+                self.__getSync()
+            except Exception:
+                self.protocol = self.PROTOCOL_1
+                self.__send(self.__command(self.CMD_GET_SYNC) +
+                            self.__command(self.CMD_EOC))
+                try:
+                    self.__getSync()
+                except Exception:
+                    self.protocol = self.PROTOCOL_UKN
+            self.port.flushInput()
+        else:
+            self.__send(self.__command(self.CMD_GET_SYNC) +
+                        self.__command(self.CMD_EOC))
+            self.__getSync()
 
     def __trySync(self):
         try:
             self.port.flush()
-            if (self.__recv() != self.INSYNC):
+            if (self.__recv() != self.__command(self.CMD_INSYNC)):
                 # print("unexpected 0x%x instead of INSYNC" % ord(c))
                 return False
             c = self.__recv()
-            if (c == self.BAD_SILICON_REV):
+            if (c == self.__command(self.CMD_BAD_SILICON_REV)):
                 raise NotImplementedError()
-            if (c != self.OK):
+            if (c != self.__command(self.CMD_OK)):
                 # print("unexpected 0x%x instead of OK" % ord(c))
                 return False
             return True
@@ -290,7 +337,7 @@ class uploader(object):
 
     # send the GET_DEVICE command and wait for an info parameter
     def __getInfo(self, param):
-        self.__send(uploader.GET_DEVICE + param + uploader.EOC)
+        self.__send(self.__command(self.CMD_GET_DEVICE) + param + self.__command(self.CMD_EOC))
         value = self.__recv_int()
         self.__getSync()
         return value
@@ -298,7 +345,7 @@ class uploader(object):
     # send the GET_OTP command and wait for an info parameter
     def __getOTP(self, param):
         t = struct.pack("I", param)  # int param as 32bit ( 4 byte ) char array.
-        self.__send(uploader.GET_OTP + t + uploader.EOC)
+        self.__send(self.__command(self.CMD_GET_OTP) + t + self.__command(self.CMD_EOC))
         value = self.__recv(4)
         self.__getSync()
         return value
@@ -306,21 +353,21 @@ class uploader(object):
     # send the GET_SN command and wait for an info parameter
     def __getSN(self, param):
         t = struct.pack("I", param)  # int param as 32bit ( 4 byte ) char array.
-        self.__send(uploader.GET_SN + t + uploader.EOC)
+        self.__send(self.__command(self.CMD_GET_SN) + t + self.__command(self.CMD_EOC))
         value = self.__recv(4)
         self.__getSync()
         return value
 
     # send the GET_CHIP command
     def __getCHIP(self):
-        self.__send(uploader.GET_CHIP + uploader.EOC)
+        self.__send(self.__command(self.CMD_GET_CHIP) + self.__command(self.CMD_EOC))
         value = self.__recv_int()
         self.__getSync()
         return value
 
     # send the GET_CHIP command
     def __getCHIPDes(self):
-        self.__send(uploader.GET_CHIP_DES + uploader.EOC)
+        self.__send(self.__command(self.CMD_GET_CHIP_DES) + self.__command(self.CMD_EOC))
         length = self.__recv_int()
         value = self.__recv(length)
         self.__getSync()
@@ -339,8 +386,8 @@ class uploader(object):
     # send the CHIP_ERASE command and wait for the bootloader to become ready
     def __erase(self, label):
         print("\n", end='')
-        self.__send(uploader.CHIP_ERASE +
-                    uploader.EOC)
+        self.__send(self.__command(self.CMD_CHIP_ERASE) +
+                    self.__command(self.CMD_EOC))
 
         # erase is very slow, give it 20s
         deadline = time.time() + 30.0
@@ -369,10 +416,10 @@ class uploader(object):
         else:
             length = chr(len(data))
 
-        self.__send(uploader.PROG_MULTI)
+        self.__send(self.__command(self.CMD_PROG_MULTI))
         self.__send(length)
         self.__send(data)
-        self.__send(uploader.EOC)
+        self.__send(self.__command(self.CMD_EOC))
         self.__getSync()
 
     # verify multiple bytes in flash
@@ -383,9 +430,9 @@ class uploader(object):
         else:
             length = chr(len(data))
 
-        self.__send(uploader.READ_MULTI)
+        self.__send(self.__command(self.CMD_READ_MULTI))
         self.__send(length)
-        self.__send(uploader.EOC)
+        self.__send(self.__command(self.CMD_EOC))
         self.port.flush()
         programmed = self.__recv(len(data))
         if programmed != data:
@@ -397,13 +444,34 @@ class uploader(object):
 
     # send the reboot command
     def __reboot(self):
-        self.__send(uploader.REBOOT +
-                    uploader.EOC)
+        self.__send(self.__command(self.CMD_REBOOT) +
+                    self.__command(self.CMD_EOC))
         self.port.flush()
 
         # v3+ can report failure if the first word flash fails
         if self.bl_rev >= 3:
             self.__getSync()
+
+    # send AES-128 initialization vector
+    def __send_iv(self, data):
+        self.__send(self.__command(self.CMD_SET_IV))
+        self.__send(data)
+        self.__send(self.__command(self.CMD_EOC))
+        self.__getSync()
+
+    # send a PROG_MULTI_ENCRYPTED command to send encrypted binary
+    def __program_multi_encrypted(self, data):
+
+        if runningPython3:
+            length = len(data).to_bytes(1, byteorder='big')
+        else:
+            length = chr(len(data))
+
+        self.__send(self.__command(self.CMD_PROG_MULTI_ENCRYPTED))
+        self.__send(length)
+        self.__send(data)
+        self.__send(self.__command(self.CMD_EOC))
+        self.__getSync()
 
     # split a sequence into a list of size-constrained pieces
     def __split_len(self, seq, length):
@@ -413,7 +481,7 @@ class uploader(object):
     def __program(self, label, fw):
         print("\n", end='')
         code = fw.image
-        groups = self.__split_len(code, uploader.PROG_MULTI_MAX)
+        groups = self.__split_len(code, self.PROG_MULTI_MAX)
 
         uploadProgress = 0
         for bytes in groups:
@@ -425,14 +493,33 @@ class uploader(object):
                 self.__drawProgressBar(label, uploadProgress, len(groups))
         self.__drawProgressBar(label, 100, 100)
 
+    # upload encrypted image containing header and binary
+    def __program_encrypted(self, label, fw):
+        print("\n", end='')
+
+        self.__send_iv(fw.image_encrypted_iv)
+
+        code = fw.image_encrypted
+        groups = self.__split_len(code, self.PROG_MULTI_MAX_ENCRYPTED)
+
+        uploadProgress = 0
+        for bytes in groups:
+            self.__program_multi_encrypted(bytes)
+
+            # Print upload progress (throttled, so it does not delay upload progress)
+            uploadProgress += 1
+            if uploadProgress % 256 == 0:
+                self.__drawProgressBar(label, uploadProgress, len(groups))
+        self.__drawProgressBar(label, 100, 100)
+
     # verify code
     def __verify_v2(self, label, fw):
         print("\n", end='')
-        self.__send(uploader.CHIP_VERIFY +
-                    uploader.EOC)
+        self.__send(self.__command(self.CMD_CHIP_VERIFY) +
+                    self.__command(self.CMD_EOC))
         self.__getSync()
         code = fw.image
-        groups = self.__split_len(code, uploader.READ_MULTI_MAX)
+        groups = self.__split_len(code, self.__command(self.READ_MULTI_MAX))
         verifyProgress = 0
         for bytes in groups:
             verifyProgress += 1
@@ -446,8 +533,8 @@ class uploader(object):
         print("\n", end='')
         self.__drawProgressBar(label, 1, 100)
         expect_crc = fw.crc(self.fw_maxsize)
-        self.__send(uploader.GET_CRC +
-                    uploader.EOC)
+        self.__send(self.__command(self.CMD_GET_CRC) +
+                    self.__command(self.CMD_EOC))
         report_crc = self.__recv_int()
         self.__getSync()
         if report_crc != expect_crc:
@@ -456,11 +543,72 @@ class uploader(object):
             raise RuntimeError("Program CRC failed")
         self.__drawProgressBar(label, 100, 100)
 
-    def __set_boot_delay(self, boot_delay):
-        self.__send(uploader.SET_BOOT_DELAY +
-                    struct.pack("b", boot_delay) +
-                    uploader.EOC)
+    # initiate CRC check on the bootloader
+    def __check_crc(self, label, fw):
+        print("\n", end='')
+        self.__drawProgressBar(label, 1, 100)
+        self.__send(self.__command(self.CMD_CHECK_CRC) +
+                    self.__command(self.CMD_EOC))
         self.__getSync()
+        self.__drawProgressBar(label, 100, 100)
+
+    def __set_boot_delay(self, boot_delay):
+        self.__send(self.__command(self.CMD_SET_BOOT_DELAY) +
+                    struct.pack("b", boot_delay) +
+                    self.__command(self.CMD_EOC))
+        self.__getSync()
+
+    # check if the key is still valid when doing a unencrypted upload
+    def __check_key(self, is_encrypted):
+        self.__send(self.__command(self.CMD_CHECK_KEY) +
+                    self.__command(self.CMD_EOC))
+        self.port.flush()
+        c = bytes(self.__recv())
+        if c != self.__command(self.CMD_INSYNC):
+            raise RuntimeError("unexpected %s instead of INSYNC" % c)
+
+        c = self.__recv()
+        if c == self.__command(self.CMD_OK):
+            # Warn and ask a user that tries to upload an unencrypted image
+            # to a bootloader that still has a valid key.
+            if not is_encrypted:
+                print()
+                print(
+                    "***********************************************************************\n"
+                    "* Attention, by uploading non factory firmware (a standard .px4 file) *\n"
+                    "* you will void warranty and this drone will never be able to use the *\n"
+                    "* factory releases again.                                             *\n"
+                    "***********************************************************************"
+                      )
+                print()
+                ask_string = "Do you want to continue? Type yes or no: "
+                if runningPython3:
+                    ret = input(ask_string)
+                else:
+                    ret = raw_input(ask_string) # noqa, flake8 ignore
+                if ret == "yes":
+                    return
+                else:
+                    print("Exiting")
+                    sys.exit()
+
+        elif c == self.__command(self.CMD_BAD_KEY):
+            # Inform a user that has previously wiped the key if they try
+            # to upload an encrypted image.
+            if is_encrypted:
+                print()
+                print(
+                    "***********************************************************************\n"
+                    "* Attention, this unit's warranty has been voided by uploading non-   *\n"
+                    "* factory firmware (a standard .px4 file). This drone will not accept *\n"
+                    "* factory releases. The only option is to use a standard .px4 file.   *\n"
+                    "***********************************************************************"
+                      )
+                print()
+                sys.exit()
+
+        else:
+            raise RuntimeError("Check for bad key failed")
 
     # get basic data about the board
     def identify(self):
@@ -468,14 +616,14 @@ class uploader(object):
         self.__sync()
 
         # get the bootloader protocol ID first
-        self.bl_rev = self.__getInfo(uploader.INFO_BL_REV)
-        if (self.bl_rev < uploader.BL_REV_MIN) or (self.bl_rev > uploader.BL_REV_MAX):
+        self.bl_rev = self.__getInfo(self.__command(self.CMD_INFO_BL_REV))
+        if (self.bl_rev < uploader.BL_REV_MIN or self.bl_rev > uploader.BL_REV_MAX):
             print("Unsupported bootloader protocol %d" % uploader.INFO_BL_REV)
             raise RuntimeError("Bootloader protocol mismatch")
 
-        self.board_type = self.__getInfo(uploader.INFO_BOARD_ID)
-        self.board_rev = self.__getInfo(uploader.INFO_BOARD_REV)
-        self.fw_maxsize = self.__getInfo(uploader.INFO_FLASH_SIZE)
+        self.board_type = self.__getInfo(self.__command(self.CMD_INFO_BOARD_ID))
+        self.board_rev = self.__getInfo(self.__command(self.CMD_INFO_BOARD_REV))
+        self.fw_maxsize = self.__getInfo(self.__command(self.CMD_INFO_FLASH_SIZE))
 
     # upload the firmware
     def upload(self, fw, force=False, boot_delay=None):
@@ -492,7 +640,7 @@ class uploader(object):
             raise RuntimeError("Firmware image is too large for this board")
 
         # OTP added in v4:
-        if self.bl_rev > 3:
+        if self.bl_rev > 3 and self.protocol == self.PROTOCOL_0:
             for byte in range(0, 32*6, 4):
                 x = self.__getOTP(byte)
                 self.otp = self.otp + x
@@ -528,13 +676,23 @@ class uploader(object):
                 # ignore bad character encodings
                 pass
 
-        self.__erase("Erase  ")
-        self.__program("Program", fw)
+        if self.bl_rev < 6 and fw.is_encrypted:
+            raise Exception("Bootloader rev %d doesn't support encrypted upload" % self.bl_rev)
 
-        if self.bl_rev == 2:
-            self.__verify_v2("Verify ", fw)
+        if self.bl_rev >= 7:
+            self.__check_key(fw.is_encrypted)
+            pass
+
+        self.__erase("Erase  ")
+        if not fw.is_encrypted:
+            self.__program("Program", fw)
+            if self.bl_rev == 2:
+                self.__verify_v2("Verify ", fw)
+            else:
+                self.__verify_v3("Verify ", fw)
         else:
-            self.__verify_v3("Verify ", fw)
+            self.__program_encrypted("Program", fw)
+            self.__check_crc("Check  ", fw)
 
         if boot_delay is not None:
             self.__set_boot_delay(boot_delay)
@@ -607,26 +765,6 @@ def main():
     print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size')))
     print("If the board does not respond within 1-2 seconds, unplug and re-plug the USB connector.")
 
-    # tell any GCS that might be connected to the autopilot to give up
-    # control of the serial port
-
-    # send to localhost and default GCS port
-    ipaddr = '127.0.0.1'
-    portnum = 14550
-
-    # COMMAND_LONG in MAVLink 1
-    heartbeatpacket = bytearray.fromhex('fe097001010000000100020c5103033c8a')
-    commandpacket = bytearray.fromhex('fe210101014c00000000000000000000000000000000000000000000803f00000000f6000000008459')
-
-    # initialize an UDP socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-    # send heartbeat to initialize connection and command to free the link
-    s.sendto(heartbeatpacket, (ipaddr, portnum))
-    s.sendto(commandpacket, (ipaddr, portnum))
-
-    # close the socket
-    s.close()
 
     # Spin waiting for a device to show up
     try:

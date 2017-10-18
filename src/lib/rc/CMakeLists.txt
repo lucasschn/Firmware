@@ -36,6 +36,7 @@ px4_add_module(
 		-Wno-unused-result
 	SRCS
 		st24.cpp
+		st24_helper.cpp
 		sumd.cpp
 		sbus.cpp
 		dsm.cpp

@@ -1714,6 +1714,34 @@ PARAM_DEFINE_INT32(RC_MAP_STAB_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_MAN_SW, 0);
 
 /**
+ * Obstacle avoidance switch channel
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_MAP_AVOID_SW, 0);
+
+/**
  * AUX1 Passthrough RC channel
  *
  * Default function: Camera pitch
@@ -2216,6 +2244,100 @@ PARAM_DEFINE_FLOAT(RC_STAB_TH, 0.5f);
 PARAM_DEFINE_FLOAT(RC_MAN_TH, 0.5f);
 
 /**
+ * Threshold for detecting the obstacle avoidance switch on position
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_AVOID_TH, 0.25f);
+
+/**
+ * Threshold for detecting the obstacle avoidance switch middle position
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_AVOID_MID_TH, 0.75f);
+
+/**
+ * PWM input channel that provides RSSI.
+ *
+ * 0: do not read RSSI from input channel
+ * 1-18: read RSSI from specified input channel
+ *
+ * Specify the range for RSSI input with RC_RSSI_PWM_MIN and RC_RSSI_PWM_MAX parameters.
+ *
+ * @min 0
+ * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_CHAN, 0);
+
+/**
+ * Max input value for RSSI reading.
+ *
+ * Only used if RC_RSSI_PWM_CHAN > 0
+ *
+ * @min 0
+ * @max 2000
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 1000);
+
+/**
+ * Min input value for RSSI reading.
+ *
+ * Only used if RC_RSSI_PWM_CHAN > 0
+ *
+ * @min 0
+ * @max 2000
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
+
+/**
  * Sample rate of the remote control values for the low pass filter on roll,pitch, yaw and throttle
  *
  * Has an influence on the cutoff frequency precision.
@@ -2236,3 +2358,17 @@ PARAM_DEFINE_FLOAT(RC_FLT_SMP_RATE, 50.0f);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC_FLT_CUTOFF, 10.0f);
+
+/**
+ * Test configuration enable
+ *
+ * When this configuration is enabled the system is in test pilot mode.
+ *
+ * @value 0 Disabled
+ * @value 1 Test Pilot
+ *
+ * @reboot_required true
+ *
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_TESTPILOT, 0);

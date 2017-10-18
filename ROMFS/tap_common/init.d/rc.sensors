@@ -3,26 +3,36 @@
 # Standard startup script for TAP v1 onboard sensor drivers.
 #
 
-if adc start
-then
-fi
+adc start
 
 if ms5611 -T 5607 -I start
 then
+else
+	mpc2520 -I start
 fi
 
 # External I2C bus
-if hmc5883 -C -T -X start
+hmc5883 -C -T -X -R 6 start
+
+# External I2C bus
+ist8310 -C start
+
+# start accel/gyro
+if ver hwcmp TAP_V1
 then
+	# Internal I2C bus
+	mpu6000 -I -T 6000 start
 fi
 
-# Internal I2C bus
-if mpu6000 -I -T 6000 start
+# start hc_sr04 (forward-facing)
+hc_sr04 -R 0 -m -a start
+
+if ver hwcmp TAP_V2
 then
+	# internal SPI bus
+	mpu6000 -s -R 8 -T 20602 -a 16 start
 fi
 
 # Wait 50 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
 usleep 50000
-if sensors start
-then
-fi
+sensors start

@@ -38,6 +38,8 @@
 /* At the moment the only known use is with a current sensor */
 #define ESC_HAVE_CURRENT_SENSOR
 
+#define NOTE_STRENGTH	40
+
 #define TAP_ESC_MAX_PACKET_LEN 20
 #define TAP_ESC_MAX_MOTOR_NUM 8
 
@@ -136,6 +138,12 @@ typedef  struct {
 	uint8_t  requestInfoType;
 } InfoRequest;
 
+typedef struct {
+	uint16_t frequency; // 0 - 20kHz
+	uint16_t duration_ms;
+	uint8_t strength;
+} EscbusTunePacket;
+
 /****** InfoRequest ***********/
 
 typedef  struct {
@@ -146,6 +154,7 @@ typedef  struct {
 		InfoRequest 		reqInfo;
 		ConfigInfoBasicRequest 	reqConfigInfoBasic;
 		RunReq			reqRun;
+		EscbusTunePacket	tunePacket;
 		ConfigInfoBasicResponse rspConfigInfoBasic;
 		RunInfoRepsonse		rspRunInfo;
 		uint8_t bytes[100];

@@ -58,6 +58,7 @@
 #include <controllib/blocks.hpp>
 #include <navigator/navigation.h>
 #include <systemlib/perf_counter.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission.h>
@@ -65,6 +66,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -118,6 +120,8 @@ public:
 	/**
 	 * Getters
 	 */
+	struct vehicle_attitude_setpoint_s *get_attitude_sp() { return &_att_sp; }
+	struct esc_status_s *get_esc_report() { return &_esc_report; }
 	struct fw_pos_ctrl_status_s *get_fw_pos_ctrl_status() { return &_fw_pos_ctrl_status; }
 	struct home_position_s *get_home_position() { return &_home_pos; }
 	struct mission_result_s *get_mission_result() { return &_mission_result; }
@@ -127,6 +131,7 @@ public:
 	struct vehicle_global_position_s *get_global_position() { return &_global_pos; }
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
+	struct vehicle_control_mode_s *get_control_mode() { return &_control_mode; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
@@ -226,7 +231,7 @@ private:
 
 	bool		_task_should_exit{false};	/**< if true, sensor task should exit */
 	int		_navigator_task{-1};		/**< task handle for sensor task */
-
+	int		_esc_report_sub{-1};		/**< esc report subscription */
 	int		_fw_pos_ctrl_status_sub{-1};	/**< notification of vehicle capabilities updates */
 	int		_global_pos_sub{-1};		/**< global position subscription */
 	int		_gps_pos_sub{-1};		/**< gps position subscription */
@@ -237,6 +242,7 @@ private:
 	int		_onboard_mission_sub{-1};	/**< onboard mission subscription */
 	int		_param_update_sub{-1};		/**< param update subscription */
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
+	int		_vehicle_att_sp_sub{-1};		/**< attitude setpoint subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
 
@@ -249,14 +255,17 @@ private:
 	orb_advert_t	_vehicle_roi_pub{nullptr};
 
 	// Subscriptions
+	esc_status_s 					_esc_report{};/**< esc status report include engine failure report */
 	fw_pos_ctrl_status_s				_fw_pos_ctrl_status{};	/**< fixed wing navigation capabilities */
 	home_position_s					_home_pos{};		/**< home position for RTL */
 	mission_result_s				_mission_result{};
 	sensor_combined_s				_sensor_combined{};	/**< sensor values */
+	vehicle_attitude_setpoint_s			_att_sp{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
 	vehicle_gps_position_s				_gps_pos{};		/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
+	vehicle_control_mode_s				_control_mode{};		/**< vehicle control mode */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
 	// Publications
@@ -310,6 +319,8 @@ private:
 	void		local_position_update();
 	void		params_update();
 	void		sensor_combined_update();
+	void		vehicle_att_sp_update();
+	void		vehicle_esc_report_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
 

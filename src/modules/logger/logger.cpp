@@ -583,7 +583,7 @@ void Logger::add_default_topics()
 	add_topic("actuator_outputs", 100);
 	add_topic("airspeed", 200);
 	add_topic("att_pos_mocap", 50);
-	add_topic("battery_status", 500);
+	add_topic("battery_status", 50);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
 	add_topic("cpuload");
@@ -614,6 +614,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
+	add_topic("realsense_avoidance_setpoint", 20);
 }
 
 void Logger::add_high_rate_topics()
@@ -1788,8 +1789,8 @@ void Logger::write_version()
 		param_get(write_uuid_param, &write_uuid);
 
 		if (write_uuid == 1) {
-			char uuid_string[PX4_CPU_UUID_WORD32_FORMAT_SIZE];
-			board_get_uuid32_formated(uuid_string, sizeof(uuid_string), "%08X", NULL);
+			char uuid_string[PX4_CPU_MFGUID_FORMAT_SIZE];
+			board_get_mfguid_formated(uuid_string, sizeof(uuid_string));
 			write_info("sys_uuid", uuid_string);
 		}
 	}

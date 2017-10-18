@@ -54,6 +54,7 @@
 
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_gyro.h>
 
 #include <drivers/drv_tone_alarm.h>
 
@@ -788,15 +789,181 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 
 		// output neutral tune
 		set_tune(TONE_NOTIFY_NEUTRAL_TUNE);
-
-		// temporary priority boost for the white blinking led to come trough
-		rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST, 3, 1);
-		usleep(200000);
+		rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST, 3, 2);
+		usleep(600000); // incease sleep to let the white color get trough
+		rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST, 0, 2);
 	}
 
 	if (sub_accel >= 0) {
 		px4_close(sub_accel);
 	}
+
+	return result;
+}
+
+calibrate_return calibrate_from_hex_orientation(orb_advert_t *mavlink_log_pub,
+		int		cancel_sub,
+		bool	side_data_collected[detect_orientation_side_count],
+		calibration_from_orientation_worker_t calibration_worker,
+		void	*worker_data,
+		bool	lenient_still_position)
+{
+	calibrate_return result = calibrate_return_ok;
+
+	enum detect_orientation_return orient = DETECT_ORIENTATION_TAIL_DOWN;
+
+	// Rotate through all requested orientation
+	while (true) {
+		if (calibrate_cancel_check(mavlink_log_pub, cancel_sub)) {
+			result = calibrate_return_cancelled;
+			break;
+		}
+
+		unsigned int side_complete_count = 0;
+
+		// Update the number of completed sides
+		for (unsigned i = 0; i < detect_orientation_side_count; i++) {
+			if (side_data_collected[i]) {
+				side_complete_count++;
+			}
+		}
+
+		if (side_complete_count == detect_orientation_side_count) {
+			// We have completed all sides, move on
+			rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_ON, 0, 2);
+			break;
+		}
+
+		uint8_t mask;
+		switch(side_complete_count) {
+			case 0:
+			case 3:
+				mask = 0x12;
+				break;
+			case 1:
+			case 4:
+				mask = 0x24;
+				break;
+			case 2:
+			case 5:
+				mask = 0x09;
+				break;
+			default: mask = 0x00;
+		}
+		rgbled_set_mag_cali(mask);
+
+		/* inform user which orientations are still needed */
+		char pendingStr[80];
+		pendingStr[0] = 0;
+
+		for (unsigned int cur_orientation = 0; cur_orientation < detect_orientation_side_count; cur_orientation++) {
+			if (!side_data_collected[cur_orientation]) {
+				strncat(pendingStr, " ", sizeof(pendingStr) - 1);
+				strncat(pendingStr, detect_orientation_str((enum detect_orientation_return)cur_orientation), sizeof(pendingStr) - 1);
+			}
+		}
+
+		calibration_log_info(mavlink_log_pub, "[cal] pending:%s", pendingStr);
+		usleep(20000);
+		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
+		usleep(20000);
+
+		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
+		usleep(20000);
+		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
+		usleep(20000);
+
+		// Call worker routine
+		result = calibration_worker(orient, cancel_sub, worker_data);
+
+		if (result != calibrate_return_ok) {
+			break;
+		}
+
+		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
+		usleep(20000);
+		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
+		usleep(20000);
+
+		// Note that this side is complete
+		side_data_collected[orient] = true;
+		orient = (detect_orientation_return)(orient + 1);
+
+		// output neutral tune
+		set_tune(TONE_NOTIFY_NEUTRAL_TUNE);
+		usleep(200000);
+	}
+
+	return result;
+}
+
+calibrate_return calibrate_detect_rotation(orb_advert_t *mavlink_log_pub, int cancel_sub, hrt_abstime detection_deadline)
+{
+		/*
+	 * Detect if the system is rotating.
+	 *
+	 * We're detecting this as a general rotation on any axis, not necessary on the one we
+	 * asked the user for. This is because we really just need two roughly orthogonal axes
+	 * for a good result, so we're not constraining the user more than we have to.
+	 */
+
+	hrt_abstime last_gyro = 0;
+	float gyro_x_integral = 0.0f;
+	float gyro_y_integral = 0.0f;
+	float gyro_z_integral = 0.0f;
+
+	calibrate_return result = calibrate_return_ok;
+
+	const float gyro_int_thresh_rad = 0.5f;
+
+	int sub_gyro = orb_subscribe(ORB_ID(sensor_gyro));
+
+	while (fabsf(gyro_x_integral) < gyro_int_thresh_rad &&
+	       fabsf(gyro_y_integral) < gyro_int_thresh_rad &&
+	       fabsf(gyro_z_integral) < gyro_int_thresh_rad) {
+
+		/* abort on request */
+		if (calibrate_cancel_check(mavlink_log_pub, cancel_sub)) {
+			result = calibrate_return_cancelled;
+			px4_close(sub_gyro);
+			return result;
+		}
+
+		/* abort with timeout */
+		if (hrt_absolute_time() > detection_deadline) {
+			result = calibrate_return_error;
+			warnx("int: %8.4f, %8.4f, %8.4f", (double)gyro_x_integral, (double)gyro_y_integral, (double)gyro_z_integral);
+			calibration_log_critical(mavlink_log_pub, "Failed: This calibration requires rotation.");
+			break;
+		}
+
+		/* Wait clocking for new data on all gyro */
+		px4_pollfd_struct_t fds[1];
+		fds[0].fd = sub_gyro;
+		fds[0].events = POLLIN;
+		size_t fd_count = 1;
+
+		int poll_ret = px4_poll(fds, fd_count, 1000);
+
+		if (poll_ret > 0) {
+			struct sensor_gyro_s gyro;
+			orb_copy(ORB_ID(sensor_gyro), sub_gyro, &gyro);
+
+			/* ensure we have a valid first timestamp */
+			if (last_gyro > 0) {
+
+				/* integrate */
+				float delta_t = (gyro.timestamp - last_gyro) / 1e6f;
+				gyro_x_integral += gyro.x * delta_t;
+				gyro_y_integral += gyro.y * delta_t;
+				gyro_z_integral += gyro.z * delta_t;
+			}
+
+			last_gyro = gyro.timestamp;
+		}
+	}
+
+	orb_unsubscribe(sub_gyro);
 
 	return result;
 }

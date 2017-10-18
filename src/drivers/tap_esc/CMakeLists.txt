@@ -33,12 +33,17 @@
 px4_add_module(
 	MODULE drivers__tap_esc
 	MAIN tap_esc
+	STACK_MAIN 1600
 	COMPILE_FLAGS
 		-Wno-missing-field-initializers
 	SRCS
 		tap_esc.cpp
+		tap_esc_uploader.cpp
 		tap_esc_common.cpp
+		fault_tolerant_control/fault_tolerant_control.cpp
 	DEPENDS
 		platforms__common
+		lib__led
+		lib__tunes
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

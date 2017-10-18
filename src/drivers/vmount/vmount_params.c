@@ -49,8 +49,9 @@
 * @value 1 RC
 * @value 2 MAVLINK_ROI
 * @value 3 MAVLINK_DO_MOUNT
+* @value 4 AUTO with RC ST16
 * @min -1
-* @max 3
+* @max 4
 * @group Mount
 * @reboot_required true
 */
@@ -61,12 +62,13 @@ PARAM_DEFINE_INT32(MNT_MODE_IN, -1);
 *
 * AUX uses the mixer output Control Group #2.
 * MAVLINK uses the MAV_CMD_DO_MOUNT_CONFIGURE and MAV_CMD_DO_MOUNT_CONTROL MavLink messages
-* to control a mount (set MNT_MAV_SYSID & MNT_MAV_COMPID)
+* to control a mount (set MNT_MAV_SYSID & MNT_MAV_COMPID); SERIAL uses a serial device output.
 *
 * @value 0 AUX
 * @value 1 MAVLINK
+* @value 2 SERIAL
 * @min 0
-* @max 1
+* @max 2
 * @group Mount
 */
 PARAM_DEFINE_INT32(MNT_MODE_OUT, 0);
@@ -155,4 +157,3 @@ PARAM_DEFINE_INT32(MNT_MAN_PITCH, 0);
 * @group Mount
 */
 PARAM_DEFINE_INT32(MNT_MAN_YAW, 0);
-

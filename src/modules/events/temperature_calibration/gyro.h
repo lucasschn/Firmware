@@ -40,7 +40,7 @@ class TemperatureCalibrationGyro : public TemperatureCalibrationCommon<3, 3>
 {
 public:
 	TemperatureCalibrationGyro(float min_temperature_rise, float min_start_temperature, float max_start_temperature,
-				   int gyro_subs[], int num_gyros);
+				   int gyro_subs[], int num_gyros, float readout_tolerance);
 	virtual ~TemperatureCalibrationGyro() {}
 
 	/**
@@ -58,4 +58,8 @@ private:
 	virtual int update_sensor_instance(PerSensorData &data, int sensor_sub);
 
 	inline int finish_sensor_instance(PerSensorData &data, int sensor_index);
+
+	float _readout_tolerance; ///< value readout tolerance (if < 0, the check is disabled)
+
+	int _num_exceptions = 0;  ///< n continuous exceptional data points
 };

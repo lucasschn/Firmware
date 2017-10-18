@@ -51,6 +51,7 @@
 #include <lib/rc/dsm.h>
 #include <lib/rc/sbus.h>
 #include <lib/rc/st24.h>
+#include <lib/rc/st24_helper.h>
 #include <lib/rc/sumd.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
@@ -200,7 +201,7 @@ private:
 		RC_SCAN_SUMD,
 		RC_SCAN_ST24
 	};
-	enum RC_SCAN _rc_scan_state = RC_SCAN_SBUS;
+	enum RC_SCAN _rc_scan_state = RC_SCAN_ST24;
 
 	char const *RC_SCAN_STRING[5] = {
 		"PPM",
@@ -211,7 +212,7 @@ private:
 	};
 
 	hrt_abstime _rc_scan_begin = 0;
-	bool _rc_scan_locked = false;
+	bool _rc_scan_locked = true;
 	bool _report_lock = true;
 
 	hrt_abstime _cycle_timestamp = 0;
@@ -278,6 +279,8 @@ private:
 	float _thr_mdl_fac;	// thrust to pwm modelling factor
 
 	perf_counter_t	_ctl_latency;
+
+	St24Helper _st24_helper;
 
 	static bool	arm_nothrottle()
 	{
@@ -531,6 +534,8 @@ PX4FMU::init()
 		param_find(pname);
 	}
 
+	_st24_helper.init(_rcs_fd);
+
 	return 0;
 }
 
@@ -645,7 +650,7 @@ PX4FMU::set_mode(Mode mode)
 #if defined(BOARD_HAS_CAPTURE)
 
 	case MODE_2PWM2CAP:	// v1 multi-port with flow control lines as PWM
-		up_input_capture_set(2, Rising, 0, NULL, NULL);
+		up_input_capture_set(2, Both, 0, NULL, NULL);
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
 		DEVICE_DEBUG("MODE_2PWM2CAP");
 #endif
@@ -1139,7 +1144,7 @@ void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 {
 //    PX4_WARN("RCscan: %s failed, trying %s", PX4FMU::RC_SCAN_STRING[_rc_scan_state], PX4FMU::RC_SCAN_STRING[newState]);
 	_rc_scan_begin = 0;
-	_rc_scan_state = newState;
+	_rc_scan_state = RC_SCAN_ST24;
 }
 
 void PX4FMU::rc_io_invert(bool invert)
@@ -1427,6 +1432,16 @@ PX4FMU::cycle()
 		/* update PWM status if armed or if disarmed PWM values are set */
 		bool pwm_on = _armed.armed || _num_disarmed_set > 0 || _armed.in_esc_calibration_mode;
 
+		if (_st24_helper.vehicle_land_detected_updated()) {
+			vehicle_land_detected_s vehicle_landed_state;
+			orb_copy(ORB_ID(vehicle_land_detected), _st24_helper.vehicle_land_detected_sub(), &vehicle_landed_state);
+
+			if (vehicle_landed_state.inverted) {
+				// enable pwm if vehicle is upside down to allow to control the landing gear
+				pwm_on = true;
+			}
+		}
+
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
 
@@ -1461,6 +1476,9 @@ PX4FMU::cycle()
 						}
 
 						ioctl(nullptr, DSM_BIND_START, dsm_bind_pulses);
+
+					} else if ((int)cmd.param1 == 1) {
+						_st24_helper.bind();
 					}
 
 				} else {
@@ -1470,6 +1488,8 @@ PX4FMU::cycle()
 		}
 
 #endif
+
+		_st24_helper.cycle(_rc_in.rc_lost, _armed.armed);
 
 		orb_check(_param_sub, &updated);
 
@@ -2859,13 +2879,13 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_SET_COUNT:
 		ret = OK;
 
-		switch (_mode) {
-		case MODE_3PWM1CAP:
-			set_mode(MODE_3PWM1CAP);
+		switch (arg) {
+		case 1:
+			_mode = MODE_3PWM1CAP;
 			break;
 
-		case MODE_2PWM2CAP:
-			set_mode(MODE_2PWM2CAP);
+		case 2:
+			_mode = MODE_2PWM2CAP;
 			break;
 
 		default:

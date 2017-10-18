@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -108,6 +108,11 @@ protected:
 	 */
 	void set_land_item(struct mission_item_s *item, bool at_current_location);
 
+	/**
+	 * Set a descend mission item
+	 */
+	void set_descend_item(struct mission_item_s *item);
+
 	void set_current_position_item(struct mission_item_s *item);
 
 	/**
@@ -127,12 +132,18 @@ protected:
 
 	void issue_command(const mission_item_s &item);
 
+	/**
+	 * Set brake item
+	 */
+	void set_brake_item(struct mission_item_s *item);
+
 	float get_time_inside(const struct mission_item_s &item);
 
 	mission_item_s _mission_item{};
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
+	bool _waypoint_velocity_reached{false};
 
 	hrt_abstime _time_first_inside_orbit{0};
 	hrt_abstime _action_start{0};

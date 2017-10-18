@@ -56,6 +56,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/led_control.h>
+#include <uORB/topics/tune_control.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
@@ -115,6 +116,8 @@ static DevHandle h_leds;
 static DevHandle h_buzzer;
 static led_control_s led_control = {};
 static orb_advert_t led_control_pub = nullptr;
+static tune_control_s tune_control = {};
+static orb_advert_t tune_control_pub = nullptr;
 
 int buzzer_init()
 {
@@ -125,25 +128,23 @@ int buzzer_init()
 	tune_durations[TONE_NOTIFY_NEGATIVE_TUNE] = 900000;
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
 	tune_durations[TONE_ARMING_WARNING_TUNE] = 3000000;
-
-	DevMgr::getHandle(TONEALARM0_DEVICE_PATH, h_buzzer);
-
-	if (!h_buzzer.isValid()) {
-		PX4_WARN("Buzzer: px4_open fail\n");
-		return PX4_ERROR;
-	}
+	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
 
 	return PX4_OK;
 }
 
 void buzzer_deinit()
 {
-	DevMgr::releaseHandle(h_buzzer);
+	orb_unadvertise(tune_control_pub);
 }
 
 void set_tune_override(int tune)
 {
-	h_buzzer.ioctl(TONE_SET_ALARM, tune);
+	tune_control.tune_id = tune;
+	tune_control.strength = 40;
+	tune_control.tune_override = 1;
+	tune_control.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
 }
 
 void set_tune(int tune)
@@ -154,7 +155,11 @@ void set_tune(int tune)
 	if (tune_end == 0 || new_tune_duration != 0 || hrt_absolute_time() > tune_end) {
 		/* allow interrupting current non-repeating tune by the same tune */
 		if (tune != tune_current || new_tune_duration != 0) {
-			h_buzzer.ioctl(TONE_SET_ALARM, tune);
+			tune_control.tune_id = tune;
+			tune_control.strength = 40;
+			tune_control.tune_override = 0;
+			tune_control.timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
 		}
 
 		tune_current = tune;
@@ -204,7 +209,7 @@ void tune_mission_fail(bool use_buzzer)
 void tune_positive(bool use_buzzer)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST, 3, 2);
 
 	if (use_buzzer) {
 		set_tune(TONE_NOTIFY_POSITIVE_TUNE);
@@ -217,7 +222,7 @@ void tune_positive(bool use_buzzer)
 void tune_neutral(bool use_buzzer)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST, 3, 2);
 
 	if (use_buzzer) {
 		set_tune(TONE_NOTIFY_NEUTRAL_TUNE);
@@ -230,7 +235,7 @@ void tune_neutral(bool use_buzzer)
 void tune_negative(bool use_buzzer)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_RED, led_control_s::MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_control_s::COLOR_RED, led_control_s::MODE_BLINK_FAST, 3, 2);
 
 	if (use_buzzer) {
 		set_tune(TONE_NOTIFY_NEGATIVE_TUNE);
@@ -240,10 +245,10 @@ void tune_negative(bool use_buzzer)
 void tune_failsafe(bool use_buzzer)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_PURPLE, led_control_s::MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_control_s::COLOR_PURPLE, led_control_s::MODE_BLINK_FAST, 3, 2);
 
 	if (use_buzzer) {
-		set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
+		// set_tune(TONE_BATTERY_WARNING_FAST_TUNE); intentionally commented out
 	}
 }
 
@@ -324,6 +329,7 @@ int led_off(int led)
 
 void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint8_t prio)
 {
+	led_control.led_mask = 0xff;
 	led_control.mode = mode;
 	led_control.color = color;
 	led_control.num_blinks = blinks;
@@ -334,4 +340,27 @@ void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint
 
 void rgbled_set_color_and_mode(uint8_t color, uint8_t mode){
 	rgbled_set_color_and_mode(color, mode, 0, 0);
+}
+
+void rgbled_set_mag_cali(uint8_t mask)
+{
+	led_control.color = led_control_s::COLOR_GREEN;
+	led_control.num_blinks = 0;
+	led_control.priority = 2;
+	led_control.timestamp = hrt_absolute_time();
+
+	led_control.led_mask = ~mask; // turn off LEDs which should not blink
+	led_control.mode = led_control_s::COLOR_OFF;
+	orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
+
+	led_control.led_mask = mask;
+	led_control.mode = led_control_s::MODE_BLINK_NORMAL;
+	orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
+}
+
+void rgbled_reset_high_prio_event(){
+	led_control.mode = led_control_s::MODE_DISABLED;
+	led_control.led_mask = 0xff;
+	led_control.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
 }

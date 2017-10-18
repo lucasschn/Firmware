@@ -203,6 +203,18 @@ Navigator::vehicle_land_detected_update()
 }
 
 void
+Navigator::vehicle_att_sp_update()
+{
+	orb_copy(ORB_ID(vehicle_attitude_setpoint), _vehicle_att_sp_sub, &_att_sp);
+}
+
+void
+Navigator::vehicle_esc_report_update()
+{
+	orb_copy(ORB_ID(esc_status), _esc_report_sub, &_esc_report);
+}
+
+void
 Navigator::params_update()
 {
 	parameter_update_s param_update;
@@ -247,10 +259,14 @@ Navigator::task_main()
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	_vehicle_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	_esc_report_sub = orb_subscribe(ORB_ID(esc_status));
 
 	/* copy all topics first time */
 	vehicle_status_update();
 	vehicle_land_detected_update();
+	vehicle_att_sp_update();
+	vehicle_esc_report_update();
 	global_position_update();
 	local_position_update();
 	gps_position_update();
@@ -328,6 +344,18 @@ Navigator::task_main()
 
 		if (updated) {
 			params_update();
+		}
+
+		orb_check(_vehicle_att_sp_sub, &updated);
+
+		if (updated) {
+			vehicle_att_sp_update();
+		}
+
+		orb_check(_esc_report_sub, &updated);
+
+		if (updated) {
+			vehicle_esc_report_update();
 		}
 
 		/* vehicle status updated */
@@ -718,6 +746,7 @@ Navigator::task_main()
 	orb_unsubscribe(_onboard_mission_sub);
 	orb_unsubscribe(_offboard_mission_sub);
 	orb_unsubscribe(_param_update_sub);
+	orb_unsubscribe(_vehicle_att_sp_sub);
 	orb_unsubscribe(_vehicle_command_sub);
 
 	PX4_INFO("exiting");

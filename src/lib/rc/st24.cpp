@@ -40,9 +40,12 @@
  */
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include "st24.h"
 #include "common_rc.h"
+#include "string.h"
+#include <drivers/drv_hrt.h>
 
 const char *decode_states[] = {"UNSYNCED",
 			       "GOT_STX1",
@@ -53,20 +56,28 @@ const char *decode_states[] = {"UNSYNCED",
 			      };
 
 /* define range mapping here, -+100% -> 1000..2000 */
-#define ST24_RANGE_MIN 500.0f
-#define ST24_RANGE_MAX 3500.0f
+#define ST24_RANGE_MIN 0.0f
+#define ST24_RANGE_MAX 4096.0f
 
 #define ST24_TARGET_MIN 1000.0f
 #define ST24_TARGET_MAX 2000.0f
 
+#define KILL_HOTKEY_TIME 1000000
+
 /* pre-calculate the floating point stuff as far as possible at compile time */
 #define ST24_SCALE_FACTOR ((ST24_TARGET_MAX - ST24_TARGET_MIN) / (ST24_RANGE_MAX - ST24_RANGE_MIN))
-#define ST24_SCALE_OFFSET (int)(ST24_TARGET_MIN - (ST24_SCALE_FACTOR * ST24_RANGE_MIN + 0.5f))
+#define ST24_SCALE_OFFSET (ST24_TARGET_MIN - (ST24_SCALE_FACTOR * ST24_RANGE_MIN))
 
 static enum ST24_DECODE_STATE _decode_state = ST24_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
 
-static ReceiverFcPacket &_rxpacket = rc_decode_buf._strxpacket;
+static uint16_t _last_channel_0 = 0; /* the last raw value channel 0 (throttle and button) had */
+static hrt_abstime _kill_hotkey_start = 0; /* the time when the hotkey started to measure timeout */
+static int _kill_hotkey_button_count = 0; /* how many times the button was pressed during the hotkey */
+static bool _kill_state = false; /* the kill state in with we lockdown the motors until restart */
+
+static ReceiverFcPacket _rxpacket;
+static ReceiverFcPacket _txpacket;
 
 uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 {
@@ -124,7 +135,8 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 	case ST24_DECODE_STATE_GOT_STX2:
 
 		/* ensure no data overflow failure or hack is possible */
-		if ((unsigned)byte <= sizeof(_rxpacket.length) + sizeof(_rxpacket.type) + sizeof(_rxpacket.st24_data)) {
+		if (((unsigned)byte <= sizeof(_rxpacket.length) + sizeof(_rxpacket.type) + sizeof(_rxpacket.st24_data))
+		    && (unsigned)byte != 0) {
 			_rxpacket.length = byte;
 			_rxlen = 0;
 			_decode_state = ST24_DECODE_STATE_GOT_LEN;
@@ -163,60 +175,82 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 
 			switch (_rxpacket.type) {
 
-			case ST24_PACKET_TYPE_CHANNELDATA12: {
-					ChannelData12 *d = (ChannelData12 *)_rxpacket.st24_data;
-
-					// Scale from 0..255 to 100%.
-					*rssi = d->rssi * (100.0f / 255.0f);
-					*lost_count = d->lost_count;
-
-					/* this can lead to rounding of the strides */
-					*channel_count = (max_chan_count < 12) ? max_chan_count : 12;
-
-					unsigned stride_count = (*channel_count * 3) / 2;
-					unsigned chan_index = 0;
-
-					for (unsigned i = 0; i < stride_count; i += 3) {
-						channels[chan_index] = ((uint16_t)d->channel[i] << 4);
-						channels[chan_index] |= ((uint16_t)(0xF0 & d->channel[i + 1]) >> 4);
-						/* convert values to 1000-2000 ppm encoding in a not too sloppy fashion */
-						channels[chan_index] = (uint16_t)(channels[chan_index] * ST24_SCALE_FACTOR + .5f) + ST24_SCALE_OFFSET;
-						chan_index++;
-
-						channels[chan_index] = ((uint16_t)d->channel[i + 2]);
-						channels[chan_index] |= (((uint16_t)(0x0F & d->channel[i + 1])) << 8);
-						/* convert values to 1000-2000 ppm encoding in a not too sloppy fashion */
-						channels[chan_index] = (uint16_t)(channels[chan_index] * ST24_SCALE_FACTOR + .5f) + ST24_SCALE_OFFSET;
-						chan_index++;
-					}
-				}
-				break;
-
+			case ST24_PACKET_TYPE_CHANNELDATA12:
 			case ST24_PACKET_TYPE_CHANNELDATA24: {
 					ChannelData24 *d = (ChannelData24 *)&_rxpacket.st24_data;
 
-					// Scale from 0..255 to 100%.
+					/* Scale from 0..255 to 100%. */
 					*rssi = d->rssi * (100.0f / 255.0f);
 					*lost_count = d->lost_count;
 
 					/* this can lead to rounding of the strides */
-					*channel_count = (max_chan_count < 24) ? max_chan_count : 24;
+					if (_rxpacket.type == ST24_PACKET_TYPE_CHANNELDATA12) {
+						*channel_count = (max_chan_count < 12) ? max_chan_count : 12;
 
+					} else if (_rxpacket.type == ST24_PACKET_TYPE_CHANNELDATA24) {
+						*channel_count = (max_chan_count < 24) ? max_chan_count : 24;
+					}
+
+					/* decode channels always 3 bytes give 2 channels */
 					unsigned stride_count = (*channel_count * 3) / 2;
 					unsigned chan_index = 0;
 
 					for (unsigned i = 0; i < stride_count; i += 3) {
 						channels[chan_index] = ((uint16_t)d->channel[i] << 4);
 						channels[chan_index] |= ((uint16_t)(0xF0 & d->channel[i + 1]) >> 4);
-						/* convert values to 1000-2000 ppm encoding in a not too sloppy fashion */
-						channels[chan_index] = (uint16_t)(channels[chan_index] * ST24_SCALE_FACTOR + .5f) + ST24_SCALE_OFFSET;
 						chan_index++;
 
 						channels[chan_index] = ((uint16_t)d->channel[i + 2]);
 						channels[chan_index] |= (((uint16_t)(0x0F & d->channel[i + 1])) << 8);
-						/* convert values to 1000-2000 ppm encoding in a not too sloppy fashion */
-						channels[chan_index] = (uint16_t)(channels[chan_index] * ST24_SCALE_FACTOR + .5f) + ST24_SCALE_OFFSET;
 						chan_index++;
+					}
+
+					*channel_count += 2; // add two virtual channels for arm button and kill switch hotkey
+					const bool arm_button_pressed = channels[0] == 0;
+
+					/* Kill hotkey: pressing the arm button three times with low throttle within 1.5s
+					 * overrides a free channel with a virtual switch which has maximum value when kill was triggered
+					 * need to be used in combination with RC_MAP_KILL_SW mapped to the channel */
+					const bool first_time = _kill_hotkey_button_count == 0;
+					const bool within_timeout = hrt_elapsed_time(&_kill_hotkey_start) < KILL_HOTKEY_TIME;
+					const bool hotkey_complete = _kill_hotkey_button_count > 2;
+
+					if (hotkey_complete) {
+						_kill_state = true;
+					}
+
+					if (_last_channel_0 < 1250 && (first_time || within_timeout) && !hotkey_complete) {
+						if (_last_channel_0 != 0 && arm_button_pressed) {
+							if (first_time) {
+								_kill_hotkey_start = hrt_absolute_time();
+							}
+
+							_kill_hotkey_button_count++;
+						}
+
+					} else {
+						_kill_hotkey_button_count = 0;
+						_kill_hotkey_start = 0;
+					}
+
+					_last_channel_0 = channels[0];
+					channels[ST16_VIRTUAL_KILL_SWITCH_CHANNEL] = _kill_state ? (uint16_t)ST24_RANGE_MAX : (uint16_t)ST24_RANGE_MIN;
+
+					/* Handle the red arm/disarm button of the ST16 which is mapped to Channel 1 (Throttle) raw value 0 when pressed
+					 * Override a free channel with a virtual switch which has maximum value when button is pressed
+					 * needs to be used in combination with RC_MAP_ARM_SW mapped to the channel and parameter COM_ARM_SWISBTN enabled */
+					if (arm_button_pressed) {
+						channels[ST16_VIRTUAL_ARM_BUTTON_CHANNEL] = (uint16_t)ST24_RANGE_MAX;
+						/* set a low throttle value when ST16 arm button pressed to descend */
+						channels[0] = ST16_ARM_BUTTON_THROTTLE_VALUE_RAW;
+
+					} else {
+						channels[ST16_VIRTUAL_ARM_BUTTON_CHANNEL] = (uint16_t)ST24_RANGE_MIN;
+					}
+
+					/* convert values from 0-4096 serial value to 1000-2000 ppm encoding */
+					for (unsigned i = 0; i < *channel_count; i++) {
+						channels[i] = (uint16_t)(channels[i] * ST24_SCALE_FACTOR + ST24_SCALE_OFFSET + .5f);
 					}
 				}
 				break;
@@ -244,4 +278,21 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 	}
 
 	return ret;
+}
+
+ReceiverFcPacket *st24_encode(uint8_t type, const uint8_t *data, uint8_t bytecount)
+{
+	_txpacket.header1 = ST24_STX1;
+	_txpacket.header2 = ST24_STX2;
+	_txpacket.length = bytecount + 2; // 2 bytes more for length and type
+	_txpacket.type = type;
+	memcpy(_txpacket.st24_data, data, bytecount);
+	_txpacket.st24_data[bytecount] = st24_common_crc8((uint8_t *) &_txpacket.length, _txpacket.length);
+	return &_txpacket;
+}
+
+ReceiverFcPacket *st24_get_bind_packet(void)
+{
+	StBindCmd bind_cmd = {0, {'B', 'I', 'N', 'D'}};
+	return st24_encode(ST24_PACKET_TYPE_BINDCMD, (uint8_t *) &bind_cmd, sizeof(StBindCmd));
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,7 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Sander Smeets <sander@droneslab.com>
  * @author Andreas Antener <andreas@uaventure.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include "mission_block.h"
@@ -87,6 +88,7 @@ MissionBlock::is_mission_item_reached()
 
 	case NAV_CMD_DO_LAND_START:
 	case NAV_CMD_DO_TRIGGER_CONTROL:
+	case NAV_CMD_RETURN_TO_LAUNCH:
 	case NAV_CMD_DO_DIGICAM_CONTROL:
 	case NAV_CMD_IMAGE_START_CAPTURE:
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
@@ -351,8 +353,24 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
-	/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
-	if (_waypoint_position_reached && _waypoint_yaw_reached) {
+	/* check if velocity needs to be reached
+	 * Note: the position controller either tracks position/yaw or velocity */
+	if (_mission_item.force_velocity) {
+
+		float ground_speed = sqrtf(_navigator->get_global_position()->vel_n * _navigator->get_global_position()->vel_n +
+					   _navigator->get_global_position()->vel_e * _navigator->get_global_position()->vel_e);
+
+
+		/* we reached desired velcoity */
+		if (fabsf(ground_speed - _mission_item.requested_speed) < 0.5f) {
+			_waypoint_velocity_reached = true;
+			return true;
+		}
+	}
+
+
+	/* Once the waypoint, yaw setpoint, velocity setpoint have been reached we can start the loiter time countdown */
+	else if (_waypoint_position_reached && _waypoint_yaw_reached) {
 
 		if (_time_first_inside_orbit == 0) {
 			_time_first_inside_orbit = now;
@@ -397,6 +415,7 @@ MissionBlock::is_mission_item_reached()
 	// all acceptance criteria must be met in the same iteration
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
+	_waypoint_velocity_reached = false;
 	return false;
 }
 
@@ -405,6 +424,7 @@ MissionBlock::reset_mission_item_reached()
 {
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
+	_waypoint_velocity_reached = false;
 	_time_first_inside_orbit = 0;
 	_time_wp_reached = 0;
 }
@@ -471,12 +491,14 @@ MissionBlock::get_time_inside(const struct mission_item_s &item)
 bool
 MissionBlock::item_contains_position(const mission_item_s &item)
 {
-	return item.nav_cmd == NAV_CMD_WAYPOINT ||
+	return item.nav_cmd == NAV_CMD_IDLE ||
+	       item.nav_cmd == NAV_CMD_WAYPOINT ||
 	       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
 	       item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 	       item.nav_cmd == NAV_CMD_LAND ||
 	       item.nav_cmd == NAV_CMD_TAKEOFF ||
 	       item.nav_cmd == NAV_CMD_LOITER_TO_ALT ||
+	       item.nav_cmd == NAV_CMD_DO_FOLLOW_REPOSITION ||
 	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
 	       item.nav_cmd == NAV_CMD_VTOL_LAND;
 }
@@ -499,6 +521,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->loiter_direction = (item.loiter_radius > 0) ? 1 : -1;
 	sp->acceptance_radius = item.acceptance_radius;
 	sp->disable_mc_yaw_control = item.disable_mc_yaw;
+	sp->deploy_gear = item.deploy_gear;
 
 	sp->cruising_speed = _navigator->get_cruising_speed();
 	sp->cruising_throttle = _navigator->get_cruising_throttle();
@@ -562,6 +585,16 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 		if (_navigator->get_vstatus()->is_vtol && _param_vtol_wv_loiter.get()) {
 			sp->disable_mc_yaw_control = true;
+		}
+
+		break;
+
+	case NAV_CMD_WAYPOINT:
+		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+		if (item.force_velocity) {
+			sp->cruising_speed = item.requested_speed;
+			sp->type = position_setpoint_s::SETPOINT_TYPE_VELOCITY;
 		}
 
 		break;
@@ -676,6 +709,8 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, 
 	item->pitch_min = min_pitch;
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
+	item->deploy_gear = false;
+
 }
 
 void
@@ -716,11 +751,42 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
+	item->deploy_gear = true;
+}
+
+void
+MissionBlock::set_descend_item(struct mission_item_s *item)
+{
+
+	/* VTOL transition to RW before landing */
+	if (_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing &&
+	    _param_force_vtol.get() == 1) {
+		struct vehicle_command_s cmd = {};
+		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
+		cmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		_navigator->publish_vehicle_cmd(&cmd);
+	}
+
+	/* set the descend item */
+	item->nav_cmd = NAV_CMD_LAND;
+	//lat/lon are not being used as descend implies no valid position
+	item->lat = _navigator->get_global_position()->lat;
+	item->lon = _navigator->get_global_position()->lon;
+	item->yaw = _navigator->get_global_position()->yaw;
+	item->altitude = 0;
+	item->altitude_is_relative = false;
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->autocontinue = true;
+	item->origin = ORIGIN_ONBOARD;
+	item->deploy_gear = true;
 }
 
 void
 MissionBlock::set_current_position_item(struct mission_item_s *item)
 {
+	*item = {};
 	item->nav_cmd = NAV_CMD_WAYPOINT;
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
@@ -745,6 +811,23 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->autocontinue = true;
+	item->origin = ORIGIN_ONBOARD;
+}
+
+void
+MissionBlock::set_brake_item(struct mission_item_s *item)
+{
+	item->nav_cmd = NAV_CMD_WAYPOINT;
+	item->lat = _navigator->get_global_position()->lat;
+	item->lon = _navigator->get_global_position()->lon;
+	item->altitude_is_relative = false;
+	item->altitude = _navigator->get_global_position()->alt;
+	item->yaw = NAN;
+	item->acceptance_radius = 1e8f; // set it large since we don't care about waypoint
+	item->requested_speed = 0.000001f; // set speed to small number since we want to brake
+	item->force_velocity = 1;
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;

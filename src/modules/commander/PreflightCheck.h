@@ -45,6 +45,13 @@
 
 namespace Commander
 {
+
+// enum class GPSCheckLevel{
+//     NONE = 0,
+//     GPS_LOCK,
+//     HOME_POSITION_LOCK
+// };
+
 /**
 * Runs a preflight check on all sensors to see if they are properly calibrated and healthy
 *

@@ -240,6 +240,9 @@ Mavlink::Mavlink() :
 	_protocol_version_switch(-1),
 	_protocol_version(0),
 	_bytes_tx(0),
+#ifdef MAVLINK_TX_BYTE_COUNT_ENABLED
+	_bytes_tx_comm(0),
+#endif
 	_bytes_txerr(0),
 	_bytes_rx(0),
 	_bytes_timestamp(0),
@@ -676,6 +679,7 @@ int Mavlink::get_component_id()
 
 int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 {
+#ifdef __PX4_NUTTX
 #ifndef B460800
 #define B460800 460800
 #endif
@@ -688,9 +692,18 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 #define B921600 921600
 #endif
 
+#ifndef B750000
+#define B750000 750000
+#endif
+
 #ifndef B1000000
 #define B1000000 1000000
 #endif
+
+#ifndef B1500000
+#define B1500000 1500000
+#endif
+#endif /* __PX4_NUTTX */
 
 	/* process baud rate */
 	int speed;
@@ -734,13 +747,30 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 
 	case 230400: speed = B230400; break;
 
+#ifdef B460800
+
 	case 460800: speed = B460800; break;
+#endif
+
+#ifdef B500000
 
 	case 500000: speed = B500000; break;
+#endif
+
+#ifdef B750000
+
+	case 750000: speed = B750000; break;
+#endif
+
+#ifdef B921600
 
 	case 921600: speed = B921600; break;
+#endif
+
+#ifdef B1000000
 
 	case 1000000: speed = B1000000; break;
+#endif
 
 #ifdef B1500000
 
@@ -753,7 +783,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 #endif
 
 	default:
-		PX4_ERR("Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n500000\n921600\n1000000\n",
+		PX4_ERR("Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n500000\n921600\n1000000\n150000\n",
 			baud);
 		return -EINVAL;
 	}
@@ -1319,10 +1349,14 @@ void Mavlink::send_autopilot_capabilites()
 		msg.middleware_sw_version = px4_firmware_version();
 		msg.os_sw_version = px4_os_version();
 		msg.board_version = px4_board_version();
-		uint64_t fw_git_version_binary = px4_firmware_version_binary();
+		/* use only first 5 bytes of git hash for firmware version */
+		const uint64_t fw_git_version_binary = px4_firmware_version_binary() & 0xFFFFFFFFFF000000;
+		const uint64_t fw_vendor_version = px4_firmware_vendor_version() >> 8;
+		constexpr size_t fw_vendor_version_length = 3;
 		memcpy(&msg.flight_custom_version, &fw_git_version_binary, sizeof(msg.flight_custom_version));
+		memcpy(&msg.flight_custom_version, &fw_vendor_version, fw_vendor_version_length);
 		memcpy(&msg.middleware_custom_version, &fw_git_version_binary, sizeof(msg.middleware_custom_version));
-		uint64_t os_git_version_binary = px4_os_version_binary();
+		const uint64_t os_git_version_binary = px4_os_version_binary();
 		memcpy(&msg.os_custom_version, &os_git_version_binary, sizeof(msg.os_custom_version));
 #ifdef CONFIG_CDCACM_VENDORID
 		msg.vendor_id = CONFIG_CDCACM_VENDORID;
@@ -1645,6 +1679,8 @@ Mavlink::get_rate_mult()
 MavlinkShell *
 Mavlink::get_shell()
 {
+#ifndef BUILD_WITH_RESTRICTED_SYSTEM_ACCESS // disable mavlink shell if this is a restricted build
+
 	if (!_mavlink_shell) {
 		_mavlink_shell = new MavlinkShell();
 
@@ -1661,6 +1697,8 @@ Mavlink::get_shell()
 			}
 		}
 	}
+
+#endif /* BUILD_WITH_RESTRICTED_SYSTEM_ACCESS */
 
 	return _mavlink_shell;
 }
@@ -2137,10 +2175,12 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("DEBUG_VECT", 50.0f);
 		configure_stream("VFR_HUD", 20.0f);
 		configure_stream("WIND_COV", 10.0f);
-		configure_stream("CAMERA_TRIGGER");
+		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("CAMERA_IMAGE_CAPTURED");
+		configure_stream("POSITION_TARGET_LOCAL_NED", 5.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
 		configure_stream("MANUAL_CONTROL", 5.0f);
+		configure_stream("GPS", 1.0f);
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:

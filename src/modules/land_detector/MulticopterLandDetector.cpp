@@ -64,9 +64,13 @@
 #include <cmath>
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
+#include <geo/geo.h>
 
 #include "MulticopterLandDetector.h"
 
+#define CRASH_CHECK_ACCEL_MAX           3.0f    // vehicle must be accelerating less than 3m/s/s to be considered crashed
+#define CRASH_CHECK_ANGLE_DEVIATION_CD  40.0f    // 40 degrees beyond angle max is signal we are crashed
+#define CRASH_CHECK_IMPACT_ACCEL		30.0f	// maximum reasonable flight acceleration
 
 namespace land_detector
 {
@@ -82,6 +86,7 @@ MulticopterLandDetector::MulticopterLandDetector() :
 	_sensor_bias_sub(-1),
 	_vehicle_control_mode_sub(-1),
 	_battery_sub(-1),
+	_v_att_sp_sub(-1),
 	_vehicleLocalPosition{},
 	_vehicleLocalPositionSetpoint{},
 	_actuators{},
@@ -123,6 +128,7 @@ void MulticopterLandDetector::_initialize_topics()
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
+	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 }
 
 void MulticopterLandDetector::_update_topics()
@@ -135,6 +141,7 @@ void MulticopterLandDetector::_update_topics()
 	_orb_update(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
 	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
 	_orb_update(ORB_ID(battery_status), _battery_sub, &_battery);
+	_orb_update(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_sub, &_v_att_sp);
 }
 
 void MulticopterLandDetector::_update_params()
@@ -154,6 +161,50 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.landSpeed, &_params.landSpeed);
 }
 
+
+bool MulticopterLandDetector::_get_crash_state()
+{
+	/* return immediately if disarmed or landed */
+	if (!_arming.armed || (_state == LandDetectionState::LANDED)) {
+
+		return false;
+	}
+
+	// vehicle not crashed if acceleration is more than 3m/s/s (1G on Z-axis has been subtracted)
+	matrix::Vector3f acc_NED(_sensors.accel_x, _sensors.accel_y, _sensors.accel_z);
+	matrix::Quatf vehicle_attitude_q(_vehicleAttitude.q);
+	acc_NED = matrix::Dcmf(vehicle_attitude_q) * acc_NED;
+	acc_NED(2) +=  CONSTANTS_ONE_G;
+
+	// check if impact
+	if (acc_NED.length() > CRASH_CHECK_ACCEL_MAX) {
+		return false;
+	}
+
+	/* check for angle error */
+	matrix::Eulerf vehicle_attitude_rpy(vehicle_attitude_q);
+
+	if ((math::degrees(fabsf(_v_att_sp.roll_body - vehicle_attitude_rpy(0))) < CRASH_CHECK_ANGLE_DEVIATION_CD) &&
+	    (math::degrees(fabsf(_v_att_sp.pitch_body - vehicle_attitude_rpy(1))) < CRASH_CHECK_ANGLE_DEVIATION_CD)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool MulticopterLandDetector::_get_inverted_state()
+{
+	matrix::Vector3f z_axis(0.0f, 0.0f, 1.0f); //body z-axis in body frame
+	z_axis = matrix::Dcmf(matrix::Quatf(_vehicleAttitude.q)) * z_axis; //body z-axis in NED frame
+
+	/* we are inverted if z axis points upward */
+	if (z_axis(2) < 0.0f) {
+
+		return true;
+	}
+
+	return false;
+}
 
 bool MulticopterLandDetector::_get_freefall_state()
 {

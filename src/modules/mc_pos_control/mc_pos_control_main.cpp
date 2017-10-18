@@ -76,6 +76,18 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
+/* --- tap specific headers */
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/realsense_avoidance_setpoint.h>
+#include <uORB/topics/realsense_distance_info.h>
+#include <uORB/topics/realsense_distance_360.h>
+#include <uORB/topics/smart_heading.h>
+#include <uORB/topics/distance_sensor.h>
+#include <lib/conversion/rotation.h>
+#include <drivers/realsense/realsense.h>
+#define TILT_COS_MAX	0.7f
+/* --- */
+
 #define SIGMA_SINGLE_OP			0.000001f
 #define SIGMA_NORM			0.001f
 /**
@@ -109,6 +121,37 @@ public:
 					  const math::Vector<3> &line_a, const math::Vector<3> &line_b, math::Vector<3> &res);
 
 private:
+
+	/* --- tap specific declarations */
+	/** Time in us that the no obstacle ahead condition has to be true to exit obstacle avoidance lock in */
+	static constexpr uint64_t OBSTACLE_LOCK_EXIT_TRIGGER_TIME_US = 1000000;
+	/** Timeout in us for obstacle avoidance sonar data to get considered invalid */
+	static constexpr uint64_t SONAR_STREAM_TIMEOUT_US = 500000;
+
+	/* landing gear */
+	int		_att_sp_sub;			/**< vehicle attitude setpoint */
+	int		_arming_sub;			/**< arming status of outputs */
+	struct actuator_armed_s				_arming;		/**< actuator arming status */
+	bool		_was_armed = false;		 		/**< true if the pre state was armed */
+	uint8_t		_gear_switch_prev = manual_control_setpoint_s::SWITCH_POS_NONE;		/**< Last state of the gear switch */
+	void apply_gear_switch(); /* execute RC landing gear switch command */
+
+	/* sonar obstacle avoidance */
+	int 	_sonar_sub;				/**< sonar data */
+	struct distance_sensor_s _sonar_measurament; /**<sonar neasurament message>*/
+	systemlib::Hysteresis _obstacle_lock_hysteresis;
+	float _yaw_obstacle_lock; /**< the yaw angle at which the vehicle exits obstacle avoidance */
+	int 	_realsense_avoidance_setpoint_pub;				/**< realsense velocity setpoint data for Sense&Avoid*/
+	int 	_realsense_distance_info_sub;		/**< realsense distance data for user dispay*/
+	int 	_realsense_distance_360_sub;		/**< realsense distance data for Sense&Stop*/
+	void obstacle_avoidance_sonar(float altitude_above_home);
+
+	/* publication to allow heading dependent orientation LEDs in smart mode */
+	orb_advert_t	_smart_heading_pub;		/**< smart heading reference publication */
+	struct realsense_avoidance_setpoint_s _realsense_avoidance_setpoint; /** < realsense velocity setpoint message >*/
+	struct realsense_distance_info_s _realsense_distance_info; /**< realsense distance message >*/
+	struct realsense_distance_360_s _realsense_distance_360; /** < realsense distance message >*/
+	/* --- */
 
 	/** Time in us that direction change condition has to be true for direction change state */
 	static constexpr uint64_t DIRECTION_CHANGE_TRIGGER_TIME_US = 100000;
@@ -277,9 +320,11 @@ private:
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 	math::Vector<3> _vel_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
+	math::Vector<3> _vel_sp_before_realsense;
 	math::Vector<3> _curr_pos_sp;  /**< current setpoint of the triplets */
 	math::Vector<3> _prev_pos_sp; /**< previous setpoint of the triples */
 	matrix::Vector2f _stick_input_xy_prev; /**< for manual controlled mode to detect direction change */
+
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -406,6 +451,24 @@ MulticopterPositionControl	*g_control;
 
 MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(nullptr, "MPC"),
+
+	/* --- tap specific initializers */
+	_att_sp_sub(-1),
+	_arming_sub(-1),
+	_arming{},
+	_sonar_sub(-1),
+	_sonar_measurament{},
+	_obstacle_lock_hysteresis(false),
+	_yaw_obstacle_lock(0.0f),
+	_realsense_avoidance_setpoint_pub(-1),
+	_realsense_distance_info_sub(-1),
+	_realsense_distance_360_sub(-1),
+	_smart_heading_pub(nullptr),
+	_realsense_avoidance_setpoint{},
+	_realsense_distance_info{},
+	_realsense_distance_360{},
+	/* --- */
+
 	_control_task(-1),
 	_mavlink_log_pub(nullptr),
 
@@ -483,6 +546,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	/* set trigger time for manual direction change detection */
 	_manual_direction_change_hysteresis.set_hysteresis_time_from(false, DIRECTION_CHANGE_TRIGGER_TIME_US);
 
+	/* tap specific: sonar obstacle avoidance initialization */
+	_obstacle_lock_hysteresis.set_hysteresis_time_from(true, OBSTACLE_LOCK_EXIT_TRIGGER_TIME_US);
+
 	_params.pos_p.zero();
 	_params.vel_p.zero();
 	_params.vel_i.zero();
@@ -495,6 +561,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_prev.zero();
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
+	_vel_sp_before_realsense.zero();
 	_curr_pos_sp.zero();
 	_prev_pos_sp.zero();
 	_stick_input_xy_prev.zero();
@@ -703,10 +770,115 @@ MulticopterPositionControl::parameters_update(bool force)
 	return OK;
 }
 
+/* --- tap specific method implementations */
+void
+MulticopterPositionControl::obstacle_avoidance_sonar(float altitude_above_home)
+{
+	const bool obsavoid_on = _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+
+	if (obsavoid_on) {
+		/* slow down in obstacle avoidance to allow for braking in front of an obstacle */
+		_vel_max_xy = 4.0f;
+
+		/* sonar is pointing forward, data stream is running, omit floor detection in low altitude */
+		const bool valid_sonar_measurament = _sonar_measurament.orientation == ROTATION_PITCH_90 &&
+						     hrt_elapsed_time((hrt_abstime *)&_sonar_measurament.timestamp) < SONAR_STREAM_TIMEOUT_US &&
+						     altitude_above_home > 1.5f;
+		/* anything but maximum distance measurement is considered an obstacle */
+		const bool obstacle_ahead = _sonar_measurament.current_distance < _sonar_measurament.max_distance;
+
+		if (valid_sonar_measurament && obstacle_ahead) {
+			_obstacle_lock_hysteresis.set_state_and_update(true);
+			_yaw_obstacle_lock = _yaw;
+		}
+
+		if (_obstacle_lock_hysteresis.get_state()) {
+			/* calculate body frame xy velocity vector to check for desired forward movement */
+			math::Vector<3> vel_sp_body = _R.transposed() * _vel_sp;
+
+			/* stay in obstacle lock when trying to go forwards without yawing 30 degree away from the last obstacle */
+			_obstacle_lock_hysteresis.set_state_and_update(vel_sp_body(0) > FLT_EPSILON &&
+					fabsf(_yaw - _yaw_obstacle_lock) > math::radians(30.0f));
+
+			/* don't allow forward or sidewards movement to stop in front of an obstacle */
+			vel_sp_body(0) = math::min(vel_sp_body(0), 0.0f);
+			vel_sp_body(1) = 0.0f;
+			_vel_sp = _R * vel_sp_body;
+			/*change previous setpoint in oder for the slewrate to be correct when exiting obstacle avoidance*/
+			_vel_sp_prev = _vel_sp;
+		}
+
+	} else {
+		/* release lock if obstacle avoidance off */
+		_obstacle_lock_hysteresis.set_state_and_update(false);
+	}
+
+	if (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+	    _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING) {
+		_vel_sp_before_realsense = _vel_sp;
+		_vel_sp(0) = _realsense_avoidance_setpoint.vx;
+		_vel_sp(1) = _realsense_avoidance_setpoint.vy;
+		_vel_sp(2) = _realsense_avoidance_setpoint.vz;
+	}
+}
+
+void
+MulticopterPositionControl::apply_gear_switch()
+{
+	//reset the _gear_state_initialized after disarmed
+	// record the state that when disarmed in position mode and the gear switch on.
+	// TODO: avoid next time at the time armed and the gear_switch:SWITCH_POS_ON, the gear up, this is not safe
+	if ((!_was_armed && _arming.armed && _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+	    || !_arming.armed || _vehicle_land_detected.landed) {
+		_gear_state_initialized = false;
+	}
+
+	// Only switch the landing gear up if we are not landed and if
+	// the user switched from gear down to gear up.
+	// If the user had the switch in the gear up position and took off ignore it
+	// until he toggles the switch to avoid retracting the gear immediately on takeoff.
+	// only after gear state has been initialized, then can switch the gear down
+	if (!_gear_state_initialized && (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF
+					 || _vehicle_land_detected.inverted)) {
+		_gear_state_initialized = true;
+	}
+
+	if (_gear_state_initialized && (_gear_switch_prev != _manual.gear_switch)) {
+		_att_sp.landing_gear = (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) ?
+				       vehicle_attitude_setpoint_s::LANDING_GEAR_UP : vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+		_gear_switch_prev = _manual.gear_switch;
+	}
+}
+/* --- */
+
 void
 MulticopterPositionControl::poll_subscriptions()
 {
 	bool updated;
+
+	/* --- tap specific subscription handling */
+	_was_armed = _arming.armed;
+
+	orb_check(_arming_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(actuator_armed), _arming_sub, &_arming);
+	}
+
+
+	orb_check(_att_sp_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
+	}
+
+	orb_check(_sonar_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(distance_sensor), _sonar_sub, &_sonar_measurament);
+	}
+
+	/* --- */
 
 	orb_check(_vehicle_status_sub, &updated);
 
@@ -831,6 +1003,31 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
 	}
+
+	orb_check(_sonar_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(distance_sensor), _sonar_sub, &_sonar_measurament);
+	}
+
+	orb_check(_realsense_avoidance_setpoint_pub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(realsense_avoidance_setpoint), _realsense_avoidance_setpoint_pub, &_realsense_avoidance_setpoint);
+	}
+
+	orb_check(_realsense_distance_info_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(realsense_distance_info), _realsense_distance_info_sub, &_realsense_distance_info);
+	}
+
+	orb_check(_realsense_distance_360_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(realsense_distance_360), _realsense_distance_360_sub, &_realsense_distance_360);
+	}
+
 }
 
 float
@@ -2277,26 +2474,28 @@ void MulticopterPositionControl::control_auto(float dt)
 			_do_reset_alt_pos_flag = true;
 		}
 
-		// Handle the landing gear based on the manual landing alt
-		const bool high_enough_for_landing_gear = (-_pos(2) + _home_pos.z > 2.0f);
+		/* For most cases we want to have gears up except when being on ground. For cases not mentioned below
+		 * we do not care if gears are up or down
+		 * NOTE: it is an if else if statment */
+		bool on_ground = (_vehicle_land_detected.landed) || (_vehicle_land_detected.maybe_landed)
+				 || (_vehicle_land_detected.ground_contact);
+		const bool gear_down = (on_ground ||
+					(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND))
+				       || _pos_sp_triplet.current.deploy_gear;
 
-		// During a mission or in loiter it's safe to retract the landing gear.
-		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
-		     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) &&
-		    !_vehicle_land_detected.landed &&
-		    high_enough_for_landing_gear) {
+		/* in mission put gears up, and the gear will not up at the when landed or ground_contact */
+		const bool gear_up = (((_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_MISSION) &&
+				       !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF))
+				      || (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL));
 
-			_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
-
-		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF ||
-			   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND ||
-			   !high_enough_for_landing_gear) {
-
-			// During takeoff and landing, we better put it down again.
+		if (gear_down) {
 			_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 
-			// For the rest of the setpoint types, just leave it as is.
+		} else if (gear_up) {
+			_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
 		}
+
+		_gear_state_initialized = false;
 
 	} else {
 		/* idle or triplet not valid, set velocity setpoint to zero */
@@ -2450,6 +2649,11 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		_vel_sp(2) = 0.0f;
 	}
 
+	/* tap specific: Do not allow the drone to fly up when interrupting an auto mode */
+	if (_control_mode.flag_control_updated) {
+		_vel_sp(2) = math::max(_vel_sp(2), 0.f);
+	}
+
 	/* limit vertical upwards speed in auto takeoff and close to ground */
 	float altitude_above_home = -_pos(2) + _home_pos.z;
 
@@ -2476,6 +2680,11 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		vel_sp_slewrate(dt);
 	}
 
+	/* tap specific: handle obstacle avoidance based on forward facing sonar measurements */
+	obstacle_avoidance_sonar(altitude_above_home);
+
+	/* TODO: move this to the end
+	 * reset previous vel sp */
 	_vel_sp_prev = _vel_sp;
 
 	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
@@ -2822,6 +3031,12 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 		const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
 
 		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
+
+		if (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON
+		    && _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING) {
+			_att_sp.yaw_sp_move_rate = _realsense_avoidance_setpoint.yawspeed;
+		}
+
 		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);
 		float yaw_offs = _wrap_pi(yaw_target - _yaw);
 
@@ -2941,18 +3156,10 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 		_att_sp.q_d_valid = true;
 	}
 
-	// Only switch the landing gear up if we are not landed and if
-	// the user switched from gear down to gear up.
-	// If the user had the switch in the gear up position and took off ignore it
-	// until he toggles the switch to avoid retracting the gear immediately on takeoff.
-	if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON && _gear_state_initialized &&
-	    !_vehicle_land_detected.landed) {
-		_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
-
-	} else if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-		_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
-		// Switching the gear off does put it into a safe defined state
-		_gear_state_initialized = true;
+	/* only in the mode of  _control_mode.flag_control_manual_enabled=true mode, we need to consider the gear switch
+	 */
+	if (_control_mode.flag_control_manual_enabled) {
+		apply_gear_switch();
 	}
 
 	_att_sp.timestamp = hrt_absolute_time();
@@ -2981,6 +3188,18 @@ MulticopterPositionControl::task_main()
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
+
+	/* --- tap specific subscription initializations */
+	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_sonar_sub = orb_subscribe(ORB_ID(distance_sensor));
+	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	_realsense_avoidance_setpoint_pub = orb_subscribe(ORB_ID(realsense_avoidance_setpoint));
+	_realsense_distance_info_sub = orb_subscribe(ORB_ID(realsense_distance_info));
+	_realsense_distance_360_sub = orb_subscribe(ORB_ID(realsense_distance_360));
+
+	/* initialize values of critical structs until first regular update */
+	_arming.armed = false;
+	/* --- */
 
 	parameters_update(true);
 
@@ -3120,9 +3339,9 @@ MulticopterPositionControl::task_main()
 			_local_pos_sp.y = _pos_sp(1);
 			_local_pos_sp.z = _pos_sp(2);
 			_local_pos_sp.yaw = _att_sp.yaw_body;
-			_local_pos_sp.vx = _vel_sp(0);
-			_local_pos_sp.vy = _vel_sp(1);
-			_local_pos_sp.vz = _vel_sp(2);
+			_local_pos_sp.vx = _vel_sp(0); //_vel_sp_before_realsense(0); //FIXME
+			_local_pos_sp.vy = _vel_sp(1); //_vel_sp_before_realsense(1);
+			_local_pos_sp.vz = _vel_sp(2); //_vel_sp_before_realsense(2);
 
 			/* publish local position setpoint */
 			if (_local_pos_sp_pub != nullptr) {
@@ -3166,7 +3385,7 @@ MulticopterPositionControl::task_main()
 		 * attitude setpoints for the transition).
 		 * - if not armed
 		 */
-		if (_control_mode.flag_armed &&
+		if ((_control_mode.flag_armed || _vehicle_land_detected.inverted) &&
 		    (!(_control_mode.flag_control_offboard_enabled &&
 		       !(_control_mode.flag_control_position_enabled ||
 			 _control_mode.flag_control_velocity_enabled ||
@@ -3178,6 +3397,17 @@ MulticopterPositionControl::task_main()
 			} else if (_attitude_setpoint_id) {
 				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 			}
+		}
+
+		/* tap specific: publish the reference for the smart heading */
+		struct smart_heading_s smart_heading;
+		smart_heading.smart_heading_ref = _yaw_takeoff;
+
+		if (_smart_heading_pub != nullptr) {
+			orb_publish(ORB_ID(smart_heading), _smart_heading_pub, &smart_heading);
+
+		} else {
+			_smart_heading_pub = orb_advertise(ORB_ID(smart_heading), &smart_heading);
 		}
 	}
 

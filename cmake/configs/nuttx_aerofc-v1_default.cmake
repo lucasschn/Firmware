@@ -85,6 +85,7 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 	lib/tailsitter_recovery
+	lib/tunes
 	lib/version
 	lib/DriverFramework/framework
 	lib/rc

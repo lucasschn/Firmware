@@ -46,8 +46,9 @@
 #include <drivers/drv_hrt.h>
 
 TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_rise, float min_start_temperature,
-		float max_start_temperature)
-	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature)
+		float max_start_temperature, float readout_tolerance)
+	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature),
+	  _readout_tolerance(readout_tolerance)
 {
 
 	//init subscriptions
@@ -98,6 +99,31 @@ int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int
 
 	sensor_accel_s accel_data;
 	orb_copy(ORB_ID(sensor_accel), sensor_sub, &accel_data);
+
+	// check value tolerance
+	if (accel_data.x > _readout_tolerance || accel_data.y > _readout_tolerance ||
+	    (CONSTANTS_ONE_G + accel_data.z) > _readout_tolerance ||
+	    accel_data.x < -_readout_tolerance || accel_data.y < -_readout_tolerance ||
+	    (CONSTANTS_ONE_G + accel_data.z) < -_readout_tolerance) {
+		return -TC_ERROR_DATA_EXCEPTION;
+	}
+
+	// check for 0 readout
+	if (fabsf(accel_data.x) < TC_SENSOR_VALUE_TOL || fabsf(accel_data.y) < TC_SENSOR_VALUE_TOL ||
+	    fabsf(accel_data.z) < TC_SENSOR_VALUE_TOL) {
+		_num_exceptions++;
+
+		if (_num_exceptions == TC_DATA_EXCEPTION_NUM) {
+			return -TC_ERROR_DATA_EXCEPTION;
+		}
+
+	} else {
+		_num_exceptions--;
+
+		if (_num_exceptions < 1) {
+			_num_exceptions = 0;
+		}
+	}
 
 	if (finished) {
 		// if we're done, return, but we need to return after orb_copy because of poll()

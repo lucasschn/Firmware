@@ -194,6 +194,17 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
 PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 12.0f);
 
 /**
+ * RC loss failsafe behavior switch
+ *
+ * If equal to zero RC loss triggers RTL only for manual mode. If equal to one RC loss triggers
+ * RTL in every mode.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_FLOAT(COM_RC_LOSS_MAN, 0);
+
+/**
  * Home set horizontal threshold
  *
  * The home position will be set if the estimated positioning accuracy is below the threshold.
@@ -256,18 +267,33 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * automatically disarmed in case a landing situation has been detected during this period.
  *
  * The vehicle will also auto-disarm right after arming if it has not even flown, however the time
- * will be longer by a factor of 5.
+ * will always be 10 seconds such that the pilot has enough time to take off.
  *
- * A value of zero means that automatic disarming is disabled.
+ * A negative value means that automatic disarming triggered by landing detection is disabled.
  *
  * @group Commander
- * @min 0
+ * @min -1
  * @max 20
  * @unit s
- * @decimal 0
- * @increment 1
+ * @decimal 2
  */
-PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
+PARAM_DEFINE_FLOAT(COM_DISARM_LAND, -1.0f);
+
+/**
+ * Time-out for auto disarm after crashing
+ *
+ * A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be
+ * automatically disarmed in case a crash situation has been detected during this period.
+ *
+ * A negative value means that automatic disarming triggered by a crash is disabled.
+ *
+ * @group Commander
+ * @min -1
+ * @max 20
+ * @unit s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(COM_DISARM_CRASH, -1.0f);
 
 /**
  * Allow arming without GPS
@@ -278,6 +304,19 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
  * @boolean
  */
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
+
+/**
+ * Allow interrupt gohome and landing
+ *
+ * The default do not allow interrupt gohome and landing.
+ *
+ * @group Commander
+ * @min 0
+ * @max 1
+ * @value 0 Don't allow interrupting gohome and landing
+ * @value 1 Allow interrupting gohome and landing
+ */
+PARAM_DEFINE_INT32(COM_ALLOW_INT, 0);
 
 /**
  * Arm switch is only a button
@@ -300,9 +339,9 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
  *
  * @group Commander
  * @value 0 Warning
- * @value 1 Return to land
+ * @value 1 Return to Launch
  * @value 2 Land at current position
- * @value 3 Return to land at critically low level, land at current position if reaching dangerously low levels
+ * @value 3 RTL, land immediately if battery too low
  * @decimal 0
  * @increment 1
  */
@@ -328,7 +367,7 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
  *
  * @value 0 Land at current position
  * @value 1 Loiter
- * @value 2 Return to Land
+ * @value 2 Return to Launch
  *
  * @group Mission
  */
@@ -343,7 +382,7 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  * @value 0 Position control
  * @value 1 Altitude control
  * @value 2 Manual
- * @value 3 Return to Land
+ * @value 3 Return to Launch
  * @value 4 Land at current position
  * @value 5 Loiter
  * @group Mission
@@ -370,6 +409,7 @@ PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Smart
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
@@ -394,6 +434,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Smart
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
@@ -418,6 +459,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Smart
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
@@ -442,6 +484,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Smart
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
@@ -466,6 +509,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Smart
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
@@ -490,6 +534,7 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
  * @value 8 Stabilized
  * @value 9 Rattitude
  * @value 12 Follow Me
+ * @value 13 Smart
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLTMODE6, -1);
@@ -588,7 +633,7 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_ACC, 0.7f);
  * @decimal 3
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
+PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.15f);
 
 /**
  * Maximum magnetic field inconsistency between units that will allow arming
@@ -687,6 +732,36 @@ PARAM_DEFINE_INT32(COM_POS_FS_PROB, 30);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_POS_FS_GAIN, 10);
+
+/**
+ * allow interrupt minimum altitude
+ *
+ *This is the minimum altitude the drone allow to be interrupted
+ *
+ * @group Commander
+ * @unit m
+ * @min 0.0
+ * @max 20.0
+ * @decimal 1
+ * @increment 0.5
+ */
+PARAM_DEFINE_FLOAT(COM_MIN_ALT, 2.5f);
+
+/**
+ * Land interrupt delay
+ *
+ *If rtl/land is interrupted by sticks, it takes COM_LND_INTRUPT time
+ *to switch back to rtl/land
+ *
+ * @group Commander
+ * @unit s
+ * @min 0.0
+ * @max 20.0
+ * @decimal 1
+ * @increment 0.5
+ */
+PARAM_DEFINE_FLOAT(COM_LND_INTRUPT, 1.0f);
+
 
 /**
  * Next flight UUID

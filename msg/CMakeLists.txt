@@ -52,6 +52,7 @@ set(msg_files
 	distance_sensor.msg
 	ekf2_innovations.msg
 	ekf2_timestamps.msg
+	engine_failure_report.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
@@ -82,6 +83,9 @@ set(msg_files
 	power_button_state.msg
 	pwm_input.msg
 	qshell_req.msg
+	realsense_avoidance_setpoint.msg
+	realsense_distance_info.msg
+	realsense_distance_360.msg
 	rc_channels.msg
 	rc_parameter_map.msg
 	safety.msg
@@ -96,6 +100,7 @@ set(msg_files
 	sensor_preflight.msg
 	sensor_selection.msg
 	servorail_status.msg
+	smart_heading.msg
 	subsystem_info.msg
 	system_power.msg
 	task_stack_info.msg
@@ -104,6 +109,7 @@ set(msg_files
 	test_motor.msg
 	time_offset.msg
 	transponder_report.msg
+	tune_control.msg
 	uavcan_parameter_request.msg
 	uavcan_parameter_value.msg
 	ulog_stream.msg

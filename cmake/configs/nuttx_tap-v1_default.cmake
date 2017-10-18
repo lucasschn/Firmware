@@ -20,12 +20,15 @@ set(config_module_list
 	drivers/mpu6000
 	drivers/ms5611
 	drivers/hmc5883
+	drivers/ist8310
 	drivers/gps
 	drivers/airspeed
 	drivers/ms4525_airspeed
 	drivers/ms5525_airspeed
 	modules/sensors
 	drivers/vmount
+	drivers/gimbal_protocol_splitter
+	drivers/mavlink_dup
 
 	#
 	# System commands
@@ -51,6 +54,7 @@ set(config_module_list
 	# General system control
 	#
 	modules/commander
+	modules/events
 	modules/load_mon
 	modules/navigator
 	modules/mavlink
@@ -65,7 +69,7 @@ set(config_module_list
 	# Vehicle Control
 	#
 	modules/fw_pos_control_l1
-	modules/fw_att_control
+	#modules/fw_att_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
@@ -74,6 +78,7 @@ set(config_module_list
 	# Logging
 	#
 	modules/logger
+	modules/sdlog2
 
 	#
 	# Library modules
@@ -101,6 +106,7 @@ set(config_module_list
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
+	lib/tunes
 	lib/version
 	lib/DriverFramework/framework
 	platforms/nuttx

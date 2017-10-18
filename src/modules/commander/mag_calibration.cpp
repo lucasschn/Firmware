@@ -239,6 +239,11 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 			result = PX4_ERROR;
 			break;
 
+		case calibrate_return_error:
+			// Error message already displayed, we're done here
+			result = PX4_ERROR;
+			break;
+
 		case calibrate_return_ok:
 			/* if there is a any preflight-check system response, let the barrage of messages through */
 			usleep(200000);
@@ -350,72 +355,19 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Continue rotation for %s %u s",
 			     detect_orientation_str(orientation), worker_data->calibration_interval_perside_seconds);
 
-	/*
-	 * Detect if the system is rotating.
-	 *
-	 * We're detecting this as a general rotation on any axis, not necessary on the one we
-	 * asked the user for. This is because we really just need two roughly orthogonal axes
-	 * for a good result, so we're not constraining the user more than we have to.
-	 */
-
-	hrt_abstime detection_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds * 5;
-	hrt_abstime last_gyro = 0;
-	float gyro_x_integral = 0.0f;
-	float gyro_y_integral = 0.0f;
-	float gyro_z_integral = 0.0f;
-
-	const float gyro_int_thresh_rad = 0.5f;
-
-	int sub_gyro = orb_subscribe(ORB_ID(sensor_gyro));
-
-	while (fabsf(gyro_x_integral) < gyro_int_thresh_rad &&
-	       fabsf(gyro_y_integral) < gyro_int_thresh_rad &&
-	       fabsf(gyro_z_integral) < gyro_int_thresh_rad) {
-
-		/* abort on request */
-		if (calibrate_cancel_check(worker_data->mavlink_log_pub, cancel_sub)) {
-			result = calibrate_return_cancelled;
-			px4_close(sub_gyro);
-			return result;
-		}
-
-		/* abort with timeout */
-		if (hrt_absolute_time() > detection_deadline) {
-			result = calibrate_return_error;
-			warnx("int: %8.4f, %8.4f, %8.4f", (double)gyro_x_integral, (double)gyro_y_integral, (double)gyro_z_integral);
-			calibration_log_critical(worker_data->mavlink_log_pub, "Failed: This calibration requires rotation.");
-			break;
-		}
-
-		/* Wait clocking for new data on all gyro */
-		px4_pollfd_struct_t fds[1];
-		fds[0].fd = sub_gyro;
-		fds[0].events = POLLIN;
-		size_t fd_count = 1;
-
-		int poll_ret = px4_poll(fds, fd_count, 1000);
-
-		if (poll_ret > 0) {
-			struct gyro_report gyro;
-			orb_copy(ORB_ID(sensor_gyro), sub_gyro, &gyro);
-
-			/* ensure we have a valid first timestamp */
-			if (last_gyro > 0) {
-
-				/* integrate */
-				float delta_t = (gyro.timestamp - last_gyro) / 1e6f;
-				gyro_x_integral += gyro.x * delta_t;
-				gyro_y_integral += gyro.y * delta_t;
-				gyro_z_integral += gyro.z * delta_t;
-			}
-
-			last_gyro = gyro.timestamp;
-		}
-	}
-
-	px4_close(sub_gyro);
+	uint32_t cal_method = 0;
+	(void)param_get(param_find("CAL_MAG_METHOD"), &cal_method);
 
 	uint64_t calibration_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
+
+	if (cal_method == 0) {
+		// Standard method times out quickly after each side
+		result = calibrate_detect_rotation(worker_data->mavlink_log_pub, cancel_sub, hrt_absolute_time() + worker_data->calibration_interval_perside_useconds * 5);
+	} else {
+		// Other methods time out only after 60 seconds
+		calibration_deadline = hrt_absolute_time() + 60 * 1000 * 1000;
+	}
+
 	unsigned poll_errcount = 0;
 
 	calibration_counter_side = 0;
@@ -425,6 +377,13 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 		if (calibrate_cancel_check(worker_data->mavlink_log_pub, cancel_sub)) {
 			result = calibrate_return_cancelled;
+			break;
+		}
+
+		if (cal_method != 0 && hrt_absolute_time() > (calibration_deadline - 1000000)) {
+			calibration_log_critical(worker_data->mavlink_log_pub, CAL_QGC_FAILED_MSG, "calibrate error");
+			usleep(20000);
+			result = calibrate_return_error;
 			break;
 		}
 
@@ -666,12 +625,27 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 	if (result == calibrate_return_ok) {
 		int cancel_sub  = calibrate_cancel_subscribe();
 
-		result = calibrate_from_orientation(mavlink_log_pub,                    // uORB handle to write output
-						    cancel_sub,                         // Subscription to vehicle_command for cancel support
-						    worker_data.side_data_collected,    // Sides to calibrate
-						    mag_calibration_worker,             // Calibration worker
-						    &worker_data,			// Opaque data for calibration worked
-						    true);				// true: lenient still detection
+		uint32_t cal_method = 0;
+		(void)param_get(param_find("CAL_MAG_METHOD"), &cal_method);
+
+		if (cal_method == 0) {
+			result = calibrate_from_orientation(mavlink_log_pub,                    // uORB handle to write output
+							    cancel_sub,                         // Subscription to vehicle_command for cancel support
+							    worker_data.side_data_collected,    // Sides to calibrate
+							    mag_calibration_worker,             // Calibration worker
+							    &worker_data,			// Opaque data for calibration worked
+							    true);				// true: lenient still detection
+		} else {
+
+			result = calibrate_from_hex_orientation(mavlink_log_pub,                    // uORB handle to write output
+					    cancel_sub,                         // Subscription to vehicle_command for cancel support
+					    worker_data.side_data_collected,    // Sides to calibrate
+					    mag_calibration_worker,             // Calibration worker
+					    &worker_data,			// Opaque data for calibration worked
+					    true);				// true: lenient still detection
+		}
+
+
 		calibrate_cancel_unsubscribe(cancel_sub);
 	}
 

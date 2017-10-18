@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,11 +31,12 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_rtl.h
+ * @file rtl.h
  * Helper class for RTL
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #ifndef NAVIGATOR_RTL_H
@@ -47,6 +48,7 @@
 #include <navigator/navigation.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/geofence_result.h>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -82,6 +84,7 @@ private:
 
 	enum RTLState {
 		RTL_STATE_NONE = 0,
+		RTL_STATE_BRAKE,
 		RTL_STATE_CLIMB,
 		RTL_STATE_RETURN,
 		RTL_STATE_TRANSITION_TO_MC,
@@ -89,6 +92,8 @@ private:
 		RTL_STATE_LOITER,
 		RTL_STATE_LAND,
 		RTL_STATE_LANDED,
+		RTL_STATE_PRE_RETURN,
+		RTL_STATE_AFTER_RETURN,
 	} _rtl_state{RTL_STATE_NONE};
 
 	control::BlockParamFloat _param_return_alt;
@@ -96,6 +101,8 @@ private:
 	control::BlockParamFloat _param_descend_alt;
 	control::BlockParamFloat _param_land_delay;
 	control::BlockParamFloat _param_rtl_min_dist;
+	control::BlockParamFloat _param_gf_alt;
+	control::BlockParamInt 	 _param_gf_actions;
 };
 
 #endif

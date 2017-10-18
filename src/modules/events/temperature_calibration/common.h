@@ -41,6 +41,7 @@
 #endif
 
 #include <px4_log.h>
+#include <geo/geo.h>
 #include <mathlib/mathlib.h>
 
 #include "polyfit.hpp"
@@ -50,6 +51,9 @@
 
 #define TC_ERROR_INITIAL_TEMP_TOO_HIGH 110 ///< starting temperature was above the configured allowed temperature
 #define TC_ERROR_COMMUNICATION         112 ///< no sensors found
+#define TC_ERROR_DATA_EXCEPTION        113 ///< the performance of sensor is bad
+#define TC_SENSOR_VALUE_TOL            0.000001f ///< check if sensor data is always zero
+#define TC_DATA_EXCEPTION_NUM          10
 
 /**
  * Base class for temperature calibration types with abstract methods (for all different sensor types)

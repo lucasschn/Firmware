@@ -45,18 +45,16 @@
 #include "LandDetector.h"
 
 #include <systemlib/param/param.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 
 namespace land_detector
 {
@@ -80,6 +78,10 @@ protected:
 	virtual bool _get_maybe_landed_state() override;
 
 	virtual bool _get_freefall_state() override;
+
+	virtual bool _get_crash_state() override;
+
+	virtual bool _get_inverted_state() override;
 
 	virtual float _get_max_altitude() override;
 private:
@@ -135,6 +137,7 @@ private:
 	int _sensor_bias_sub;
 	int _vehicle_control_mode_sub;
 	int _battery_sub;
+	int _v_att_sp_sub;
 
 	struct vehicle_local_position_s				_vehicleLocalPosition;
 	struct vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint;
@@ -144,6 +147,7 @@ private:
 	struct sensor_bias_s					_sensors;
 	struct vehicle_control_mode_s				_control_mode;
 	struct battery_status_s						_battery;
+	struct vehicle_attitude_setpoint_s			_v_att_sp;		/**< vehicle angle setpoint */
 
 	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
 	uint64_t _landed_time;

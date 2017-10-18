@@ -4,8 +4,12 @@
 language: cpp
 
 git:
-  depth: 2000
-  submodules: false
+  depth: 50
+
+# white list
+branches:
+  only:
+  - tap-v3
 
 env:
   global:
@@ -23,119 +27,39 @@ matrix:
       sudo: required
       services:
         - docker
+      env: BUILD_TARGET=qgc_firmware
+    - os: linux
+      sudo: required
+      services:
+        - docker
       env: BUILD_TARGET=check_format
     - os: linux
       sudo: required
       services:
         - docker
+      env: BUILD_TARGET=tests_linux
+    - os: osx
+      sudo: true
+      osx_image: xcode8.3
       env: BUILD_TARGET=tests
-    - os: linux
-      sudo: required
-      services:
-        - docker
-      env: BUILD_TARGET=tests_asan
-    - os: linux
-      sudo: required
-      services:
-        - docker
-      env: BUILD_TARGET=tests_coverage
-    - os: linux
-      sudo: required
-      services:
-        - docker
-      env: BUILD_TARGET=clang-tidy
-    - os: linux
-      sudo: required
-      services:
-        - docker
-      env: BUILD_TARGET=scan-build
-    - os: linux
-      sudo: required
-      services:
-        - docker
-      env: BUILD_TARGET=cppcheck
-    - os: linux
-      sudo: required
-      services:
-        - docker
-      env: BUILD_TARGET=px4_metadata
-    - os: linux
-      dist: trusty
-      sudo: required
-      env: BUILD_TARGET=coverity_scan
-  allow_failures:
-    - env: BUILD_TARGET=tests_asan
-    - env: BUILD_TARGET=tests_coverage
 
 cache:
   ccache: true
 
 before_install:
-  # install dependencies for the coverity build (target and branch), otherwise exit early
-  - if [[ "${TRAVIS_BRANCH}" = "coverity" ]]; then
-      if [[ "${BUILD_TARGET}" = "coverity_scan" ]]; then sudo apt-get install genromfs && pip install empy jinja2; else exit 0; fi;
-    fi
-  # use git:// to fetch instead of https://
-  - git config --global url."git://".insteadOf https://
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then sudo apt-get install genromfs && pip install empy jinja2; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew tap PX4/px4; brew update; brew install px4-dev; brew tap osrf/simulation; brew install gazebo7 opencv; brew install s3cmd && sudo -H easy_install pip && sudo -H pip install empy jinja2; fi
+  - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then pip install --user s3cmd pycrypto pyserial; fi
 
 script:
-  - if [[ "${BUILD_TARGET}" = "coverity_scan" ]]; then
-      echo "no script for coverity build";
-
-    elif [[ "${TRAVIS_BRANCH}" = "coverity" ]]; then
-      echo "exit early for coverity build" && exit 0;
-
-    elif [[ "${BUILD_TARGET}" = "check_format" ]]; then
+    # Exit if one of the scripts fails.
+  - set -e
+  - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+      ./Tools/docker_run.sh 'PX4_RESTRICTED_BUILD=1 make tap-v2_default';
+    elif [[ "${BUILD_TARGET}" = "check_format" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'make check_format';
-
-    elif [[ "${BUILD_TARGET}" = "tests" ]]; then
+    elif [[ "${BUILD_TARGET}" = "tests_linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'make tests';
-
-    elif [[ "${BUILD_TARGET}" = "tests_coverage" ]]; then
-      ./Tools/docker_run.sh 'make tests_coverage' && bash <(curl -s https://codecov.io/bash) -F unittests;
-
-    elif [[ "${BUILD_TARGET}" = "tests_asan" ]]; then
-      ./Tools/docker_run.sh 'PX4_ASAN=1 make tests';
-
-    elif [[ "${BUILD_TARGET}" = "px4_metadata" ]]; then
-      ./Tools/docker_run.sh 'make px4_metadata';
-
-    elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
-      ./Tools/docker_run.sh 'make clang-tidy-quiet';
-
-    fi
-
-after_success:
-  # s3 upload airframe and parameter metadata
-  - if [[ "${BUILD_TARGET}" = "px4_metadata" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
-         ./Tools/docker_run.sh 'make s3put_metadata AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
-    fi
-  # s3 upload clang scan-build output for master branch
-  - if [[ "${BUILD_TARGET}" = "scan-build" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
-         ./Tools/docker_run.sh 'make s3put_scan-build AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/scan-build"';
-    fi
-  # s3 upload cppcheck output for master branch
-  - if [[ "${BUILD_TARGET}" = "cppcheck" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
-         ./Tools/docker_run.sh 'make s3put_cppcheck AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/cppcheck"';
-    fi
-
-addons:
-  coverity_scan:
-    project:
-      name: PX4/Firmware
-    notification_email: ci@px4.io
-    build_command: make posix_sitl_default
-    branch_pattern: coverity
-
-notifications:
-  webhooks:
-    urls:
-      - https://webhooks.gitter.im/e/2b9c4a4cb2211f8befba
-    on_success: always  # options: [always|never|change] default: always
-    on_failure: always  # options: [always|never|change] default: always
-  slack:
-    rooms:
-      - secure: "QKw73Zel/s3JAbe/7XyO9tPnJwiiGFpYzSjdR8lG3tYFjRdXZnhxG4c+G7bkgkaPTS4Hult33VXE3kcEqOI7+C+eRwRlZhDfL0knQbXVCxjcLjzmUFdoPOwurlgZDw66PFWCi5tZcLKSRo3u4U8ibT4WKi3jm9sDSyOcfBAucMU="
-    on_pull_requests: false
-    on_success: never  # options: [always|never|change] default: always
-    on_failure: never  # options: [always|never|change] default: always
+    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+      make tests;
+    fi;

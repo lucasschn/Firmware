@@ -96,6 +96,7 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/mount_orientation.h>
 #include <uORB/topics/collision_report.h>
+#include <uORB/topics/satellite_info.h>
 #include <uORB/uORB.h>
 
 
@@ -558,11 +559,18 @@ protected:
 			msg.battery_remaining = (battery_status.connected) ? battery_status.remaining * 100.0f : -1;
 			// TODO: fill in something useful in the fields below
 			msg.drop_rate_comm = 0;
+#ifdef MAVLINK_TX_BYTE_COUNT_ENABLED
+			msg.errors_comm = _mavlink->get_bytes_tx_comm();
+#else
 			msg.errors_comm = 0;
+#endif
 			msg.errors_count1 = 0;
 			msg.errors_count2 = 0;
 			msg.errors_count3 = 0;
 			msg.errors_count4 = 0;
+#ifdef MAVLINK_TX_BYTE_COUNT_ENABLED
+			_mavlink->set_bytes_tx_comm(0);
+#endif
 
 			mavlink_msg_sys_status_send_struct(_mavlink->get_channel(), &msg);
 
@@ -1428,7 +1436,7 @@ protected:
 					.param1 = 0.0f, // all cameras
 					.param2 = 0.0f, // duration 0 because only taking one picture
 					.param3 = 1.0f, // only take one
-					.param4 = NAN,
+					.param4 = (float)trigger.seq, // FIXME: interim solution for a capture command sequence
 					.param7 = NAN,
 					.command = MAV_CMD_IMAGE_START_CAPTURE,
 					.target_system = mavlink_system.sysid,
@@ -4280,6 +4288,75 @@ protected:
 	}
 };
 
+class MavlinkStreamGps : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamGps::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "GPS";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_GPS_STATUS;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamGps(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_gps_time > 0) ? MAVLINK_MSG_ID_GPS_STATUS + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+private:
+	MavlinkOrbSubscription *_gps_sub;
+	uint64_t _gps_time;
+	struct satellite_info_s _gps;
+
+	/* do not allow top copying this class */
+	MavlinkStreamGps(MavlinkStreamGps &);
+	MavlinkStreamGps &operator = (const MavlinkStreamGps &);
+protected:
+	explicit MavlinkStreamGps(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_gps_sub(_mavlink->add_orb_subscription(ORB_ID(satellite_info))),
+		_gps_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		bool gps_updated = _gps_sub->update(&_gps_time, &_gps);
+
+		mavlink_gps_status_t msg = {};
+
+		if (gps_updated) {
+			msg.satellites_visible = _gps.count;
+
+			for (int i = 0; i < 20; i++) {
+				msg.satellite_snr[i] = _gps.snr[i];
+				msg.satellite_azimuth[i] = _gps.azimuth[i];
+				msg.satellite_elevation[i] = _gps.elevation[i];
+				msg.satellite_used[i] = _gps.used[i];
+				msg.satellite_prn[i] = _gps.svid[i];
+			}
+		}
+
+		mavlink_msg_gps_status_send_struct(_mavlink->get_channel(), &msg);
+		return true;
+	}
+};
+
 const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	new StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -4331,5 +4408,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamMountOrientation::new_instance, &MavlinkStreamMountOrientation::get_name_static, &MavlinkStreamMountOrientation::get_id_static),
 	new StreamListItem(&MavlinkStreamHighLatency::new_instance, &MavlinkStreamHighLatency::get_name_static, &MavlinkStreamWind::get_id_static),
 	new StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
+	new StreamListItem(&MavlinkStreamGps::new_instance, &MavlinkStreamGps::get_name_static, &MavlinkStreamGps::get_id_static),
 	nullptr
 };

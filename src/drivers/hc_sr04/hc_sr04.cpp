@@ -35,12 +35,21 @@
  * @file hc_sr04.cpp
  *
  * Driver for the hc_sr04 sonar range finders .
+ *
+ * N.B. This driver needs work to be more gneric. It is tied to
+ * group 1:ch0 for trigger (channel 1) and group 1:ch1 (channel 2)
+ * for echo.
+ *
+ * It expects the fmu to be started with fmu mode_pwm3 and will
+ * set the alt rate of 20 Hz and then set up capture on channel 2
  */
 
 #include <nuttx/config.h>
 
 #include <drivers/device/device.h>
 #include <px4_defines.h>
+#include <px4_log.h>
+#include <platforms/px4_getopt.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -55,96 +64,145 @@
 #include <math.h>
 #include <unistd.h>
 #include <vector>
+#include <getopt.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
 #include <systemlib/perf_counter.h>
+#include <systemlib/px4_macros.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/device/ringbuffer.h>
 
+#include <controllib/blocks.hpp>
+
 #include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
+#include <lib/conversion/rotation.h>
 
 #include <board_config.h>
+#include <drivers/drv_input_capture.h>
+#include <drivers/drv_gpio.h>
+#include <drivers/drv_pwm_output.h>
 
-
-#define SR04_MAX_RANGEFINDERS 6
-#define SR04_ID_BASE	 0x10
+#include <DevMgr.hpp>
 
 /* Configuration Constants */
 #define SR04_DEVICE_PATH	"/dev/hc_sr04"
 
 #define SUBSYSTEM_TYPE_RANGEFINDER 131072
 /* Device limits */
-#define SR04_MIN_DISTANCE 	(0.10f)
-#define SR04_MAX_DISTANCE 	(4.00f)
+#define SR04_MIN_DISTANCE 	(0.40f)
+#define SR04_MAX_DISTANCE 	(5.00f)
+#define SR04_TIME_2_DISTANCE_M (0.000170f)
 
-#define SR04_CONVERSION_INTERVAL 	100000 /* 100ms for one sonar */
+#define SR04_CONVERSION_INTERVAL 	50000 /* 50ms for one sonar */
+
+#define _MF_WINDOW_SIZE 3 ///< window size for median filter on sonar range
 
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
+using namespace DriverFramework;
+
+int static cmp(const void *a, const void *b)
+{
+	return (*(const float *)a > *(const float *)b);
+}
+
 class HC_SR04 : public device::CDev
 {
 public:
-	HC_SR04(unsigned sonars = 6);
+	HC_SR04(uint8_t rotation, bool enable_median_filter, bool enable_obsavoid_switch);
 	virtual ~HC_SR04();
 
 	virtual int 		init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	* Diagnostics - print some basic information about the driver.
 	*/
 	void				print_info();
-	void                            interrupt(unsigned time);
 
 protected:
 	virtual int			probe();
 
 private:
+
+#if defined(HC_SR04_CAPTURE_DEBUG)
+
+	typedef struct timer_inf_t {
+		uint32_t chan_index;
+		hrt_abstime edge_time;
+		uint32_t edge_state;
+		uint32_t overflow;
+	} timer_inf_t;
+
+	volatile timer_inf_t _edges[16] = {{0, 0, 0, 0}}; // Must be a power of 2
+	volatile int 		 _edge_index = 0;
+
+	volatile hrt_abstime _distance_time[16] = {0}; // Must be a power of 2
+	volatile int 		 _distance_time_index_on = 0;
+	volatile int 		 _distance_time_index_off = 0;
+#else
+	volatile hrt_abstime _distance_time = 0;
+#endif
+
+	enum _thread_state_t {
+		thread_stopped = -1,
+		thread_run = 0,
+		thread_exit = 1,
+		thread_exited = 2,
+	} _thread_state = thread_stopped;
+
 	float				_min_distance;
 	float				_max_distance;
-	work_s				_work;
+	float 				_mf_window[_MF_WINDOW_SIZE] = {};
+	float				_mf_window_sorted[_MF_WINDOW_SIZE] = {};
+	int 				_mf_cycle_counter;
+	work_s				_work = {};
 	ringbuffer::RingBuffer	*_reports;
-	bool				_sensor_ok;
+	volatile enum {
+		Uninitialized = 0,
+		Initialized,
+		WatingRising,
+		WatingFalling,
+	} _sensor_state;
+
 	int					_measure_ticks;
-	bool				_collect_phase;
+	volatile bool				_sensor_data_available;
 	int					_class_instance;
 	int					_orb_class_instance;
 
+	bool				_enable_median_filter;
+	bool 				_enable_obsavoid_switch;
+
+	uint8_t 		_rotation;
+	orb_advert_t		_sensor_info_pub;
 	orb_advert_t		_distance_sensor_topic;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
+	perf_counter_t		_buffer_overflows;
 
-	uint8_t				_cycle_counter;	/* counter in cycle to change i2c adresses */
-	int					_cycling_rate;	/* */
-	uint8_t				_index_counter;	/* temporary sonar i2c address */
 
 	std::vector<float>
 	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
-	unsigned 		_sonars;
-	struct GPIOConfig {
-		uint32_t        trig_port;
-		uint32_t        echo_port;
-		uint32_t        alt;
-	};
-	static const GPIOConfig _gpio_tab[];
-	unsigned 		_raising_time;
-	unsigned 		_falling_time;
-	unsigned 		_status;
+
+	int 				_manual_sub;
+	bool		 		_pwm_output_active;
+
 	/**
 	* Test whether the device supported by the driver is present at a
 	* specific address.
@@ -168,6 +226,19 @@ private:
 	void				stop();
 
 	/**
+	* Pwm configuration used at driver init and whenever the sensor is restarted through the obstacle
+	* avoidance swicth in the remote controller
+	*/
+
+	int 				start_pwm();
+
+	/**
+	* Pwm configuration used when shutting down the driver and whenever the sensor is switched off
+	* through the obstacle avoidance switch in the remote controller
+	*/
+	void				stop_pwm();
+
+	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
 	* range to be brought in at all, otherwise it will use the defaults MB12XX_MIN_DISTANCE
 	* and MB12XX_MAX_DISTANCE
@@ -182,8 +253,6 @@ private:
 	* and start a new one.
 	*/
 	void				cycle();
-	int					measure();
-	int					collect();
 	/**
 	* Static trampoline from the workq context; because we don't have a
 	* generic workq wrapper yet.
@@ -192,51 +261,49 @@ private:
 	*/
 	static void			cycle_trampoline(void *arg);
 
+	static void capture_trampoline(void *context, uint32_t chan_index,
+				       hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
+
+	void capture_callback(uint32_t chan_index,
+			      hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
+
+	float median_filter(float value);
+	void  reset_median_filter();
+
 
 };
 
-const HC_SR04::GPIOConfig HC_SR04::_gpio_tab[] = {
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO7_INPUT,       0},
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO8_INPUT,       0},
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO9_INPUT,       0},
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO10_INPUT,       0},
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO11_INPUT,       0},
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO12_INPUT,       0}
-};
 
 /*
  * Driver 'main' command.
  */
 extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[]);
-static int sonar_isr(int irq, void *context);
 
-HC_SR04::HC_SR04(unsigned sonars) :
+HC_SR04::HC_SR04(uint8_t rotation, bool enable_median_filter, bool enable_obsavoid_switch) :
 	CDev("HC_SR04", SR04_DEVICE_PATH, 0),
 	_min_distance(SR04_MIN_DISTANCE),
 	_max_distance(SR04_MAX_DISTANCE),
+	_mf_cycle_counter(0),
 	_reports(nullptr),
-	_sensor_ok(false),
+	_sensor_state(Uninitialized),
 	_measure_ticks(0),
-	_collect_phase(false),
+	_sensor_data_available(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
+	_enable_median_filter(enable_median_filter),
+	_enable_obsavoid_switch(enable_obsavoid_switch),
+	_rotation(rotation),
+	_sensor_info_pub(nullptr),
 	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hc_sr04_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hc_sr04_comms_errors")),
-	_cycle_counter(0),	/* initialising counter for cycling function to zero */
-	_cycling_rate(0),	/* initialising cycling rate (which can differ depending on one sonar or multiple) */
-	_index_counter(0), 	/* initialising temp sonar i2c address to zero */
-	_sonars(sonars),
-	_raising_time(0),
-	_falling_time(0),
-	_status(0)
+	_buffer_overflows(perf_alloc(PC_COUNT, "hc_sr04_buffer_overflows")),
+	_manual_sub(-1),
+	_pwm_output_active(false)
 
 {
 	/* enable debug() calls */
 	_debug_enabled = false;
-
-	/* work_cancel in the dtor will explode if we don't do this... */
-	memset(&_work, 0, sizeof(_work));
 }
 
 HC_SR04::~HC_SR04()
@@ -256,14 +323,13 @@ HC_SR04::~HC_SR04()
 	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
 }
 
 int
 HC_SR04::init()
 {
-	int ret = PX4_ERROR;
-
-	/* do I2C init (and probe) first */
+	/* do init (and probe) first */
 	if (CDev::init() != OK) {
 		return PX4_ERROR;
 	}
@@ -277,36 +343,91 @@ HC_SR04::init()
 
 	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-	/* get a publish handle on the range finder topic */
-	struct distance_sensor_s ds_report = {};
+	int fd_fmu = ::open(PX4FMU_DEVICE_PATH, O_RDWR);
 
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_LOW);
-
-	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+	if (fd_fmu == -1) {
+		PX4_ERR("FMU: open fail");
+		return PX4_ERROR;
 	}
 
-	/* init echo port : */
-	for (unsigned i = 0; i <= _sonars; i++) {
-		px4_arch_configgpio(_gpio_tab[i].trig_port);
-		px4_arch_gpiowrite(_gpio_tab[i].trig_port, false);
-		px4_arch_configgpio(_gpio_tab[i].echo_port);
-		_latest_sonar_measurements.push_back(0);
+	/* Set PWM rate for the sonar to 20Hz (other groups will be 50) */
+
+	if (::ioctl(fd_fmu, PWM_SERVO_SET_UPDATE_RATE, 20) != OK) {
+		PX4_ERR("PWM_SERVO_SET_UPDATE_RATE fail");
+		::close(fd_fmu);
+		return PX4_ERROR;
 	}
 
-	usleep(200000); /* wait for 200ms; */
+	unsigned group = 1;
+	uint32_t group_mask;
 
-	_cycling_rate = SR04_CONVERSION_INTERVAL;
+	/* Get the group mask */
 
-	/* show the connected sonars in terminal */
-	DEVICE_DEBUG("Number of sonars set: %d", _sonars);
+	if (::ioctl(fd_fmu, PWM_SERVO_GET_RATEGROUP(group), (unsigned long)&group_mask) != OK) {
+		PX4_ERR("PWM_SERVO_GET_RATEGROUP group %u fail", group);
+		::close(fd_fmu);
+		return PX4_ERROR;
+	}
 
-	ret = OK;
+	/* Apply rate on group mask */
+
+	if (::ioctl(fd_fmu, PWM_SERVO_SET_SELECT_UPDATE_RATE, group_mask) != OK) {
+		PX4_ERR("PWM_SERVO_SET_SELECT_UPDATE_RATE fail");
+		::close(fd_fmu);
+		return PX4_ERROR;
+	}
+
+	/* Now Update the PWM rates and start the PWM (but with 0 width pulses) */
+
+	if (::ioctl(fd_fmu, PWM_SERVO_ARM, 0) != OK) {
+		PX4_ERR("PWM_SERVO_ARM fail");
+		::close(fd_fmu);
+		return PX4_ERROR;
+	}
+
+	/* Now that the rates are set. Reclaim the capture pin
+	 * fm the PWM by switching the fmu mode to PWM2CAP2 without a
+	 * rate change.
+	 */
+
+	if (::ioctl(fd_fmu, INPUT_CAP_SET_COUNT, 2) != 0) {
+		PX4_ERR("INPUT_CAP_SET_COUNT fail");
+		return PX4_ERROR;
+	}
+
+	input_capture_config_t cap_config;
+	cap_config.channel = 2;
+	cap_config.filter = 0xf;
+	cap_config.edge = Both;
+	cap_config.callback = &HC_SR04::capture_trampoline;
+	cap_config.context = this; // pass reference to this class
+
+	/* Now set up the capture */
+
+	if (::ioctl(fd_fmu, INPUT_CAP_SET, (unsigned long)&cap_config) != 0) {
+		PX4_ERR("INPUT_CAP_SET fail");
+		return PX4_ERROR;
+	}
+
+	::close(fd_fmu);
+
+	/* Start the PWM pulses if an obsavoid switch will NOT be used */
+
+	if (!_enable_obsavoid_switch) {
+		if (start_pwm() < 0) {
+			PX4_ERR("Not able to start pwm.");
+			return PX4_ERROR;
+		}
+	}
+
 	/* sensor is ok, but we don't really know if it is within range */
-	_sensor_ok = true;
+	_sensor_state = Initialized;
 
-	return ret;
+	// start driver
+
+	start();
+
+	return OK;
 }
 
 int
@@ -338,23 +459,8 @@ HC_SR04::get_maximum_distance()
 {
 	return _max_distance;
 }
-void
-HC_SR04::interrupt(unsigned time)
-{
-	if (_status == 0) {
-		_raising_time = time;
-		_status++;
-		return;
 
-	} else if (_status == 1) {
-		_falling_time = time;
-		_status++;
-		return;
-	}
-
-	return;
-}
-
+// TODO: review this part since it is not compatible with the new architecture
 int
 HC_SR04::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
@@ -383,7 +489,7 @@ HC_SR04::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(_cycling_rate);
+					_measure_ticks = USEC2TICK(SR04_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -403,7 +509,7 @@ HC_SR04::ioctl(struct file *filp, int cmd, unsigned long arg)
 					int ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(_cycling_rate)) {
+					if (ticks < USEC2TICK(SR04_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
@@ -470,215 +576,156 @@ HC_SR04::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
-ssize_t
-HC_SR04::read(struct file *filp, char *buffer, size_t buflen)
+void
+HC_SR04::reset_median_filter(void)
 {
-
-	unsigned count = buflen / sizeof(struct distance_sensor_s);
-	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
-	int ret = 0;
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
+	for (int i = 0; i < _MF_WINDOW_SIZE; ++i) {
+		_mf_window[i] = get_maximum_distance();
 	}
 
-	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
-		/*
-		 * While there is space in the caller's buffer, and reports, copy them.
-		 * Note that we may be pre-empted by the workq thread while we are doing this;
-		 * we are careful to avoid racing with them.
-		 */
-		while (count--) {
-			if (_reports->get(rbuf)) {
-				ret += sizeof(*rbuf);
-				rbuf++;
-			}
-		}
-
-		/* if there was no data, warn the caller */
-		return ret ? ret : -EAGAIN;
-	}
-
-	/* manual measurement - run one conversion */
-	do {
-		_reports->flush();
-
-		/* trigger a measurement */
-		if (OK != measure()) {
-			ret = -EIO;
-			break;
-		}
-
-		/* wait for it to complete */
-		usleep(_cycling_rate * 2);
-
-		/* run the collection phase */
-		if (OK != collect()) {
-			ret = -EIO;
-			break;
-		}
-
-		/* state machine will have generated a report, copy it out */
-		if (_reports->get(rbuf)) {
-			ret = sizeof(*rbuf);
-		}
-
-	} while (0);
-
-	return ret;
+	_mf_cycle_counter = 0;
 }
 
-int
-HC_SR04::measure()
+float
+HC_SR04::median_filter(float value)
 {
+	/* TODO: replace with ring buffer */
+	_mf_window[(_mf_cycle_counter + 1) % _MF_WINDOW_SIZE] = value;
 
-	int ret;
-	/*
-	 * Send a plus begin a measurement.
-	 */
-	px4_arch_gpiowrite(_gpio_tab[_cycle_counter].trig_port, true);
-	usleep(10);  // 10us
-	px4_arch_gpiowrite(_gpio_tab[_cycle_counter].trig_port, false);
-
-	px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, sonar_isr);
-	_status = 0;
-	ret = OK;
-
-	return ret;
-}
-
-int
-HC_SR04::collect()
-{
-	int	ret = -EIO;
-#if 0
-	perf_begin(_sample_perf);
-
-	/* read from the sensor */
-	if (_status != 2) {
-		DEVICE_DEBUG("erro sonar %d ,status=%d", _cycle_counter, _status);
-		px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, nullptr);
-		perf_end(_sample_perf);
-		return (ret);
+	for (int i = 0; i < _MF_WINDOW_SIZE; ++i) {
+		_mf_window_sorted[i] = _mf_window[i];
 	}
 
-	unsigned  distance_time = _falling_time - _raising_time ;
+	qsort(_mf_window_sorted, _MF_WINDOW_SIZE, sizeof(float), cmp);
 
-	float si_units = (distance_time * 0.000170f) ; /* meter */
-	struct distance_sensor_s report;
+	_mf_cycle_counter++;
 
-	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
-	report.timestamp = hrt_absolute_time();
-	report.error_count = perf_event_count(_comms_errors);
-
-	/* if only one sonar, write it to the original distance parameter so that it's still used as altitude sonar */
-	if (_sonars == 1) {
-		report.distance = si_units;
-
-		for (unsigned i = 0; i < (SRF02_MAX_RANGEFINDERS); i++) {
-			report.id[i] = 0;
-			report.distance_vector[i] = 0;
-		}
-
-		report.id[0] = SR04_ID_BASE;
-		report.distance_vector[0] = si_units; //  将测量值填入向量中，适应test()的要求
-		report.just_updated = 1;
+	if (_mf_window_sorted[(_MF_WINDOW_SIZE / 2)] < get_maximum_distance()) {
+		return _mf_window_sorted[(_MF_WINDOW_SIZE / 2)];
 
 	} else {
-		/* for multiple sonars connected */
-
-		_latest_sonar_measurements[_cycle_counter] = si_units;
-		report.just_updated = 0;
-
-		for (unsigned i = 0; i < SRF02_MAX_RANGEFINDERS; i++) {
-			if (i < _sonars) {
-				report.distance_vector[i] = _latest_sonar_measurements[i];
-				report.id[i] = SR04_ID_BASE + i;
-				report.just_updated++;
-
-			} else {
-				report.distance_vector[i] = 0;
-				report.id[i] = 0;
-			}
-
-		}
-
-		report.distance =  _latest_sonar_measurements[0]; //
+		return get_maximum_distance();
 	}
-
-	report.minimum_distance = get_minimum_distance();
-	report.maximum_distance = get_maximum_distance();
-	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
-
-	/* publish it, if we are the primary */
-	if (_distance_sensor_topic != nullptr) {
-		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
-	}
-
-	_reports->force(&report);
-
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
-
-	ret = OK;
-
-	px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, nullptr); /* close interrupt */
-	perf_end(_sample_perf);
-#endif
-	return ret;
 }
 
 void
 HC_SR04::start()
 {
-
-	/* reset the report ring and state machine */
-	_collect_phase = false;
+	/* reset the report ring */
 	_reports->flush();
-
-	measure();  /* begin measure */
-
-	/* schedule a cycle to start things */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&HC_SR04::cycle_trampoline,
-		   this,
-		   USEC2TICK(_cycling_rate));
-
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
+	info.timestamp = hrt_absolute_time();
 	info.present = true;
 	info.enabled = true;
 	info.ok = true;
 	info.subsystem_type = SUBSYSTEM_TYPE_RANGEFINDER;
 
-	static orb_advert_t pub = nullptr;
-
-	if (pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), pub, &info);
-
+	if (_sensor_info_pub != nullptr) {
+		orb_publish(ORB_ID(subsystem_info), _sensor_info_pub, &info);
 
 	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
-
+		_sensor_info_pub = orb_advertise(ORB_ID(subsystem_info), &info);
 	}
+
+	_thread_state = thread_run;
+	work_queue(HPWORK, &_work, (worker_t)&HC_SR04::cycle_trampoline, this, 0);
 }
 
 void
 HC_SR04::stop()
 {
-	work_cancel(HPWORK, &_work);
+	// Stop the worker
+
+	if (_thread_state == thread_run) {
+		_thread_state = thread_exit;
+
+		// insure it is stopped
+		int wait = ((SR04_CONVERSION_INTERVAL + 10000) / 1000);
+
+		while (_thread_state != thread_exited && wait--) {
+			usleep(1000);
+		}
+	}
+
+	// Stop the pwm and hence the capture
+
+	stop_pwm();
+
+
+	int fd_fmu = ::open(PX4FMU_DEVICE_PATH, O_RDWR);
+
+	if (fd_fmu == -1) {
+		PX4_WARN("FMU: px4_open fail\n");
+	}
+
+	input_capture_config_t cap_config;
+	cap_config.channel = 2;
+	cap_config.filter = 0;
+	cap_config.edge = Disabled;
+	cap_config.callback = nullptr;
+	cap_config.context = nullptr;
+
+	::ioctl(fd_fmu, INPUT_CAP_SET_CALLBACK, (unsigned long)&cap_config);
+	::close(fd_fmu);
+
+	/* unadvertise publishing topics */
+	orb_unadvertise(_sensor_info_pub);
+	orb_unadvertise(_distance_sensor_topic);
+}
+
+int
+HC_SR04::start_pwm()
+{
+	int rv = PX4_ERROR;
+	int fd_pwm = ::open(PWM_OUTPUT0_DEVICE_PATH, O_RDWR);
+
+	if (fd_pwm < 0) {
+		PX4_ERR("PMW: open fail");
+
+	} else {
+
+		// Set pulsewidth of 10ms specific for this sonar sensor
+
+		rv = ::ioctl(fd_pwm, PWM_SERVO_SET(1), 10);
+
+		if (rv >= 0) {
+			_pwm_output_active = true;
+
+		} else {
+			PX4_ERR("PWM_SERVO_SET channel 1 failed.");
+		}
+	}
+
+	::close(fd_pwm);
+	return rv;
+}
+
+void
+HC_SR04::stop_pwm()
+{
+
+	int fd_pwm = ::open(PWM_OUTPUT0_DEVICE_PATH, O_RDWR);
+
+	if (fd_pwm >= 0) {
+		if (::ioctl(fd_pwm, PWM_SERVO_SET(1), 0) >= 0) {
+			_pwm_output_active = false;
+			// reset median filter window if the pwm is stopped
+			reset_median_filter();
+
+		} else {
+			PX4_ERR("PWM_SERVO_SET channel 1 failed.");
+		}
+	}
+
+	::close(fd_pwm);
 }
 
 void
 HC_SR04::cycle_trampoline(void *arg)
 {
-
 	HC_SR04 *dev = (HC_SR04 *)arg;
-
 	dev->cycle();
 
 }
@@ -686,31 +733,93 @@ HC_SR04::cycle_trampoline(void *arg)
 void
 HC_SR04::cycle()
 {
-	/*_circle_count 计录当前sonar　*/
-	/* perform collection */
-	if (OK != collect()) {
-		DEVICE_DEBUG("collection error");
+	if (_thread_state == thread_exit) {
+		_thread_state = thread_exited;
+		return;
 	}
 
-	/* change to next sonar */
-	_cycle_counter = _cycle_counter + 1;
+	/* check obstacle avoidance switch position in the remote controller:
+	* - if avoidance enabled (SWITCH_POS_ON and SWITCH_POS_MIDDLE) the ultrasonic sensor is on
+	* - else the ultrasonic sensor is switched off
+	*/
+	if (_enable_obsavoid_switch) {
+		if (_manual_sub == -1) {
+			_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+		}
 
-	if (_cycle_counter >= _sonars) {
-		_cycle_counter = 0;
+		bool updated;
+		orb_check(_manual_sub, &updated);
+
+		if (updated) {
+			struct manual_control_setpoint_s manual;
+			orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &manual);
+
+			if (manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF) {
+
+				/* The set point message is published periodically; We only want the deltas
+				 * to cause changes in the physical PWM state.
+				 */
+
+				if (!_pwm_output_active) {
+					start_pwm();
+				}
+
+			} else {
+				if (_pwm_output_active) {
+					stop_pwm();
+				}
+			}
+		}
 	}
 
-	/* 测量next sonar */
-	if (OK != measure()) {
-		DEVICE_DEBUG("measure error sonar adress %d", _cycle_counter);
+	// publish measured distance only if ultrasonic sensor is on
+	if (_pwm_output_active) {
+
+		irqstate_t flags = px4_enter_critical_section();
+		bool sensor_data_available = _sensor_data_available;
+
+		// reset flag
+		if (_sensor_data_available) {
+			_sensor_data_available = false;
+		}
+
+		float distance = _distance_time * SR04_TIME_2_DISTANCE_M;
+		px4_leave_critical_section(flags);
+
+		if (!sensor_data_available) {
+			work_queue(HPWORK, &_work, (worker_t)&HC_SR04::cycle_trampoline, this, USEC2TICK(SR04_CONVERSION_INTERVAL));
+			return;
+		}
+
+		struct distance_sensor_s report = {};
+
+		report.timestamp = hrt_absolute_time();
+
+		report.min_distance = get_minimum_distance();
+
+		report.max_distance = get_maximum_distance();
+
+		if (_enable_median_filter) {
+			report.current_distance = median_filter(distance);
+
+		} else {
+			report.current_distance = distance;
+		}
+
+		report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+		report.orientation = _rotation;
+
+		/* publish it, if we are the primary */
+		if (_distance_sensor_topic != nullptr) {
+			orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
+
+		} else {
+			_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &report,
+						 &_orb_class_instance, ORB_PRIO_LOW);
+		}
 	}
 
-
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&HC_SR04::cycle_trampoline,
-		   this,
-		   USEC2TICK(_cycling_rate));
-
+	work_queue(HPWORK, &_work, (worker_t)&HC_SR04::cycle_trampoline, this, USEC2TICK(SR04_CONVERSION_INTERVAL));
 }
 
 void
@@ -718,8 +827,48 @@ HC_SR04::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
+	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
+}
+
+void HC_SR04::capture_trampoline(void *context, uint32_t chan_index,
+				 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
+{
+	HC_SR04 *dev = reinterpret_cast<HC_SR04 *>(context);
+	dev->capture_callback(chan_index, edge_time, edge_state, overflow);
+}
+
+void HC_SR04::capture_callback(uint32_t chan_index,
+			       hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
+{
+	static hrt_abstime raising_time = 0;
+	static hrt_abstime falling_time = 0;
+
+#if defined(HC_SR04_CAPTURE_DEBUG)
+	_edges[_edge_index].chan_index = chan_index;
+	_edges[_edge_index].edge_time  = edge_time;
+	_edges[_edge_index].edge_state =  edge_state;
+	_edges[_edge_index++].overflow = overflow;
+	_edge_index &= arraySize(_edges) - 1;
+#endif
+
+	if (edge_state == 1) {
+		_sensor_state = WatingFalling;
+		raising_time = edge_time;
+
+	} else {
+		_sensor_state = WatingRising;
+		falling_time = edge_time;
+
+#if defined(HC_SR04_CAPTURE_DEBUG)
+		_distance_time[_distance_time_index_on++] = falling_time - raising_time;
+		_distance_time_index_on &= arraySize(_distance_time) - 1;
+#else
+		_distance_time = falling_time - raising_time;
+#endif
+		_sensor_data_available = true;
+	}
 }
 
 /**
@@ -730,43 +879,30 @@ namespace  hc_sr04
 
 HC_SR04	*g_dev;
 
-void	start();
+void	start(uint8_t rotation, bool enable_median_filter, bool enable_obsavoid_switch);
 void	stop();
-void	test();
-void	reset();
+// void	test();
 void	info();
 
 /**
  * Start the driver.
  */
 void
-start()
+start(uint8_t rotation, bool enable_median_filter, bool enable_obsavoid_switch)
 {
-	int fd;
-
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		PX4_ERR("already started");
+		exit(1);
 	}
 
 	/* create the driver */
-	g_dev = new HC_SR04();
+	g_dev = new HC_SR04(rotation, enable_median_filter, enable_obsavoid_switch);
 
 	if (g_dev == nullptr) {
 		goto fail;
 	}
 
 	if (OK != g_dev->init()) {
-		goto fail;
-	}
-
-	/* set the poll rate to default, starts automatic data collection */
-	fd = open(SR04_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
 	}
 
@@ -779,7 +915,8 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	PX4_ERR("driver start failed");
+	exit(1);
 }
 
 /**
@@ -792,109 +929,91 @@ void stop()
 		g_dev = nullptr;
 
 	} else {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		exit(1);
 	}
 
 	exit(0);
 }
 
+// TODO: need reimplementation
 /**
  * Perform some basic functional tests on the driver;
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void
-test()
-{
-#if 0
-	struct distance_sensor_s report;
-	ssize_t sz;
-	int ret;
+// void
+// test()
+// {
+// 	struct distance_sensor_s report;
+// 	ssize_t sz;
+// 	int ret;
+//
+// 	int fd = open(SR04_DEVICE_PATH, O_RDONLY);
+//
+// 	if (fd < 0) {
+// 		PX4_ERR("%s open failed (try 'hc_sr04 start' if the driver is not running", SR04_DEVICE_PATH);
+// 		exit(1);
+// 	}
+//
+// 	/* do a simple demand read */
+// 	sz = read(fd, &report, sizeof(report));
+//
+// 	if (sz != sizeof(report)) {
+// 		PX4_ERR("immediate read failed");
+// 		exit(1);
+// 	}
+//
+// 	PX4_INFO("single read");
+// 	PX4_INFO("measurement: %0.2f", (double)report.current_distance);
+// 	PX4_INFO("time:        %lld", report.timestamp);
+//
+// 	/* start the sensor polling at 2Hz */
+// 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 20)) {
+// 		PX4_ERR("failed to set 20Hz poll rate");
+// 		exit(1);
+// 	}
+//
+// 	/* read the sensor 5x and report each value */
+// 	for (unsigned i = 0; i < 5; i++) {
+// 		struct pollfd fds;
+//
+// 		/* wait for data to be ready */
+// 		fds.fd = fd;
+// 		fds.events = POLLIN;
+// 		ret = poll(&fds, 1, 2000);
+//
+// 		if (ret != 1) {
+// 			PX4_ERR("timed out waiting for sensor data");
+// 			exit(1);
+// 		}
+//
+// 		/* now go get it */
+// 		sz = read(fd, &report, sizeof(report));
+//
+// 		if (sz != sizeof(report)) {
+// 			PX4_ERR("periodic read failed");
+// 			exit(1);
+// 		}
+//
+// 		PX4_INFO("periodic read %u", i);
+//
+// 		/* Print the sonar rangefinder report sonar distance vector */
+// 		PX4_INFO("measurement: %0.3f", (double)report.current_distance);
+//
+// 		PX4_INFO("time:        %lld", report.timestamp);
+// 	}
+//
+// 	/* reset the sensor polling to default rate */
+// 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
+// 		PX4_ERR("failed to set default poll rate");
+// 		exit(1);;
+// 	}
+//
+// 	PX4_INFO("PASS");
+// 	exit(0);
+// }
 
-	int fd = open(SR04_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "%s open failed (try 'hc_sr04 start' if the driver is not running", SR04_DEVICE_PATH);
-	}
-
-	/* do a simple demand read */
-	sz = read(fd, &report, sizeof(report));
-
-	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
-	}
-
-	warnx("single read");
-	warnx("measurement: %0.2f of sonar %d,id=%d", (double)report.distance_vector[report.just_updated], report.just_updated,
-	      report.id[report.just_updated]);
-	warnx("time:        %lld", report.timestamp);
-
-	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
-	}
-
-	/* read the sensor 5x and report each value */
-	for (unsigned i = 0; i < 5; i++) {
-		struct pollfd fds;
-
-		/* wait for data to be ready */
-		fds.fd = fd;
-		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
-
-		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
-		}
-
-		/* now go get it */
-		sz = read(fd, &report, sizeof(report));
-
-		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
-		}
-
-		warnx("periodic read %u", i);
-
-		/* Print the sonar rangefinder report sonar distance vector */
-		for (uint8_t count = 0; count < SRF02_MAX_RANGEFINDERS; count++) {
-			warnx("measurement: %0.3f of sonar %u, id=%d", (double)report.distance_vector[count], count + 1, report.id[count]);
-		}
-
-		warnx("time:        %lld", report.timestamp);
-	}
-
-	/* reset the sensor polling to default rate */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "failed to set default poll rate");
-	}
-
-	errx(0, "PASS");
-#endif
-}
-
-/**
- * Reset the driver.
- */
-void
-reset()
-{
-	int fd = open(SR04_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "failed ");
-	}
-
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
-	}
-
-	exit(0);
-}
 
 /**
  * Print a little info about the driver.
@@ -903,7 +1022,8 @@ void
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		exit(1);
 	}
 
 	printf("state @ %p\n", g_dev);
@@ -914,57 +1034,68 @@ info()
 
 } /* namespace */
 
-static int sonar_isr(int irq, void *context)
-{
-	unsigned time = hrt_absolute_time();
-	/* ack the interrupts we just read */
-
-	if (hc_sr04::g_dev != nullptr) {
-		hc_sr04::g_dev->interrupt(time);
-	}
-
-	return OK;
-}
-
-
 
 int
 hc_sr04_main(int argc, char *argv[])
 {
+
+	int ch;
+	bool enable_median_filter = false;
+	bool enable_obsavoid_switch = false;
+	uint8_t rotation = distance_sensor_s::ROTATION_FORWARD_FACING;
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+
+
+	while ((ch = px4_getopt(argc, argv, "R:ma", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'R':
+			rotation = (uint8_t)atoi(myoptarg);
+			break;
+
+		case 'm':
+			enable_median_filter = true;
+			break;
+
+		case 'a':
+			enable_obsavoid_switch = true;
+			break;
+
+		default:
+			PX4_WARN("missing rotation information");
+		}
+	}
+
+	const char *verb = argv[myoptind];
+
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(argv[1], "start")) {
-		hc_sr04::start();
+	if (!strcmp(verb, "start")) {
+		hc_sr04::start(rotation, enable_median_filter, enable_obsavoid_switch);
 	}
 
 	/*
 	 * Stop the driver
 	 */
-	if (!strcmp(argv[1], "stop")) {
+	if (!strcmp(verb, "stop")) {
 		hc_sr04::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test")) {
-		hc_sr04::test();
-	}
-
-	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(argv[1], "reset")) {
-		hc_sr04::reset();
-	}
+	// if (!strcmp(verb, "test")) {
+	// 	hc_sr04::test();
+	// }
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
+	if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
 		hc_sr04::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	PX4_ERR("unrecognized command, try 'start', 'test' or 'info'");
+	exit(1);
 }

@@ -62,6 +62,7 @@ namespace temperature_calibration
 TemperatureCalibration *instance = nullptr;
 }
 
+static const char *EEPROM_STORAGE_FILE = "/fs/mtd_caldata";
 
 class TemperatureCalibration
 {
@@ -134,13 +135,20 @@ void TemperatureCalibration::task_main()
 	int32_t max_start_temp = 10;
 	param_get(param_find("SYS_CAL_TMAX"), &max_start_temp);
 
+	float accel_readout_tolerance = -1.f;
+	param_get(param_find("SYS_CAL_ACC_TOL"), &accel_readout_tolerance);
+
+	float gyro_readout_tolerance = -1.f;
+	param_get(param_find("SYS_CAL_GYRO_TOL"), &gyro_readout_tolerance);
+
 	//init calibrators
 	TemperatureCalibrationBase *calibrators[3];
 	bool error_reported[3] = {};
 	int num_calibrators = 0;
 
 	if (_accel) {
-		calibrators[num_calibrators] = new TemperatureCalibrationAccel(min_temp_rise, min_start_temp, max_start_temp);
+		calibrators[num_calibrators] = new TemperatureCalibrationAccel(min_temp_rise, min_start_temp, max_start_temp,
+				accel_readout_tolerance);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -163,7 +171,7 @@ void TemperatureCalibration::task_main()
 
 	if (_gyro) {
 		calibrators[num_calibrators] = new TemperatureCalibrationGyro(min_temp_rise, min_start_temp, max_start_temp, gyro_sub,
-				num_gyro);
+				num_gyro, gyro_readout_tolerance);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -184,6 +192,11 @@ void TemperatureCalibration::task_main()
 	usleep(300000); // wait a bit for the system to apply the parameters
 
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
+
+	// make sure only the temperature calibration params are saved to the EEPROM.
+	// reset params, but after we have read the SYS_CAL_* params
+	param_reset_all();
+	param_save_default(); // save params to default location (we just care about the temp calib params)
 
 	// control LED's: blink, then turn solid according to progress
 	led_control_s led_control = {};
@@ -227,7 +240,13 @@ void TemperatureCalibration::task_main()
 		for (int i = 0; i < num_calibrators; ++i) {
 			ret = calibrators[i]->update();
 
-			if (ret == -TC_ERROR_COMMUNICATION) {
+			if (ret == -TC_ERROR_DATA_EXCEPTION) {
+				abort_calibration = true;
+				PX4_ERR("Calibration won't start - sensor data exception");
+				_force_task_exit = true;
+				break;
+
+			} else if (ret == -TC_ERROR_COMMUNICATION) {
 				abort_calibration = true;
 				PX4_ERR("Calibration won't start - sensor bad or communication error");
 				_force_task_exit = true;
@@ -280,6 +299,8 @@ void TemperatureCalibration::task_main()
 		// save params immediately so that we can check the result and don't have to wait for param save timeout
 		param_control_autosave(false);
 
+		led_control.color = led_control_s::COLOR_GREEN;
+
 		// do final calculations & parameter storage
 		for (int i = 0; i < num_calibrators; ++i) {
 			int ret = calibrators[i]->finish();
@@ -289,16 +310,36 @@ void TemperatureCalibration::task_main()
 			}
 		}
 
+		/* save temperature calibration params to eeprom */
+		int param_fd = open(EEPROM_STORAGE_FILE, O_RDWR);
+
+		if (param_fd == -1) {
+			PX4_ERR("open(%s) failed (%i)", EEPROM_STORAGE_FILE, errno);
+			led_control.color = led_control_s::COLOR_RED;
+
+		} else {
+			int ret = param_export(param_fd, true);
+
+			if (ret != 0) {
+				PX4_ERR("param export failed (%i)", ret);
+				led_control.color = led_control_s::COLOR_RED;
+			}
+
+			close(param_fd);
+		}
+
+#if 0 // store to EEPROM, no need for this
 		param_notify_changes();
 		int ret = param_save_default();
 
 		if (ret != 0) {
 			PX4_ERR("Failed to save params (%i)", ret);
+			led_control.color = led_control_s::COLOR_RED;
 		}
 
+#endif
 		param_control_autosave(true);
 
-		led_control.color = led_control_s::COLOR_GREEN;
 	}
 
 	// blink the LED's according to success/failure

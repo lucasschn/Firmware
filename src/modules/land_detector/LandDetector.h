@@ -62,7 +62,9 @@ public:
 		LANDED = 1,
 		FREEFALL = 2,
 		GROUND_CONTACT = 3,
-		MAYBE_LANDED = 4
+		MAYBE_LANDED = 4,
+		CRASH = 5,
+		INVERTED = 6
 	};
 
 	LandDetector();
@@ -132,6 +134,22 @@ protected:
 	virtual bool _get_freefall_state() = 0;
 
 	/**
+	 * @return true if UAV is in crash state.
+	 */
+	virtual bool _get_crash_state()
+	{
+		return false;
+	};
+
+	/**
+	 * @return true if UAV is in crash state.
+	 */
+	virtual bool _get_inverted_state()
+	{
+		return false;
+	};
+
+	/**
 	 *  @return maximum altitude that can be reached
 	 */
 	virtual float _get_max_altitude() = 0;
@@ -149,6 +167,12 @@ protected:
 	orb_advert_t _landDetectedPub{nullptr};
 	vehicle_land_detected_s _landDetected{};
 
+	/** Time in us that crash conditions have to hold before triggering crashed. */
+	static constexpr uint64_t CRASHED_DETECTOR_TRIGGER_TIME_US = 500000;
+
+	/** Time in us that inverted conditions have to hold before triggering inverted. */
+	static constexpr uint64_t INVERTED_DETECTOR_TRIGGER_TIME_US = 500000;
+
 	int _parameterSub{-1};
 
 	LandDetectionState _state{LandDetectionState::LANDED};
@@ -157,6 +181,10 @@ protected:
 	systemlib::Hysteresis _landed_hysteresis{true};
 	systemlib::Hysteresis _maybe_landed_hysteresis{true};
 	systemlib::Hysteresis _ground_contact_hysteresis{true};
+	systemlib::Hysteresis _crash_hysteresis{false};
+	systemlib::Hysteresis _inverted_hysteresis{false};
+
+	float _altitude_max;
 
 private:
 	static void _cycle_trampoline(void *arg);

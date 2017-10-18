@@ -1,0 +1,327 @@
+#!nsh
+#
+# @name Generic Hexarotor x geometry
+#
+# @type Hexarotor x
+# @class Copter
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Matthias Grob <matthias@yuneecresearch.com>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $AUTOCNF == yes -o $NEW_DEFAULTS == yes ]
+then
+	param set MAV_TYPE 13
+
+	#
+	# Control parameters setting for TAP
+	#
+
+	if ver hwcmp TAP_V1
+	then
+		# TAP v1
+		# pitch angle & rate setting
+		param set MC_PITCHRATE_P 0.13
+		param set MC_PITCHRATE_I 0.000
+		param set MC_PITCHRATE_D 0.0032
+		param set MC_PITCHRATE_MAX 360.0
+		param set MC_PITCH_P 4.5
+
+		# roll angle & rate setting
+		param set MC_ROLLRATE_P 0.13
+		param set MC_ROLLRATE_I 0.000
+		param set MC_ROLLRATE_D 0.0032
+		param set MC_ROLLRATE_MAX 360.0
+		param set MC_ROLL_P 4.5
+
+		# yaw angle & rate setting
+		param set MC_YAWRATE_P 0.12
+		param set MC_YAWRATE_I 0.05
+		param set MC_YAWRATE_MAX 120.0
+		param set MC_YAW_P 3.0
+
+		# hover thrust
+		# not tuned
+		param set MPC_THR_HOVER 0.4
+
+		# Battery setting
+		param set BAT_V_CHARGED 4.2
+	else
+		# TAP v2
+		# pitch angle & rate setting
+		param set MC_PITCHRATE_P 0.09
+		param set MC_PITCHRATE_I 0.09
+		param set MC_PITCHRATE_D 0.001
+		param set MC_PITCHRATE_MAX 360.0
+		param set MC_PITCH_P 6
+
+		# roll angle & rate setting
+		param set MC_ROLLRATE_P 0.09
+		param set MC_ROLLRATE_I 0.09
+		param set MC_ROLLRATE_D 0.001
+		param set MC_ROLLRATE_MAX 360.0
+		param set MC_ROLL_P 6
+
+		# yaw angle & rate setting
+		param set MC_YAWRATE_P 0.1495
+		param set MC_YAWRATE_I 0.0575
+		param set MC_YAWRATE_MAX 100.0
+		param set MC_YAWRAUTO_MAX 80.0
+		param set MC_YAW_P 6
+
+		# hover thrust
+		param set MPC_THR_HOVER 0.49
+
+		# Position control parameters
+		param set MPC_XY_P 1.3
+		param set MPC_XY_VEL_P 0.22
+		param set MPC_XY_VEL_D 0.007
+		param set MPC_XY_VEL_I 0.09
+		param set MPC_Z_VEL_P 0.25
+		param set MPC_Z_P 0.85
+		param set MPC_Z_VEL_D 0.0
+		param set MPC_Z_VEL_I 0.085
+
+		# Manual stick input parameters
+		param set RC_FLT_SMP_RATE 33.0
+		param set RC_FLT_CUTOFF 5.0
+		param set MPC_HOLD_DZ 0.1
+		param set MPC_XY_MAN_EXPO 0.7
+		param set MPC_Z_MAN_EXPO 0.6
+		param set MPC_MANTHR_MIN 0.15
+
+		# Position control velocity
+		param set MPC_XY_CRUISE 10.0
+		param set MPC_CRUISE_90 3.0
+		param set MPC_VEL_MANUAL 13.5
+		param set MPC_XY_VEL_MAX 14.0
+		param set MPC_Z_VEL_MAX_UP 4.0
+		param set MPC_Z_VEL_MAX_DN 2.5
+		param set MPC_LAND_SPEED 0.8
+
+		# Position control acceleraton
+		param set MPC_ACC_HOR_MAX 10.0
+		param set MPC_ACC_HOR_MAN 6.0
+		param set MPC_DEC_HOR_SLOW 1.0
+		param set MPC_ACC_DOWN_MAX 6.0
+		param set MPC_ACC_UP_MAX 6.0
+		param set MPC_JERK_MAX 15
+		param set MPC_JERK_MIN 0.1
+
+		# Throttle pid attenuation
+		param set MC_TPA_RATE_P 0.8
+		param set MC_TPA_RATE_I 0.5
+		param set MC_TPA_RATE_D 0.2
+		param set MC_TPA_BREAK_P 0.45
+		param set MC_TPA_BREAK_I 0.6
+		param set MC_TPA_BREAK_D 0.65
+
+		# Battery settings
+		param set BAT_V_EMPTY 3.47
+		param set BAT_V_CHARGED 4.3
+		param set BAT_CRIT_THR 0.27
+		param set BAT_LOW_THR 0.30
+		param set BAT_EMERGEN_THR 0.21
+		param set BAT_V_LOAD_DROP 0.18
+
+		# RC
+		param set COM_RC_LOSS_T 3.0
+		param set COM_DL_LOSS_T 10
+
+		# Altitude (manual) mode parameters
+		param set MPC_MAN_TILT_MAX 24
+
+		# Gyro already temperature calibrated and ID constant
+		param set CAL_GYRO0_ID 3670290
+
+		param set COM_RC_LOSS_MAN 1
+		param set COM_DISARM_LAND 0.1
+	fi
+
+	#
+	# Throttle max/min setting
+	#
+	param set MPC_THR_MAX 0.9
+	param set MPC_THR_MIN 0.1
+
+	#
+	# RTL settings
+	#
+	param set MIS_LTRMIN_ALT 5.0
+	param set RTL_LAND_DELAY 3.5
+	param set LAND_LOI_DELAY 3.5
+
+	#
+	# Mission settings
+	#
+	param set MIS_YAW_ERR 90.0
+
+	#
+	# Vehicle model settings
+	#
+	param set LNDMC_ALT_MAX 500.0
+
+	#
+	# Maximum tilt angle
+	#
+	param set MPC_TILTMAX_AIR 35.0
+
+	#
+	# Smoothing happening between waypoints
+	#
+	param set MPC_POS_SMOOTH 30.0
+
+	#
+	# Battery setting
+	#
+	param set BAT_N_CELLS 4
+
+	#
+	# Acceptance radius
+	#
+	param set NAV_ACC_RAD 1.0
+
+	#
+	# Calibrate by rotating around arms
+	#
+	param set CAL_MAG_METHOD 1
+
+	#
+	# Flight modes
+	#
+	# RTL
+	param set COM_FLTMODE1 5
+	# Position
+	param set COM_FLTMODE4 2
+	# Other switch depends on test pilot setting
+
+	#
+	# ST16 RC settings
+	# (speed slider in top right corner has to be on max!)
+	param set RC_CHAN_CNT 12
+	param set RC_MAP_PITCH 3
+	param set RC_MAP_ROLL 2
+	param set RC_MAP_THROTTLE 1
+	param set RC_MAP_YAW 4
+	param set RC_MAP_AUX1 8
+	param set RC_MAP_AUX2 7
+	param set RC_MAP_AUX3 9
+	param set RC_MAP_AUX4 10
+
+	param set RC1_MAX 1827.0
+	param set RC1_MIN 1162.0
+	param set RC1_REV 1.0
+	param set RC1_TRIM 1162.0
+	param set RC2_MAX 1810.0
+	param set RC2_MIN 1190.0
+	param set RC2_REV -1.0
+	param set RC2_TRIM 1500.0
+	param set RC3_MAX 1810.0
+	param set RC3_MIN 1190.0
+	param set RC3_REV 1.0
+	param set RC3_TRIM 1500.0
+	param set RC4_MAX 1810.0
+	param set RC4_MIN 1190.0
+	param set RC4_REV -1.0
+	param set RC4_TRIM 1500.0
+	param set RC5_MAX 1833.0
+	param set RC5_MIN 1167.0
+	param set RC5_TRIM 1500.0
+	param set RC6_MAX 2000.0
+	param set RC6_MIN 1000.0
+	param set RC6_TRIM 1500.0
+	param set RC7_MAX 1833.0
+	param set RC7_MIN 1163.0
+	param set RC7_TRIM 1500.0
+	param set RC8_MAX 1833.0
+	param set RC8_MIN 1163.0
+	param set RC8_TRIM 1500.0
+	param set RC9_MAX 1833.0
+	param set RC9_MIN 1067.0
+	param set RC9_TRIM 1500.0
+	param set RC10_MAX 1833.0
+	param set RC10_MIN 1067.0
+	param set RC10_TRIM 1500.0
+	param set RC11_MAX 2000.0
+	param set RC11_MIN 1000.0
+	param set RC11_REV -1.0
+	param set RC11_TRIM 1500.0
+
+	#
+	# Switch mapping
+	#
+	param set RC_MAP_ARM_SW 13
+	param set COM_ARM_SWISBTN 1
+	param set RC_MAP_FLTMODE 5
+	param set RC_MAP_GEAR_SW 11
+	param set RC_MAP_KILL_SW 14
+
+	#obstacle avoidance switch
+	param set RC_MAP_AVOID_SW 12
+	param set RC_AVOID_TH -0.25
+	param set RC_AVOID_MID_TH -0.75
+
+	# pan control
+	param set RC_MAP_AUX1 8
+	# tilt control
+	param set RC_MAP_AUX2 7
+	# tilt mode
+	param set RC_MAP_AUX3 9
+	# pan mode
+	param set RC_MAP_AUX4 10
+
+	# gimbal driver configuration
+	param set MNT_MODE_IN 4
+	param set MNT_MODE_OUT 2
+	param set MNT_MAN_CONTROL 1
+	param set MNT_MAN_ROLL 0
+	param set MNT_MAN_PITCH 2
+	param set MNT_MAN_YAW 1
+
+	# Set landing detection stick up/down thresholds
+	# requires an ST16 in rabbit mode or with new
+	# stick mapping code
+	param set LNDMC_POS_UPTHR 0.66
+	param set LNDMC_MAN_DWNTHR 0.25
+
+	# sensor thermal calibration
+	param set SYS_CAL_TDEL 60
+	param set SYS_CAL_ACC_TOL 1
+	param set SYS_CAL_GYRO_TOL 0.1
+
+	param save
+
+	# Check for an ESC update
+	# if there is one, flash each ESC
+	tap_esc checkcrc -d ${ESC_TTY} -n 6
+
+	# Reboot to be on the safe side that the ESC update
+	# did not consume RAM we are missing to fly
+	# reboot
+fi
+
+# Set test pilot mode
+if param compare RC_TESTPILOT 0
+then
+	# Altitude hold
+	param set COM_FLTMODE6 1
+else
+	# Complete manual mode
+	param set COM_FLTMODE6 0
+fi
+
+tap_esc start -d ${ESC_TTY} -n 6
+
+#
+# Play startup tune
+#
+tune_control play -m "MNT255L32O2<CDEFGAB>CDEFGAB>CD" -s 30 &
+
+set OUTPUT_MODE tap_esc
+
+set MIXER hexa_x

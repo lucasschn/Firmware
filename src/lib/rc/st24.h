@@ -41,18 +41,23 @@
 
 #pragma once
 
-#include <stdint.h>
-
 __BEGIN_DECLS
 
-#define ST24_DATA_LEN_MAX	64
+#define ST24_DATA_LEN_MAX	128
 #define ST24_STX1		0x55
 #define ST24_STX2		0x55
+
+/* override unused channels with virtual channels that get handeled by the commander */
+#define ST16_VIRTUAL_ARM_BUTTON_CHANNEL  (13 -1) // set RC_MAP_ARM_SW = 13 and COM_ARM_SWISBTN = 1
+#define ST16_VIRTUAL_KILL_SWITCH_CHANNEL (14 -1) // set RC_MAP_KILL_SW = 14
+#define ST16_ARM_BUTTON_THROTTLE_VALUE_RAW 660
 
 enum ST24_PACKET_TYPE {
 	ST24_PACKET_TYPE_CHANNELDATA12 = 0,
 	ST24_PACKET_TYPE_CHANNELDATA24,
-	ST24_PACKET_TYPE_TRANSMITTERGPSDATA
+	ST24_PACKET_TYPE_TRANSMITTERGPSDATA,
+	ST24_PACKET_TYPE_GPSDATA,
+	ST24_PACKET_TYPE_BINDCMD
 };
 
 enum ST24_DECODE_STATE {
@@ -75,19 +80,7 @@ typedef struct {
 } ReceiverFcPacket;
 
 /**
- * RC Channel data (12 channels).
- *
- * This is incoming from the ST24
- */
-typedef struct {
-	uint16_t t;			///< packet counter or clock
-	uint8_t	rssi;			///< signal strength
-	uint8_t	lost_count;		///< Number of UART packets sent since reception of last RF frame (100 frame means RC timeout of 1s)
-	uint8_t	channel[18];		///< channel data, 12 channels (12 bit numbers)
-} ChannelData12;
-
-/**
- * RC Channel data (12 channels).
+ * RC Channel data (24 channels).
  *
  */
 typedef struct {
@@ -145,6 +138,11 @@ typedef struct {
 	uint8_t	pressCompassStatus;	///< baro / compass status
 } TelemetryData;
 
+typedef struct {
+	uint16_t t;			// packet counter or clock
+	uint8_t cmd[4];		// command is "BIND"
+} StBindCmd;
+
 #pragma pack(pop)
 
 /**
@@ -155,6 +153,9 @@ typedef struct {
  * @return the checksum of these bytes over len
  */
 uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len);
+
+ReceiverFcPacket *st24_encode(uint8_t type, const uint8_t *data, uint8_t bytes);
+ReceiverFcPacket *st24_get_bind_packet(void);
 
 /**
  * Decoder for ST24 protocol

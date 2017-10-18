@@ -1,11 +1,16 @@
 #!nsh
+# Un comment and use set +e to ignore and set -e to enable 'exit on error control'
+set +e
+# Un comment the line below to help debug scripts by printing a trace of the script commands
+#set -x
+
 #
 # TAP startup script.
 #
-#  NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
+# NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
 #
 
-# Serial map:
+# V1 HW Serial map:
 # /dev/ttyS0: GPS
 # /dev/ttyS1: GB
 # /dev/ttyS2: nsh shell / console
@@ -13,22 +18,54 @@
 # /dev/ttyS4: esc bus
 # /dev/ttyS5: RC input
 
+# V2 HW Serial map:
+# /dev/ttyS0: GPS
+# /dev/ttyS1: GB
+# /dev/ttyS2: esc bus / console (mux s7)
+# /dev/ttyS3: payload
+# /dev/ttyS4: RC input
+
 #
 # Start CDC/ACM serial driver
 #
 sercon
 
-set TUNE_ERR ML<<CP4CP4CP4CP4CP4
+#
+# Configuration defaults
+#
+# When the system configuration changes this variable
+# needs to be incremented. This will not reset the
+# calibration but will reset the system tuning and gains
+# to reflect the new defaults
+#
+set DEFAULTS_VER 79
+
+# Log file location
 set LOG_FILE /fs/microsd/bootlog.txt
-set DATAMAN_OPT -r
+if ver hwcmp TAP_V1
+then
+	set DATAMAN_OPT -r
+fi
+set START_LOGGER 0
+set PARAM_FILE /fs/microsd/params
 
 #
 # Try to mount the microSD card.
 #
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
+	if hardfault_log check
+	then
+		if hardfault_log commit
+		then
+			hardfault_log reset
+		fi
+	fi
+
 	echo "microSD present"
 	unset DATAMAN_OPT
+	set START_LOGGER 1
+
 else
 	if mkfatfs /dev/mmcsd0
 	then
@@ -38,11 +75,16 @@ else
 			unset DATAMAN_OPT
 		else
 			echo "ERROR [init] Format failed"
-			tone_alarm MNBG
+			#tone_alarm MNBG
 			set LOG_FILE /dev/null
+			set PARAM_FILE /dev/null
 		fi
 	else
 		set LOG_FILE /dev/null
+		set PARAM_FILE /dev/null
+# microSD not present, shutdown
+		usleep 3000000
+		reboot shutdown
 	fi
 fi
 
@@ -52,43 +94,68 @@ fi
 uorb start
 
 #
+# Start the MTD
+#
+mtd start
+
+#
 # Load parameters
 #
-set PARAM_FILE /fs/microsd/params
-if mtd start
-then
-	set PARAM_FILE /fs/mtd_params
-fi
 
-param select $PARAM_FILE
-if param load
+if ver hwcmp TAP_V2
 then
-else
-	if param reset
+
+	# now load from SD card, which can override the temp calib params
+	param select $PARAM_FILE
+	# we need to use param import (instead of load), because load will cause a reset
+	if param load
 	then
+	else
+		# Param load failed
+		# wipe the SD card to restore the system
+		mount -t vfat /dev/mmcsd0 /fs/microsd
+
+		param reset
+
+		param save
+	fi
+
+	# load the temperature calibration data from EEPROM.
+	param import /fs/mtd_caldata
+
+else
+# tap v1
+	if param load
+	then
+	else
+		param reset
 	fi
 fi
 
-tone_alarm start
+unset PARAM_FILE
 
-#
-# Start system state indicator
-#
-if rgbled_pwm start
+if ver hwcmp TAP_V2
 then
+	camera_trigger start
 fi
 
-if rgbled start
-then
-fi
 
 #
 # Set parameters and env variables for selected AUTOSTART
 #
 if param compare SYS_AUTOSTART 0
 then
-	param set SYS_AUTOSTART 6001
+	param set SYS_AUTOSTART 6021
 	param set SYS_AUTOCONFIG 1
+fi
+
+#
+# This is to migrate everyone from 6001 to param 6021.
+# TODO: remove this again once enough time has passed
+#
+if param compare SYS_AUTOSTART 6001
+then
+	param set SYS_AUTOSTART 6021
 fi
 
 #
@@ -96,11 +163,18 @@ fi
 #
 if param compare SYS_AUTOCONFIG 1
 then
-	# Wipe out params except RC*
-	param reset_nostart RC*
+	# Wipe out params except RC*, TC_* (temperature calibration) and flight time
+	param reset_nostart RC* TC_* LND_FLIGHT_T_*
 	set AUTOCNF yes
 else
 	set AUTOCNF no
+fi
+
+if param compare SYS_PARAM_VER ${DEFAULTS_VER}
+then
+	set NEW_DEFAULTS no
+else
+	set NEW_DEFAULTS yes
 fi
 
 #
@@ -117,6 +191,12 @@ set PWM_MAX none
 set FMU_MODE pwm
 set MAV_TYPE none
 set FAILSAFE none
+set ESC_TTY /dev/ttyS4
+
+if ver hwcmp TAP_V2
+then
+	set ESC_TTY /dev/ttyS2
+fi
 
 # Start canned airframe config
 sh /etc/init.d/rc.autostart
@@ -127,9 +207,18 @@ sh /etc/init.d/rc.autostart
 if [ $AUTOCNF == yes ]
 then
 	param set SYS_AUTOCONFIG 0
-	param save
 fi
 unset AUTOCNF
+
+if [ $NEW_DEFAULTS == yes ]
+then
+	param set SYS_PARAM_VER ${DEFAULTS_VER}
+	param save
+	set NEW_DEFAULTS no
+	reboot
+fi
+
+
 
 #
 # Set default output if not set
@@ -144,18 +233,92 @@ then
 	fi
 fi
 
-gps start -d /dev/ttyS0
+send_event start
 
-# waypoint storage
-# REBOOTWORK this needs to start in parallel
-if dataman start $DATAMAN_OPT
+#
+# Check if we should start a thermal calibration
+#
+set DO_TEMP_CALIB 0
+set TEMP_CALIB_ARGS ""
+if param compare SYS_CAL_GYRO 1
 then
+	set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -g"
+	param set SYS_CAL_GYRO 0
+	set DO_TEMP_CALIB 1
 fi
+if param compare SYS_CAL_ACCEL 1
+then
+	set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -a"
+	param set SYS_CAL_ACCEL 0
+	set DO_TEMP_CALIB 1
+fi
+if param compare SYS_CAL_BARO 1
+then
+	set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -b"
+	param set SYS_CAL_BARO 0
+	set DO_TEMP_CALIB 1
+fi
+
+
+if [ $DO_TEMP_CALIB == 0 ]
+then
+
+	gps start -d /dev/ttyS0
+
+	# waypoint storage
+	# REBOOTWORK this needs to start in parallel
+	dataman start $DATAMAN_OPT
+
+fi
+
+#
+# Start the RC input driver and allocated the 3 PWM
+# one for landing gear in group 0 chan 0
+# two for Sonar in group 1 chan 0 and 1.
+# chan 1 will be reconfigured as capture, but ONLY
+# after the PWM rates are set because rates can only
+# be set on all channels in a group.
+#
+fmu mode_pwm3
+
+#
+#
+if ver hwcmp TAP_V1
+then
+# On TAP-V1 use 400 Hz PWM output for landing gear
+	pwm rate -c 1 -r 400
+else
+# Use 50 Hz PWM output for landing gear
+# Set g 1 (Sonar) to 20 Hz which has the side effect of
+# setting the other group:g 1 (landing gear) to the default 50 Hz
+	pwm rate -g 1 -r 20
+fi
+
+#
+# Load the gear mixer onto fmu
+#
+mixer load /dev/px4fmu /etc/mixers/gear.mix
+
+#
+# Set Landing gear pwm configuration directly for the only channel we use
+# such that landing gear lowers on kill switch lockdown
+pwm disarmed -c 1 -p 1500
+pwm failsafe -c 1 -p 1000
 
 #
 # Sensors System (start before Commander so Preflight checks are properly run)
 #
 sh /etc/init.d/rc.sensors
+
+
+# make sure to start temperature calibration after the sensors
+if [ "x$TEMP_CALIB_ARGS" != "x" ]
+then
+	usleep 100000
+	send_event temperature_calibration ${TEMP_CALIB_ARGS}
+fi
+unset TEMP_CALIB_ARGS
+
 
 commander start
 
@@ -164,25 +327,64 @@ commander start
 #
 load_mon start
 
-# Start MAVLink on the gimbal port
-#mavlink start -r 1200 -d /dev/ttyS1
 
-# Start MAVLink on USB, developers can use the MAVLink shell
-mavlink start -r 60000 -d /dev/ttyACM0 -m config
+# mavlink baudrate for Gimbal UART
+if param compare SYS_COMPANION 57600
+then
+	set BAUDRATE 57600
+else
+	set BAUDRATE 500000
+fi
+
+# FIXME: for now we just want to make sure mavlink always runs with version 2,
+# later move this to a proper place
+param set MAV_PROTO_VER 2
+
+# multiplex mavlink 2 & ymavlink on the gimbal serial
+gimbal_protocol_splitter start /dev/ttyS1
+# seems we need to start vmount before mavlink (probably due to some ioctl's)
+vmount start -d /dev/ymavlink -b $BAUDRATE
+
+# run mavlink (the same instance) on USB and gimbal port
+mavlink_dup start -d /dev/mavlink_dup
+mavlink_dup add -d /dev/mavlink -b $BAUDRATE
+mavlink_dup add -d /dev/ttyACM0 -p
+# mavlink rate depends on baudrate
+set MAV_RATE 8000
+mavlink start -r $MAV_RATE -d /dev/mavlink_dup -m config -b $BAUDRATE
+mavlink stream -d /dev/mavlink_dup -s SYSTEM_TIME -r 0.5
+unset MAV_RATE
 
 #
 # Logging
 #
-#if logger start -b 2 -t
-#then
-#fi
+if [ $START_LOGGER == 1 ]
+then
+	set LOGGER_ARGS ""
+	if param compare SDLOG_MODE 1
+	then
+		set LOGGER_ARGS "-e"
+	fi
+	if param compare SDLOG_MODE 2
+	then
+		set LOGGER_ARGS "-f"
+	fi
+	if param compare SDLOG_MODE 3
+	then
+		set LOGGER_ARGS "-f"
+	fi
+	logger start -b 10 -q 3 -t -m file ${LOGGER_ARGS}
+	unset LOGGER_ARGS
+fi
+
+unset START_LOGGER
+unset BAUDRATE
 
 #
 # Fixed wing setup
 #
 if [ $VEHICLE_TYPE == fw ]
 then
-	echo "INFO  [init] Fixedwing"
 
 	if [ $MIXER == none ]
 	then
@@ -210,7 +412,6 @@ fi
 #
 if [ $VEHICLE_TYPE == mc ]
 then
-	echo "INFO  [init] Multicopter"
 
 	if [ $MIXER == none ]
 	then
@@ -262,103 +463,49 @@ then
 	# Load mixer and configure outputs
 	sh /etc/init.d/rc.interface
 
-	# Start standard multicopter apps
-	sh /etc/init.d/rc.mc_apps
-fi
 
-#
-# VTOL setup
-#
-if [ $VEHICLE_TYPE == vtol ]
-then
-	echo "INFO  [init] VTOL"
-
-	if [ $MIXER == none ]
+	if [ $DO_TEMP_CALIB == 0 ]
 	then
-		echo "WARN  [init] VTOL mixer undefined"
+		# Start standard multicopter apps
+		sh /etc/init.d/rc.mc_apps
 	fi
-
-	if [ $MAV_TYPE == none ]
-	then
-		# Use mixer to detect vehicle type
-		if [ $MIXER == caipirinha_vtol ]
-		then
-			set MAV_TYPE 19
-		fi
-		if [ $MIXER == firefly6 ]
-		then
-			set MAV_TYPE 21
-		fi
-		if [ $MIXER == quad_x_pusher_vtol ]
-		then
-			set MAV_TYPE 22
-		fi
-	fi
-
-	# Still no MAV_TYPE found
-	if [ $MAV_TYPE == none ]
-	then
-		echo "WARN  [init] Unknown MAV_TYPE"
-		param set MAV_TYPE 19
-	else
-		param set MAV_TYPE $MAV_TYPE
-	fi
-
-	# Load mixer and configure outputs
-	sh /etc/init.d/rc.interface
-
-	# Start standard vtol apps
-	sh /etc/init.d/rc.vtol_apps
-fi
-
-#
-# Rover setup
-#
-if [ $VEHICLE_TYPE == rover ]
-then
-	# 10 is MAV_TYPE_GROUND_ROVER
-	set MAV_TYPE 10
-
-	# Load mixer and configure outputs
-	sh /etc/init.d/rc.interface
-
-	# Start standard rover apps
-	sh /etc/init.d/rc.axialracing_ax10_apps
-
-	param set MAV_TYPE 10
 fi
 
 unset MIXER
 unset MAV_TYPE
 unset OUTPUT_MODE
 
-#
-# Start the RC input driver
-#
-if fmu mode_pwm1
-then
-fi
-
-#
-# Use 400 Hz PWM output for landing gear (frequency also affects RGB LED)
-#
-pwm rate -c 1 -r 400
-
-#
-# Load the gear mixer onto fmu
-#
-mixer load /dev/px4fmu /etc/mixers/gear.mix
-
-#
-# Start the navigator
-#
-if navigator start
-then
-fi
-
 # There is no further script processing, so we can free some RAM
 # XXX potentially unset all script variables.
-unset TUNE_ERR
+#unset TUNE_ERR
+unset DO_TEMP_CALIB
 
-# Boot is complete, inform MAVLink app(s) that the system is now fully up and running
+if param compare SYS_COMPANION 1921600
+then
+	mavlink start -r 200000 -b 921600 -d /dev/ttyS1
+else
+
+	if param compare SYS_COMPANION 2921600
+	then
+		mavlink start -r 200000 -b 921600 -d /dev/ttyS2
+		mavlink boot_complete
+		exit
+	else
+		#
+		# Start the navigator
+		#
+		navigator start
+	fi
+fi
+
+set REALSENSE_PORT /dev/ttyS3
+
+if ver hwcmp TAP_V3
+then
+	set REALSENSE_PORT /dev/ttyS1
+fi
+
+realsense start -d ${REALSENSE_PORT}
+unset REALSENSE_PORT
+
 mavlink boot_complete

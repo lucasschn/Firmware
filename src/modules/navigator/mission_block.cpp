@@ -361,16 +361,14 @@ MissionBlock::is_mission_item_reached()
 					   _navigator->get_global_position()->vel_e * _navigator->get_global_position()->vel_e);
 
 
-		/* we reached desired velcoity */
+		/* we reached desired velocity */
 		if (fabsf(ground_speed - _mission_item.requested_speed) < 0.5f) {
 			_waypoint_velocity_reached = true;
 			return true;
 		}
-	}
 
-
-	/* Once the waypoint, yaw setpoint, velocity setpoint have been reached we can start the loiter time countdown */
-	else if (_waypoint_position_reached && _waypoint_yaw_reached) {
+	} else if (_waypoint_position_reached && _waypoint_yaw_reached) {
+		/* Once the waypoint, yaw setpoint have been reached we can start the loiter time countdown */
 
 		if (_time_first_inside_orbit == 0) {
 			_time_first_inside_orbit = now;
@@ -491,16 +489,22 @@ MissionBlock::get_time_inside(const struct mission_item_s &item)
 bool
 MissionBlock::item_contains_position(const mission_item_s &item)
 {
-	return item.nav_cmd == NAV_CMD_IDLE ||
-	       item.nav_cmd == NAV_CMD_WAYPOINT ||
-	       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-	       item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	       item.nav_cmd == NAV_CMD_LAND ||
-	       item.nav_cmd == NAV_CMD_TAKEOFF ||
-	       item.nav_cmd == NAV_CMD_LOITER_TO_ALT ||
-	       item.nav_cmd == NAV_CMD_DO_FOLLOW_REPOSITION ||
-	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
-	       item.nav_cmd == NAV_CMD_VTOL_LAND;
+	switch (item.nav_cmd) {
+	case NAV_CMD_IDLE:
+	case NAV_CMD_WAYPOINT:
+	case NAV_CMD_LOITER_UNLIMITED:
+	case NAV_CMD_LOITER_TIME_LIMIT:
+	case NAV_CMD_LAND:
+	case NAV_CMD_TAKEOFF:
+	case NAV_CMD_LOITER_TO_ALT:
+	case NAV_CMD_DO_FOLLOW_REPOSITION:
+	case NAV_CMD_VTOL_TAKEOFF:
+	case NAV_CMD_VTOL_LAND:
+		return true;
+
+	default:
+		return false;
+	}
 }
 
 bool

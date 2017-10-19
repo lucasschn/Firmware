@@ -79,12 +79,6 @@ RTL::on_inactive()
 	_rtl_state = RTL_STATE_NONE;
 }
 
-float
-RTL::get_rtl_altitude()
-{
-	return math::min(_param_return_alt.get(), _navigator->get_land_detected()->alt_max);
-}
-
 void
 RTL::on_activation()
 {

@@ -76,11 +76,6 @@ private:
 	 */
 	void		advance_rtl();
 
-	/**
-	 * Get RTL altitude
-	 */
-	float 		get_rtl_altitude();
-
 
 	enum RTLState {
 		RTL_STATE_NONE = 0,

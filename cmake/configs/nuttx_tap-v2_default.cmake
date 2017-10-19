@@ -111,7 +111,6 @@ set(config_module_list
 	lib/rc
 	lib/tunes
 	platforms/nuttx
-	lib/micro-CDR
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common

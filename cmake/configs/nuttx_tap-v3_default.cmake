@@ -22,6 +22,7 @@ set(config_module_list
 	drivers/hc_sr04
 	drivers/gps
 	drivers/airspeed
+	drivers/realsense
 	modules/sensors
 	drivers/vmount
 	drivers/camera_trigger

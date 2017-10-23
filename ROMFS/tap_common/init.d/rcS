@@ -35,7 +35,17 @@ set +e
 # /dev/ttyS6: Smart Battery (Not connected on H520S-000-R1)(UART7)
 # /dev/ttyS7: console / J23			(UART8)
 
-if ver hwcmp TAP_V3
+# TAP_V3_1 HW Serial map:
+# /dev/ttyS0: GPS     		(USART1)
+# /dev/ttyS1: Sonar(Front)	(USART2)
+# /dev/ttyS2: OF+Sonar		(USART3)
+# /dev/ttyS3: Camera  		(UART4)
+# /dev/ttyS4: esc bus 		(UART5)
+# /dev/ttyS5: Avoid/Telem	(USART6)
+# /dev/ttyS6: Smart Battery	(UART7)
+# /dev/ttyS7: console		(UART8)
+
+if ver hwcmp TAP_V3 TAP_V3_1
 then
 #
 # Mount the procfs.
@@ -120,7 +130,7 @@ mtd start
 # Load parameters
 #
 
-if ver hwcmp TAP_V2 TAP_V3
+if ver hwcmp TAP_V2 TAP_V3 TAP_V3_1
 then
 
 	# now load from SD card, which can override the temp calib params
@@ -152,18 +162,32 @@ fi
 
 unset PARAM_FILE
 
-if ver hwcmp TAP_V2 TAP_V3
+if ver hwcmp TAP_V2 TAP_V3 TAP_V3_1
 then
 	camera_trigger start
 fi
 
+#
+# Start system state indicator
+#
+if ver hwcmp TAP_V3_1
+then
+	if rgbled start
+	then
+	fi
+fi
 
 #
 # Set parameters and env variables for selected AUTOSTART
 #
 if param compare SYS_AUTOSTART 0
 then
-	param set SYS_AUTOSTART 6021
+	if ver hwcmp TAP_V3_1
+	then
+		param set SYS_AUTOSTART 4001
+	else
+		param set SYS_AUTOSTART 6021
+	fi
 	param set SYS_AUTOCONFIG 1
 fi
 
@@ -217,7 +241,7 @@ then
 	set ESC_TTY /dev/ttyS2
 fi
 
-if ver hwcmp TAP_V3
+if ver hwcmp TAP_V3 TAP_V3_1
 then
 	set GIMBAL_TTY /dev/ttyS3
 fi
@@ -368,7 +392,7 @@ param set MAV_PROTO_VER 2
 set MAV_RATE 8000
 
 # starts a full mavlink instance for the gimbal port on TAP_V3 hardware
-if ver hwcmp TAP_V3
+if ver hwcmp TAP_V3 TAP_V3_1
 then
 	# mavlink instance for the gimbal port
 	mavlink start -r ${MAV_RATE} -d ${GIMBAL_TTY} -m config -b ${BAUDRATE}
@@ -522,7 +546,12 @@ else
 
 	if param compare SYS_COMPANION 2921600
 	then
-		mavlink start -r 200000 -b 921600 -d /dev/ttyS2
+		if ver hwcmp TAP_V3_1
+		then
+			mavlink start -r 200000 -b 921600 -d /dev/ttyS5
+		else
+			mavlink start -r 200000 -b 921600 -d /dev/ttyS2
+		fi
 		mavlink boot_complete
 		exit
 	else
@@ -538,9 +567,10 @@ set REALSENSE_PORT /dev/ttyS3
 if ver hwcmp TAP_V3
 then
 	set REALSENSE_PORT /dev/ttyS1
+	realsense start -d ${REALSENSE_PORT}
 fi
 
-realsense start -d ${REALSENSE_PORT}
+
 unset REALSENSE_PORT
 
 mavlink boot_complete

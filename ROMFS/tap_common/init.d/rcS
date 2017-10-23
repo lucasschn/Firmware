@@ -172,7 +172,7 @@ fi
 #
 if ver hwcmp TAP_V3_1
 then
-	if rgbled start
+	if rgbled_pwm start
 	then
 	fi
 fi

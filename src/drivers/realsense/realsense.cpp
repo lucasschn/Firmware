@@ -114,13 +114,14 @@ public:
 	}
 private:
 
-
+	bool	_realsense_is_present;
 	bool	_initialized;
 	bool 	_taskShouldExit;
 	bool 	_taskIsRunning;
 	char 	_device_realsense[20];
 	uint8_t _realsense_output_flags;
 	uint16_t  _read_write_count;
+	uint64_t 	_init_time;
 	int		_measure_ticks;
 	int		_vehicle_local_position_sub;
 	int		_vehicle_local_position_setpoint_sub;
@@ -157,11 +158,13 @@ private:
 
 REALSENSE::REALSENSE(const char *port):
 	CDev("REALSENSE", REALSENSE_DEVICE_PATH, 0),
+	_realsense_is_present(false),
 	_initialized(false),
 	_taskShouldExit(false),
 	_taskIsRunning(false),
 	_realsense_output_flags(0),
 	_read_write_count(0),
+	_init_time(0),
 	_measure_ticks(0),
 	_vehicle_local_position_sub(-1),
 	_vehicle_local_position_setpoint_sub(-1),
@@ -408,7 +411,7 @@ REALSENSE::_send_obstacle_avoidance_data()
 			_txpacket.length);
 	int ret = ::write(_uart_fd, (uint8_t *)&_txpacket, (_txpacket.length + 3));
 
-	if (ret < 0) {
+	if (ret < 0 && _realsense_is_present) {
 		PX4_ERR("failed to write send data to realsense (%i)", ret);
 	}
 }
@@ -580,6 +583,12 @@ REALSENSE::_read_obstacle_avoidance_data()
 				}
 
 			case PacketId::OpticalFlowDataOutput: {//Type ID is 0x12
+
+					// check if we get optical flow msgs and a RealSense module is present (stop driver otherwise)
+					if (!_realsense_is_present) {
+						PX4_INFO("Found RealSense module");
+						_realsense_is_present = true;
+					}
 
 					OpticalFlowDataOutput packet_optical;
 					memcpy((char *)&packet_optical, _YP_PACKET_DATA(_rxpacket_realsense), PACKET_LENGTH_REALSENSE_OPTFLOW);
@@ -754,10 +763,17 @@ REALSENSE::_cycle_realsense()
 	if (!_initialized) {
 		_init_realsense();
 		_taskIsRunning = true;
+		_init_time = hrt_absolute_time();
 	}
 
 	poll_subscriptions();
 	update();
+
+	// shut down driver if we don't get any msgs after 1min
+	if (!_realsense_is_present && (hrt_absolute_time() - _init_time) > 60e6) {
+		_taskShouldExit = true;
+		PX4_INFO("No RealSense present - stopping driver");
+	}
 
 	if (!_taskShouldExit) {
 		// Schedule next cycle.

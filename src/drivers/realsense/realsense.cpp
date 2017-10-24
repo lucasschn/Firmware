@@ -31,35 +31,18 @@
  *
  ****************************************************************************/
 
-#include <stdint.h>
-
-#include <px4_tasks.h>
 #include <px4_getopt.h>
 #include <px4_workqueue.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <termios.h>
-#include <cmath>	// NAN
-#include <math.h>
-#include <float.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/conversion/rotation.h>
-#include <systemlib/px4_macros.h>
 #include <drivers/device/device.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/device/ringbuffer.h>
-#include <arch/board/board.h>
-#include <uORB/uORB.h>
 #include <drivers/drv_hrt.h>
+#include <arch/board/board.h>
 #include <systemlib/param/param.h>
 #include <lib/rc/st24.h>
+#include <uORB/uORB.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>

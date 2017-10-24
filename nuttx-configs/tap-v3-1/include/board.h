@@ -56,7 +56,7 @@
  * This needs to be removed once a hardware with the correct pinning is configured
  * TODO: remove when new hardware is available.
  */
-#define H520S_000_R1
+//#define H520S_000_R1
 
 /************************************************************************************
  * Pre-processor Definitions

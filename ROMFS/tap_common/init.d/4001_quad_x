@@ -288,7 +288,7 @@ tap_esc start -d ${ESC_TTY} -n 4
 #
 # Play startup tune
 #
-tune_control play -m "MNT255L32O2<CDEFGAB>CDEFGAB>CD" -s 30 &
+#tune_control play -m "MNT255L32O2<CDEFGAB>CDEFGAB>CD" -s 30 &
 
 set OUTPUT_MODE tap_esc
 

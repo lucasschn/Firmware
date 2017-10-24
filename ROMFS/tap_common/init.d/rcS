@@ -394,7 +394,12 @@ fi
 param set MAV_PROTO_VER 2
 
 # mavlink rate depends on baudrate
-set MAV_RATE 8000
+if ver hwcmp TAP_V3_1
+then
+	set MAV_RATE 40000
+else
+	set MAV_RATE 8000
+fi
 
 # starts a full mavlink instance for the gimbal port on TAP_V3 hardware
 if ver hwcmp TAP_V3 TAP_V3_1
@@ -551,12 +556,7 @@ else
 
 	if param compare SYS_COMPANION 2921600
 	then
-		if ver hwcmp TAP_V3_1
-		then
-			mavlink start -r 200000 -b 921600 -d /dev/ttyS5
-		else
-			mavlink start -r 200000 -b 921600 -d /dev/ttyS2
-		fi
+		mavlink start -r 200000 -b 921600 -d /dev/ttyS2
 		mavlink boot_complete
 		exit
 	else

@@ -17,7 +17,7 @@ hmc5883 -C -T -X -R 6 start
 # External I2C bus
 if ver hwcmp TAP_V3_1
 then
-	ist8310 -C -R 0 -b 4 start
+	ist8310 -C -R 0 -b 1 start
 else
 	ist8310 -C start
 fi

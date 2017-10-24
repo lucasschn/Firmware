@@ -57,7 +57,6 @@
 #include <drivers/device/ringbuffer.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
-#include <systemlib/mavlink_log.h>
 #include <drivers/drv_hrt.h>
 #include <systemlib/param/param.h>
 #include <lib/rc/st24.h>
@@ -121,14 +120,13 @@ private:
 	bool 	_taskIsRunning;
 	char 	_device_realsense[20];
 	uint8_t _realsense_output_flags;
-	uint16_t  read_write_count;
+	uint16_t  _read_write_count;
 	int		_measure_ticks;
 	int		_vehicle_local_position_sub;
 	int		_vehicle_local_position_setpoint_sub;
 	int		_sensor_combined_sub;
 	int 	_vehicle_attitude_sub;
 	int 	_distance_sensor_subs[DISTANCE_SENSOR_INSTANCES];
-	int 	_last_imu_time;
 	int 	_manual_sub;
 	float _current_distance;
 	struct vehicle_local_position_s _local_pos;
@@ -144,7 +142,6 @@ private:
 	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _realsense_distance_info_pub;
 	orb_advert_t _realsense_distance_360_pub;
-	orb_advert_t mavlink_log_pub;
 	static void _cycle_trampoline(void *arg);
 	void _init_realsense();  							 // init - initialise the sensor
 	void update();     					 // update - check input and send out data
@@ -164,14 +161,13 @@ REALSENSE::REALSENSE(const char *port):
 	_taskShouldExit(false),
 	_taskIsRunning(false),
 	_realsense_output_flags(0),
-	read_write_count(0),
+	_read_write_count(0),
 	_measure_ticks(0),
 	_vehicle_local_position_sub(-1),
 	_vehicle_local_position_setpoint_sub(-1),
 	_sensor_combined_sub(-1),
 	_vehicle_attitude_sub(-1),
 	_distance_sensor_subs{},
-	_last_imu_time(0),
 	_manual_sub(-1),
 	_current_distance(0.0f),
 	_local_pos{},
@@ -184,8 +180,7 @@ REALSENSE::REALSENSE(const char *port):
 	_optical_flow_pub(nullptr),
 	_distance_sensor_pub(nullptr),
 	_realsense_distance_info_pub(nullptr),
-	_realsense_distance_360_pub(nullptr),
-	mavlink_log_pub(nullptr)
+	_realsense_distance_360_pub(nullptr)
 {
 	/* store port name */
 	strncpy(_device_realsense, port, sizeof(_device_realsense));
@@ -742,13 +737,13 @@ REALSENSE::update()     					 // update - check input and send out data
 		}
 	}
 
-	if (read_write_count == 100) {
+	if (_read_write_count == 100) {
 		_send_heartbeat(); //1 hz
-		read_write_count = 0;
+		_read_write_count = 0;
 	}
 
 	_send_obstacle_avoidance_data(); // 100 hz
-	read_write_count ++;
+	_read_write_count ++;
 	_read_obstacle_avoidance_data(); // 100 hz
 
 }

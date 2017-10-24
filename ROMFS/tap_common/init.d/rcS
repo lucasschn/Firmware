@@ -197,7 +197,12 @@ fi
 #
 if param compare SYS_AUTOSTART 6001
 then
-	param set SYS_AUTOSTART 6021
+	if ver hwcmp TAP_V3_1
+	then
+		param set SYS_AUTOSTART 4001
+	else
+		param set SYS_AUTOSTART 6021
+	fi
 fi
 
 #

@@ -108,11 +108,6 @@ protected:
 	 */
 	void set_land_item(struct mission_item_s *item, bool at_current_location);
 
-	/**
-	 * Set a descend mission item
-	 */
-	void set_descend_item(struct mission_item_s *item);
-
 	void set_current_position_item(struct mission_item_s *item);
 
 	/**
@@ -131,11 +126,19 @@ protected:
 	void	mission_apply_limitation(mission_item_s &item);
 
 	void issue_command(const mission_item_s &item);
+	/* --- tap sepcific items */
+
+	/**
+	 * Set a descend mission item
+	 */
+	void set_descend_item(struct mission_item_s *item);
 
 	/**
 	 * Set brake item
 	 */
 	void set_brake_item(struct mission_item_s *item);
+
+	/* --- */
 
 	float get_time_inside(const struct mission_item_s &item);
 

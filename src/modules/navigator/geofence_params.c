@@ -57,7 +57,7 @@
  * @value 0 None
  * @value 1 Warning
  * @value 2 Loiter
- * @value 3 Return to Launch
+ * @value 3 Return to Land
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ACTION, 1);

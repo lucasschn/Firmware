@@ -88,7 +88,6 @@ MissionBlock::is_mission_item_reached()
 
 	case NAV_CMD_DO_LAND_START:
 	case NAV_CMD_DO_TRIGGER_CONTROL:
-	case NAV_CMD_RETURN_TO_LAUNCH:
 	case NAV_CMD_DO_DIGICAM_CONTROL:
 	case NAV_CMD_IMAGE_START_CAPTURE:
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
@@ -100,6 +99,7 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 	case NAV_CMD_SET_CAMERA_MODE:
+	case NAV_CMD_RETURN_TO_LAUNCH:
 		return true;
 
 	case NAV_CMD_DO_VTOL_TRANSITION:
@@ -353,6 +353,8 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
+	/* --- tap specific brake */
+
 	/* check if velocity needs to be reached
 	 * Note: the position controller either tracks position/yaw or velocity */
 	if (_mission_item.force_velocity) {
@@ -367,8 +369,11 @@ MissionBlock::is_mission_item_reached()
 			return true;
 		}
 
+		/* --- */
+
+		/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
+
 	} else if (_waypoint_position_reached && _waypoint_yaw_reached) {
-		/* Once the waypoint, yaw setpoint have been reached we can start the loiter time countdown */
 
 		if (_time_first_inside_orbit == 0) {
 			_time_first_inside_orbit = now;
@@ -714,7 +719,6 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, 
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
 	item->deploy_gear = false;
-
 }
 
 void
@@ -758,6 +762,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	item->deploy_gear = true;
 }
 
+/* --- tap specific land-item */
 void
 MissionBlock::set_descend_item(struct mission_item_s *item)
 {
@@ -786,11 +791,11 @@ MissionBlock::set_descend_item(struct mission_item_s *item)
 	item->origin = ORIGIN_ONBOARD;
 	item->deploy_gear = true;
 }
+/* --- */
 
 void
 MissionBlock::set_current_position_item(struct mission_item_s *item)
 {
-	*item = {};
 	item->nav_cmd = NAV_CMD_WAYPOINT;
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
@@ -820,6 +825,7 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->origin = ORIGIN_ONBOARD;
 }
 
+/* --- tap specific brake-item */
 void
 MissionBlock::set_brake_item(struct mission_item_s *item)
 {
@@ -836,6 +842,7 @@ MissionBlock::set_brake_item(struct mission_item_s *item)
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
 }
+/* --- */
 
 void
 MissionBlock::mission_apply_limitation(mission_item_s &item)

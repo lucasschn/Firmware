@@ -44,20 +44,19 @@
 #include <stdbool.h>
 #include <math.h>
 #include <fcntl.h>
-#include <float.h>
 
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
-#include <geo/geo.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+
+#include <geo/geo.h>
+#include <float.h>
 #include <uORB/topics/vehicle_command.h>
 
 #include "land.h"
 #include "navigator.h"
-
-#define DELAY_SIGMA	0.01f
 
 Land::Land(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),

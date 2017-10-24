@@ -78,6 +78,8 @@
 #define DELAY_FLOW_US 38000 // delay of pixel flow measurements compared to gyro from auto pilot
 #define DISTANCE_SENSOR_INSTANCES 2
 
+#define TIME_WAIT_SHUTDOWN_US 60000000 // 1min
+
 class REALSENSE: public device::CDev
 {
 public:
@@ -569,7 +571,7 @@ REALSENSE::_read_obstacle_avoidance_data()
 
 					// check if we get optical flow msgs and a RealSense module is present (stop driver otherwise)
 					if (!_realsense_is_present) {
-						PX4_INFO("Found RealSense module");
+						PX4_WARN("Found RealSense module");
 						_realsense_is_present = true;
 					}
 
@@ -729,7 +731,7 @@ REALSENSE::update()     					 // update - check input and send out data
 		}
 	}
 
-	if (_read_write_count == 100) {
+	if (_read_write_count >= 100) {
 		_send_heartbeat(); //1 hz
 		_read_write_count = 0;
 	}
@@ -753,9 +755,9 @@ REALSENSE::_cycle_realsense()
 	update();
 
 	// shut down driver if we don't get any msgs after 1min
-	if (!_realsense_is_present && (hrt_absolute_time() - _init_time) > 60e6) {
+	if (!_realsense_is_present && (hrt_absolute_time() - _init_time) > TIME_WAIT_SHUTDOWN_US) {
 		_taskShouldExit = true;
-		PX4_INFO("No RealSense present - stopping driver");
+		PX4_WARN("No RealSense present - stopping driver");
 	}
 
 	if (!_taskShouldExit) {

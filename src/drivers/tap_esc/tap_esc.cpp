@@ -952,7 +952,8 @@ TAP_ESC::cycle()
 					_esc_feedback.esc[feed_back_data.channelID].esc_voltage = feed_back_data.voltage;
 #endif
 #ifdef ESC_HAVE_CURRENT_SENSOR
-					_esc_feedback.esc[feed_back_data.channelID].esc_current = feed_back_data.current;
+					// ESCs report in 10mA/LSB
+					_esc_feedback.esc[feed_back_data.channelID].esc_current = feed_back_data.current / 100.f;
 #endif
 #ifdef ESC_HAVE_TEMPERATURE_SENSOR
 					_esc_feedback.esc[feed_back_data.channelID].esc_temperature = feed_back_data.temperature;

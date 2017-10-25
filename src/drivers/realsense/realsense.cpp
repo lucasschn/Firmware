@@ -141,6 +141,25 @@ private:
 	void _read_obstacle_avoidance_data();
 };
 
+namespace realsense
+{
+
+// driver 'main' command
+/**
+ * realsense start / stop handling function
+ * This makes the realsense drivers accessible from the nuttx shell
+ * @ingroup apps
+ */
+extern "C" __EXPORT int realsense_main(int argc, char *argv[]);
+
+// Private variables
+static REALSENSE *realsense_drv_task = nullptr;
+static char _device[20] = {};
+
+void usage();
+static void realsense_stop(void);
+}
+
 REALSENSE::REALSENSE(const char *port):
 	CDev("REALSENSE", REALSENSE_DEVICE_PATH, 0),
 	_realsense_is_present(false),
@@ -754,11 +773,6 @@ REALSENSE::_cycle_realsense()
 	poll_subscriptions();
 	update();
 
-	// shut down driver if we don't get any msgs after 1min
-	if (!_realsense_is_present && (hrt_absolute_time() - _init_time) > TIME_WAIT_SHUTDOWN_US) {
-		_taskShouldExit = true;
-		PX4_WARN("No RealSense present - stopping driver");
-	}
 
 	if (!_taskShouldExit) {
 		// Schedule next cycle.
@@ -768,6 +782,13 @@ REALSENSE::_cycle_realsense()
 	} else {
 		_taskIsRunning = false;
 		_send_shutdown_command();
+	}
+
+	// shut down driver if we don't get any msgs after 1min
+	if (!_realsense_is_present && (hrt_absolute_time() - _init_time) > TIME_WAIT_SHUTDOWN_US) {
+		delete realsense::realsense_drv_task;
+		realsense::realsense_drv_task = nullptr;
+		PX4_WARN("No RealSense present - stopping driver");
 	}
 }
 
@@ -912,26 +933,7 @@ REALSENSE::ioctl(struct file *filp, int cmd, unsigned long arg)
 	return 1;
 }
 
-
-namespace realsense
-{
-
-// driver 'main' command
-/**
- * realsense start / stop handling function
- * This makes the realsense drivers accessible from the nuttx shell
- * @ingroup apps
- */
-extern "C" __EXPORT int realsense_main(int argc, char *argv[]);
-
-// Private variables
-static REALSENSE *realsense_drv_task = nullptr;
-static char _device[20] = {};
-void usage();
-static void realsense_stop(void);
-
-
-static void realsense_stop()
+static void realsense::realsense_stop()
 {
 	if (realsense_drv_task == nullptr) {
 		PX4_WARN("not running");
@@ -957,14 +959,14 @@ static void realsense_stop()
 
 }
 
-void usage()
+void realsense::usage()
 {
 	PX4_INFO("usage: realsense start -d /dev/ttyS3");
 	PX4_INFO("       realsense stop");
 	PX4_INFO("       realsense status");
 }
 
-int realsense_main(int argc, char *argv[])
+int realsense::realsense_main(int argc, char *argv[])
 {
 	const char *device = nullptr;
 	int ch;
@@ -1030,5 +1032,3 @@ int realsense_main(int argc, char *argv[])
 
 	return 0;
 }
-
-} // namespace realsense

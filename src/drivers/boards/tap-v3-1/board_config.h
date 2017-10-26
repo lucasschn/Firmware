@@ -28,4 +28,4 @@
 
 #define PX4_I2C_BUS_ONBOARD 4 // wrong workaround to get the baro working
 
-#define BOARD_MAX_LEDS 6 // Define the number of led this board has
+#define BOARD_MAX_LEDS 4 // Define the number of led this board has

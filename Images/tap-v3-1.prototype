@@ -1,10 +1,10 @@
 {
     "board_id": 96,
-    "magic": "TAPFWv3",
-    "description": "Firmware for the TAPv3 board",
+    "magic": "TAPFWv3-1",
+    "description": "Firmware for the TAPv3-1 board",
     "image": "",
     "build_time": 0,
-    "summary": "TAPv3",
+    "summary": "TAPv3-1",
     "version": "0.1",
     "image_size": 0,
     "git_identity": "",

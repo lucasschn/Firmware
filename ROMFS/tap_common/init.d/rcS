@@ -572,8 +572,9 @@ then
 	set REALSENSE_PORT /dev/ttyS1
 fi
 
-if [(ver hwcmp TAP_V3_1)==0]
+if ver hwcmp TAP_V3_1
 then
+else
 	realsense start -d ${REALSENSE_PORT}
 fi
 

@@ -172,9 +172,7 @@ fi
 #
 if ver hwcmp TAP_V3_1
 then
-	if rgbled_pwm start
-	then
-	fi
+	rgbled_pwm start
 fi
 
 #
@@ -572,9 +570,12 @@ set REALSENSE_PORT /dev/ttyS3
 if ver hwcmp TAP_V3
 then
 	set REALSENSE_PORT /dev/ttyS1
-	realsense start -d ${REALSENSE_PORT}
 fi
 
+if [(ver hwcmp TAP_V3_1)==0]
+then
+	realsense start -d ${REALSENSE_PORT}
+fi
 
 unset REALSENSE_PORT
 

@@ -36,7 +36,11 @@ if ver hwcmp TAP_V2 TAP_V3
 then
 	# internal SPI bus
 	mpu6000 -s -R 8 -T 20602 -a 16 start
-else
+fi
+
+if ver hwcmp TAP_V3_1
+then
+	# internal SPI bus
 	mpu6000 -s -R 10 -T 20602 -a 16 start
 fi
 

@@ -337,7 +337,7 @@ REALSENSE::_send_heartbeat()
 	_txpacket.st24_data[PACKET_LENGTH_HEARTBEAT] = st24_common_crc8((uint8_t *) & (_txpacket.length), _txpacket.length);
 	int ret = ::write(_uart_fd, (uint8_t *)&_txpacket, (_txpacket.length + 3));
 
-	if (ret < 0) {
+	if (ret < 0 && _realsense_is_present) {
 		PX4_ERR("failed to write heart data to realsense (%i)", ret);
 	}
 }
@@ -436,7 +436,7 @@ REALSENSE::_send_shutdown_command()
 			_txpacket.length);
 	int ret = ::write(_uart_fd, (uint8_t *)&_txpacket, (_txpacket.length + 3));
 
-	if (ret < 0) {
+	if (ret < 0 && _realsense_is_present) {
 		PX4_ERR("failed to write shutdown command to realsense (%i)", ret);
 	}
 }

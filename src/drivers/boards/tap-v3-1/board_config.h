@@ -2,11 +2,7 @@
 
 #undef BOARD_HAS_LTC4417
 /**
- * Definition for the prototype of H520S V01 hardware
- * Schematics directory: H520S---000-R1
- * Pin chart table column: BR
- * Silkscreen desciptor: TYPHOON H520S V01 20170801
- * This needs to be removed once a hardware with the correct pinning is configured
+ * From the pin chart it should be PX4_FMUV5_RC01 for OB
  */
 #define PX4_FMUV5_RC00
 
@@ -19,9 +15,8 @@
 #undef BOARD_NAME
 #define	BOARD_NAME "TAP_V3_1"
 
-// define the serial port of the RC to be UART 6 since UART 5 is enabled
+// undefine the serial port of the RC not used on OB rc input over mavlink
 #undef RC_SERIAL_PORT
-#define RC_SERIAL_PORT "/dev/ttyS5"
 
 #define TAP_ESC_NO_VERIFY_CONFIG
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc

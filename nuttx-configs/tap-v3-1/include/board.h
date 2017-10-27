@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_TAP_V3_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_TAP_V3_INCLUDE_BOARD_H
+#ifndef __NUTTX_CONFIG_TAP_V3_1_INCLUDE_BOARD_H
+#define __NUTTX_CONFIG_TAP_V3_1_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -47,16 +47,6 @@
 
 #include "stm32_rcc.h"
 #include "stm32_sdmmc.h"
-
-/**
- * Definition for the prototype of H520S V01 hardware
- * Schematics directory: H520S---000-R1
- * Pin chart table column: BR
- * Silkscreen desciptor: TYPHOON H520S V01 20170801
- * This needs to be removed once a hardware with the correct pinning is configured
- * TODO: remove when new hardware is available.
- */
-//#define H520S_000_R1
 
 /************************************************************************************
  * Pre-processor Definitions

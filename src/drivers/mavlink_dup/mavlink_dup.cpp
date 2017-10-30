@@ -52,7 +52,7 @@
 #include <errno.h>
 
 #include <v2.0/mavlink_types.h>
-#include <v2.0/standard/mavlink.h>
+#include <v2.0/yuneec/mavlink.h>
 
 #include <nuttx/serial/tioctl.h> // for ioctl definitions
 

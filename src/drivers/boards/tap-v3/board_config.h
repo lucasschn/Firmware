@@ -29,3 +29,9 @@
 #define PX4_I2C_BUS_ONBOARD 4 // wrong workaround to get the baro working
 
 #define BOARD_MAX_LEDS 6 // Define the number of led this board has
+
+// Set correct string for the Hardware detection
+#undef HW_INFO_INIT
+#define HW_INFO_INIT {'V','3','x', 'x',0}
+//      HW_INFO_INIT_REV       2
+//      HW_INFO_INIT_VER            3

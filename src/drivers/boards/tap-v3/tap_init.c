@@ -219,6 +219,10 @@ stm32_boardinitialize(void)
 
 	board_autoled_initialize();
 
+	/* Serial EEPROM (WP is active high, init is SET) */
+
+	stm32_configgpio(GPIO_EEPROM_WP);
+
 	/* configure pins */
 
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;

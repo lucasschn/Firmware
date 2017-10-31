@@ -19,6 +19,7 @@
 #define TAP_ESC_NO_VERIFY_CONFIG
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
 
+#undef PX4_I2C_BUS_EXPANSION3 // undefine expansion3 bus since it is used by the baro
 #define PX4_I2C_BUS_ONBOARD 4 // wrong workaround to get the baro working
 
 #define BOARD_MAX_LEDS 4 // Define the number of led this board has
@@ -28,6 +29,6 @@
 
 // Set correct string for hardware detection
 #undef HW_INFO_INIT
-#define HW_INFO_INIT {'V','3','x', 'x',0}
+#define HW_INFO_INIT {'V','3','x','x',0}
 //      HW_INFO_INIT_REV       2
-//      HW_INFO_INIT_VER            3
+//      HW_INFO_INIT_VER           3

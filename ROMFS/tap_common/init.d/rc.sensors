@@ -14,6 +14,7 @@ fi
 # External I2C bus
 hmc5883 -C -T -X -R 6 start
 
+# External I2C bus
 ist8310 -C start
 
 # start accel/gyro

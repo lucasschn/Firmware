@@ -212,6 +212,9 @@ stm32_boardinitialize(void)
 {
 	board_on_reset(-1); /* Reset PWM first thing */
 
+	/*Hold power state*/
+	board_pwr_init(0);
+
 	/* configure LEDs */
 
 	board_autoled_initialize();
@@ -325,6 +328,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       ts_to_abstime(&ts),
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
+
+	board_pwr_init(1);
 
 #if defined(CONFIG_STM32F7_BBSRAM)
 

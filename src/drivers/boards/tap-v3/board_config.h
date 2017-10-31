@@ -14,6 +14,8 @@
 #define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))
 #define BOARD_HAS_MTD_PARTITION_OVERRIDE {"/fs/mtd_caldata"}
 
+#define BOARD_HAS_POWER_CONTROL	1
+
 #include <drivers/boards/px4fmu-v5/board_config.h>
 
 #undef BOARD_NAME

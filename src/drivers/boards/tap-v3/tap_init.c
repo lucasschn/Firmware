@@ -231,6 +231,9 @@ stm32_boardinitialize(void)
 	/*configure radio*/
 	stm32_configgpio(GPIO_PCON_RADIO);
 
+	/*configure always-on ADC pins*/
+	stm32_configgpio(GPIO_ADC1_IN0);
+
 	/* configure SPI interfaces */
 
 	stm32_spiinitialize();

@@ -261,6 +261,7 @@
 #define ADC_HW_REV_SENSE_CHANNEL            /* PC3 */  ADC1_CH(13)
 #define ADC1_SPARE_1_CHANNEL                /* PC4 */  ADC1_CH(14)
 
+/*
 #if BOARD_HAS_NBAT_V == 2 && BOARD_HAS_NBAT_I == 2
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY1_VOLTAGE_CHANNEL)       | \
@@ -296,6 +297,7 @@
 	 (1 << ADC_HW_REV_SENSE_CHANNEL)           | \
 	 (1 << ADC1_SPARE_1_CHANNEL))
 #endif
+*/
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 

@@ -84,6 +84,7 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/esc_status.h>
 
 #include <DevMgr.hpp>
 
@@ -166,6 +167,7 @@ private:
 	int		_diff_pres_sub{-1};			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub{-1};		/**< vehicle control mode subscription */
 	int 		_params_sub{-1};			/**< notification of parameter updates */
+	int 		_esc_status_sub{-1};			/**< esc_status to get measured current */
 
 	orb_advert_t	_sensor_pub{nullptr};			/**< combined sensor data topic */
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
@@ -540,6 +542,21 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 			}
 
+#ifdef ESC_HAVE_CURRENT_SENSOR
+			/* fill the current drawn from the battery with ESC current reports */
+			esc_status_s esc;
+			orb_copy(ORB_ID(esc_status), _esc_status_sub, &esc);
+
+			/* sum up the reported current of all available ESCs */
+			float total_current = 0;
+
+			for (int i = 0; i < esc.esc_count; i++) {
+				total_current += esc.esc[i].esc_current;
+			}
+
+			bat_current_a[0] = total_current;
+#endif
+
 			if (_parameters.battery_source == 0) {
 
 				for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
@@ -604,6 +621,8 @@ Sensors::run()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
+
+	_esc_status_sub = orb_subscribe(ORB_ID(esc_status));
 
 	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 		_battery[b].reset(&_battery_status[b]);
@@ -720,6 +739,7 @@ Sensors::run()
 	orb_unsubscribe(_vcontrol_mode_sub);
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_actuator_ctrl_0_sub);
+	orb_unsubscribe(_esc_status_sub);
 	orb_unadvertise(_sensor_pub);
 
 	_rc_update.deinit();

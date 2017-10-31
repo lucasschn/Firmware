@@ -1,10 +1,8 @@
 #pragma once
 
 #undef BOARD_HAS_LTC4417
-/**
- * From the pin chart it should be PX4_FMUV5_RC01 for OB
- */
-#define PX4_FMUV5_RC00
+
+#define PX4_FMUV5_RC01
 
 #define GPIO_EEPROM_WP  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN2)
 #define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))
@@ -24,6 +22,9 @@
 #define PX4_I2C_BUS_ONBOARD 4 // wrong workaround to get the baro working
 
 #define BOARD_MAX_LEDS 4 // Define the number of led this board has
+
+// UI LED are active high
+#undef BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW
 
 // Set correct string for hardware detection
 #undef HW_INFO_INIT

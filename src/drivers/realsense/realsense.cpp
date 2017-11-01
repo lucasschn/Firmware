@@ -206,6 +206,8 @@ REALSENSE::~REALSENSE()
 		delete _rb_gyro;
 	}
 
+	work_cancel(HPWORK, &_work);
+
 	_taskShouldExit = true;
 	::close(_uart_fd);
 }

@@ -16,6 +16,16 @@
 
 #define BOARD_HAS_POWER_CONTROL	1
 
+/*radio*/
+#define GPIO_PCON_RADIO  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN8)
+#define RF_RADIO_POWER_CONTROL(_on_true)    px4_arch_gpiowrite(GPIO_PCON_RADIO, !(_on_true))
+
+/*power on/off*/
+#define MS_PWR_BUTTON_DOWN 1500
+#define KEY_AD_GPIO    (GPIO_INPUT|GPIO_PULLUP|GPIO_EXTI|GPIO_PORTC|GPIO_PIN4)
+#define POWER_ON_GPIO  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
+#define POWER_OFF_GPIO (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN5)
+
 /*
  * ADC channels
  *
@@ -23,6 +33,7 @@
  * can be used by the Px4 Firmware in the adc driver
  */
 #define ADC_CHANNELS (1 << 0)
+#undef ADC_CHANNELS
 
 /* Define Battery 1 Voltage Divider and A per V
  */
@@ -53,3 +64,25 @@
 #define HW_INFO_INIT {'V','3','x', 'x',0}
 //      HW_INFO_INIT_REV       2
 //      HW_INFO_INIT_VER            3
+
+/************************************************************************************
+ * Name: board_pwr_init()
+ *
+ * Description:
+ *   Called to configure power control for the tap-v2 board.
+ *
+ * Input Parameters:
+ *   stage- 0 for boot, 1 for board init
+ *
+ ************************************************************************************/
+
+void board_pwr_init(int stage);
+
+/****************************************************************************
+ * Name: board_pwr_button_down
+ *
+ * Description:
+ *   Called to Read the logical state of the power button
+ ****************************************************************************/
+
+bool board_pwr_button_down(void);

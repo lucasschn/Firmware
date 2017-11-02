@@ -261,7 +261,6 @@
 #define ADC_HW_REV_SENSE_CHANNEL            /* PC3 */  ADC1_CH(13)
 #define ADC1_SPARE_1_CHANNEL                /* PC4 */  ADC1_CH(14)
 
-/*
 #if BOARD_HAS_NBAT_V == 2 && BOARD_HAS_NBAT_I == 2
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY1_VOLTAGE_CHANNEL)       | \
@@ -297,7 +296,6 @@
 	 (1 << ADC_HW_REV_SENSE_CHANNEL)           | \
 	 (1 << ADC1_SPARE_1_CHANNEL))
 #endif
-*/
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
@@ -322,16 +320,6 @@
 #define GPIO_CAN1_SILENT_S0  /* PH2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN2)
 #define GPIO_CAN2_SILENT_S1  /* PH3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN3)
 #define GPIO_CAN3_SILENT_S2  /* PH4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN4)
-
-/*radio*/
-#define GPIO_PCON_RADIO  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN8)
-#define RF_RADIO_POWER_CONTROL(_on_true)    px4_arch_gpiowrite(GPIO_PCON_RADIO, !(_on_true))
-
-/*power on/off*/
-#define MS_PWR_BUTTON_DOWN 1500
-#define KEY_AD_GPIO    (GPIO_INPUT|GPIO_PULLUP|GPIO_EXTI|GPIO_PORTC|GPIO_PIN4)
-#define POWER_ON_GPIO  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
-#define POWER_OFF_GPIO (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN5)
 
 /* HEATER
  * PWM in future
@@ -763,28 +751,6 @@ void board_spi_reset(int ms);
 extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
-
-/************************************************************************************
- * Name: board_pwr_init()
- *
- * Description:
- *   Called to configure power control for the tap-v2 board.
- *
- * Input Parameters:
- *   stage- 0 for boot, 1 for board init
- *
- ************************************************************************************/
-
-void board_pwr_init(int stage);
-
-/****************************************************************************
- * Name: board_pwr_button_down
- *
- * Description:
- *   Called to Read the logical state of the power button
- ****************************************************************************/
-
-bool board_pwr_button_down(void);
 
 /****************************************************************************
  * Name: nsh_archinitialize

@@ -14,12 +14,6 @@
 #define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))
 #define BOARD_HAS_MTD_PARTITION_OVERRIDE {"/fs/mtd_caldata"}
 
-#define GPIO_TIM2_CH1IN     /* PA5   T22C1  FMU_CAP1 */ GPIO_TIM2_CH1IN_3
-#define GPIO_TIM2_CH2IN     /* PB3   T22C2  FMU_CAP2 */ GPIO_TIM2_CH2IN_2
-#define GPIO_TIM2_CH4IN     /* PB11  T22C4  FMU_CAP3 */ GPIO_TIM2_CH4IN_2
-#define GPIO_TIM2_CH2OUT    /* PB3   T22C2  FMU_CAP2 */ GPIO_TIM2_CH2OUT_2
-#define GPIO_TIM2_CH4OUT    /* PB11  T22C4  FMU_CAP3 */ GPIO_TIM2_CH4OUT_2
-
 #define BOARD_HAS_POWER_CONTROL	1
 
 /*radio*/
@@ -40,6 +34,19 @@
 
 #undef BOARD_NAME
 #define	BOARD_NAME "TAP_V3"
+
+/*
+ * TIM2_CH4    PB11    Sonar Echo
+ * TIM2_CH2    PB3     Sonar Trig
+ * */
+#undef GPIO_TIM2_CH2_IN
+#define GPIO_TIM2_CH2_IN     /* PB3   T22C2  FMU_CAP2 */ GPIO_TIM2_CH2IN_2
+
+#undef GPIO_TIM2_CH4_IN
+#define GPIO_TIM2_CH4_IN     /* PB11  T22C4  FMU_CAP3 */ GPIO_TIM2_CH4IN_2
+
+#define GPIO_TIM2_CH2_OUT    /* PB3   T22C2  FMU_CAP2 */ GPIO_TIM2_CH2OUT_2
+#define GPIO_TIM2_CH4_OUT    /* PB11  T22C4  FMU_CAP3 */ GPIO_TIM2_CH4OUT_2
 
 // define the serial port of the RC to be UART 6 since UART 5 is enabled
 #undef RC_SERIAL_PORT

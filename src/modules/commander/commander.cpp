@@ -645,7 +645,9 @@ int commander_main(int argc, char *argv[])
 				new_main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 			}else if (!strcmp(argv[2], "smart")) {
 				new_main_state = commander_state_s::MAIN_STATE_SMART;
-			} else {
+			}else if (!strcmp(argv[2], "spot")) {
+				new_main_state = commander_state_s::MAIN_STATE_SPOT;
+			}else {
 				warnx("argument %s unsupported.", argv[2]);
 			}
 
@@ -3061,6 +3063,7 @@ int commander_thread_main(int argc, char *argv[])
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_SMART)
+						&& (internal_state.main_state != commander_state_s::MAIN_STATE_SPOT)
 						) {
 						print_reject_arm("NOT ARMING: switch to a pilot flight mode first.");
 

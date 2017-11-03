@@ -15,7 +15,13 @@ fi
 hmc5883 -C -T -X -R 6 start
 
 # External I2C bus
-ist8310 -C start
+# note: once the new hardware is ready, it will be changed back.
+if ver hwcmp TAP_V3_1
+then
+	ist8310 -C -b 1 start
+else
+	ist8310 -C start
+fi
 
 # start accel/gyro
 if ver hwcmp TAP_V1

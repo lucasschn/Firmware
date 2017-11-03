@@ -228,9 +228,6 @@ stm32_boardinitialize(void)
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	board_gpio_init(gpio, arraySize(gpio));
 
-	/*configure radio*/
-	stm32_configgpio(GPIO_PCON_RADIO);
-
 	/*configure always-on ADC pins*/
 	stm32_configgpio(GPIO_ADC1_IN0);
 

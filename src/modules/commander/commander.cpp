@@ -906,6 +906,10 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 					/* SMART */
 					main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_SMART, main_state_prev, &status_flags, &internal_state);
 
+				}else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SPOT) {
+					/* SPOT */
+					main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_SPOT, main_state_prev, &status_flags, &internal_state);
+
 				}else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
 					if (custom_sub_mode > 0) {
@@ -4328,6 +4332,7 @@ set_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+	case vehicle_status_s::NAVIGATION_STATE_SPOT:
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;

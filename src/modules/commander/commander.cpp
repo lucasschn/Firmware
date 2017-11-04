@@ -645,8 +645,8 @@ int commander_main(int argc, char *argv[])
 				new_main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 			}else if (!strcmp(argv[2], "smart")) {
 				new_main_state = commander_state_s::MAIN_STATE_SMART;
-			}else if (!strcmp(argv[2], "spot")) {
-				new_main_state = commander_state_s::MAIN_STATE_SPOT;
+			}else if (!strcmp(argv[2], "sport")) {
+				new_main_state = commander_state_s::MAIN_STATE_SPORT;
 			}else {
 				warnx("argument %s unsupported.", argv[2]);
 			}
@@ -908,9 +908,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 					/* SMART */
 					main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_SMART, main_state_prev, &status_flags, &internal_state);
 
-				}else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SPOT) {
-					/* SPOT */
-					main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_SPOT, main_state_prev, &status_flags, &internal_state);
+				}else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SPORT) {
+					/* SPORT */
+					main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_SPORT, main_state_prev, &status_flags, &internal_state);
 
 				}else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
@@ -3063,7 +3063,7 @@ int commander_thread_main(int argc, char *argv[])
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_SMART)
-						&& (internal_state.main_state != commander_state_s::MAIN_STATE_SPOT)
+						&& (internal_state.main_state != commander_state_s::MAIN_STATE_SPORT)
 						) {
 						print_reject_arm("NOT ARMING: switch to a pilot flight mode first.");
 
@@ -3975,11 +3975,11 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 					}
 				}
 
-				if (new_mode == commander_state_s::MAIN_STATE_SPOT) {
+				if (new_mode == commander_state_s::MAIN_STATE_SPORT) {
 
 					/* fall back to altitude control */
 					new_mode = commander_state_s::MAIN_STATE_ALTCTL;
-					print_reject_mode(status_local, "SPOT CONTROL");
+					print_reject_mode(status_local, "SPORT CONTROL");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
@@ -4347,7 +4347,7 @@ set_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-	case vehicle_status_s::NAVIGATION_STATE_SPOT:
+	case vehicle_status_s::NAVIGATION_STATE_SPORT:
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;

@@ -417,7 +417,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		break;
 
 	case commander_state_s::MAIN_STATE_POSCTL:
-	case commander_state_s::MAIN_STATE_SPOT:
+	case commander_state_s::MAIN_STATE_SPORT:
 
 		/* need at minimum local position estimate */
 		if (status_flags->condition_local_position_valid ||
@@ -689,7 +689,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 			}
 		}
 		break;
-	case commander_state_s::MAIN_STATE_SPOT: {
+	case commander_state_s::MAIN_STATE_SPORT: {
 
 			if (rc_lost && is_armed) {
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
@@ -705,7 +705,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 				// nothing to do - everything done in check_invalid_pos_nav_state
 
 			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_SPOT;
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_SPORT;
 			}
 		}
 		break;

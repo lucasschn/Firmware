@@ -8,6 +8,22 @@
 #define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))
 #define BOARD_HAS_MTD_PARTITION_OVERRIDE {"/fs/mtd_caldata"}
 
+/*
+ * ADC channels
+ *
+ * These are the channel numbers of the ADCs of the microcontroller that
+ * can be used by the Px4 Firmware in the adc driver
+ */
+#define ADC_CHANNELS (1 << 0)
+
+/* Define Battery 1 Voltage Divider and A per V
+ */
+#define BOARD_BATTERY1_V_DIV (9.0f)
+
+// ADC defines to be used in sensors.cpp to read from a particular channel
+#define ADC_BATTERY_VOLTAGE_CHANNEL		0
+#define ADC_BATTERY_CURRENT_CHANNEL ((uint8_t)(-1))
+
 #include <drivers/boards/px4fmu-v5/board_config.h>
 
 #undef BOARD_NAME

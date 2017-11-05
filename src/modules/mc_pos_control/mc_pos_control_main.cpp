@@ -610,7 +610,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	/* fetch initial parameter values */
 	parameters_update(true);
 
-	_flight_tasks.set_general_input_pointers(&_local_pos, &_manual);
 	_flight_tasks.set_general_output_pointers(&_local_pos_sp);
 	//_flight_tasks.switch_task(0);
 }

@@ -110,7 +110,7 @@ private:
 	uint64_t 	_init_time;
 	int		_measure_ticks;
 	int		_vehicle_local_position_sub;
-	int		_vehicle_local_position_setpoint_sub;
+	int		_avoidance_input_sub;
 	int		_sensor_combined_sub;
 	int 	_vehicle_attitude_sub;
 	int 	_distance_sensor_subs[DISTANCE_SENSOR_INSTANCES];
@@ -118,7 +118,7 @@ private:
 	int 	_vehicle_status_sub;
 	float _current_distance;
 	struct vehicle_local_position_s _local_pos;
-	struct vehicle_local_position_setpoint_s _local_pos_sp;
+	struct realsense_avoidance_setpoint_s _avoidance_input;
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
 	struct vehicle_status_s _vehicle_status;
@@ -174,7 +174,7 @@ REALSENSE::REALSENSE(const char *port):
 	_init_time(0),
 	_measure_ticks(0),
 	_vehicle_local_position_sub(-1),
-	_vehicle_local_position_setpoint_sub(-1),
+	_avoidance_input_sub(-1),
 	_sensor_combined_sub(-1),
 	_vehicle_attitude_sub(-1),
 	_distance_sensor_subs{},
@@ -182,7 +182,7 @@ REALSENSE::REALSENSE(const char *port):
 	_vehicle_status_sub(-1),
 	_current_distance(0.0f),
 	_local_pos{},
-	_local_pos_sp{},
+	_avoidance_input{},
 	_attitude {},
 	_manual{},
 	_vehicle_status{},
@@ -276,10 +276,10 @@ REALSENSE::poll_subscriptions()				 // update all msg
 		orb_copy(ORB_ID(vehicle_local_position), _vehicle_local_position_sub, &_local_pos);
 	}
 
-	orb_check(_vehicle_local_position_setpoint_sub, &updated);
+	orb_check(_avoidance_input_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(vehicle_local_position_setpoint), _vehicle_local_position_setpoint_sub, &_local_pos_sp);
+		orb_copy(ORB_ID(realsense_avoidance_setpoint_input), _avoidance_input_sub, &_avoidance_input);
 	}
 
 	orb_check(_sensor_combined_sub, &updated);
@@ -362,13 +362,13 @@ REALSENSE::_send_obstacle_avoidance_data()
 	ObstacleAvoidanceInput tx = {};
 
 	// desired velocity - ENU
-	if (!PX4_ISFINITE(_local_pos_sp.vx) || !PX4_ISFINITE(_local_pos_sp.vy) || !PX4_ISFINITE(_local_pos_sp.vz)) {
+	if (!PX4_ISFINITE(_avoidance_input.vx) || !PX4_ISFINITE(_avoidance_input.vy) || !PX4_ISFINITE(_avoidance_input.vz)) {
 		return;
 	}
 
-	tx.desiredSpeed.x   = _local_pos_sp.vy; // E
-	tx.desiredSpeed.y   = _local_pos_sp.vx; // N
-	tx.desiredSpeed.z   = -_local_pos_sp.vz; // U
+	tx.desiredSpeed.x   = _avoidance_input.vy; // E
+	tx.desiredSpeed.y   = _avoidance_input.vx; // N
+	tx.desiredSpeed.z   = -_avoidance_input.vz; // U
 
 	// current attitude - NED the  just one of the four elements is be check is enough
 	if (!PX4_ISFINITE(_attitude.q[0])) {
@@ -736,7 +736,7 @@ REALSENSE::_init_realsense() 							 // init - initialise the sensor
 {
 	if (!_initialized) {
 		_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-		_vehicle_local_position_setpoint_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+		_avoidance_input_sub = orb_subscribe(ORB_ID(realsense_avoidance_setpoint_input));
 		_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 		_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 

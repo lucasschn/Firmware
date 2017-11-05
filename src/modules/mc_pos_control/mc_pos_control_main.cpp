@@ -2657,6 +2657,11 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 				_vel_sp(2) = _flight_tasks().vz;
 			}
 
+			if (PX4_ISFINITE(_flight_tasks().yaw)) {
+				printf("yaw\n");
+				_att_sp.yaw_body = _flight_tasks().yaw;
+			}
+
 		} else {
 			warn_rate_limited("FlightTasks update failed");
 		}

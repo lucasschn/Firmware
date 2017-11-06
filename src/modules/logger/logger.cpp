@@ -615,6 +615,8 @@ void Logger::add_default_topics()
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
 	add_topic("realsense_avoidance_setpoint", 20);
+	add_topic("realsense_distance_360", 20);
+	add_topic("realsense_avoidance_setpoint_input", 20);
 }
 
 void Logger::add_high_rate_topics()

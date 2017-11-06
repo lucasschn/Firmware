@@ -59,10 +59,20 @@
  *
  */
 
+#ifndef BOARD_TAP_ESC_POS
 // Circular from back right in CCW direction
 #define ESC_POS {0, 1, 4, 3, 2, 5, 7, 8}
+#else
+#define ESC_POS BOARD_TAP_ESC_POS
+#endif
+
+#ifndef BOARD_TAP_ESC_DIR
 // 0 is CW, 1 is CCW
 #define ESC_DIR {0, 1, 0, 1, 0, 1, 0, 1}
+#else
+#define ESC_DIR BOARD_TAP_ESC_DIR
+#endif
+
 
 #define RPMMAX 1900
 #define RPMMIN 1200
@@ -146,6 +156,33 @@ typedef struct {
 
 /****** InfoRequest ***********/
 
+/****** IdDoCmd ***********/
+// the real packet definition for ESCBUS_MSG_ID_DO_CMD
+// command definition
+typedef enum {
+	DO_RESET = 0,
+	DO_STUDY,
+	DO_ID_ASSIGNMENT,
+	DO_POWER_TEST,
+} ESCBUS_ENUM_COMMAND;
+
+typedef struct {
+	uint8_t channelIDMask;
+	uint8_t command;
+	uint8_t escID;
+} EscbusDoCmdPacket;
+
+typedef struct {
+	uint8_t id_mask;
+	uint8_t child_cmd;
+	uint8_t id;
+} EscbusConfigidPacket;
+
+typedef  struct {
+	uint8_t  escID;
+} AssignedIdResponse;
+/****** IdDoCmd ***********/
+
 typedef  struct {
 	uint8_t head;
 	uint8_t len;
@@ -155,8 +192,10 @@ typedef  struct {
 		ConfigInfoBasicRequest 	reqConfigInfoBasic;
 		RunReq			reqRun;
 		EscbusTunePacket	tunePacket;
+		EscbusConfigidPacket    configidPacket;
 		ConfigInfoBasicResponse rspConfigInfoBasic;
 		RunInfoRepsonse		rspRunInfo;
+		AssignedIdResponse      rspAssignedId;
 		uint8_t bytes[100];
 	} d;
 	uint8_t crc_data;

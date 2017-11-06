@@ -24,6 +24,17 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL		0
 #define ADC_BATTERY_CURRENT_CHANNEL ((uint8_t)(-1))
 
+/*
+ * ESC configuration
+ */
+#define BOARD_TAP_ESC
+// Circular from back right in CCW direction
+#define BOARD_TAP_ESC_POS {0, 1, 2, 3, 4, 5, 6, 7}
+// 0 is CW, 1 is CCW
+#define BOARD_TAP_ESC_DIR {0, 1, 0, 1, 0, 1, 0, 1}
+// output remap table
+#define BOARD_TAP_ESC_OUT {2, 1, 3, 0, 0, 0, 0, 0}
+
 #include <drivers/boards/px4fmu-v5/board_config.h>
 
 #undef BOARD_NAME

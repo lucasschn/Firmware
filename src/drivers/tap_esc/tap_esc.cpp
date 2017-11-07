@@ -280,6 +280,100 @@ TAP_ESC::~TAP_ESC()
 	tap_esc = nullptr;
 }
 
+/** @see ModuleBase */
+TAP_ESC *
+TAP_ESC::instantiate(int argc, char *argv[])
+{
+	return new TAP_ESC(_supported_channel_count);
+}
+
+/** @see ModuleBase */
+int
+TAP_ESC::custom_command(int argc, char *argv[])
+{
+	const char *verb = argv[0];
+
+	if (!strcmp(verb, "checkcrc")) {
+		// Check on required arguments
+		if (tap_esc_drv::_supported_channel_count == 0) {
+			TAP_ESC::print_usage("supported channel count is 0");
+			return 1;
+		}
+
+		if (is_running()) {
+			errx(1, "requested command cannot be executed while module is running - stop first");
+		}
+
+		const char *fw[3] = TAP_ESC_FW_SEARCH_PATHS;
+		TAP_ESC_UPLOADER *check_up;
+		check_up = new TAP_ESC_UPLOADER(tap_esc_drv::_supported_channel_count);
+		int ret = check_up->checkcrc(&fw[0]);
+		delete check_up;
+
+		if (ret != OK) {
+			errx(1, "TAP_ESC firmware auto check crc and upload fail error %d", ret);
+		}
+
+		if (!strcmp(verb, "upload")) {
+			// TODO: Get n and d options
+			// ...
+
+			// Check on required arguments
+			if (tap_esc_drv::_supported_channel_count == 0) {
+				TAP_ESC::print_usage("supported channel count is 0");
+				return 1;
+			}
+
+			if (is_running()) {
+				errx(1, "requested command cannot be executed while module is running - stop first");
+			}
+
+			TAP_ESC_UPLOADER *up;
+
+			/* Assume we are using default paths */
+
+			const char *fn[3] = TAP_ESC_FW_SEARCH_PATHS;
+
+			/* Override defaults if a path is passed on command line,use argv[4] path */
+			if (argc > 4) {
+				fn[0] = argv[4];
+				fn[1] = nullptr;
+			}
+
+			up = new TAP_ESC_UPLOADER(tap_esc_drv::_supported_channel_count);
+			int ret = up->upload(&fn[0]);
+			delete up;
+
+			switch (ret) {
+			case OK:
+				PX4_INFO("upload successful");
+				break;
+
+			case -ENOENT:
+				errx(1, "TAP_ESC firmware file not found");
+
+			case -EEXIST:
+			case -EIO:
+				errx(1, "error updating TAP_ESC - check that bootloader mode is enabled");
+
+			case -EINVAL:
+				errx(1, "verify failed - retry the update");
+
+			case -ETIMEDOUT:
+				errx(1, "timed out waiting for bootloader - power-cycle and try again");
+
+			default:
+				errx(1, "unexpected error %d", ret);
+			}
+
+			return ret;
+
+		}
+
+		return ret;
+	}
+}
+
 int
 TAP_ESC::init()
 {
@@ -1235,9 +1329,6 @@ void TAP_ESC::task_spawn(int argc, char *argv[])
 	return PX4_OK;
 }
 
-	} else {
-		tap_esc_drv::usage();
-		return 1;
 	}
 
 	return 0;

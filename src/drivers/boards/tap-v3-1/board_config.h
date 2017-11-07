@@ -27,13 +27,27 @@
 /*
  * ESC configuration
  */
-#define BOARD_TAP_ESC
+
+#define MAP_BOARD_ESC
+
+/* Physical / Logical ESC mapping
+ * The index corresponds to the physical ESC, the value to the logical ESC
+ * Phy Log
+ * 0   0
+ * 1   1
+ * 2   2
+ * 3   3
+ * 4   4
+ * 5   5
+ *  ....
+ *
+ */
 // Circular from back right in CCW direction
-#define BOARD_TAP_ESC_POS {0, 1, 2, 3, 4, 5, 6, 7}
+#define MAP_BOARD_ESC_PHYS_TO_LOG {0, 1, 2, 3, 4, 5, 6, 7}
 // 0 is CW, 1 is CCW
-#define BOARD_TAP_ESC_DIR {0, 1, 0, 1, 0, 1, 0, 1}
+#define MAP_BOARD_ESC_TO_PX4_DIR  {0, 1, 0, 1, 0, 1, 0, 1}
 // output remap table
-#define BOARD_TAP_ESC_OUT {2, 1, 3, 0, 0, 0, 0, 0}
+#define MAP_BOARD_ESC_TO_PX4_OUT  {2, 1, 3, 0, 4, 5, 6, 7}
 
 #include <drivers/boards/px4fmu-v5/board_config.h>
 

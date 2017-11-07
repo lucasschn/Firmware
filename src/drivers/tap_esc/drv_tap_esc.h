@@ -43,6 +43,11 @@
 #define TAP_ESC_MAX_PACKET_LEN 20
 #define TAP_ESC_MAX_MOTOR_NUM 8
 
+#define PACKET_HEAD       0xfe
+#define PACKET_ID_MASK    0x55
+
+#define NO_ESC_ID_CONFIG  0x0f
+
 /* ESC_POS maps the values stored in the channelMapTable to reorder the ESC's
  * id so that that match the mux setting, so that the ressonder's data
  * will be read.
@@ -59,18 +64,25 @@
  *
  */
 
-#ifndef BOARD_TAP_ESC_POS
+#ifndef MAP_BOARD_ESC_PHYS_TO_LOG
 // Circular from back right in CCW direction
 #define ESC_POS {0, 1, 4, 3, 2, 5, 7, 8}
 #else
-#define ESC_POS BOARD_TAP_ESC_POS
+#define ESC_POS MAP_BOARD_ESC_PHYS_TO_LOG
 #endif
 
-#ifndef BOARD_TAP_ESC_DIR
+#ifndef MAP_BOARD_ESC_TO_PX4_DIR
 // 0 is CW, 1 is CCW
 #define ESC_DIR {0, 1, 0, 1, 0, 1, 0, 1}
 #else
-#define ESC_DIR BOARD_TAP_ESC_DIR
+#define ESC_DIR MAP_BOARD_ESC_TO_PX4_DIR
+#endif
+
+#ifndef MAP_BOARD_ESC_TO_PX4_OUT
+// Remap from the system default to what PX4's normal scheme is
+#define ESC_OUT {3, 0, 4, 2, 1, 5, 6, 7}
+#else
+#define ESC_OUT MAP_BOARD_ESC_TO_PX4_OUT
 #endif
 
 

@@ -104,9 +104,7 @@ private:
 
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	static const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
-#ifdef BOARD_TAP_ESC_OUT
-	static const uint8_t esc_output_map[TAP_ESC_MAX_MOTOR_NUM];
-#endif
+	static const uint8_t device_out_map[TAP_ESC_MAX_MOTOR_NUM];
 
 	bool _is_armed;
 
@@ -179,9 +177,7 @@ private:
 
 const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
 const uint8_t TAP_ESC::device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
-#ifdef BOARD_TAP_ESC_OUT
-const uint8_t TAP_ESC::esc_output_map[TAP_ESC_MAX_MOTOR_NUM] = BOARD_TAP_ESC_OUT;
-#endif
+const uint8_t TAP_ESC::device_out_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_OUT;
 
 namespace
 {
@@ -193,7 +189,7 @@ TAP_ESC	*tap_esc = nullptr;
 TAP_ESC::TAP_ESC(int channels_count):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
 	_is_armed(false),
-	_id_config(0xF),
+	_id_config(NO_ESC_ID_CONFIG),
 	_poll_fds_num(0),
 	_armed_sub(-1),
 	_test_motor_sub(-1),
@@ -288,7 +284,7 @@ TAP_ESC::init()
 
 	/* Issue Basic Config */
 
-	EscPacket packet = {0xfe, sizeof(ConfigInfoBasicRequest), ESCBUS_MSG_ID_CONFIG_BASIC};
+	EscPacket packet = {PACKET_HEAD, sizeof(ConfigInfoBasicRequest), ESCBUS_MSG_ID_CONFIG_BASIC};
 	ConfigInfoBasicRequest   &config = packet.d.reqConfigInfoBasic;
 	memset(&config, 0, sizeof(ConfigInfoBasicRequest));
 	config.maxChannelInUse = _channels_count;
@@ -323,7 +319,7 @@ TAP_ESC::init()
 	for (uint8_t cid = 0; cid < _channels_count; cid++) {
 
 		/* Send the InfoRequest querying  CONFIG_BASIC */
-		EscPacket packet_info = {0xfe, sizeof(InfoRequest), ESCBUS_MSG_ID_REQUEST_INFO};
+		EscPacket packet_info = {PACKET_HEAD, sizeof(InfoRequest), ESCBUS_MSG_ID_REQUEST_INFO};
 		InfoRequest &info_req = packet_info.d.reqInfo;
 		info_req.channelID = cid;
 		info_req.requestInfoType = REQEST_INFO_BASIC;
@@ -360,7 +356,7 @@ TAP_ESC::init()
 		if (!valid) {
 			PX4_ERR("Verification of the configuration failed, ESC number: %d", cid);
 
-#if !defined(BOARD_TAP_ESC)
+#if !defined(MAP_BOARD_ESC)
 			return -EIO;
 #endif
 		}
@@ -373,7 +369,7 @@ TAP_ESC::init()
 	 * ESCBUS_MSG_ID_RUN request with all the values 0;
 	 */
 
-	EscPacket unlock_packet = {0xfe, _channels_count, ESCBUS_MSG_ID_RUN};
+	EscPacket unlock_packet = {PACKET_HEAD, _channels_count, ESCBUS_MSG_ID_RUN};
 	unlock_packet.len *= sizeof(unlock_packet.d.reqRun.rpm_flags[0]);
 	memset(unlock_packet.d.bytes, 0, sizeof(packet.d.bytes));
 
@@ -464,35 +460,31 @@ uint8_t TAP_ESC::crc_packet(EscPacket &p)
 
 void TAP_ESC::send_esc_id_packet()
 {
-	EscPacket id_config = {0xfe, sizeof(EscbusConfigidPacket), ESCBUS_MSG_ID_DO_CMD};
+	EscPacket id_config = {PACKET_HEAD, sizeof(EscbusConfigidPacket), ESCBUS_MSG_ID_DO_CMD};
 
-	id_config.d.configidPacket.id_mask = 0x55;
+	id_config.d.configidPacket.id_mask = PACKET_ID_MASK;
 	id_config.d.configidPacket.child_cmd = DO_ID_ASSIGNMENT;
 
 	if (_id_config < _channels_count) {
 		id_config.d.configidPacket.id = _id_config;
 
 		send_packet(id_config, -1);
-		_id_config = 0xF;
+		_id_config = NO_ESC_ID_CONFIG;
 
-	}
+	} else {
 
-	else if (_id_config == _channels_count) {
-		static bool once_time = true;
+		static bool ran_once = false;
 		static uint8_t cid = 0;
 
-		if (once_time) {
+		if (!ran_once) {
 			usleep(500000);
-
 			id_config.d.configidPacket.id = cid;
 			send_packet(id_config, -1);
-
-			once_time = false;
-
+			ran_once = true;
 		}
 
 		/* Get a response */
-		int retries = 10;
+		uint8_t retries = 10;
 		bool valid = false;
 
 		while (retries--) {
@@ -510,17 +502,14 @@ void TAP_ESC::send_esc_id_packet()
 		}
 
 		if (valid) {
-			once_time = true;
+			ran_once = false;
 			cid++;
 
 			if (cid == _channels_count) {
 				cid = 0;
-				_id_config = 0xF;
+				_id_config = NO_ESC_ID_CONFIG;
 			}
 		}
-
-	} else {
-
 	}
 }
 
@@ -590,7 +579,7 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm)
 	rpm[which_to_respone] |= RUN_FEEDBACK_ENABLE_MASK;
 
 
-	EscPacket packet = {0xfe, _channels_count, ESCBUS_MSG_ID_RUN};
+	EscPacket packet = {PACKET_HEAD, _channels_count, ESCBUS_MSG_ID_RUN};
 	packet.len *= sizeof(packet.d.reqRun.rpm_flags[0]);
 
 	for (uint8_t i = 0; i < _channels_count; i++) {
@@ -610,7 +599,7 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm)
 
 void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 {
-	EscPacket buzzer_packet = {0xfe, sizeof(EscbusTunePacket), ESCBUS_MSG_ID_TUNE};
+	EscPacket buzzer_packet = {PACKET_HEAD, sizeof(EscbusTunePacket), ESCBUS_MSG_ID_TUNE};
 	buzzer_packet.d.tunePacket = tune_packet;
 	send_packet(buzzer_packet, -1);
 }
@@ -645,8 +634,8 @@ bool TAP_ESC::parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packet
 		for (int i = 0; i < count; i++) {
 			switch (state) {
 			case HEAD:
-				if (serial_buf->esc_feedback_buf[serial_buf->head] == 0xFE) {
-					packetdata->head = 0xFE; //just_keep the format
+				if (serial_buf->esc_feedback_buf[serial_buf->head] == PACKET_HEAD) {
+					packetdata->head = PACKET_HEAD; //just_keep the format
 					state = LEN;
 				}
 
@@ -915,12 +904,19 @@ TAP_ESC::cycle()
 
 		// We need to remap from the system default to what PX4's normal
 		// scheme is
-#ifdef BOARD_TAP_ESC_OUT
+#ifdef MAP_BOARD_ESC_TO_PX4_OUT
 
-		if (num_outputs == 6 || num_outputs == 4) {
-			for (uint8_t num = 0; num < 8; num ++) {
-				motor_out[num] = _outputs.output[esc_output_map[num]];
-			}
+		uint8_t num = 0;
+
+		// Loop over 0 to 5 in case of hex configuration
+		for (num = 0; num < num_outputs; num++) {
+			motor_out[num] = _outputs.output[device_out_map[num]];
+		}
+
+		// Loop over 6,7 in case of hex configuration
+		for (num = num_outputs; num < TAP_ESC_MAX_MOTOR_NUM; num++) {
+			motor_out[num] = RPMSTOPPED;
+		}
 
 #else
 
@@ -939,7 +935,6 @@ TAP_ESC::cycle()
 			motor_out[2] = (uint16_t)_outputs.output[0];
 			motor_out[1] = (uint16_t)_outputs.output[1];
 			motor_out[3] = (uint16_t)_outputs.output[3];
-#endif
 
 		} else {
 			// Use the system defaults
@@ -947,6 +942,8 @@ TAP_ESC::cycle()
 				motor_out[i] = (uint16_t)_outputs.output[i];
 			}
 		}
+
+#endif
 
 #ifdef CONFIG_ARCH_BOARD_TAP_V2
 
@@ -1032,7 +1029,7 @@ TAP_ESC::cycle()
 			}
 		}
 
-		if (_id_config == 0xF) {
+		if (_id_config == NO_ESC_ID_CONFIG) {
 			send_esc_outputs(motor_out, esc_count);
 			read_data_from_uart();
 		}
@@ -1092,7 +1089,7 @@ TAP_ESC::cycle()
 
 	}
 
-	if (!_is_armed && _id_config != 0xF) {
+	if (!_is_armed && _id_config != NO_ESC_ID_CONFIG) {
 		send_esc_id_packet();
 	}
 
@@ -1276,7 +1273,7 @@ static char _device[32] = {};
 static bool _is_running = false;         // flag indicating if tap_esc app is running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
 static int _supported_channel_count = 0;
-static int _id_config_num = 0xF;
+static int _id_config_num = NO_ESC_ID_CONFIG;
 
 static bool _flow_control_enabled = false;
 
@@ -1495,7 +1492,7 @@ void usage()
 	PX4_INFO("       tap_esc checkcrc -n <1-8>");
 	PX4_INFO("       tap_esc upload -n <1-8>");
 	PX4_INFO("       tap_esc upload -n <1-8> custom_file (e.g:tap_esc upload -n 6 /fs/microsd/tap_esc.bin)");
-	PX4_INFO("       tap_esc config -t <0-(n-1)>"); //0~(n-1) config one ESC; n config all ESCs
+	PX4_INFO("       tap_esc config -t <0-%d>", (int)(_supported_channel_count)); // 0~(%d-1) config one, %d config all ESCs
 }
 
 } // namespace tap_esc

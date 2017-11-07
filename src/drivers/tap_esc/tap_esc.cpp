@@ -161,7 +161,6 @@ private:
 	EscPacket  		_packet;
 	void		subscribe();
 
-	void		work_start();
 	void send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm);
 	void send_tune_packet(EscbusTunePacket &tune_packet);
 	static int control_callback_trampoline(uintptr_t handle,
@@ -499,6 +498,7 @@ TAP_ESC::init()
 
 	ret = CDev::init();
 
+	_initialized = true;
 	return ret;
 }
 
@@ -1137,76 +1137,16 @@ TAP_ESC::ioctl(file *filp, int cmd, unsigned long arg)
 
 namespace tap_esc_drv
 {
-
-
-volatile bool _task_should_exit = false; // flag indicating if tap_esc task should exit
 static int _uart_fd = -1;
 static char _device[32] = {};
-static bool _is_running = false;         // flag indicating if tap_esc app is running
-static px4_task_t _task_handle = -1;     // handle to the task main thread
 static int _supported_channel_count = 0;
 
 
-void usage();
-
-void start();
-int tap_esc_start(void);
-int tap_esc_stop(void);
-
-void task_main_trampoline(int argc, char *argv[]);
-
 void run() override;
 
-int tap_esc_start(void)
-{
-	int ret = OK;
 
-	if (tap_esc == nullptr) {
-
-		tap_esc = new TAP_ESC(_supported_channel_count, _uart_fd, _device);
-
-		if (tap_esc == nullptr) {
-			ret = -ENOMEM;
-
-		} else {
-			ret = tap_esc->init();
-
-			if (ret != OK) {
-				PX4_ERR("failed to initialize tap_esc (%i)", ret);
-				delete tap_esc;
-				tap_esc = nullptr;
-			}
-		}
-	}
-
-	return ret;
-}
-
-int tap_esc_stop(void)
-{
-	int ret = OK;
-
-	if (tap_esc != nullptr) {
-
-		delete tap_esc;
-		tap_esc = nullptr;
-	}
-
-	return ret;
-}
-
-<<<<<<< HEAD
-void task_main(int argc, char *argv[])
-{
-
-	_is_running = true;
-	int ret = tap_esc_common::initialise_uart(_device, _uart_fd);
-
-	if (ret) {
-		PX4_ERR("Failed to initialize UART.");
 =======
->>>>>>> Refactor: (WIP) Refactored task_main() into run()
-
+>>>>>>> Refactor: (WIP) Adding/removing rest of refactor
 void TAP_ESC::run()
 {
 	if (init() != 0) {
@@ -1215,53 +1155,11 @@ void TAP_ESC::run()
 		return;
 	}
 
-
 	// Main loop
 	while (!should_exit()) {
 		cycle();
 	}
-
-
-	_is_running = false;
 }
-
-void task_main_trampoline(int argc, char *argv[])
-{
-	task_main(argc, argv);
-}
-
-void start()
-{
-	ASSERT(_task_handle == -1);
-
-	_task_should_exit = false;
-
-	/* start the task */
-	_task_handle = px4_task_spawn_cmd("tap_esc",
-					  SCHED_DEFAULT,
-					  SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-					  1200,
-					  (px4_main_t)&task_main_trampoline,
-					  nullptr);
-
-	if (_task_handle < 0) {
-		PX4_ERR("task start failed");
-		_task_handle = -1;
-		return;
-	}
-}
-
-void usage()
-{
-	PX4_INFO("usage: tap_esc start -d /dev/ttyS2 -n <1-8>");
-	PX4_INFO("       tap_esc stop");
-	PX4_INFO("       tap_esc status");
-	PX4_INFO("       tap_esc checkcrc | deprecated. Use `tap_esc_config` instead");
-	PX4_INFO("       tap_esc upload | deprecated. Use `tap_esc_config` instead");
-	PX4_INFO("       tap_esc config | deprecated. Use `tap_esc_config` instead");
-}
-
-} // namespace tap_esc
 
 void TAP_ESC::task_spawn(int argc, char *argv[])
 {
@@ -1329,7 +1227,21 @@ void TAP_ESC::task_spawn(int argc, char *argv[])
 	return PX4_OK;
 }
 
+/** @see ModuleBase */
+int
+TAP_ESC::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
 	}
 
-	return 0;
+	PX4_INFO("usage: tap_esc start -d /dev/ttyS2 -n <1-8>");
+	PX4_INFO("       tap_esc stop");
+	PX4_INFO("       tap_esc status");
+	PX4_INFO("       tap_esc checkcrc | deprecated. Use `tap_esc_config` instead");
+	PX4_INFO("       tap_esc upload | deprecated. Use `tap_esc_config` instead");
+	PX4_INFO("       tap_esc config | deprecated. Use `tap_esc_config` instead");
+	return PX4_OK;
 }
+
+} // namespace tap_esc

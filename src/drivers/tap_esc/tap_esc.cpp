@@ -78,6 +78,13 @@
 #  define BOARD_TAP_ESC_MODE 0
 #endif
 
+/* Forward declaration for driver helpers */
+namespace tap_esc_drv
+{
+static char _device[32] = {};
+static int _supported_channel_count = 0;
+} // namespace namespace tap_esc_drv
+
 /*
  * This driver connects to TAP ESCs via serial.
  */
@@ -86,7 +93,7 @@ class TAP_ESC : public device::CDev, public ModuleBase<TAP_ESC>
 {
 public:
 
-	TAP_ESC(int channels_count, int uart_fd, char *const device);
+	TAP_ESC(int channels_count, char *const device);
 	virtual ~TAP_ESC();
 
 	/** @see ModuleBase */
@@ -109,7 +116,7 @@ public:
 	void cycle();
 
 private:
-	char * _device;
+	char *_device;
 	int _uart_fd;
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	static const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
@@ -186,10 +193,10 @@ TAP_ESC	*tap_esc = nullptr;
 
 # define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
 
-TAP_ESC::TAP_ESC(int channels_count, int uart_fd, char *const device):
+TAP_ESC::TAP_ESC(int channels_count, char *const device):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
 	_device(device),
-	_uart_fd(uart_fd),
+	_uart_fd(-1),
 	_is_armed(false),
 	_poll_fds_num(0),
 	_armed_sub(-1),
@@ -283,7 +290,7 @@ TAP_ESC::~TAP_ESC()
 TAP_ESC *
 TAP_ESC::instantiate(int argc, char *argv[])
 {
-	return new TAP_ESC(_supported_channel_count);
+	return new TAP_ESC(tap_esc_drv::_supported_channel_count, tap_esc_drv::_device);
 }
 
 /** @see ModuleBase */
@@ -340,7 +347,7 @@ TAP_ESC::custom_command(int argc, char *argv[])
 			}
 
 			up = new TAP_ESC_UPLOADER(tap_esc_drv::_supported_channel_count);
-			int ret = up->upload(&fn[0]);
+			ret = up->upload(&fn[0]);
 			delete up;
 
 			switch (ret) {
@@ -371,6 +378,8 @@ TAP_ESC::custom_command(int argc, char *argv[])
 
 		return ret;
 	}
+
+	return PX4_OK;
 }
 
 int
@@ -381,11 +390,10 @@ TAP_ESC::init()
 	ASSERT(!_initialized);
 	ret = tap_esc_common::initialise_uart(_device, _uart_fd);
 
-	if (ret < 0) {
+	if (ret != 0) {
 		PX4_ERR("failed to initialize UART.");
 		return ret;
 	}
-
 
 	/* Respect boot time required by the ESC FW */
 
@@ -1135,18 +1143,6 @@ TAP_ESC::ioctl(file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-namespace tap_esc_drv
-{
-static int _uart_fd = -1;
-static char _device[32] = {};
-static int _supported_channel_count = 0;
-
-
-void run() override;
-
-
-=======
->>>>>>> Refactor: (WIP) Adding/removing rest of refactor
 void TAP_ESC::run()
 {
 	if (init() != 0) {
@@ -1161,7 +1157,7 @@ void TAP_ESC::run()
 	}
 }
 
-void TAP_ESC::task_spawn(int argc, char *argv[])
+int TAP_ESC::task_spawn(int argc, char *argv[])
 {
 	/* Parse arguments */
 	const char *device = nullptr;
@@ -1172,7 +1168,7 @@ void TAP_ESC::task_spawn(int argc, char *argv[])
 	const char *myoptarg = nullptr;
 
 	if (argc < 2) {
-		TAP_ESC::print_usage("not enough arguments");
+		print_usage("not enough arguments");
 		error_flag = true;
 	}
 
@@ -1195,12 +1191,12 @@ void TAP_ESC::task_spawn(int argc, char *argv[])
 
 	/* Sanity check on arguments */
 	if (tap_esc_drv::_supported_channel_count == 0) {
-		TAP_ESC::print_usage("Channel count is invalid (%d)", tap_esc_drv::_supported_channel_count);
+		print_usage("Channel count is invalid (0)");
 		return PX4_ERROR;
 	}
 
 	if (device == nullptr || strlen(device) == 0) {
-		TAP_ESC::print_usage("no device psecified");
+		print_usage("no device psecified");
 		return PX4_ERROR;
 	}
 
@@ -1209,7 +1205,7 @@ void TAP_ESC::task_spawn(int argc, char *argv[])
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 				      1200,
-				      (px4_main_t)&task_main_trampoline,
+				      (px4_main_t)&run_trampoline,
 				      nullptr);
 
 	if (_task_id < 0) {
@@ -1244,4 +1240,10 @@ TAP_ESC::print_usage(const char *reason)
 	return PX4_OK;
 }
 
-} // namespace tap_esc
+extern "C" __EXPORT int tap_esc_main(int argc, char *argv[]);
+
+int
+tap_esc_main(int argc, char *argv[])
+{
+	return TAP_ESC::main(argc, argv);
+}

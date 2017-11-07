@@ -33,6 +33,8 @@
 
 #include <stdint.h>
 
+#include <px4_defines.h>
+#include <px4_module.h>
 #include <px4_tasks.h>
 #include <px4_getopt.h>
 #include <px4_posix.h>
@@ -80,12 +82,28 @@
  * This driver connects to TAP ESCs via serial.
  */
 
-class TAP_ESC : public device::CDev
+class TAP_ESC : public device::CDev, public ModuleBase<TAP_ESC>
 {
 public:
 
 	TAP_ESC(int channels_count, int uart_fd);
 	virtual ~TAP_ESC();
+
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static TAP_ESC *instantiate(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
 	virtual int	init();
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 	void cycle();

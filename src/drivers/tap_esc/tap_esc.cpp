@@ -86,7 +86,7 @@ class TAP_ESC : public device::CDev, public ModuleBase<TAP_ESC>
 {
 public:
 
-	TAP_ESC(int channels_count, int uart_fd);
+	TAP_ESC(int channels_count, int uart_fd, char *const device);
 	virtual ~TAP_ESC();
 
 	/** @see ModuleBase */
@@ -109,8 +109,8 @@ public:
 	void cycle();
 
 private:
+	char * _device;
 	int _uart_fd;
-
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	static const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
 	static const uint8_t device_out_map[TAP_ESC_MAX_MOTOR_NUM];
@@ -187,8 +187,9 @@ TAP_ESC	*tap_esc = nullptr;
 
 # define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
 
-TAP_ESC::TAP_ESC(int channels_count, int uart_fd):
+TAP_ESC::TAP_ESC(int channels_count, int uart_fd, char *const device):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
+	_device(device),
 	_uart_fd(uart_fd),
 	_is_armed(false),
 	_poll_fds_num(0),
@@ -285,6 +286,13 @@ TAP_ESC::init()
 	int ret;
 
 	ASSERT(!_initialized);
+	ret = tap_esc_common::initialise_uart(_device, _uart_fd);
+
+	if (ret < 0) {
+		PX4_ERR("failed to initialize UART.");
+		return ret;
+	}
+
 
 	/* Respect boot time required by the ESC FW */
 
@@ -1053,7 +1061,7 @@ int tap_esc_stop(void);
 
 void task_main_trampoline(int argc, char *argv[]);
 
-void task_main(int argc, char *argv[]);
+void run() override;
 
 int tap_esc_start(void)
 {
@@ -1061,7 +1069,7 @@ int tap_esc_start(void)
 
 	if (tap_esc == nullptr) {
 
-		tap_esc = new TAP_ESC(_supported_channel_count, _uart_fd);
+		tap_esc = new TAP_ESC(_supported_channel_count, _uart_fd, _device);
 
 		if (tap_esc == nullptr) {
 			ret = -ENOMEM;
@@ -1093,6 +1101,7 @@ int tap_esc_stop(void)
 	return ret;
 }
 
+<<<<<<< HEAD
 void task_main(int argc, char *argv[])
 {
 
@@ -1101,27 +1110,21 @@ void task_main(int argc, char *argv[])
 
 	if (ret) {
 		PX4_ERR("Failed to initialize UART.");
+=======
+>>>>>>> Refactor: (WIP) Refactored task_main() into run()
 
-		while (_task_should_exit == false) {
-			usleep(100000);
-		}
-
-		_is_running = false;
-		return;
-	}
-
-	if (tap_esc_start() != OK) {
-		PX4_ERR("failed to start tap_esc.");
-		_is_running = false;
+void TAP_ESC::run()
+{
+	if (init() != 0) {
+		PX4_ERR("failed to initialize module");
+		exit_and_cleanup();
 		return;
 	}
 
 
 	// Main loop
-	while (!_task_should_exit) {
-
-		tap_esc->cycle();
-
+	while (!should_exit()) {
+		cycle();
 	}
 
 
@@ -1166,19 +1169,19 @@ void usage()
 
 } // namespace tap_esc
 
-// driver 'main' command
-extern "C" __EXPORT int tap_esc_main(int argc, char *argv[]);
-
-int tap_esc_main(int argc, char *argv[])
+void TAP_ESC::task_spawn(int argc, char *argv[])
 {
+	/* Parse arguments */
 	const char *device = nullptr;
+	bool error_flag = true;
+
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
 	if (argc < 2) {
-		tap_esc_drv::usage();
-		return 1;
+		TAP_ESC::print_usage("not enough arguments");
+		error_flag = true;
 	}
 
 	while ((ch = px4_getopt(argc, argv, "d:n:", &myoptind, &myoptarg)) != EOF) {
@@ -1194,44 +1197,45 @@ int tap_esc_main(int argc, char *argv[])
 		}
 	}
 
-	if (!tap_esc && tap_esc_drv::_task_handle != -1) {
-		tap_esc_drv::_task_handle = -1;
+	if (error_flag) {
+		return -1;
 	}
 
-	const char *verb = argv[myoptind];
-
-	// Start/load the driver.
-	if (!strcmp(verb, "start")) {
-		if (tap_esc_drv::_is_running) {
-			PX4_WARN("tap_esc already running");
-			return 1;
-		}
-
-		// Check on required arguments
-		if (tap_esc_drv::_supported_channel_count == 0 || device == nullptr || strlen(device) == 0) {
-			tap_esc_drv::usage();
-			return 1;
-		}
-
-		tap_esc_drv::start();
+	/* Sanity check on arguments */
+	if (tap_esc_drv::_supported_channel_count == 0) {
+		TAP_ESC::print_usage("Channel count is invalid (%d)", tap_esc_drv::_supported_channel_count);
+		return PX4_ERROR;
 	}
 
-	else if (!strcmp(verb, "stop")) {
-		if (!tap_esc_drv::_is_running) {
-			PX4_WARN("tap_esc is not running");
-			return 1;
-		}
-
-		tap_esc_drv::stop();
+	if (device == nullptr || strlen(device) == 0) {
+		TAP_ESC::print_usage("no device psecified");
+		return PX4_ERROR;
 	}
 
-	else if (!strcmp(verb, "status")) {
-		PX4_WARN("tap_esc is %s", tap_esc_drv::_is_running ? "running" : "not running");
-		return 0;
+	/* start the task */
+	_task_id = px4_task_spawn_cmd("tap_esc",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
+				      1200,
+				      (px4_main_t)&task_main_trampoline,
+				      nullptr);
 
+	if (_task_id < 0) {
+		PX4_ERR("task start failed");
+		_task_id = -1;
+		return PX4_ERROR;
 	}
 
-	else {
+	// wait until task is up & running
+	if (wait_until_running() < 0) {
+		_task_id = -1;
+		return -1;
+	}
+
+	return PX4_OK;
+}
+
+	} else {
 		tap_esc_drv::usage();
 		return 1;
 	}

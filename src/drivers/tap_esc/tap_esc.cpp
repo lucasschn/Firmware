@@ -162,7 +162,6 @@ private:
 	void		subscribe();
 
 	void		work_start();
-	void		work_stop();
 	void send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm);
 	void send_tune_packet(EscbusTunePacket &tune_packet);
 	static int control_callback_trampoline(uintptr_t handle,
@@ -242,17 +241,32 @@ TAP_ESC::TAP_ESC(int channels_count, int uart_fd):
 TAP_ESC::~TAP_ESC()
 {
 	if (_initialized) {
-		/* tell the task we want it to go away */
-		work_stop();
+		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			if (_control_subs[i] >= 0) {
+				orb_unsubscribe(_control_subs[i]);
+				_control_subs[i] = -1;
+			}
+		}
 
-		int i = 10;
+		orb_unsubscribe(_armed_sub);
+		_armed_sub = -1;
+		orb_unsubscribe(_test_motor_sub);
+		_test_motor_sub = -1;
+		orb_unsubscribe(_tune_control_sub);
+		_tune_control_sub = -1;
+		orb_unsubscribe(_led_control_sub);
+		_led_control_sub = -1;
+		orb_unadvertise(_outputs_pub);
+		_outputs_pub = nullptr;
+		orb_unadvertise(_esc_feedback_pub);
+		_esc_feedback_pub = nullptr;
+		orb_unadvertise(_to_mixer_status);
+		_to_mixer_status = nullptr;
 
-		do {
-			/* wait 50ms - it should wake every 100ms or so worst-case */
-			usleep(50000);
-			i--;
+		tap_esc_common::deinitialise_uart(_uart_fd);
 
-		} while (_initialized && i > 0);
+		DEVICE_LOG("stopping");
+		_initialized = false;
 	}
 
 	// clean up the alternate device node
@@ -918,34 +932,6 @@ TAP_ESC::cycle()
 	}
 }
 
-void TAP_ESC::work_stop()
-{
-	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs[i] >= 0) {
-			orb_unsubscribe(_control_subs[i]);
-			_control_subs[i] = -1;
-		}
-	}
-
-	orb_unsubscribe(_armed_sub);
-	_armed_sub = -1;
-	orb_unsubscribe(_test_motor_sub);
-	_test_motor_sub = -1;
-	orb_unsubscribe(_tune_control_sub);
-	_tune_control_sub = -1;
-	orb_unsubscribe(_led_control_sub);
-	_led_control_sub = -1;
-	orb_unadvertise(_outputs_pub);
-	_outputs_pub = nullptr;
-	orb_unadvertise(_esc_feedback_pub);
-	_esc_feedback_pub = nullptr;
-	orb_unadvertise(_to_mixer_status);
-	_to_mixer_status = nullptr;
-
-	DEVICE_LOG("stopping");
-	_initialized = false;
-}
-
 int TAP_ESC::control_callback_trampoline(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
 {
 	TAP_ESC *obj = (TAP_ESC *)handle;
@@ -1062,7 +1048,6 @@ static int _supported_channel_count = 0;
 void usage();
 
 void start();
-void stop();
 int tap_esc_start(void);
 int tap_esc_stop(void);
 
@@ -1167,20 +1152,6 @@ void start()
 		_task_handle = -1;
 		return;
 	}
-}
-
-void stop()
-{
-	_task_should_exit = true;
-
-	while (_is_running) {
-		usleep(200000);
-		PX4_INFO("tap_esc_stop");
-	}
-
-	tap_esc_stop();
-	tap_esc_common::deinitialise_uart(_uart_fd);
-	_task_handle = -1;
 }
 
 void usage()

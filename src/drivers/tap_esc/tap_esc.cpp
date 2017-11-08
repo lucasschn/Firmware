@@ -506,7 +506,6 @@ TAP_ESC::init()
 
 	ret = CDev::init();
 
-	_initialized = true;
 	return ret;
 }
 
@@ -1161,7 +1160,7 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 {
 	/* Parse arguments */
 	const char *device = nullptr;
-	bool error_flag = true;
+	bool error_flag = false;
 
 	int ch;
 	int myoptind = 1;

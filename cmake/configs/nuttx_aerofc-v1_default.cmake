@@ -89,6 +89,7 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	lib/rc
+	lib/FlightTasks
 	platforms/nuttx
 	platforms/common
 	platforms/nuttx/px4_layer

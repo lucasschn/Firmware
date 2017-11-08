@@ -109,6 +109,7 @@ set(config_module_list
 	lib/tunes
 	lib/version
 	lib/DriverFramework/framework
+	lib/FlightTasks
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config

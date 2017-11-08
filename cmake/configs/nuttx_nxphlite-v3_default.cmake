@@ -162,6 +162,7 @@ set(config_module_list
 	lib/tailsitter_recovery
 	lib/tunes
 	lib/version
+	lib/FlightTasks
 	lib/DriverFramework/framework
 
 	#

@@ -8,29 +8,14 @@
 #define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))
 #define BOARD_HAS_MTD_PARTITION_OVERRIDE {"/fs/mtd_caldata"}
 
-/*
- * ADC channels
- *
- * These are the channel numbers of the ADCs of the microcontroller that
- * can be used by the Px4 Firmware in the adc driver
- */
-#define ADC_CHANNELS (1 << 0)
-
 /* Define Battery 1 Voltage Divider and A per V
  */
 #define BOARD_BATTERY1_V_DIV (9.0f)
 
-// ADC defines to be used in sensors.cpp to read from a particular channel
-#define ADC_BATTERY_VOLTAGE_CHANNEL		0
-#define ADC_BATTERY_CURRENT_CHANNEL ((uint8_t)(-1))
-
 /*
  * ESC configuration
- */
-
-#define MAP_BOARD_ESC
-
-/* Physical / Logical ESC mapping
+ *
+ * Physical / Logical ESC mapping
  * The index corresponds to the physical ESC, the value to the logical ESC
  * Phy Log
  * 0   0
@@ -42,6 +27,7 @@
  *  ....
  *
  */
+#define MAP_BOARD_ESC
 // Circular from back right in CCW direction
 #define MAP_BOARD_ESC_PHYS_TO_LOG {0, 1, 2, 3, 4, 5, 6, 7}
 // 0 is CW, 1 is CCW

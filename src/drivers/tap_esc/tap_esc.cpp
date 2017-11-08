@@ -186,11 +186,6 @@ const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
 const uint8_t TAP_ESC::device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 const uint8_t TAP_ESC::device_out_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_OUT;
 
-namespace
-{
-TAP_ESC	*tap_esc = nullptr;
-}
-
 # define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
 
 TAP_ESC::TAP_ESC(int channels_count, char *const device):
@@ -282,8 +277,6 @@ TAP_ESC::~TAP_ESC()
 		delete _fault_tolerant_control;
 		_fault_tolerant_control = nullptr;
 	}
-
-	tap_esc = nullptr;
 }
 
 /** @see ModuleBase */

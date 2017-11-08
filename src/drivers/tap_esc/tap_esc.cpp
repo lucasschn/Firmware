@@ -313,63 +313,65 @@ TAP_ESC::custom_command(int argc, char *argv[])
 			errx(1, "TAP_ESC firmware auto check crc and upload fail error %d", ret);
 		}
 
-		if (!strcmp(verb, "upload")) {
-			// TODO: Get n and d options
-			// ...
+		return ret;
+	}
 
-			// Check on required arguments
-			if (tap_esc_drv::_supported_channel_count == 0) {
-				TAP_ESC::print_usage("supported channel count is 0");
-				return 1;
-			}
+	if (!strcmp(verb, "upload")) {
+		PX4_INFO("UPLOAD: upload verb found");
+		// TODO: Get n and d options
+		// ...
 
-			if (is_running()) {
-				errx(1, "requested command cannot be executed while module is running - stop first");
-			}
+		// Check on required arguments
+		if (tap_esc_drv::_supported_channel_count == 0) {
+			TAP_ESC::print_usage("supported channel count is 0");
+			return 1;
+		}
 
-			TAP_ESC_UPLOADER *up;
+		if (is_running()) {
+			errx(1, "requested command cannot be executed while module is running - stop first");
+		}
 
-			/* Assume we are using default paths */
+		PX4_INFO("UPLOAD: instantiating uploader");
+		TAP_ESC_UPLOADER *up;
 
-			const char *fn[3] = TAP_ESC_FW_SEARCH_PATHS;
+		/* Assume we are using default paths */
 
-			/* Override defaults if a path is passed on command line,use argv[4] path */
-			if (argc > 4) {
-				fn[0] = argv[4];
-				fn[1] = nullptr;
-			}
+		const char *fn[3] = TAP_ESC_FW_SEARCH_PATHS;
 
-			up = new TAP_ESC_UPLOADER(tap_esc_drv::_supported_channel_count);
-			ret = up->upload(&fn[0]);
-			delete up;
+		/* Override defaults if a path is passed on command line,use argv[4] path */
+		if (argc > 4) {
+			fn[0] = argv[4];
+			fn[1] = nullptr;
+		}
 
-			switch (ret) {
-			case OK:
-				PX4_INFO("upload successful");
-				break;
+		up = new TAP_ESC_UPLOADER(tap_esc_drv::_supported_channel_count);
+		int ret = up->upload(&fn[0]);
+		delete up;
 
-			case -ENOENT:
-				errx(1, "TAP_ESC firmware file not found");
+		switch (ret) {
+		case OK:
+			PX4_INFO("upload successful");
+			break;
 
-			case -EEXIST:
-			case -EIO:
-				errx(1, "error updating TAP_ESC - check that bootloader mode is enabled");
+		case -ENOENT:
+			errx(1, "TAP_ESC firmware file not found");
 
-			case -EINVAL:
-				errx(1, "verify failed - retry the update");
+		case -EEXIST:
+		case -EIO:
+			errx(1, "error updating TAP_ESC - check that bootloader mode is enabled");
 
-			case -ETIMEDOUT:
-				errx(1, "timed out waiting for bootloader - power-cycle and try again");
+		case -EINVAL:
+			errx(1, "verify failed - retry the update");
 
-			default:
-				errx(1, "unexpected error %d", ret);
-			}
+		case -ETIMEDOUT:
+			errx(1, "timed out waiting for bootloader - power-cycle and try again");
 
-			return ret;
-
+		default:
+			errx(1, "unexpected error %d", ret);
 		}
 
 		return ret;
+
 	}
 
 	return PX4_OK;

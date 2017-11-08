@@ -78,7 +78,7 @@
 #  define BOARD_TAP_ESC_MODE 0
 #endif
 
-/* Forward declaration for driver helpers */
+
 namespace tap_esc_drv
 {
 static char _device[32] = {};

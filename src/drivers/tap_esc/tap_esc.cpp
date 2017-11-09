@@ -291,11 +291,24 @@ int
 TAP_ESC::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
+	int num_escs = 0;
+
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "n:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'n':
+			num_escs = atoi(myoptarg);
+			break;
+		}
+	}
 
 	if (!strcmp(verb, "checkcrc")) {
 		// Check on required arguments
-		if (tap_esc_drv::_supported_channel_count == 0) {
-			TAP_ESC::print_usage("supported channel count is 0");
+		if (num_escs <= 0) {
+			TAP_ESC::print_usage("Number of ESCs must be larger than 0");
 			return 1;
 		}
 
@@ -305,7 +318,7 @@ TAP_ESC::custom_command(int argc, char *argv[])
 
 		const char *fw[3] = TAP_ESC_FW_SEARCH_PATHS;
 		TAP_ESC_UPLOADER *check_up;
-		check_up = new TAP_ESC_UPLOADER(tap_esc_drv::_supported_channel_count);
+		check_up = new TAP_ESC_UPLOADER(num_escs);
 		int ret = check_up->checkcrc(&fw[0]);
 		delete check_up;
 
@@ -344,7 +357,7 @@ TAP_ESC::custom_command(int argc, char *argv[])
 			fn[1] = nullptr;
 		}
 
-		up = new TAP_ESC_UPLOADER(tap_esc_drv::_supported_channel_count);
+		up = new TAP_ESC_UPLOADER(num_escs);
 		int ret = up->upload(&fn[0]);
 		delete up;
 

@@ -306,10 +306,12 @@ TAP_ESC::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "checkcrc")) {
-		// Check on required arguments
+		if (argc < 3) {
+			return TAP_ESC::print_usage();
+		}
+
 		if (num_escs <= 0) {
-			TAP_ESC::print_usage("Number of ESCs must be larger than 0");
-			return 1;
+			return TAP_ESC::print_usage("Number of ESCs must be larger than 0");
 		}
 
 		if (is_running()) {
@@ -330,21 +332,18 @@ TAP_ESC::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "upload")) {
-		PX4_INFO("UPLOAD: upload verb found");
-		// TODO: Get n and d options
-		// ...
+		if (argc < 3) {
+			return TAP_ESC::print_usage();
+		}
 
-		// Check on required arguments
-		if (tap_esc_drv::_supported_channel_count == 0) {
-			TAP_ESC::print_usage("supported channel count is 0");
-			return 1;
+		if (num_escs <= 0) {
+			return TAP_ESC::print_usage("Number of ESCs must be larger than 0");
 		}
 
 		if (is_running()) {
 			errx(1, "requested command cannot be executed while module is running - stop first");
 		}
 
-		PX4_INFO("UPLOAD: instantiating uploader");
 		TAP_ESC_UPLOADER *up;
 
 		/* Assume we are using default paths */
@@ -387,7 +386,7 @@ TAP_ESC::custom_command(int argc, char *argv[])
 
 	}
 
-	return PX4_OK;
+	return print_usage("unknown command");
 }
 
 int

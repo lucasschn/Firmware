@@ -299,6 +299,8 @@ extern  bool esc_disabled_for_console;
 
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
 
+#define BOARD_USE_ESC_CURRENT_REPORT // each ESC reports its current estimate
+
 __BEGIN_DECLS
 
 /****************************************************************************************************

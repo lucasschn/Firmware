@@ -542,7 +542,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 			}
 
-#ifdef ESC_HAVE_CURRENT_SENSOR
+#ifdef BOARD_USE_ESC_CURRENT_REPORT
 			/* fill the current drawn from the battery with ESC current reports */
 			esc_status_s esc;
 			orb_copy(ORB_ID(esc_status), _esc_status_sub, &esc);

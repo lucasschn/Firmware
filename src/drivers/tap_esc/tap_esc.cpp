@@ -1247,12 +1247,31 @@ TAP_ESC::print_usage(const char *reason)
 		PX4_WARN("%s\n", reason);
 	}
 
-	PX4_INFO("usage: tap_esc start -d /dev/ttyS2 -n <1-8>");
-	PX4_INFO("       tap_esc stop");
-	PX4_INFO("       tap_esc status");
-	PX4_INFO("       tap_esc checkcrc | deprecated. Use `tap_esc_config` instead");
-	PX4_INFO("       tap_esc upload | deprecated. Use `tap_esc_config` instead");
-	PX4_INFO("       tap_esc config | deprecated. Use `tap_esc_config` instead");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+This module controls the ESCs as well as the LEDs via UART. It listens on the actuator_controls topics, does the mixing and writes the PWM outputs.
+
+Additionally it offers commands for flashing the ESC firmware.
+
+### Implementation
+Currently the module is implementd as a threaded version only, meaning that it runs in its own thread instead of on the work queue.
+
+### Example
+The module is typically started with:
+tap_esc start -d /dev/ttyS2 -n <1-8>
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("tap_esc", "driver");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Device used to talk to ESCs", true);
+	PRINT_MODULE_USAGE_PARAM_INT('n', 4, 0, 8, "Number of ESCs", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("checkcrc", "deprecated. Use `tap_esc_config` instead");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("upload", "deprecated. Use `tap_esc_config` instead");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("config", "deprecated. Use `tap_esc_config` instead");
 	return PX4_OK;
 }
 

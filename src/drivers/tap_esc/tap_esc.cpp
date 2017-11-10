@@ -315,7 +315,8 @@ TAP_ESC::custom_command(int argc, char *argv[])
 		}
 
 		if (is_running()) {
-			errx(1, "requested command cannot be executed while module is running - stop first");
+			PX4_ERR("requested command cannot be executed while module is running - stop first");
+			return -1;
 		}
 
 		const char *fw[3] = TAP_ESC_FW_SEARCH_PATHS;
@@ -325,7 +326,8 @@ TAP_ESC::custom_command(int argc, char *argv[])
 		delete check_up;
 
 		if (ret != OK) {
-			errx(1, "TAP_ESC firmware auto check crc and upload fail error %d", ret);
+			PX4_ERR("TAP_ESC firmware auto check crc and upload fail error %d", ret);
+			return -1;
 		}
 
 		return ret;
@@ -341,7 +343,8 @@ TAP_ESC::custom_command(int argc, char *argv[])
 		}
 
 		if (is_running()) {
-			errx(1, "requested command cannot be executed while module is running - stop first");
+			PX4_ERR("requested command cannot be executed while module is running - stop first");
+			return -1;
 		}
 
 		TAP_ESC_UPLOADER *up;
@@ -366,20 +369,25 @@ TAP_ESC::custom_command(int argc, char *argv[])
 			break;
 
 		case -ENOENT:
-			errx(1, "TAP_ESC firmware file not found");
+			PX4_ERR("TAP_ESC firmware file not found");
+			return -1;
 
 		case -EEXIST:
 		case -EIO:
-			errx(1, "error updating TAP_ESC - check that bootloader mode is enabled");
+			PX4_ERR("error updating TAP_ESC - check that bootloader mode is enabled");
+			return -1;
 
 		case -EINVAL:
-			errx(1, "verify failed - retry the update");
+			PX4_ERR("verify failed - retry the update");
+			return -1;
 
 		case -ETIMEDOUT:
-			errx(1, "timed out waiting for bootloader - power-cycle and try again");
+			PX4_ERR("timed out waiting for bootloader - power-cycle and try again");
+			return -1;
 
 		default:
-			errx(1, "unexpected error %d", ret);
+			PX4_ERR("unexpected error %d", ret);
+			return -1;
 		}
 
 		return ret;

@@ -161,7 +161,6 @@ private:
 	MixerGroup	*_mixers;
 	uint32_t	_groups_required;
 	uint32_t	_groups_subscribed;
-	volatile bool	_initialized;
 	unsigned	_pwm_default_rate;
 	unsigned	_current_update_rate;
 	ESC_UART_BUF _uartbuf = {};
@@ -210,7 +209,6 @@ TAP_ESC::TAP_ESC(int channels_count, char *const device):
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
-	_initialized(false),
 	_pwm_default_rate(400),
 	_current_update_rate(0),
 	_send_next_tune(0),
@@ -242,28 +240,25 @@ TAP_ESC::TAP_ESC(int channels_count, char *const device):
 
 TAP_ESC::~TAP_ESC()
 {
-	if (_initialized) {
-		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_control_subs[i] >= 0) {
-				orb_unsubscribe(_control_subs[i]);
-				_control_subs[i] = -1;
-			}
+	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+		if (_control_subs[i] >= 0) {
+			orb_unsubscribe(_control_subs[i]);
+			_control_subs[i] = -1;
 		}
-
-		orb_unsubscribe(_armed_sub);
-		orb_unsubscribe(_test_motor_sub);
-		orb_unsubscribe(_tune_control_sub);
-		orb_unsubscribe(_led_control_sub);
-
-		orb_unadvertise(_outputs_pub);
-		orb_unadvertise(_esc_feedback_pub);
-		orb_unadvertise(_to_mixer_status);
-
-		tap_esc_common::deinitialise_uart(_uart_fd);
-
-		DEVICE_LOG("stopping");
-		_initialized = false;
 	}
+
+	orb_unsubscribe(_armed_sub);
+	orb_unsubscribe(_test_motor_sub);
+	orb_unsubscribe(_tune_control_sub);
+	orb_unsubscribe(_led_control_sub);
+
+	orb_unadvertise(_outputs_pub);
+	orb_unadvertise(_esc_feedback_pub);
+	orb_unadvertise(_to_mixer_status);
+
+	tap_esc_common::deinitialise_uart(_uart_fd);
+
+	DEVICE_LOG("stopping");
 
 	// clean up the alternate device node
 	//unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
@@ -277,7 +272,15 @@ TAP_ESC::~TAP_ESC()
 TAP_ESC *
 TAP_ESC::instantiate(int argc, char *argv[])
 {
-	return new TAP_ESC(tap_esc_drv::_supported_channel_count, tap_esc_drv::_device);
+	TAP_ESC *tap_esc = new TAP_ESC(tap_esc_drv::_supported_channel_count, tap_esc_drv::_device);
+
+	if (tap_esc->init() != 0) {
+		PX4_ERR("failed to initialize module");
+		delete tap_esc;
+		return nullptr;
+	}
+
+	return tap_esc;
 }
 
 /** @see ModuleBase */
@@ -524,6 +527,24 @@ TAP_ESC::init()
 
 	ret = CDev::init();
 
+	/* advertise the mixed control outputs, insist on the first group output */
+	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
+	_esc_feedback_pub = orb_advertise(ORB_ID(esc_status), &_esc_feedback);
+	multirotor_motor_limits_s multirotor_motor_limits = {};
+	_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
+
+	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
+	_led_control_sub = orb_subscribe(ORB_ID(led_control));
+	_led_controller.init(_led_control_sub);
+	_tune_control_sub = orb_subscribe(ORB_ID(tune_control));
+
+	if (_groups_subscribed != _groups_required) {
+		subscribe();
+		_groups_subscribed = _groups_required;
+		_current_update_rate = 0;
+	}
+
 	return ret;
 }
 
@@ -680,22 +701,6 @@ int TAP_ESC::esc_failure_check(uint8_t channel_id)
 void
 TAP_ESC::cycle()
 {
-
-	if (!_initialized) {
-		_current_update_rate = 0;
-		/* advertise the mixed control outputs, insist on the first group output */
-		_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
-		_esc_feedback_pub = orb_advertise(ORB_ID(esc_status), &_esc_feedback);
-		multirotor_motor_limits_s multirotor_motor_limits = {};
-		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
-		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-		_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
-		_led_control_sub = orb_subscribe(ORB_ID(led_control));
-		_led_controller.init(_led_control_sub);
-		_tune_control_sub = orb_subscribe(ORB_ID(tune_control));
-		_initialized = true;
-	}
-
 	if (_groups_subscribed != _groups_required) {
 		subscribe();
 		_groups_subscribed = _groups_required;
@@ -1162,12 +1167,6 @@ TAP_ESC::ioctl(file *filp, int cmd, unsigned long arg)
 
 void TAP_ESC::run()
 {
-	if (init() != 0) {
-		PX4_ERR("failed to initialize module");
-		exit_and_cleanup();
-		return;
-	}
-
 	// Main loop
 	while (!should_exit()) {
 		cycle();

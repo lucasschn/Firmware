@@ -1192,7 +1192,7 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 		switch (ch) {
 		case 'd':
 			device = myoptarg;
-			strncpy(tap_esc_drv::_device, device, sizeof(*device));
+			strncpy(tap_esc_drv::_device, device, strlen(device));
 			break;
 
 		case 'n':

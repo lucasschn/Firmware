@@ -314,8 +314,13 @@ TAP_ESC::custom_command(int argc, char *argv[])
 		}
 
 		const char *fw[3] = TAP_ESC_FW_SEARCH_PATHS;
-		TAP_ESC_UPLOADER *check_up;
-		check_up = new TAP_ESC_UPLOADER(num_escs);
+		TAP_ESC_UPLOADER *check_up = new TAP_ESC_UPLOADER(num_escs);
+
+		if (check_up == nullptr) {
+			PX4_ERR("Error instantiating the firmware uploader");
+			return -1;
+		}
+
 		int ret = check_up->checkcrc(&fw[0]);
 		delete check_up;
 
@@ -341,7 +346,12 @@ TAP_ESC::custom_command(int argc, char *argv[])
 			return -1;
 		}
 
-		TAP_ESC_UPLOADER *up;
+		TAP_ESC_UPLOADER *up = new TAP_ESC_UPLOADER(num_escs);
+
+		if (up == nullptr) {
+			PX4_ERR("Error instantiating the firmware uploader");
+			return -1;
+		}
 
 		/* Assume we are using default paths */
 
@@ -353,7 +363,6 @@ TAP_ESC::custom_command(int argc, char *argv[])
 			fn[1] = nullptr;
 		}
 
-		up = new TAP_ESC_UPLOADER(num_escs);
 		int ret = up->upload(&fn[0]);
 		delete up;
 

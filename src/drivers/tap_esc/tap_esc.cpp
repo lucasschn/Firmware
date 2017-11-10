@@ -251,19 +251,13 @@ TAP_ESC::~TAP_ESC()
 		}
 
 		orb_unsubscribe(_armed_sub);
-		_armed_sub = -1;
 		orb_unsubscribe(_test_motor_sub);
-		_test_motor_sub = -1;
 		orb_unsubscribe(_tune_control_sub);
-		_tune_control_sub = -1;
 		orb_unsubscribe(_led_control_sub);
-		_led_control_sub = -1;
+
 		orb_unadvertise(_outputs_pub);
-		_outputs_pub = nullptr;
 		orb_unadvertise(_esc_feedback_pub);
-		_esc_feedback_pub = nullptr;
 		orb_unadvertise(_to_mixer_status);
-		_to_mixer_status = nullptr;
 
 		tap_esc_common::deinitialise_uart(_uart_fd);
 

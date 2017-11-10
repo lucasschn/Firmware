@@ -97,9 +97,6 @@ public:
 	void cycle();
 	void config_esc_id(int id);
 
-protected:
-	void select_responder(uint8_t sel);
-
 private:
 
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
@@ -355,10 +352,7 @@ TAP_ESC::init()
 
 		if (!valid) {
 			PX4_ERR("Verification of the configuration failed, ESC number: %d", cid);
-
-#if !defined(MAP_BOARD_ESC)
 			return -EIO;
-#endif
 		}
 
 	}
@@ -904,7 +898,7 @@ TAP_ESC::cycle()
 
 		// We need to remap from the system default to what PX4's normal
 		// scheme is
-#ifdef MAP_BOARD_ESC_TO_PX4_OUT
+#ifdef BOARD_MAP_ESC_TO_PX4_OUT
 
 		uint8_t num = 0;
 

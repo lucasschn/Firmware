@@ -27,13 +27,12 @@
  *  ....
  *
  */
-#define MAP_BOARD_ESC
 // Circular from back right in CCW direction
-#define MAP_BOARD_ESC_PHYS_TO_LOG {0, 1, 2, 3, 4, 5, 6, 7}
+#define BOARD_MAP_ESC_PHYS_TO_LOG {0, 1, 2, 3, 4, 5, 6, 7}
 // 0 is CW, 1 is CCW
-#define MAP_BOARD_ESC_TO_PX4_DIR  {0, 1, 0, 1, 0, 1, 0, 1}
+#define BOARD_MAP_ESC_TO_PX4_DIR  {0, 1, 0, 1, 0, 1, 0, 1}
 // output remap table
-#define MAP_BOARD_ESC_TO_PX4_OUT  {2, 1, 3, 0, 4, 5, 6, 7}
+#define BOARD_MAP_ESC_TO_PX4_OUT  {2, 1, 3, 0, 4, 5, 6, 7}
 
 #include <drivers/boards/px4fmu-v5/board_config.h>
 

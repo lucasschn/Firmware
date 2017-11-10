@@ -64,25 +64,25 @@
  *
  */
 
-#ifndef MAP_BOARD_ESC_PHYS_TO_LOG
+#ifndef BOARD_MAP_ESC_PHYS_TO_LOG
 // Circular from back right in CCW direction
 #define ESC_POS {0, 1, 4, 3, 2, 5, 7, 8}
 #else
-#define ESC_POS MAP_BOARD_ESC_PHYS_TO_LOG
+#define ESC_POS BOARD_MAP_ESC_PHYS_TO_LOG
 #endif
 
-#ifndef MAP_BOARD_ESC_TO_PX4_DIR
+#ifndef BOARD_MAP_ESC_TO_PX4_DIR
 // 0 is CW, 1 is CCW
 #define ESC_DIR {0, 1, 0, 1, 0, 1, 0, 1}
 #else
-#define ESC_DIR MAP_BOARD_ESC_TO_PX4_DIR
+#define ESC_DIR BOARD_MAP_ESC_TO_PX4_DIR
 #endif
 
-#ifndef MAP_BOARD_ESC_TO_PX4_OUT
+#ifndef BOARD_MAP_ESC_TO_PX4_OUT
 // Remap from the system default to what PX4's normal scheme is
 #define ESC_OUT {3, 0, 4, 2, 1, 5, 6, 7}
 #else
-#define ESC_OUT MAP_BOARD_ESC_TO_PX4_OUT
+#define ESC_OUT BOARD_MAP_ESC_TO_PX4_OUT
 #endif
 
 

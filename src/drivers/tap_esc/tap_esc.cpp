@@ -539,12 +539,6 @@ TAP_ESC::init()
 	_led_controller.init(_led_control_sub);
 	_tune_control_sub = orb_subscribe(ORB_ID(tune_control));
 
-	if (_groups_subscribed != _groups_required) {
-		subscribe();
-		_groups_subscribed = _groups_required;
-		_current_update_rate = 0;
-	}
-
 	return ret;
 }
 

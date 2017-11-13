@@ -37,13 +37,12 @@
 #include <px4_getopt.h>
 #include <px4_posix.h>
 #include <errno.h>
-#include <termios.h>
+
 #include <cmath>	// NAN
 
 #include <lib/mathlib/mathlib.h>
 #include <lib/led/led.h>
 #include <lib/tunes/tunes.h>
-#include <systemlib/px4_macros.h>
 #include <drivers/device/device.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
@@ -66,10 +65,6 @@
 #include "fault_tolerant_control/fault_tolerant_control.h"
 #define NAN_VALUE	(0.0f/0.0f)
 
-#ifndef B250000
-#define B250000 250000
-#endif
-
 #include "drv_tap_esc.h"
 #include "tap_esc_uploader.h"
 
@@ -85,19 +80,18 @@
  * This driver connects to TAP ESCs via serial.
  */
 
-static int _uart_fd = -1; //todo:refactor in to class
 class TAP_ESC : public device::CDev
 {
 public:
 
-	TAP_ESC(int channels_count);
+	TAP_ESC(int channels_count, int uart_fd);
 	virtual ~TAP_ESC();
 	virtual int	init();
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 	void cycle();
-	void config_esc_id(int id);
 
 private:
+	int _uart_fd;
 
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	static const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
@@ -105,7 +99,6 @@ private:
 
 	bool _is_armed;
 
-	uint8_t _id_config;
 	unsigned	_poll_fds_num;
 	// subscriptions
 	int	_armed_sub;
@@ -152,14 +145,8 @@ private:
 
 	void		work_start();
 	void		work_stop();
-	void send_esc_id_packet();
 	void send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm);
 	void send_tune_packet(EscbusTunePacket &tune_packet);
-	uint8_t crc8_esc(uint8_t *p, uint8_t len);
-	uint8_t crc_packet(EscPacket &p);
-	int send_packet(EscPacket &p, int responder);
-	void read_data_from_uart();
-	bool parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packetdata);
 	static int control_callback_trampoline(uintptr_t handle,
 					       uint8_t control_group, uint8_t control_index, float &input);
 	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
@@ -183,10 +170,10 @@ TAP_ESC	*tap_esc = nullptr;
 
 # define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
 
-TAP_ESC::TAP_ESC(int channels_count):
+TAP_ESC::TAP_ESC(int channels_count, int uart_fd):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
+	_uart_fd(uart_fd),
 	_is_armed(false),
-	_id_config(NO_ESC_ID_CONFIG),
 	_poll_fds_num(0),
 	_armed_sub(-1),
 	_test_motor_sub(-1),
@@ -300,7 +287,7 @@ TAP_ESC::init()
 	config.maxChannelValue = RPMMAX;
 	config.minChannelValue = RPMMIN;
 
-	ret = send_packet(packet, 0);
+	ret = tap_esc_common::send_packet(_uart_fd, packet, 0);  // TODO: Why responder 0?
 
 	if (ret < 0) {
 		return ret;
@@ -321,7 +308,7 @@ TAP_ESC::init()
 		info_req.channelID = cid;
 		info_req.requestInfoType = REQEST_INFO_BASIC;
 
-		ret = send_packet(packet_info, cid);
+		ret = tap_esc_common::send_packet(_uart_fd, packet_info, cid);
 
 		if (ret < 0) {
 			return ret;
@@ -334,9 +321,9 @@ TAP_ESC::init()
 
 		while (retries--) {
 
-			read_data_from_uart();
+			tap_esc_common::read_data_from_uart(_uart_fd, &uartbuf);
 
-			if (parse_tap_esc_feedback(&uartbuf, &_packet)) {
+			if (tap_esc_common::parse_tap_esc_feedback(&uartbuf, &_packet) == 0) {
 				valid = (_packet.msg_id == ESCBUS_MSG_ID_CONFIG_INFO_BASIC
 					 && _packet.d.rspConfigInfoBasic.channelID == cid
 					 && 0 == memcmp(&_packet.d.rspConfigInfoBasic.resp, &config, sizeof(ConfigInfoBasicRequest)));
@@ -371,7 +358,7 @@ TAP_ESC::init()
 
 	while (unlock_times--) {
 
-		send_packet(unlock_packet, -1);
+		tap_esc_common::send_packet(_uart_fd, unlock_packet, -1);
 
 		/* Min Packet to Packet time is 1 Ms so use 2 */
 
@@ -381,27 +368,6 @@ TAP_ESC::init()
 	/* do regular cdev init */
 
 	ret = CDev::init();
-
-	return ret;
-}
-
-int TAP_ESC::send_packet(EscPacket &packet, int responder)
-{
-	if (responder >= 0) {
-
-		if (responder > _channels_count) {
-			return -EINVAL;
-		}
-
-		tap_esc_common::select_responder(responder);
-	}
-
-	int packet_len = crc_packet(packet);
-	int ret = ::write(_uart_fd, &packet.head, packet_len);
-
-	if (ret != packet_len) {
-		PX4_WARN("TX ERROR: ret: %d, errno: %d", ret, errno);
-	}
 
 	return ret;
 }
@@ -432,84 +398,6 @@ TAP_ESC::subscribe()
 			_poll_fds_num++;
 		}
 	}
-}
-
-uint8_t TAP_ESC::crc8_esc(uint8_t *p, uint8_t len)
-{
-	uint8_t crc = 0;
-
-	for (uint8_t i = 0; i < len; i++) {
-		crc = tap_esc_common::crc_table[crc^*p++];
-	}
-
-	return crc;
-}
-
-uint8_t TAP_ESC::crc_packet(EscPacket &p)
-{
-	/* Calculate the crc over Len,ID,data */
-	p.d.bytes[p.len] = crc8_esc(&p.len, p.len + 2);
-	return p.len + offsetof(EscPacket, d) + 1;
-}
-
-void TAP_ESC::send_esc_id_packet()
-{
-	EscPacket id_config = {PACKET_HEAD, sizeof(EscbusConfigidPacket), ESCBUS_MSG_ID_DO_CMD};
-
-	id_config.d.configidPacket.id_mask = PACKET_ID_MASK;
-	id_config.d.configidPacket.child_cmd = DO_ID_ASSIGNMENT;
-
-	if (_id_config < _channels_count) {
-		id_config.d.configidPacket.id = _id_config;
-
-		send_packet(id_config, -1);
-		_id_config = NO_ESC_ID_CONFIG;
-
-	} else {
-
-		static bool ran_once = false;
-		static uint8_t cid = 0;
-
-		if (!ran_once) {
-			usleep(500000);
-			id_config.d.configidPacket.id = cid;
-			send_packet(id_config, -1);
-			ran_once = true;
-		}
-
-		/* Get a response */
-		uint8_t retries = 10;
-		bool valid = false;
-
-		while (retries--) {
-			read_data_from_uart();
-
-			if (parse_tap_esc_feedback(&uartbuf, &_packet)) {
-				valid = (_packet.msg_id == ESCBUS_MSG_ID_ASSIGNED_ID
-					 && _packet.d.rspAssignedId.escID == cid);
-				break;
-
-			} else {
-				/* Give it time to come in */
-				usleep(1000);
-			}
-		}
-
-		if (valid) {
-			ran_once = false;
-			cid++;
-
-			if (cid == _channels_count) {
-				cid = 0;
-				_id_config = NO_ESC_ID_CONFIG;
-			}
-		}
-	}
-}
-
-void TAP_ESC::config_esc_id(int id)
-{
-	_id_config = id;
 }
 
 void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm)
@@ -580,7 +468,7 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm)
 		packet.d.reqRun.rpm_flags[i] = rpm[i];
 	}
 
-	int ret = send_packet(packet, which_to_respone);
+	int ret = tap_esc_common::send_packet(_uart_fd, packet, which_to_respone);
 
 	if (++which_to_respone == _channels_count) {
 		which_to_respone = 0;
@@ -595,114 +483,7 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 {
 	EscPacket buzzer_packet = {PACKET_HEAD, sizeof(EscbusTunePacket), ESCBUS_MSG_ID_TUNE};
 	buzzer_packet.d.tunePacket = tune_packet;
-	send_packet(buzzer_packet, -1);
-}
-
-void TAP_ESC::read_data_from_uart()
-{
-	uint8_t tmp_serial_buf[UART_BUFFER_SIZE];
-
-	int len =::read(_uart_fd, tmp_serial_buf, arraySize(tmp_serial_buf));
-
-	if (len > 0 && (uartbuf.dat_cnt + len < UART_BUFFER_SIZE)) {
-		for (int i = 0; i < len; i++) {
-			uartbuf.esc_feedback_buf[uartbuf.tail++] = tmp_serial_buf[i];
-			uartbuf.dat_cnt++;
-
-			if (uartbuf.tail >= UART_BUFFER_SIZE) {
-				uartbuf.tail = 0;
-			}
-		}
-	}
-}
-
-bool TAP_ESC::parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packetdata)
-{
-	static PARSR_ESC_STATE state = HEAD;
-	static uint8_t data_index = 0;
-	static uint8_t crc_data_cal;
-
-	if (serial_buf->dat_cnt > 0) {
-		int count = serial_buf->dat_cnt;
-
-		for (int i = 0; i < count; i++) {
-			switch (state) {
-			case HEAD:
-				if (serial_buf->esc_feedback_buf[serial_buf->head] == PACKET_HEAD) {
-					packetdata->head = PACKET_HEAD; //just_keep the format
-					state = LEN;
-				}
-
-				break;
-
-			case LEN:
-				if (serial_buf->esc_feedback_buf[serial_buf->head] < sizeof(packetdata->d)) {
-					packetdata->len = serial_buf->esc_feedback_buf[serial_buf->head];
-					state = ID;
-
-				} else {
-					state = HEAD;
-				}
-
-				break;
-
-			case ID:
-				if (serial_buf->esc_feedback_buf[serial_buf->head] < ESCBUS_MSG_ID_MAX_NUM) {
-					packetdata->msg_id = serial_buf->esc_feedback_buf[serial_buf->head];
-					data_index = 0;
-					state = DATA;
-
-				} else {
-					state = HEAD;
-				}
-
-				break;
-
-			case DATA:
-				packetdata->d.bytes[data_index++] = serial_buf->esc_feedback_buf[serial_buf->head];
-
-				if (data_index >= packetdata->len) {
-
-					crc_data_cal = crc8_esc((uint8_t *)(&packetdata->len), packetdata->len + 2);
-					state = CRC;
-				}
-
-				break;
-
-			case CRC:
-				if (crc_data_cal == serial_buf->esc_feedback_buf[serial_buf->head]) {
-					packetdata->crc_data = serial_buf->esc_feedback_buf[serial_buf->head];
-
-					if (++serial_buf->head >= UART_BUFFER_SIZE) {
-						serial_buf->head = 0;
-					}
-
-					serial_buf->dat_cnt--;
-					state = HEAD;
-					return true;
-				}
-
-				state = HEAD;
-				break;
-
-			default:
-				state = HEAD;
-				break;
-
-			}
-
-			if (++serial_buf->head >= UART_BUFFER_SIZE) {
-				serial_buf->head = 0;
-			}
-
-			serial_buf->dat_cnt--;
-
-		}
-
-
-	}
-
-	return false;
+	tap_esc_common::send_packet(_uart_fd, buzzer_packet, -1);
 }
 
 int TAP_ESC::esc_failure_check(uint8_t channel_id)
@@ -1023,12 +804,10 @@ TAP_ESC::cycle()
 			}
 		}
 
-		if (_id_config == NO_ESC_ID_CONFIG) {
-			send_esc_outputs(motor_out, esc_count);
-			read_data_from_uart();
-		}
+		send_esc_outputs(motor_out, esc_count);
+		tap_esc_common::read_data_from_uart(_uart_fd, &uartbuf);
 
-		if (parse_tap_esc_feedback(&uartbuf, &_packet) == true) {
+		if (tap_esc_common::parse_tap_esc_feedback(&uartbuf, &_packet) == 0) {
 			if (_packet.msg_id == ESCBUS_MSG_ID_RUN_INFO) {
 				RunInfoRepsonse &feed_back_data = _packet.d.rspRunInfo;
 
@@ -1081,10 +860,6 @@ TAP_ESC::cycle()
 
 		_is_armed = _armed.armed;
 
-	}
-
-	if (!_is_armed && _id_config != NO_ESC_ID_CONFIG) {
-		send_esc_id_packet();
 	}
 
 	updated = false;
@@ -1263,13 +1038,12 @@ namespace tap_esc_drv
 
 
 volatile bool _task_should_exit = false; // flag indicating if tap_esc task should exit
+static int _uart_fd = -1;
 static char _device[32] = {};
 static bool _is_running = false;         // flag indicating if tap_esc app is running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
 static int _supported_channel_count = 0;
-static int _id_config_num = NO_ESC_ID_CONFIG;
 
-static bool _flow_control_enabled = false;
 
 void usage();
 
@@ -1282,21 +1056,13 @@ void task_main_trampoline(int argc, char *argv[]);
 
 void task_main(int argc, char *argv[]);
 
-int initialise_uart();
-
-int deinitialize_uart();
-
-int enable_flow_control(bool enabled);
-
-void config(int id);
-
 int tap_esc_start(void)
 {
 	int ret = OK;
 
 	if (tap_esc == nullptr) {
 
-		tap_esc = new TAP_ESC(_supported_channel_count);
+		tap_esc = new TAP_ESC(_supported_channel_count, _uart_fd);
 
 		if (tap_esc == nullptr) {
 			ret = -ENOMEM;
@@ -1328,88 +1094,13 @@ int tap_esc_stop(void)
 	return ret;
 }
 
-int initialise_uart()
-{
-#if defined(CONFIG_ARCH_BOARD_TAP_V2) && defined(CONFIG_USART3_SERIAL_CONSOLE)
-	return -1;
-#else
-	// open uart
-	_uart_fd = open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
-	int termios_state = -1;
-
-	if (_uart_fd < 0) {
-		PX4_ERR("failed to open uart device!");
-		return -1;
-	}
-
-	// set baud rate
-	int speed = B250000;
-	struct termios uart_config;
-	tcgetattr(_uart_fd, &uart_config);
-
-	// clear ONLCR flag (which appends a CR for every LF)
-	uart_config.c_oflag &= ~ONLCR;
-
-	// set baud rate
-	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		PX4_ERR("failed to set baudrate for %s: %d\n", _device, termios_state);
-		close(_uart_fd);
-		return -1;
-	}
-
-	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
-		PX4_ERR("tcsetattr failed for %s\n", _device);
-		close(_uart_fd);
-		return -1;
-	}
-
-	// setup output flow control
-	if (enable_flow_control(false)) {
-		PX4_WARN("hardware flow disable failed");
-	}
-
-	return _uart_fd;
-#endif
-}
-
-int enable_flow_control(bool enabled)
-{
-	struct termios uart_config;
-
-	int ret = tcgetattr(_uart_fd, &uart_config);
-
-	if (enabled) {
-		uart_config.c_cflag |= CRTSCTS;
-
-	} else {
-		uart_config.c_cflag &= ~CRTSCTS;
-	}
-
-	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
-
-	if (!ret) {
-		_flow_control_enabled = enabled;
-	}
-
-	return ret;
-}
-
-int deinitialize_uart()
-{
-	return close(_uart_fd);
-}
-
-void config(int id)
-{
-	tap_esc->config_esc_id(id);
-}
-
 void task_main(int argc, char *argv[])
 {
 
 	_is_running = true;
+	int ret = tap_esc_common::initialise_uart(_device, _uart_fd);
 
-	if (initialise_uart() < 0) {
+	if (ret) {
 		PX4_ERR("Failed to initialize UART.");
 
 		while (_task_should_exit == false) {
@@ -1474,7 +1165,7 @@ void stop()
 	}
 
 	tap_esc_stop();
-	deinitialize_uart();
+	tap_esc_common::deinitialise_uart(_uart_fd);
 	_task_handle = -1;
 }
 
@@ -1483,10 +1174,9 @@ void usage()
 	PX4_INFO("usage: tap_esc start -d /dev/ttyS2 -n <1-8>");
 	PX4_INFO("       tap_esc stop");
 	PX4_INFO("       tap_esc status");
-	PX4_INFO("       tap_esc checkcrc -n <1-8>");
-	PX4_INFO("       tap_esc upload -n <1-8>");
-	PX4_INFO("       tap_esc upload -n <1-8> custom_file (e.g:tap_esc upload -n 6 /fs/microsd/tap_esc.bin)");
-	PX4_INFO("       tap_esc config -t <0-%d>", (int)(_supported_channel_count)); // 0~(%d-1) config one, %d config all ESCs
+	PX4_INFO("       tap_esc checkcrc | deprecated. Use `tap_esc_config` instead");
+	PX4_INFO("       tap_esc upload | deprecated. Use `tap_esc_config` instead");
+	PX4_INFO("       tap_esc config | deprecated. Use `tap_esc_config` instead");
 }
 
 } // namespace tap_esc
@@ -1506,7 +1196,7 @@ int tap_esc_main(int argc, char *argv[])
 		return 1;
 	}
 
-	while ((ch = px4_getopt(argc, argv, "d:n:t:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device = myoptarg;
@@ -1515,10 +1205,6 @@ int tap_esc_main(int argc, char *argv[])
 
 		case 'n':
 			tap_esc_drv::_supported_channel_count = atoi(myoptarg);
-			break;
-
-		case 't':
-			tap_esc_drv::_id_config_num = atoi(myoptarg);
 			break;
 		}
 	}
@@ -1560,98 +1246,7 @@ int tap_esc_main(int argc, char *argv[])
 
 	}
 
-	else if (!strcmp(verb, "checkcrc")) {
-		// Check on required arguments
-		if (tap_esc_drv::_supported_channel_count == 0) {
-			tap_esc_drv::usage();
-			return 1;
-		}
-
-		tap_esc_drv::stop();
-		const char *fw[3] = TAP_ESC_FW_SEARCH_PATHS;
-		TAP_ESC_UPLOADER *check_up;
-		check_up = new TAP_ESC_UPLOADER(tap_esc_drv::_supported_channel_count);
-		int ret = check_up->checkcrc(&fw[0]);
-		delete check_up;
-
-		if (ret != OK) {
-			errx(1, "TAP_ESC firmware auto check crc and upload fail error %d", ret);
-		}
-
-		return ret;
-	}
-
-	else if (!strcmp(verb, "upload")) {
-		// Check on required arguments
-		if (tap_esc_drv::_supported_channel_count == 0) {
-			tap_esc_drv::usage();
-			return 1;
-		}
-
-		tap_esc_drv::stop();
-
-		TAP_ESC_UPLOADER *up;
-
-		/* Assume we are using default paths */
-
-		const char *fn[3] = TAP_ESC_FW_SEARCH_PATHS;
-
-		/* Override defaults if a path is passed on command line,use argv[4] path */
-		if (argc > 4) {
-			fn[0] = argv[4];
-			fn[1] = nullptr;
-		}
-
-		up = new TAP_ESC_UPLOADER(tap_esc_drv::_supported_channel_count);
-		int ret = up->upload(&fn[0]);
-		delete up;
-
-		switch (ret) {
-		case OK:
-#ifdef CONFIG_ARCH_BOARD_TAP_V2
-			/* reboot tap_esc when esc uploader success*/
-			device = "/dev/ttyS2";
-			strncpy(tap_esc_drv::_device, device, strlen(device));
-			tap_esc_drv::_supported_channel_count = 6;
-			tap_esc_drv::start();
-#endif
-			break;
-
-		case -ENOENT:
-			errx(1, "TAP_ESC firmware file not found");
-
-		case -EEXIST:
-		case -EIO:
-			errx(1, "error updating TAP_ESC - check that bootloader mode is enabled");
-
-		case -EINVAL:
-			errx(1, "verify failed - retry the update");
-
-		case -ETIMEDOUT:
-			errx(1, "timed out waiting for bootloader - power-cycle and try again");
-
-		default:
-			errx(1, "unexpected error %d", ret);
-		}
-
-		return ret;
-	}
-
-	else if (!strcmp(verb, "config")) {
-		if (!tap_esc_drv::_is_running) {
-			PX4_WARN("tap_esc is not running");
-			return 1;
-		}
-
-		if (tap_esc_drv::_id_config_num > tap_esc_drv::_supported_channel_count) {
-			tap_esc_drv::usage();
-			return 1;
-		}
-
-		tap_esc_drv::config(tap_esc_drv::_id_config_num);
-
-
-	} else {
+	else {
 		tap_esc_drv::usage();
 		return 1;
 	}

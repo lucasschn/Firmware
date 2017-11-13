@@ -48,6 +48,7 @@ set(config_module_list
 	systemcmds/mtd
 	systemcmds/dumpfile
 	systemcmds/ver
+	systemcmds/tap_esc_config
 	systemcmds/topic_listener
 
 	#

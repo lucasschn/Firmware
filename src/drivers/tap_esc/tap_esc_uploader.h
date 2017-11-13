@@ -39,6 +39,7 @@
 #ifndef _TAP_ESC_UPLOADER_H
 #define _TAP_ESC_UPLOADER_H
 
+#include <drivers/tap_esc/drv_tap_esc.h>
 #include <stdint.h>
 #include <stdbool.h>
 

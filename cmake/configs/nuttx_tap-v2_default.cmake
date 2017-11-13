@@ -48,6 +48,7 @@ set(config_module_list
 	systemcmds/dumpfile
 	systemcmds/ver
 	systemcmds/sd_bench
+	systemcmds/tap_esc_config
 	systemcmds/topic_listener
 	systemcmds/tune_control
 

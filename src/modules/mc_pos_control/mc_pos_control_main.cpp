@@ -808,8 +808,6 @@ MulticopterPositionControl::obstacle_avoidance_sonar(float altitude_above_home)
 			vel_sp_body(0) = math::min(vel_sp_body(0), 0.0f);
 			vel_sp_body(1) = 0.0f;
 			_vel_sp = _R * vel_sp_body;
-			/*change previous setpoint in oder for the slewrate to be correct when exiting obstacle avoidance*/
-			_vel_sp_prev = _vel_sp;
 		}
 
 	} else {

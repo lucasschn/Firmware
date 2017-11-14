@@ -2626,7 +2626,6 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		if (!_flight_tasks.update()) {
 			/* take over position setpoint from task if there is any */
 			if (PX4_ISFINITE(_flight_tasks().x) && PX4_ISFINITE(_flight_tasks().y)) {
-				printf("pos xy\n");
 				_pos_sp(0) = _flight_tasks().x;
 				_pos_sp(1) = _flight_tasks().y;
 				_run_pos_control = true;
@@ -2636,7 +2635,6 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 			}
 
 			if (PX4_ISFINITE(_flight_tasks().z)) {
-				printf("pos z\n");
 				_pos_sp(2) = _flight_tasks().z;
 				_run_alt_control = true;
 
@@ -2647,18 +2645,15 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 			/* take over velocity setpoint from task if there is any */
 			if (PX4_ISFINITE(_flight_tasks().vx)
 			    && PX4_ISFINITE(_flight_tasks().vy)) {
-				printf("vel xy\n");
 				_vel_sp(0) = _flight_tasks().vx;
 				_vel_sp(1) = _flight_tasks().vy;
 			}
 
 			if (PX4_ISFINITE(_flight_tasks().vz)) {
-				printf("vel z\n");
 				_vel_sp(2) = _flight_tasks().vz;
 			}
 
 			if (PX4_ISFINITE(_flight_tasks().yaw)) {
-				printf("yaw\n");
 				_att_sp.yaw_body = _flight_tasks().yaw;
 			}
 

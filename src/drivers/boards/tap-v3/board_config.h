@@ -48,6 +48,7 @@
 
 #define TAP_ESC_NO_VERIFY_CONFIG
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
+#define BOARD_USE_ESC_CURRENT_REPORT // each ESC reports its current estimate
 
 #define PX4_I2C_BUS_ONBOARD 4 // wrong workaround to get the baro working
 

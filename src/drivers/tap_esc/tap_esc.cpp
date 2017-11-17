@@ -68,7 +68,6 @@
 #define NAN_VALUE	(0.0f/0.0f)
 
 #include "drv_tap_esc.h"
-#include "tap_esc_uploader.h"
 
 #if !defined(BOARD_TAP_ESC_NO_VERIFY_CONFIG)
 #  define BOARD_TAP_ESC_NO_VERIFY_CONFIG 0
@@ -287,119 +286,6 @@ TAP_ESC::instantiate(int argc, char *argv[])
 int
 TAP_ESC::custom_command(int argc, char *argv[])
 {
-	const char *verb = argv[0];
-	int num_escs = 0;
-
-	int ch;
-	int myoptind = 1;
-	const char *myoptarg = nullptr;
-
-	while ((ch = px4_getopt(argc, argv, "n:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'n':
-			num_escs = atoi(myoptarg);
-			break;
-		}
-	}
-
-	if (!strcmp(verb, "checkcrc")) {
-		if (argc < 3) {
-			return TAP_ESC::print_usage();
-		}
-
-		if (num_escs <= 0) {
-			return TAP_ESC::print_usage("Number of ESCs must be larger than 0");
-		}
-
-		if (is_running()) {
-			PX4_ERR("requested command cannot be executed while module is running - stop first");
-			return -1;
-		}
-
-		const char *fw[3] = TAP_ESC_FW_SEARCH_PATHS;
-		TAP_ESC_UPLOADER *check_up = new TAP_ESC_UPLOADER(num_escs);
-
-		if (check_up == nullptr) {
-			PX4_ERR("Error instantiating the firmware uploader");
-			return -1;
-		}
-
-		int ret = check_up->checkcrc(&fw[0]);
-		delete check_up;
-
-		if (ret != OK) {
-			PX4_ERR("TAP_ESC firmware auto check crc and upload fail error %d", ret);
-			return -1;
-		}
-
-		return ret;
-	}
-
-	if (!strcmp(verb, "upload")) {
-		if (argc < 3) {
-			return TAP_ESC::print_usage();
-		}
-
-		if (num_escs <= 0) {
-			return TAP_ESC::print_usage("Number of ESCs must be larger than 0");
-		}
-
-		if (is_running()) {
-			PX4_ERR("requested command cannot be executed while module is running - stop first");
-			return -1;
-		}
-
-		TAP_ESC_UPLOADER *up = new TAP_ESC_UPLOADER(num_escs);
-
-		if (up == nullptr) {
-			PX4_ERR("Error instantiating the firmware uploader");
-			return -1;
-		}
-
-		/* Assume we are using default paths */
-
-		const char *fn[3] = TAP_ESC_FW_SEARCH_PATHS;
-
-		/* Override defaults if a path is passed on command line,use argv[4] path */
-		if (argc > 4) {
-			fn[0] = argv[4];
-			fn[1] = nullptr;
-		}
-
-		int ret = up->upload(&fn[0]);
-		delete up;
-
-		switch (ret) {
-		case OK:
-			PX4_INFO("upload successful");
-			break;
-
-		case -ENOENT:
-			PX4_ERR("TAP_ESC firmware file not found");
-			return -1;
-
-		case -EEXIST:
-		case -EIO:
-			PX4_ERR("error updating TAP_ESC - check that bootloader mode is enabled");
-			return -1;
-
-		case -EINVAL:
-			PX4_ERR("verify failed - retry the update");
-			return -1;
-
-		case -ETIMEDOUT:
-			PX4_ERR("timed out waiting for bootloader - power-cycle and try again");
-			return -1;
-
-		default:
-			PX4_ERR("unexpected error %d", ret);
-			return -1;
-		}
-
-		return ret;
-
-	}
-
 	return print_usage("unknown command");
 }
 
@@ -408,7 +294,6 @@ TAP_ESC::init()
 {
 	int ret;
 
-	ASSERT(!_initialized);
 	ret = tap_esc_common::initialise_uart(_device, _uart_fd);
 
 	if (ret != 0) {

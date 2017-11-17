@@ -77,12 +77,9 @@
 #  define BOARD_TAP_ESC_MODE 0
 #endif
 
-
-namespace tap_esc_drv
-{
-static char _device[32] = {};
-static int _supported_channel_count = 0;
-} // namespace namespace tap_esc_drv
+#if !defined(DEVICE_ARGUMENT_MAX_LENGTH)
+#  define DEVICE_ARGUMENT_MAX_LENGTH 32
+#endif
 
 /*
  * This driver connects to TAP ESCs via serial.
@@ -92,7 +89,7 @@ class TAP_ESC : public device::CDev, public ModuleBase<TAP_ESC>
 {
 public:
 
-	TAP_ESC(int channels_count, char *const device);
+	TAP_ESC();
 	virtual ~TAP_ESC();
 
 	/** @see ModuleBase */
@@ -115,7 +112,7 @@ public:
 	void cycle();
 
 private:
-	char *_device;
+	static char _device[DEVICE_ARGUMENT_MAX_LENGTH];
 	int _uart_fd;
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	static const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
@@ -155,7 +152,7 @@ private:
 	orb_advert_t      _to_mixer_status; 	///< mixer status flags
 	orb_advert_t      _mavlink_log_pub;
 	esc_status_s      _esc_feedback;
-	uint8_t           _channels_count; // The number of ESC channels
+	static uint8_t           _channels_count; // The number of ESC channels
 
 	MixerGroup	*_mixers;
 	uint32_t	_groups_required;
@@ -180,15 +177,17 @@ private:
 	int _stall_by_lost_prop; // the flag that when the motor stall by a collision of another motor's lost propeller
 };
 
+char TAP_ESC::_device[DEVICE_ARGUMENT_MAX_LENGTH] = {};
+uint8_t TAP_ESC::_channels_count = 0;
+
 const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
 const uint8_t TAP_ESC::device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 const uint8_t TAP_ESC::device_out_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_OUT;
 
 # define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
 
-TAP_ESC::TAP_ESC(int channels_count, char *const device):
+TAP_ESC::TAP_ESC():
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
-	_device(device),
 	_uart_fd(-1),
 	_is_armed(false),
 	_poll_fds_num(0),
@@ -204,7 +203,6 @@ TAP_ESC::TAP_ESC(int channels_count, char *const device):
 	_to_mixer_status(nullptr),
 	_mavlink_log_pub(nullptr),
 	_esc_feedback{},
-	_channels_count(channels_count),
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
@@ -271,7 +269,7 @@ TAP_ESC::~TAP_ESC()
 TAP_ESC *
 TAP_ESC::instantiate(int argc, char *argv[])
 {
-	TAP_ESC *tap_esc = new TAP_ESC(tap_esc_drv::_supported_channel_count, tap_esc_drv::_device);
+	TAP_ESC *tap_esc = new TAP_ESC();
 
 	if (tap_esc->init() != 0) {
 		PX4_ERR("failed to initialize module");
@@ -1071,14 +1069,14 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 		switch (ch) {
 		case 'd':
 			device = myoptarg;
-			strncpy(tap_esc_drv::_device, device, sizeof(tap_esc_drv::_device));
+			strncpy(_device, device, sizeof(_device));
 
 			// Fix in case of overflow
-			tap_esc_drv::_device[sizeof(tap_esc_drv::_device) - 1] = '\0';
+			_device[sizeof(_device) - 1] = '\0';
 			break;
 
 		case 'n':
-			tap_esc_drv::_supported_channel_count = atoi(myoptarg);
+			_channels_count = atoi(myoptarg);
 			break;
 		}
 	}
@@ -1088,7 +1086,7 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 	}
 
 	/* Sanity check on arguments */
-	if (tap_esc_drv::_supported_channel_count == 0) {
+	if (_channels_count == 0) {
 		print_usage("Channel count is invalid (0)");
 		return PX4_ERROR;
 	}

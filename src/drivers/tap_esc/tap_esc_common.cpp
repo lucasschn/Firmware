@@ -36,14 +36,15 @@
  *
  */
 
-#include <termios.h>
+#include "tap_esc_common.h"
+
+#include "drv_tap_esc.h"  // ESC_UART_BUF
 
 #include <systemlib/px4_macros.h> // arraySize
 #include <px4_posix.h>
 #include <px4_config.h>
 
-#include "drv_tap_esc.h"  // ESC_UART_BUF
-#include "tap_esc_common.h"
+#include <termios.h>
 
 #ifndef B250000
 #define B250000 250000
@@ -67,14 +68,6 @@ namespace tap_esc_common
 static uint8_t crc8_esc(uint8_t *p, uint8_t len);
 static uint8_t crc_packet(EscPacket &p);
 
-/****************************************************************************
- * Name: select_responder
- *
- * Description:
- *   Select tap esc responder for serial interface (device 74hct151).
- *   GPIOs to be defined in board_config.h
- *
- ****************************************************************************/
 void select_responder(uint8_t sel)
 {
 #if defined(ESC_MUX_SELECT0)

@@ -46,9 +46,37 @@
 #include <drivers/tap_esc/drv_tap_esc.h>  // ESC_UART_BUF
 #include <drivers/tap_esc/tap_esc_common.h>
 
+/**
+ *  Print command line usage
+ */
 static void	print_usage(const char *reason = nullptr);
+
+/**
+ *  Uploads a firmware binary to all connected ESCs
+ *  @param fw_paths Firmware paths to search for the binary file. Must be terminated with a nullptr entry.
+ *  @param device Unix path of UART device where ESCs are connected to
+ *  @param num_escs Number of ESCs that are currently connected to the board
+ *  @return 0 on success, 1 on error instantiating the uploader and othwerwise errno (linux man)
+ */
 static int upload_firmware(const char *fw_paths[], const char *device, uint8_t num_escs);
+
+/**
+ *  Check CRC of ESC's currently loaded firmware. If one or more are faulty, firmware will be re-uploaded
+ *  @param fw_paths Firmware paths to search for the binary file. Must be terminated with a nullptr entry.
+ *  @param device Unix path of UART device where ESCs are connected to
+ *  @param num_escs Number of ESCs that are currently connected to the board
+ *  @return 0 on success, -1 on error
+ */
 static int check_crc(const char *fw_paths[], const char *device, uint8_t num_escs);
+
+/**
+ *  Specify the ESC ID of connected ESCs by manually touching and turning the
+ *  motors.
+ *  @param device Unix path of UART device where ESCs are connected to
+ *  @param id ID that should be assigned to an ESC, starting from 0
+ *  @param num_escs Number of ESCs that are currently connected to the board
+ *  @return 0 on success, -1 on error
+ */
 static int configure_esc_id(const char *device, int8_t id, uint8_t num_escs);
 
 extern "C" {
@@ -150,7 +178,7 @@ static int check_crc(const char * fw_paths[], const char * device, uint8_t num_e
 	{
 		PX4_ERR("failed to initialize firmware uploader");
 		delete uploader;
-		return 1;
+		return -1;
 	}
 
 	int ret = uploader->checkcrc(&fw_paths[0]);
@@ -174,7 +202,7 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 	}
 
 	// Send basic config to ESCs
-	usleep(500*1000);
+	usleep(500000);
 	EscPacket packet = {PACKET_HEAD, sizeof(ConfigInfoBasicRequest), ESCBUS_MSG_ID_CONFIG_BASIC};
 	ConfigInfoBasicRequest   &config = packet.d.reqConfigInfoBasic;
 	memset(&config, 0, sizeof(ConfigInfoBasicRequest));
@@ -190,7 +218,7 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 		 ret;
 	}
 
-	usleep(30 * 1000);
+	usleep(30000);
 
 	// To Unlock the ESC from the Power up state we need to issue 10
 	// ESCBUS_MSG_ID_RUN request with all the values 0;
@@ -209,7 +237,7 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 		}
 
 		// Min Packet to Packet time is 1 Ms so use 2
-		usleep(2*1000);
+		usleep(2000);
 	}
 
 	// Configure specific ESC or all of them
@@ -222,17 +250,17 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 		first_esc = last_esc = id;
 	}
 
-	for (uint8_t iEsc = first_esc; iEsc <= last_esc; iEsc++)
+	for (uint8_t i_esc = first_esc; i_esc <= last_esc; i_esc++)
 	{
 		EscPacket id_config = {PACKET_HEAD, sizeof(EscbusConfigidPacket), ESCBUS_MSG_ID_DO_CMD};
 		id_config.d.configidPacket.id_mask = PACKET_ID_MASK;
 		id_config.d.configidPacket.child_cmd = DO_ID_ASSIGNMENT;
-		id_config.d.configidPacket.id = iEsc;
+		id_config.d.configidPacket.id = i_esc;
 		tap_esc_common::send_packet(uart_fd, id_config, -1);
-		PX4_INFO("touch and turn motor number %u now", iEsc);
+		PX4_INFO("touch and turn motor number %u now", i_esc);
 
 		// Give UART time to write
-		usleep(10*1000);
+		usleep(10000);
 
 		// Wait for response
 		ESC_UART_BUF uart_buf = {};
@@ -244,23 +272,23 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 			ret = tap_esc_common::parse_tap_esc_feedback(&uart_buf, &response);
 			if (ret==0) {
 				valid = (response.msg_id == ESCBUS_MSG_ID_ASSIGNED_ID
-					 && response.d.rspAssignedId.escID == iEsc);
+					 && response.d.rspAssignedId.escID == i_esc);
 
 				if (valid) {
 					PX4_INFO("success!");
 				}else{
-					PX4_WARN("failed: ESC %u configuration invalid", iEsc);
+					PX4_WARN("failed: ESC %u configuration invalid", i_esc);
 					break;
 				}
 
 				break;
 			}
 
-			usleep(100*1000);
+			usleep(100000);
 		}
 		if (valid)
 		{
-			usleep(500*1000); // Give time for ESC confirmation beep
+			usleep(500000); // Give time for ESC confirmation beep
 		}
 	}
 

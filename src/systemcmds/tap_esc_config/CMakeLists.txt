@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE systemcmds__tap_esc_config
 	MAIN tap_esc_config
-	STACK_MAIN 2500
+	STACK_MAIN 2500  # TODO: Figure out what the proper stack size is
 	COMPILE_FLAGS
 	SRCS
 		tap_esc_config.cpp

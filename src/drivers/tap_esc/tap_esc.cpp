@@ -139,7 +139,7 @@ private:
 	volatile bool	_initialized;
 	unsigned	_pwm_default_rate;
 	unsigned	_current_update_rate;
-	ESC_UART_BUF uartbuf;
+	ESC_UART_BUF _uartbuf = {};
 	EscPacket  		_packet;
 	void		subscribe();
 
@@ -204,10 +204,6 @@ TAP_ESC::TAP_ESC(int channels_count, int uart_fd):
 	_control_topics[3] = ORB_ID(actuator_controls_3);
 	memset(_controls, 0, sizeof(_controls));
 	memset(_poll_fds, 0, sizeof(_poll_fds));
-	uartbuf.head = 0;
-	uartbuf.tail = 0;
-	uartbuf.dat_cnt = 0;
-	memset(uartbuf.esc_feedback_buf, 0, sizeof(uartbuf.esc_feedback_buf));
 
 	for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; ++i) {
 		_control_subs[i] = -1;
@@ -287,14 +283,14 @@ TAP_ESC::init()
 	config.maxChannelValue = RPMMAX;
 	config.minChannelValue = RPMMIN;
 
-	ret = tap_esc_common::send_packet(_uart_fd, packet, 0);  // TODO: Why responder 0?
+	ret = tap_esc_common::send_packet(_uart_fd, packet, 0);
 
 	if (ret < 0) {
 		return ret;
 	}
 
 	/* set wait time for tap esc configurate and write flash (0.02696s measure by Saleae logic Analyzer) */
-	usleep(30 * 1000);
+	usleep(30000);
 
 #if !defined(TAP_ESC_NO_VERIFY_CONFIG)
 
@@ -321,9 +317,9 @@ TAP_ESC::init()
 
 		while (retries--) {
 
-			tap_esc_common::read_data_from_uart(_uart_fd, &uartbuf);
+			tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
-			if (tap_esc_common::parse_tap_esc_feedback(&uartbuf, &_packet) == 0) {
+			if (tap_esc_common::parse_tap_esc_feedback(&_uartbuf, &_packet) == 0) {
 				valid = (_packet.msg_id == ESCBUS_MSG_ID_CONFIG_INFO_BASIC
 					 && _packet.d.rspConfigInfoBasic.channelID == cid
 					 && 0 == memcmp(&_packet.d.rspConfigInfoBasic.resp, &config, sizeof(ConfigInfoBasicRequest)));
@@ -362,7 +358,7 @@ TAP_ESC::init()
 
 		/* Min Packet to Packet time is 1 Ms so use 2 */
 
-		usleep(1000 * 2);
+		usleep(2000);
 	}
 
 	/* do regular cdev init */
@@ -805,9 +801,9 @@ TAP_ESC::cycle()
 		}
 
 		send_esc_outputs(motor_out, esc_count);
-		tap_esc_common::read_data_from_uart(_uart_fd, &uartbuf);
+		tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
-		if (tap_esc_common::parse_tap_esc_feedback(&uartbuf, &_packet) == 0) {
+		if (tap_esc_common::parse_tap_esc_feedback(&_uartbuf, &_packet) == 0) {
 			if (_packet.msg_id == ESCBUS_MSG_ID_RUN_INFO) {
 				RunInfoRepsonse &feed_back_data = _packet.d.rspRunInfo;
 

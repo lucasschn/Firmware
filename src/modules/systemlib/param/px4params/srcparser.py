@@ -301,7 +301,7 @@ class SourceParser(object):
                     self.param_groups[group].AddParameter(param)
                 state = None
         return True
-    
+
     def IsNumber(self, numberString):
         try:
             float(numberString)

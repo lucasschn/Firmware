@@ -856,9 +856,6 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 	/* don't run obstacle avoidance in altitude mode because there are altitude jumps */
 	if (obsavoid_on && _control_mode.flag_control_velocity_enabled) {
 
-		/* slow down in obstacle avoidance to allow for braking in front of an obstacle */
-		_vel_max_xy = 4.0f;
-
 		// default start with realsense minimum distance
 		float min_obstacle_distance = _realsense_minimum_distance;
 
@@ -1432,8 +1429,13 @@ MulticopterPositionControl::get_cruising_speed_xy()
 	/*
 	 * in mission the user can choose cruising speed different to default
 	 */
-	return ((PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) && !(_pos_sp_triplet.current.cruising_speed < 0.0f)) ?
-		_pos_sp_triplet.current.cruising_speed : _params.vel_cruise_xy);
+	float vel_cruise_xy = _params.vel_cruise_xy;
+
+	if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) && !(_pos_sp_triplet.current.cruising_speed < 0.0f)) {
+		vel_cruise_xy = _pos_sp_triplet.current.cruising_speed;
+	}
+
+	return math::min(_vel_max_xy, vel_cruise_xy);
 }
 
 void

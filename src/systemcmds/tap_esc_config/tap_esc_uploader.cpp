@@ -82,8 +82,7 @@ TAP_ESC_UPLOADER::TAP_ESC_UPLOADER(const char *device, uint8_t esc_counter) :
 
 TAP_ESC_UPLOADER::~TAP_ESC_UPLOADER()
 {
-	close(_fw_fd);
-	deinitialize_uart();
+	tap_esc_common::deinitialise_uart(_esc_fd);
 }
 
 int32_t
@@ -173,7 +172,7 @@ TAP_ESC_UPLOADER::upload_id(uint8_t esc_id, int32_t fw_size)
 		* second: get device bootloader revision
 		 ******************************************/
 		uint32_t bl_rev;
-		ret = get_device_info(esc_id, PROTO_DEVICE_BL_REV, bl_rev);
+		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_BL_REV, bl_rev);
 
 		if (ret == OK) {
 			if (bl_rev <= PROTO_SUPPORT_BL_REV * 100) {
@@ -257,7 +256,7 @@ TAP_ESC_UPLOADER::upload(const char *filenames[])
 		return fw_size;
 	}
 
-	ret = initialise_uart();
+	ret = tap_esc_common::initialise_uart(_device, _esc_fd);
 
 	if (ret < 0) {
 		PX4_LOG("initialise uart failed %s");
@@ -309,7 +308,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 		return fw_size;
 	}
 
-	ret = initialise_uart();
+	ret = tap_esc_common::initialise_uart(_device, _esc_fd);
 
 	if (ret < 0) {
 		PX4_LOG("initialise uart failed %s");
@@ -340,7 +339,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 		uint32_t temp_revision;
 
 		/* get device bootloader revision */
-		ret = get_device_info(esc_id, PROTO_DEVICE_BL_REV, temp_revision);
+		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_BL_REV, temp_revision);
 
 		if (ret == OK) {
 			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found bootloader revision: %4.4f", esc_id,
@@ -351,7 +350,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 		}
 
 		/* get device firmware revision */
-		ret = get_device_info(esc_id, PROTO_DEVICE_FW_REV, temp_revision);
+		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_FW_REV, temp_revision);
 
 		if (ret == OK) {
 			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found firmware revision: %4.4f", esc_id,
@@ -362,7 +361,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 		}
 
 		/* get device hardware revision */
-		ret = get_device_info(esc_id, PROTO_DEVICE_BOARD_REV, temp_revision);
+		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_BOARD_REV, temp_revision);
 
 		if (ret == OK) {
 			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found board revision: %02x", esc_id, temp_revision);
@@ -581,7 +580,9 @@ TAP_ESC_UPLOADER::send_packet(EscUploaderMessage &packet, int responder)
 			return -EINVAL;
 		}
 
-		tap_esc_common::select_responder(_device_mux_map[responder]);
+		// if msg_id is ESCBUS_MSG_ID_REQUEST_INFO,need seed channel ID not ESC hardware id
+		int esc_select_id = ((packet.msg_id == ESCBUS_MSG_ID_REQUEST_INFO) ? responder : _device_mux_map[responder]);
+		tap_esc_common::select_responder(esc_select_id);
 	}
 
 	int packet_len = crc_packet(packet);
@@ -654,12 +655,12 @@ TAP_ESC_UPLOADER::sync(uint8_t esc_id)
 }
 
 int
-TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, int param, uint32_t &val)
+TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, int param, uint32_t &val)
 {
 	int ret;
 
 	/* send device information packet */
-	EscUploaderMessage device_info_packet = {0xfe, sizeof(EscbusGetDevicePacket), PROTO_GET_DEVICE};
+	EscUploaderMessage device_info_packet = {0xfe, sizeof(EscbusGetDevicePacket), msg_id};
 	device_info_packet.d.device_info_packet.myID = esc_id;
 	device_info_packet.d.device_info_packet.deviceInfo = param;
 	send_packet(device_info_packet, esc_id);
@@ -779,8 +780,18 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, int param, uint32_t &val)
 
 		break;
 
-	case PROTO_DEVICE_VEC_AREA:
-		;
+	case REQEST_INFO_DEVICE:
+		if (_uploader_packet.msg_id == ESCBUS_MSG_ID_DEVICE_INFO) {
+			if (_uploader_packet.d.firmware_revis_packet.myID != esc_id) {
+				PX4_LOG("get device firmware revision id don't match, myID: 0x%02x, esc_id: 0x%02x",
+					_uploader_packet.d.firmware_revis_packet.myID, esc_id);
+				return -EIO;
+			}
+
+			val = _uploader_packet.d.firmware_revis_packet.FwRev;
+
+		}
+
 		break;
 
 	case PROTO_DEVICE_FW_REV:
@@ -1004,7 +1015,7 @@ TAP_ESC_UPLOADER::verify_crc(uint8_t esc_id, size_t fw_size_local)
 	PX4_LOG("verify...");
 	lseek(_fw_fd, 0, SEEK_SET);
 
-	ret = get_device_info(esc_id, PROTO_DEVICE_FW_SIZE, fw_size_remote);
+	ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_FW_SIZE, fw_size_remote);
 
 	if (ret != OK) {
 		PX4_LOG("could not read firmware size");
@@ -1160,45 +1171,90 @@ TAP_ESC_UPLOADER::reboot(uint8_t esc_id)
 	return OK;
 }
 
-int
-TAP_ESC_UPLOADER::initialise_uart()
+int TAP_ESC_UPLOADER::read_esc_version_from_bin(const char *filenames[], uint32_t &ver)
 {
-	/* open uart */
-	_esc_fd = open(_device, O_RDWR);
-	int termios_state = -1;
+	int ret;
+	int32_t fw_size;
+	uint8_t version_buf[4];
 
-	if (_esc_fd < 0) {
-		PX4_LOG("failed to open uart device!");
-		return -1;
+	fw_size = initialise_firmware_file(filenames);
+
+	if (fw_size < 0) {
+		PX4_LOG("initialise firmware file failed");
+		return fw_size;
 	}
 
-	/* set baud rate */
-	int speed = 250000;
-	struct termios uart_config;
-	tcgetattr(_esc_fd, &uart_config);
+	ret = lseek(_fw_fd, ESC_VERSION_OFFSET_ADDR, SEEK_SET);
 
-	/* clear ONLCR flag (which appends a CR for every LF) */
-	uart_config.c_oflag &= ~ONLCR;
-
-	/* set baud rate */
-	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		PX4_LOG("failed to set baudrate for %s: %d\n", _device, termios_state);
-		close(_esc_fd);
-		return -1;
+	if (ret < 0) {
+		return ret;
 	}
 
-	if ((termios_state = tcsetattr(_esc_fd, TCSANOW, &uart_config)) < 0) {
-		PX4_LOG("tcsetattr failed for %s\n", _device);
-		close(_esc_fd);
-		return -1;
+	ret = read_with_retry(_fw_fd, version_buf, ESC_FW_VER_BYTE);
+
+	if (ret < 0) {
+		return ret;
 	}
 
-	return _esc_fd;
+	// read ESC firmware version Little-Endian
+	ver = (version_buf[3] << 24) + (version_buf[2] << 16) + (version_buf[1] << 8) + version_buf[0];
+
+	// check the value is invalid
+	if (!PX4_ISFINITE(ver) || ver == 0) {
+		return -EBADRQC;
+	}
+
+	return OK;
 }
 
-void
-TAP_ESC_UPLOADER::deinitialize_uart()
+int TAP_ESC_UPLOADER::ensure_version(const char *filenames[])
 {
-	close(_esc_fd);
-	_esc_fd = -1;
+	int ret = -1;
+
+	uint32_t target_fw_version = 0;
+	ret = read_esc_version_from_bin(filenames, target_fw_version);
+
+	// get ESCs firmware version is error
+	if (ret != OK) {
+		return ret;
+	}
+
+	ret = tap_esc_common::initialise_uart(_device, _esc_fd);
+
+	if (ret < 0) {
+		PX4_LOG("Failed to initialize UART device %s (error code %i)", _device, ret);
+		return ret;
+	}
+
+	bool version_mismatch = false;
+
+	/* check firmware versions */
+	for (uint8_t esc_id = 0; esc_id < _esc_counter; esc_id++) {
+
+		uint32_t current_fw_version = 0;
+
+		/* get device firmware revision */
+		ret = get_device_info(esc_id, ESCBUS_MSG_ID_REQUEST_INFO, REQEST_INFO_DEVICE, current_fw_version);
+
+		// check version is more than current firmware version,upload ESC firmware
+		if (ret == OK && (target_fw_version > current_fw_version)) {
+			PX4_INFO("esc_id %d has fw version mismatch (%4.4f instead of %4.4f)", esc_id, (double)current_fw_version * 0.01,
+				 (double)target_fw_version * 0.01);
+			version_mismatch = true;
+			// will stop when at least one ESC has a version mismatch
+			break;
+		}
+	}
+
+	if (version_mismatch) {
+		// check all ESCs CRC and update firmware if necessary
+		PX4_INFO("At least one ESC has a version mismatch. Running checkcrc for all ESCs!");
+		ret = checkcrc(filenames);  // Will reboot ESCs after it's done
+		return ret;
+
+	} else {
+		ret = -EBADRQC;
+	}
+
+	return ret;
 }

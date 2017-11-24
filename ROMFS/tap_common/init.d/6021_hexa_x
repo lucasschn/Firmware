@@ -320,6 +320,14 @@ else
 	param set COM_FLTMODE6 0
 fi
 
+#
+# If necessary and possible, update ESC firmware before starting the ESC driver
+#
+tap_esc_config ensure_version -d ${ESC_TTY} -n 6
+
+#
+# ESC driver
+#
 tap_esc start -d ${ESC_TTY} -n 6
 
 #

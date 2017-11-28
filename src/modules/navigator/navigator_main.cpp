@@ -66,7 +66,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_status.h>
-#include <drivers/realsense/realsense.h>
 #include <uORB/uORB.h>
 
 /**

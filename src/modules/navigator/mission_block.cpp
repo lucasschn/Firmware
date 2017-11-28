@@ -54,6 +54,8 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <drivers/realsense/realsense.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
@@ -129,6 +131,12 @@ MissionBlock::is_mission_item_reached()
 
 	hrt_abstime now = hrt_absolute_time();
 
+	/* Don't check for yaw and altitude if realsense is used */
+	const bool realsense_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
+					 manual_control_setpoint_s::SWITCH_POS_ON;
+	const bool realsense_running = _navigator->get_realsense_setpoint()->flags ==
+				       ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
+
 	if (!_navigator->get_land_detected()->landed && !_waypoint_position_reached) {
 
 		float dist = -1.0f;
@@ -144,6 +152,11 @@ MissionBlock::is_mission_item_reached()
 				_navigator->get_global_position()->lon,
 				_navigator->get_global_position()->alt,
 				&dist_xy, &dist_z);
+
+		/* don't check for altitude if realsense is running */
+		if (realsense_running && realsense_switch_on) {
+			dist_z = 0.0f;
+		}
 
 		/* FW special case for NAV_CMD_WAYPOINT to achieve altitude via loiter */
 		if (!_navigator->get_vstatus()->is_rotary_wing &&
@@ -317,6 +330,11 @@ MissionBlock::is_mission_item_reached()
 			// reached just now
 			_time_wp_reached = now;
 		}
+	}
+
+
+	if (realsense_switch_on && realsense_running) {
+		_waypoint_yaw_reached = true;
 	}
 
 	/* Check if the waypoint and the requested yaw setpoint. */

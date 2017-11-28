@@ -433,10 +433,10 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	parameters.rc_man_th = fabsf(parameters.rc_man_th);
 	param_get(parameter_handles.rc_obsavoid_th, &(parameters.rc_obsavoid_th));
 	parameters.rc_obsavoid_inv = (parameters.rc_obsavoid_th < 0);
-	parameters.rc_obsavoid_th = fabs(parameters.rc_obsavoid_th);
+	parameters.rc_obsavoid_th = fabsf(parameters.rc_obsavoid_th);
 	param_get(parameter_handles.rc_obsavoid_mid_th, &(parameters.rc_obsavoid_mid_th));
 	parameters.rc_obsavoid_mid_inv = (parameters.rc_obsavoid_mid_th < 0);
-	parameters.rc_obsavoid_mid_th = fabs(parameters.rc_obsavoid_mid_th);
+	parameters.rc_obsavoid_mid_th = fabsf(parameters.rc_obsavoid_mid_th);
 
 	param_get(parameter_handles.rc_flt_smp_rate, &(parameters.rc_flt_smp_rate));
 	parameters.rc_flt_smp_rate = math::max(1.0f, parameters.rc_flt_smp_rate);

@@ -82,7 +82,7 @@ void StatusDisplay::set_leds()
 	matrix::Eulerf euler = matrix::Quatf(_vehicle_attitude.q);
 	float current_heading = euler.psi();
 	float delta_heading = current_heading - _smart_heading.smart_heading_ref;
-	int sector = round(delta_heading / (M_PI_F / 3.0f));
+	int sector = roundf(delta_heading / (M_PI_F / 3.0f));
 
 	// set the led mask for the status led which are number 0 and 5
 	_led_control.led_mask = (1 << 0) | (1 << 5);

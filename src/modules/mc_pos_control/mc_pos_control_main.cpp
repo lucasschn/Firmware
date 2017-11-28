@@ -2621,7 +2621,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	/* get position controller setpoints from the active flight task, this will be through uORB from Trajectory module to position controller module in the future */
 	/* TODO: as soon as legacy stuff gets ported setting velocity and position setpoint at the same time (feed-forward) will be supported through addition of setpoints */
 	if (_flight_tasks.is_any_task_active()) {
-		if (!_flight_tasks.update()) {
+		if (_flight_tasks.update()) {
 			/* take over position setpoint from task if there is any */
 			if (PX4_ISFINITE(_flight_tasks().x) && PX4_ISFINITE(_flight_tasks().y)) {
 				_pos_sp(0) = _flight_tasks().x;

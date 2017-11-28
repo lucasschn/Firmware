@@ -69,6 +69,8 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/realsense_avoidance_setpoint.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/uORB.h>
 
 /* --- tap specific includes */
@@ -134,6 +136,8 @@ public:
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
+	struct realsense_avoidance_setpoint_s *get_realsense_setpoint() { return &_realsense_avoidance_setpoint;}
+	struct manual_control_setpoint_s *get_manual_setpoint() { return &_manual;}
 
 	/* --- tap specific getters */
 	struct vehicle_attitude_setpoint_s *get_attitude_sp() { return &_att_sp; }
@@ -254,7 +258,10 @@ private:
 	/* --- tap specific subscription */
 	int		_esc_report_sub{-1};		/**< esc report subscription */
 	int		_vehicle_att_sp_sub{-1};	/**< attitude contain gear flag */
+	int 	_realsense_avoidance_setpoint_sub{-1}; /**< realsense subscription */
+	int 	_manual_sub{-1}; /** manual setpoint subscription */
 	/* --- */
+
 
 	orb_advert_t	_geofence_result_pub{nullptr};
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
@@ -274,6 +281,8 @@ private:
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
+	realsense_avoidance_setpoint_s _realsense_avoidance_setpoint{}; /** < realsense velocity setpoint message >*/
+	manual_control_setpoint_s		_manual{};		/**< r/c channel data */
 
 	/* --- tap specific subsciption variables */
 	esc_status_s 					_esc_report{};/**< esc status report include engine failure report */
@@ -334,6 +343,8 @@ private:
 	void		sensor_combined_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
+	void 		realsense_setpoint_update();
+	void		manual_update();
 
 	/* --- tap specific update subscription */
 	void		vehicle_att_sp_update();

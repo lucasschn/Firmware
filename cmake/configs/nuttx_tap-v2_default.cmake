@@ -70,8 +70,6 @@ set(config_module_list
 	#
 	# Vehicle Control
 	#
-	#modules/fw_pos_control_l1
-	#modules/fw_att_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
@@ -98,7 +96,6 @@ set(config_module_list
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl
-	#lib/external_lgpl
 	lib/geo
 	lib/geo_lookup
 	lib/conversion

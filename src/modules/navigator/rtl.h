@@ -76,6 +76,11 @@ private:
 	 */
 	void		advance_rtl();
 
+	/*
+	 * Get rtl altitude
+	 */
+	float 		get_rtl_altitude();
+
 
 	enum RTLState {
 		RTL_STATE_NONE = 0,
@@ -89,6 +94,7 @@ private:
 		RTL_STATE_LANDED,
 		RTL_STATE_PRE_RETURN,
 		RTL_STATE_AFTER_RETURN,
+		RTL_STATE_HOME,
 	} _rtl_state{RTL_STATE_NONE};
 
 	control::BlockParamFloat _param_return_alt;

@@ -51,6 +51,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/uORB.h>
+#include <drivers/realsense/realsense.h>
 
 static constexpr float DELAY_SIGMA = 0.01f;
 
@@ -89,11 +90,21 @@ RTL::on_activation()
 	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->next.valid = false;
 
+	// go directly to home if realsense is used
+	const bool realsense_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
+					 manual_control_setpoint_s::SWITCH_POS_ON;
+	const bool realsense_running = _navigator->get_realsense_setpoint()->flags ==
+				       ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
+
 	/* for safety reasons don't go into RTL if landed */
 	if (_navigator->get_land_detected()->landed) {
 		_rtl_state = RTL_STATE_LANDED;
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Already landed, not executing RTL");
 		// otherwise start RTL by braking first
+
+	} else if (realsense_running && realsense_switch_on) {
+		_rtl_state = RTL_STATE_HOME;
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Flying straight to home");
 
 	} else {
 		_rtl_state = RTL_STATE_BRAKE;
@@ -158,33 +169,10 @@ RTL::set_rtl_item()
 
 	case RTL_STATE_CLIMB: {
 
-			// climb to at least a 45 degree cone
-			float climb_alt = _navigator->get_home_position()->alt + get_distance_to_next_waypoint(
-						  _navigator->get_home_position()->lat,
-						  _navigator->get_home_position()->lon,
-						  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-
-			/* limit altitude to rtl max */
-			climb_alt = math::min(_navigator->get_home_position()->alt + _param_return_alt.get(), climb_alt);
-			// do also not reduce altitude if already higher
-			climb_alt = math::max(climb_alt, _navigator->get_global_position()->alt);
-
-			// and also make sure that an absolute minimum altitude is obeyed so the landing gear does not catch.
-			climb_alt = math::max(climb_alt, _navigator->get_home_position()->alt + _param_min_loiter_alt.get());
-
-			// if RTL altitude is greater than the maximum allowed altitude, change RTL climb altitude to be inside the geofence
-			if ((_param_return_alt.get() > _param_gf_alt.get() && _param_gf_alt.get() > FLT_EPSILON)
-			    && ((uint8_t)_param_gf_actions.get() != geofence_result_s::GF_ACTION_NONE)) {
-				climb_alt = math::min(climb_alt, _navigator->get_home_position()->alt + _param_gf_alt.get());
-				/* This is a safety check to stay higher than people's heads. */
-				float safe_altitude = 5.0f;
-				climb_alt = math::max(climb_alt, _navigator->get_home_position()->alt + safe_altitude);
-			}
-
 			_mission_item.lat = _navigator->get_global_position()->lat;
 			_mission_item.lon = _navigator->get_global_position()->lon;
 			_mission_item.altitude_is_relative = false;
-			_mission_item.altitude = climb_alt;
+			_mission_item.altitude = get_rtl_altitude();
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -365,6 +353,26 @@ RTL::set_rtl_item()
 			break;
 		}
 
+	case RTL_STATE_HOME: {
+
+			_mission_item.lat = _navigator->get_home_position()->lat;
+			_mission_item.lon = _navigator->get_home_position()->lon;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.altitude = get_rtl_altitude();
+			_mission_item.yaw = NAN;
+			_mission_item.loiter_radius = _navigator->get_loiter_radius();
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+			_mission_item.time_inside = 0.0f;
+			_mission_item.autocontinue = true;
+			_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.deploy_gear = home_close && home_altitude_close;
+			_mission_item.force_velocity = false;
+
+			break;
+
+		}
+
 	default:
 		break;
 	}
@@ -451,7 +459,53 @@ RTL::advance_rtl()
 
 		break;
 
+	case RTL_STATE_HOME:
+		_rtl_state = RTL_STATE_DESCEND;
+
+		break;
+
 	default:
 		break;
 	}
+
+}
+
+float
+RTL::get_rtl_altitude()
+{
+
+	// climb to at least a 45 degree cone
+	float climb_alt = _navigator->get_home_position()->alt
+			  + get_distance_to_next_waypoint(
+				  _navigator->get_home_position()->lat,
+				  _navigator->get_home_position()->lon,
+				  _navigator->get_global_position()->lat,
+				  _navigator->get_global_position()->lon);
+
+	/* limit altitude to rtl max */
+	climb_alt = math::min(
+			    _navigator->get_home_position()->alt + _param_return_alt.get(),
+			    climb_alt);
+	// do also not reduce altitude if already higher
+	climb_alt = math::max(climb_alt, _navigator->get_global_position()->alt);
+
+	// and also make sure that an absolute minimum altitude is obeyed so the landing gear does not catch.
+	climb_alt = math::max(climb_alt,
+			      _navigator->get_home_position()->alt + _param_min_loiter_alt.get());
+
+	// if RTL altitude is greater than the maximum allowed altitude, change RTL climb altitude to be inside the geofence
+	if ((_param_return_alt.get() > _param_gf_alt.get()
+	     && _param_gf_alt.get() > FLT_EPSILON)
+	    && ((uint8_t) _param_gf_actions.get()
+		!= geofence_result_s::GF_ACTION_NONE)) {
+		climb_alt = math::min(climb_alt,
+				      _navigator->get_home_position()->alt + _param_gf_alt.get());
+		/* This is a safety check to stay higher than people's heads. */
+		float safe_altitude = 5.0f;
+		climb_alt = math::max(climb_alt,
+				      _navigator->get_home_position()->alt + safe_altitude);
+	}
+
+	return climb_alt;
+
 }

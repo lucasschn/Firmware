@@ -138,7 +138,10 @@ then
 		param set MPC_MAN_TILT_MAX 24
 
 		# Gyro already temperature calibrated and ID constant
-		param set CAL_GYRO0_ID 3670290
+		if ver hwcmp TAP_V2
+		then
+			param set CAL_GYRO0_ID 3670290
+		fi
 
 		param set COM_RC_LOSS_MAN 1
 		param set COM_DISARM_LAND 0.1

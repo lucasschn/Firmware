@@ -903,17 +903,8 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 
 		/* get velocity setpoint in heading frame */
 		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
-<<<<<<< 88c6b50acae4fc9302c22ee7bcdcd9da16c37095
 		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_vel_sp_desired(0), _vel_sp_desired(1),
 						  0.0f));
-=======
-		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_vel_sp_desired(0), _vel_sp_desired(1), 0.0f));
-
-		/* Adjust velocity setpoint _vel_sp based on:
-		 * Sonar
-		 * Realsense
-		 */
->>>>>>> mc_pos_control: changes for realsense
 
 		/* Adjust velocity setpoint _vel_sp based on:
 		 * Sonar

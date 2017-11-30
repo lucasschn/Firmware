@@ -31,7 +31,7 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__boards__tap-v3-1
+	MODULE drivers__boards__tap-v4
 	SRCS
 #		WIP tap_can.c
 		tap_init.c

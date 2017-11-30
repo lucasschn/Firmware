@@ -8,7 +8,7 @@
 #define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))
 #define BOARD_HAS_MTD_PARTITION_OVERRIDE {"/fs/mtd_caldata"}
 
-/* Define Battery 1 Voltage Divider and A per V
+/* Define Battery 1 Voltage Divider
  */
 #define BOARD_BATTERY1_V_DIV (9.0f)
 
@@ -37,7 +37,7 @@
 #include <drivers/boards/px4fmu-v5/board_config.h>
 
 #undef BOARD_NAME
-#define	BOARD_NAME "TAP_V3_1"
+#define	BOARD_NAME "TAP_V4"
 
 // undefine the serial port of the RC not used on OB rc input over mavlink
 #undef RC_SERIAL_PORT
@@ -55,6 +55,6 @@
 
 // Set correct string for hardware detection
 #undef HW_INFO_INIT
-#define HW_INFO_INIT {'V','3','x','x',0}
+#define HW_INFO_INIT {'V','4','x','x',0}
 //      HW_INFO_INIT_REV       2
 //      HW_INFO_INIT_VER           3

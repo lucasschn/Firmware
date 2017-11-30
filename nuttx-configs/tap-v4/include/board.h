@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/tap-v3/include/board.h
+ * nuttx-configs/tap-v4/include/board.h
  *
  *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
  *   Authors: David Sidrane <david_s5@nscdg.com>
@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_TAP_V3_1_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_TAP_V3_1_INCLUDE_BOARD_H
+#ifndef __NUTTX_CONFIG_TAP_V4_INCLUDE_BOARD_H
+#define __NUTTX_CONFIG_TAP_V4_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -335,13 +335,8 @@
 #define GPIO_USART3_RTS  GPIO_USART3_RTS_2  /* PD12 */
 #define GPIO_USART3_CTS  GPIO_USART3_CTS_2  /* PD11 */
 
-#ifdef H520S_000_R1
-#  define GPIO_UART4_RX    GPIO_UART4_RX_6     /* PI9  */
-#  define GPIO_UART4_TX    GPIO_UART4_TX_5     /* PH13 */
-#else
-#  define GPIO_UART4_RX    GPIO_UART4_RX_4    /* PD0 */
-#  define GPIO_UART4_TX    GPIO_UART4_TX_4    /* PD1 */
-#endif
+#define GPIO_UART4_RX    GPIO_UART4_RX_4    /* PD0 */
+#define GPIO_UART4_TX    GPIO_UART4_TX_4    /* PD1 */
 
 #define GPIO_UART5_RX    GPIO_UART5_RX_3    /* PB12 N.B. Replaces CAN2 */
 #define GPIO_UART5_TX    GPIO_UART5_TX_3    /* PB13 N.B. Replaces CAN2 */
@@ -371,11 +366,10 @@
  * CAN2 is routed to transceiver.
  * CAN3 is routed to transceiver.
  */
-#ifdef H520S_000_R1
-#else
-#  define GPIO_CAN1_RX     GPIO_CAN1_RX_5     /* PI9  */
-#  define GPIO_CAN1_TX     GPIO_CAN1_TX_4     /* PH13 */
-#endif
+
+#define GPIO_CAN1_RX     GPIO_CAN1_RX_5     /* PI9  */
+#define GPIO_CAN1_TX     GPIO_CAN1_TX_4     /* PH13 */
+
 // USED for Serial ESC on this board #define GPIO_CAN2_RX     GPIO_CAN2_RX_1     /* PB12 */
 // USED for Serial ESC on this board #define GPIO_CAN2_TX     GPIO_CAN2_TX_1     /* PB13 */
 #define GPIO_CAN3_RX     GPIO_CAN3_RX_1     /* PA8  */
@@ -581,4 +575,4 @@ void stm32_boardinitialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /*__NUTTX_CONFIG_TAP_V3_INCLUDE_BOARD_H  */
+#endif  /*__NUTTX_CONFIG_TAP_V4_INCLUDE_BOARD_H  */

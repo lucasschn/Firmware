@@ -38,6 +38,11 @@ matrix:
       services:
         - docker
       env: BUILD_TARGET=tests_linux
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=clang-tidy
     - os: osx
       sudo: true
       osx_image: xcode8.3
@@ -62,4 +67,6 @@ script:
       ./Tools/docker_run.sh 'make tests';
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
+    elif [ "${BUILD_TARGET}" = "clang-tidy" ]; then
+      ./Tools/docker_run.sh 'make clang-tidy-quiet';
     fi;

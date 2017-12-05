@@ -1042,8 +1042,8 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
 	}
-	if (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON
-				&& _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING) {
+
+	if (use_realsense()) {
 		_att_sp.yaw_body = yaw_prev_sp;
 	}
 
@@ -1410,6 +1410,20 @@ MulticopterPositionControl::constrain_velocity_setpoint()
 	}
 
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_params.vel_max_up, _params.vel_max_down);
+}
+
+bool
+MulticopterPositionControl::use_realsense()
+{
+
+	/* Don't use realsense if we are above home within acceptance radius */
+	const float dist_to_home_xy =  matrix::Vector2f(_home_pos.x - _pos(0), _home_pos.y - _pos(1)).length();
+	const bool close_to_home = dist_to_home_xy < _nav_rad.get();
+
+	return (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+	       && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL)
+	       && (_realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING)
+	       && !close_to_home;
 }
 
 float

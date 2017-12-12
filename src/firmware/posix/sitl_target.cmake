@@ -70,6 +70,7 @@ ExternalProject_Add(sitl_gazebo
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
+	PATCH_COMMAND git apply ${CMAKE_SOURCE_DIR}/src/firmware/posix/0001-Use-internal-mavlink-dialect.patch
 	)
 set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
 

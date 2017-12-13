@@ -49,6 +49,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
+#include "TranslationControl.hpp"
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_tasks.h>
@@ -229,6 +230,8 @@ private:
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
 
+	TranslationControl _control{};
+
 	FlightTasks _flight_tasks;
 
 	systemlib::Hysteresis _manual_direction_change_hysteresis;
@@ -242,6 +245,18 @@ private:
 		acceleration,
 		deceleration
 	};
+
+	/* Current supported flight-modes */
+	enum class FlightModes {
+		manual_pure,
+		manual_altitude,
+		manual_position,
+		autonomous,
+		offboard_position,
+		offboard_velocity,
+		offboard_velocity_altitude
+	};
+	FlightModes _flightmode{FlightModes::manual_pure};
 
 	manual_stick_input _user_intention_xy; /**< defines what the user intends to do derived from the stick input */
 	manual_stick_input
@@ -933,6 +948,44 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
+	}
+
+	/* Set flight-modes based on conrol-mode */
+	if (_control_mode.flag_control_manual_enabled) {
+
+		if (_control_mode.flag_control_position_enabled
+		    && _control_mode.flag_control_altitude_enabled) {
+			_flightmode = FlightModes::manual_position;
+
+		} else if (_control_mode.flag_control_altitude_enabled) {
+			_flightmode = FlightModes::manual_altitude;
+			_flight_tasks.switchTask(2);
+
+		} else if (_control_mode.flag_control_attitude_enabled) {
+			_flightmode = FlightModes::manual_pure;
+		}
+
+	} else if (_control_mode.flag_control_auto_enabled) {
+		_flightmode = FlightModes::autonomous;
+
+	} else if (_control_mode.flag_control_offboard_enabled) {
+
+		if (_control_mode.flag_control_position_enabled
+		    && _control_mode.flag_control_altitude_enabled) {
+			_flightmode = FlightModes::offboard_position;
+
+		} else if (_control_mode.flag_control_velocity_enabled
+			   && _control_mode.flag_control_climb_rate_enabled) {
+			_flightmode = FlightModes::offboard_velocity;
+
+		} else if (_control_mode.flag_control_velocity_enabled
+			   && _control_mode.flag_control_altitude_enabled) {
+			_flightmode = FlightModes::offboard_velocity_altitude;
+		}
+
+	} else {
+
+		PX4_ERR("Current task not supported");
 	}
 
 	orb_check(_manual_sub, &updated);

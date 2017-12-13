@@ -54,6 +54,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_led.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
@@ -135,6 +136,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_land_detector_pub(nullptr),
 	_time_offset_pub(nullptr),
 	_follow_target_pub(nullptr),
+	_led_control_pub(nullptr),
 	_transponder_report_pub(nullptr),
 	_collision_report_pub(nullptr),
 	_debug_key_value_pub(nullptr),
@@ -153,6 +155,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_offboard_control_mode{},
 	_att_sp{},
 	_rates_sp{},
+	_led_control{},
 	_time_offset_avg_alpha(0.8),
 	_time_offset(0),
 	_orb_class_instance(-1),
@@ -485,6 +488,22 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
 		send_flight_information();
+
+	} else if (cmd_mavlink.command == MAV_CMD_LED_CONTROL) {
+
+		_led_control.timestamp = hrt_absolute_time();
+		_led_control.mode = (uint8_t)cmd_mavlink.param1;
+		_led_control.color = (uint8_t)cmd_mavlink.param2;
+		_led_control.led_mask = (uint8_t)cmd_mavlink.param3;
+		_led_control.num_blinks = (uint8_t)cmd_mavlink.param4;
+		_led_control.priority = led_control_s::MAX_PRIORITY;
+
+		if (_led_control_pub == nullptr) {
+			_led_control_pub = orb_advertise_queue(ORB_ID(led_control), &_led_control, LED_UORB_QUEUE_LENGTH);
+
+		} else {
+			orb_publish(ORB_ID(led_control), _led_control_pub, &_led_control);
+		}
 
 	} else {
 

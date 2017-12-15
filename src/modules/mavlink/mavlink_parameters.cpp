@@ -144,8 +144,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				if (strcmp(name, "RTL_RETURN_ALT") != 0 &&
 				    strcmp(name, "GF_ACTION") != 0 &&
 				    strcmp(name, "GF_MAX_HOR_DIST") != 0 &&
-				    strcmp(name, "GF_MAX_VER_DIST") != 0) &&
-					strcmp(name, "MPC_XY_VEL_MAX") != 0) {
+				    strcmp(name, "GF_MAX_VER_DIST") != 0 &&
+				    strcmp(name, "MPC_XY_VEL_MAX") != 0) {
 					return;
 				}
 
@@ -155,7 +155,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				param_t param = param_find_no_notification(name);
 
 				if (param == PARAM_INVALID) {
-				char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
+					char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
 					sprintf(buf, "[pm] unknown param: %s", name);
 					_mavlink->send_statustext_info(buf);
 

@@ -92,9 +92,9 @@ RTL::on_activation()
 
 	// go directly to home if realsense is used
 	const bool realsense_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
-				 manual_control_setpoint_s::SWITCH_POS_ON;
+					 manual_control_setpoint_s::SWITCH_POS_ON;
 	const bool realsense_running = _navigator->get_realsense_setpoint()->flags ==
-			       ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
+				       ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
 
 	/* for safety reasons don't go into RTL if landed */
 	if (_navigator->get_land_detected()->landed) {

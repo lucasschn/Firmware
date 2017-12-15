@@ -350,8 +350,6 @@ private:
 	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
-	float _brake_vel_limit; /**< x body velocity which gets ramped down to 0 to brake in front of obstacles*/
-	float _brake_ramp_time; /**< ramp time to brake in front of obstacles*/
 	float _realsense_minimum_distance{0.0};
 
 	// counters for reset events on position and velocity states
@@ -815,8 +813,8 @@ MulticopterPositionControl::parameters_update(bool force)
 void
 MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 {
-	const bool obsavoid_on = (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
-				 && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL);
+	const bool stop_in_front = (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
+				   && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) && (!_flight_tasks.isAnyTaskActive());
 
 	// check if realsense is on
 	const bool realsense_on = _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
@@ -854,7 +852,7 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 	}
 
 	/* don't run obstacle avoidance in altitude mode because there are altitude jumps */
-	if (obsavoid_on && _control_mode.flag_control_velocity_enabled) {
+	if (stop_in_front && _control_mode.flag_control_velocity_enabled) {
 
 		// default start with realsense minimum distance
 		float min_obstacle_distance = _realsense_minimum_distance;
@@ -934,7 +932,7 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 
 					/* limit the speed linearly from max velocity to zero over braking distance + safety margin */
 					const float m = _vel_max_xy / (brake_distance - safety_margin); // slope
-					const float speed_limit =  m * (min_obstacle_distance - 1.0f);
+					const float speed_limit =  m * (min_obstacle_distance - safety_margin);
 
 					if (vel_sp_heading(0) > speed_limit && vel_sp_heading(0) >= SIGMA_NORM) {
 						/* desired heading velocity is above speed limit*/
@@ -956,7 +954,7 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 	const bool z_lock = diff_z < SIGMA_NORM;
 
 	// we are in realsense obstacle avoidance state
-	if (realsense_on && (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)) {
+	if (use_realsense()) {
 
 		/* get velocity setpoint in heading frame */
 		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
@@ -1417,7 +1415,7 @@ MulticopterPositionControl::use_realsense()
 	const float dist_to_home_xy =  matrix::Vector2f(_home_pos.x - _pos(0), _home_pos.y - _pos(1)).length();
 	const bool close_to_home = dist_to_home_xy < _nav_rad.get();
 
-	return (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+	return (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
 	       && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL)
 	       && (_realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING)
 	       && !close_to_home;
@@ -2263,7 +2261,7 @@ void MulticopterPositionControl::control_auto()
 		const bool follow_me_target_on = _pos_sp_triplet.current.yawspeed_valid
 			    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
 
-		if (realsense_avoidance_on || follow_me_target_on ) {
+		if (use_realsense() || follow_me_target_on) {
 
 			// default is triplet yaw-speed
 			float yaw_speed = _pos_sp_triplet.current.yawspeed;
@@ -2277,7 +2275,7 @@ void MulticopterPositionControl::control_auto()
 						   _params.global_yaw_max;
 			const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
 
-			float yaw_target = _wrap_pi(_att_sp.yaw_body + yaw_speed * dt);
+			float yaw_target = _wrap_pi(_att_sp.yaw_body + yaw_speed * _dt);
 			float yaw_offs = _wrap_pi(yaw_target - _yaw);
 
 			// If the yaw offset became too big for the system to track stop
@@ -2292,12 +2290,12 @@ void MulticopterPositionControl::control_auto()
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 		}
 
-		//float yaw_diff = _wrap_pi(_att_sp.yaw_body - _yaw);
-
 		/* only follow previous-current-line for specific triplet type */
-		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
-		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
-		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
+		if (!use_realsense() && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
+					 _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
+					 _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET)) {
+
+			float yaw_diff = _wrap_pi(_att_sp.yaw_body - _yaw);
 
 			/* by default use current setpoint as is */
 			math::Vector<3> pos_sp = _curr_pos_sp;
@@ -2871,12 +2869,6 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 			warn_rate_limited("FlightTasks update failed");
 		}
 
-	} else {
-
-		/* if position control is not active, we predict
-		 * position setpoint forward in time based on velocity setpoint */
-		_pos_sp(0) = _pos_sp(0) + _vel_sp(0) * dt;
-		_pos_sp(1) = _pos_sp(1) + _vel_sp(1) * dt;
 	}
 
 	/* in auto the setpoint is already limited by the navigator */
@@ -2915,10 +2907,6 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 			_vel_sp(2) = 0.f;
 		}
 
-	} else {
-		/* if altitude control is not active, we predict
-		 * position setpoint forward in time based on velocity setpoint */
-		_pos_sp(2) = _pos_sp(2) + _vel_sp(2) * dt;
 	}
 
 	/* run position controller */
@@ -2969,7 +2957,6 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
 
 	/* apply slewrate (aka acceleration limit) for smooth flying */
-
 	if (!_control_mode.flag_control_auto_enabled && !_flight_tasks.isAnyTaskActive()) {
 		vel_sp_slewrate();
 	}
@@ -2991,6 +2978,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	if(!_in_smooth_takeoff) {
 		/* tap specific: handle obstacle avoidance */
 		obstacle_avoidance(altitude_above_home);
+		/* reset previous vel sp */
 		_vel_sp_prev = _vel_sp;
 	}
 
@@ -2998,7 +2986,6 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	 * locks
 	 */
 	_pos_sp_prev = _pos_sp;
-
 }
 
 void
@@ -3525,6 +3512,17 @@ MulticopterPositionControl::task_main()
 		/* set default max velocity in xy to vel_max */
 		_vel_max_xy = _params.vel_max_xy;
 
+		/* if obstacle avoidance is on, then speed is limited
+		 * to 4 m/s
+		 */
+
+		if ((_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
+		    && (((_realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING)
+			 && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL))
+			|| (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL))) {
+
+			_vel_max_xy = 4.0f;
+		}
 
 		/* reset flags when landed */
 		if (_vehicle_land_detected.landed) {
@@ -3681,23 +3679,6 @@ MulticopterPositionControl::task_main()
 			publish_local_pos_sp();
 			publish_attitude();
 
-			/* publish desired velocity to realsense */
-			_realsense_avoidance_input.timestamp = hrt_absolute_time();
-			_realsense_avoidance_input.vx = _vel_sp_desired(0);
-			_realsense_avoidance_input.vy = _vel_sp_desired(1);
-			_realsense_avoidance_input.vz = _vel_sp_desired(2);
-			_realsense_avoidance_input.yawspeed =
-				_realsense_minimum_distance; // a hack to log minimum distance seen by realsense: this can be done because yawspeed is not used as input
-
-
-			/* publish realsense input */
-			if (_realsense_input_pub != nullptr) {
-				orb_publish(ORB_ID(realsense_avoidance_setpoint_input), _realsense_input_pub, &_realsense_avoidance_input);
-
-			} else {
-				_realsense_input_pub = orb_advertise(ORB_ID(realsense_avoidance_setpoint_input), &_realsense_avoidance_input);
-			}
-
 		} else {
 
 			/* map commander modes to tasks */
@@ -3729,9 +3710,17 @@ MulticopterPositionControl::task_main()
 				_local_pos_sp.y = _pos_sp(1);
 				_local_pos_sp.z = _pos_sp(2);
 				_local_pos_sp.yaw = _att_sp.yaw_body;
-				_local_pos_sp.vx = _vel_sp(0); //_vel_sp_before_realsense(0); //FIXME
-				_local_pos_sp.vy = _vel_sp(1); //_vel_sp_before_realsense(1);
-				_local_pos_sp.vz = _vel_sp(2); //_vel_sp_before_realsense(2);
+				_local_pos_sp.vx = _vel_sp(0);
+				_local_pos_sp.vy = _vel_sp(1);
+				_local_pos_sp.vz = _vel_sp(2);
+
+				/* publish desired velocity to realsense */
+				_realsense_avoidance_input.timestamp = hrt_absolute_time();
+				_realsense_avoidance_input.vx = _vel_sp_desired(0);
+				_realsense_avoidance_input.vy = _vel_sp_desired(1);
+				_realsense_avoidance_input.vz = _vel_sp_desired(2);
+				_realsense_avoidance_input.yawspeed =
+					_realsense_minimum_distance; // a hack to log minimum distance seen by realsense: this can be done because yawspeed is not used as input
 
 				/* publish local position setpoint */
 				if (_local_pos_sp_pub != nullptr) {
@@ -3739,6 +3728,14 @@ MulticopterPositionControl::task_main()
 
 				} else {
 					_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
+				}
+
+				/* publish realsense input */
+				if (_realsense_input_pub != nullptr) {
+					orb_publish(ORB_ID(realsense_avoidance_setpoint_input), _realsense_input_pub, &_realsense_avoidance_input);
+
+				} else {
+					_realsense_input_pub = orb_advertise(ORB_ID(realsense_avoidance_setpoint_input), &_realsense_avoidance_input);
 				}
 
 			} else {
@@ -3762,8 +3759,10 @@ MulticopterPositionControl::task_main()
 					generate_attitude_setpoint();
 
 				} else {
-					_reset_yaw_sp = true;
-					_att_sp.yaw_sp_move_rate = 0.0f;
+					if (!use_realsense()) {
+						_reset_yaw_sp = true;
+						_att_sp.yaw_sp_move_rate = 0.0f;
+					}
 				}
 			}
 

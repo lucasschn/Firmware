@@ -3450,6 +3450,17 @@ MulticopterPositionControl::task_main()
 
 		if (_flightmode == FlightModes::manual_altitude && _flight_tasks.isAnyTaskActive()) {
 
+			/* we set triplets to false
+			 * this ensures that when switching to auto, the position
+			 * controller will not use the old triplets but waits until triplets
+			 * have been updated */
+			_mode_auto = false;
+			_pos_sp_triplet.current.valid = false;
+			_pos_sp_triplet.previous.valid = false;
+			_hold_offboard_xy = false;
+			_hold_offboard_z = false;
+
+			_flight_tasks.update();
 			/* get _contstraints depending on flight mode */
 			Controller::Constraints constraints;
 			updateConstraints(constraints);

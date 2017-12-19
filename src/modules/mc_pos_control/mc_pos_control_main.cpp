@@ -456,7 +456,11 @@ private:
 	void updateConstraints(Controller::Constraints &constrains);
 
 
-	matrix::Vector3f get_stick_roll_pitch(const float &yaw_sp);
+	matrix::Vector3f get_stick_roll_pitch(float &yaw_sp);
+
+	void publish_attitude();
+
+	void publish_local_pos_sp();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -3467,9 +3471,30 @@ MulticopterPositionControl::task_main()
 
 			matrix::Vector3f rpy = get_stick_roll_pitch(yaw_sp);
 
-			/* publish attitude */
+			/* fill local position, velocity and thrust setpoint */
+			_local_pos_sp.timestamp = hrt_absolute_time();
+			_local_pos_sp.x = _control.getPosSp()(0);
+			_local_pos_sp.y = _control.getPosSp()(1);
+			_local_pos_sp.z = _control.getPosSp()(2);
+			_local_pos_sp.yaw = _control.getYawSetpoint();
+			_local_pos_sp.vx = _control.getVelSp()(0); //_vel_sp_before_realsense(0); //FIXME
+			_local_pos_sp.vy = _control.getVelSp()(1); //_vel_sp_before_realsense(1);
+			_local_pos_sp.vz = _control.getVelSp()(2); //_vel_sp_before_realsense(2);
 
 
+			/* fill attitude */
+			_att_sp.roll_body = rpy(0);
+			_att_sp.pitch_body = rpy(1);
+			_att_sp.yaw_body = rpy(2);
+			matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
+			q_sp.copyTo(_att_sp.q_d);
+			_att_sp.q_d_valid = true;
+			/* fill and publish att_sp message */
+			_att_sp.thrust = throttle;
+			_att_sp.timestamp = hrt_absolute_time();
+
+			publish_local_pos_sp();
+			publish_attitude();
 
 		} else {
 
@@ -3506,16 +3531,7 @@ MulticopterPositionControl::task_main()
 				_local_pos_sp.vy = _vel_sp(1); //_vel_sp_before_realsense(1);
 				_local_pos_sp.vz = _vel_sp(2); //_vel_sp_before_realsense(2);
 
-				/* publish local position setpoint */
-				if (_local_pos_sp_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_local_position_setpoint),
-						    _local_pos_sp_pub, &_local_pos_sp);
 
-				} else {
-					_local_pos_sp_pub = orb_advertise(
-								    ORB_ID(vehicle_local_position_setpoint),
-								    &_local_pos_sp);
-				}
 
 			} else {
 				/* position controller disabled, reset setpoints */
@@ -3592,6 +3608,48 @@ MulticopterPositionControl::task_main()
 }
 
 void
+MulticopterPositionControl::publish_attitude()
+{
+
+
+	/* publish attitude setpoint
+	 * Do not publish if
+	 * - offboard is enabled but position/velocity/accel control is disabled,
+	 * in this case the attitude setpoint is published by the mavlink app.
+	 * - if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
+	 * attitude setpoints for the transition).
+	 * - if not armed
+	 */
+	if (_control_mode.flag_armed &&
+	    (!(_control_mode.flag_control_offboard_enabled &&
+	       !(_control_mode.flag_control_position_enabled ||
+		 _control_mode.flag_control_velocity_enabled ||
+		 _control_mode.flag_control_acceleration_enabled)))) {
+
+		if (_att_sp_pub != nullptr) {
+			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+
+		} else if (_attitude_setpoint_id) {
+			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+		}
+	}
+}
+void
+MulticopterPositionControl::publish_local_pos_sp()
+{
+	/* publish local position setpoint */
+	if (_local_pos_sp_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_local_position_setpoint),
+			    _local_pos_sp_pub, &_local_pos_sp);
+
+	} else {
+		_local_pos_sp_pub = orb_advertise(
+					    ORB_ID(vehicle_local_position_setpoint),
+					    &_local_pos_sp);
+	}
+}
+
+void
 MulticopterPositionControl::updateConstraints(Controller::Constraints &constraints)
 {
 	/* _contstraints */
@@ -3616,7 +3674,7 @@ MulticopterPositionControl::updateConstraints(Controller::Constraints &constrain
 }
 
 matrix::Vector3f
-MulticopterPositionControl::get_stick_roll_pitch(const float &yaw_sp)
+MulticopterPositionControl::get_stick_roll_pitch(float &yaw_sp)
 {
 
 	/* control roll, pitch yaw directly if no aiding velocity controller is active */

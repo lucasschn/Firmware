@@ -451,6 +451,14 @@ private:
 	bool manual_wants_takeoff();
 
 	/**
+	 * Temporary method for flight control compuation
+	 */
+	void updateConstraints(Controller::Constraints &constrains);
+
+
+	matrix::Vector3f get_stick_roll_pitch(const float &yaw_sp);
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -3438,9 +3446,30 @@ MulticopterPositionControl::task_main()
 
 		if (_flightmode == FlightModes::manual_altitude && _flight_tasks.isAnyTaskActive()) {
 
+			/* get _contstraints depending on flight mode */
+			Controller::Constraints constraints;
+			updateConstraints(constraints);
+
 			/* Run altitude mode without smoothing */
-			_control.updateState(_local_pos);
-			_control.updateSetpoint(_local_pos_sp);
+			matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(&(_R.data[0][0]));
+			_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))), R);
+			_control.updateSetpoint(_flight_tasks.getPositionSetpoint());
+			_control.updateConstraints(constraints);
+			_control.generateThrustYawSetpoint(dt);
+			matrix::Vector3f thrust_sp = _control.getThrustSetpoint();
+			float yaw_sp = _control.getYawSetpoint();
+			float throttle = _control.getThrottle();
+
+			/* if any of the thrust setpoint is bogus, send out a warning */
+			if (!PX4_ISFINITE(thrust_sp(0)) || !PX4_ISFINITE(thrust_sp(1)) || !PX4_ISFINITE(thrust_sp(2))) {
+				warn_rate_limited("Thrust setpoint not finite");
+			}
+
+			matrix::Vector3f rpy = get_stick_roll_pitch(yaw_sp);
+
+			/* publish attitude */
+
+
 
 		} else {
 
@@ -3560,6 +3589,132 @@ MulticopterPositionControl::task_main()
 	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
 
 	_control_task = -1;
+}
+
+void
+MulticopterPositionControl::updateConstraints(Controller::Constraints &constraints)
+{
+	/* _contstraints */
+	constraints.tilt_max = NAN; // Default no maximum tilt
+
+	/* Set maximum tilt  */
+	if (!_control_mode.flag_control_manual_enabled
+	    && _pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type
+	    == position_setpoint_s::SETPOINT_TYPE_LAND) {
+
+		/* Auto landing tilt */
+		constraints.tilt_max = _params.tilt_max_land;
+
+	} else if (_control_mode.flag_control_velocity_enabled
+		   || _control_mode.flag_control_acceleration_enabled) {
+
+		/* Velocity/acceleration control tilt */
+		constraints.tilt_max = _params.tilt_max_air;
+	}
+
+}
+
+matrix::Vector3f
+MulticopterPositionControl::get_stick_roll_pitch(const float &yaw_sp)
+{
+
+	/* control roll, pitch yaw directly if no aiding velocity controller is active */
+
+	/*
+	 * Input mapping for roll & pitch setpoints
+	 * ----------------------------------------
+	 * This simplest thing to do is map the y & x inputs directly to roll and pitch, and scale according to the max
+	 * tilt angle.en
+	 * But this has several issues:
+	 * - The maximum tilt angle cannot easily be restricted. By limiting the roll and pitch separately,
+	 *   it would be possible to get to a higher tilt angle by combining roll and pitch (the difference is
+	 *   around 15 degrees maximum, so quite noticeable). Limiting this angle is not simple in roll-pitch-space,
+	 *   it requires to limit the tilt angle = acos(cos(roll) * cos(pitch)) in a meaningful way (eg. scaling both
+	 *   roll and pitch).
+	 * - Moving the stick diagonally, such that |x| = |y|, does not move the vehicle towards a 45 degrees angle.
+	 *   The direction angle towards the max tilt in the XY-plane is atan(1/cos(x)). Which means it even depends
+	 *   on the tilt angle (for a tilt angle of 35 degrees, it's off by about 5 degrees).
+	 *
+	 * So instead we control the following 2 angles:
+	 * - tilt angle, given by sqrt(x*x + y*y)
+	 * - the direction of the maximum tilt in the XY-plane, which also defines the direction of the motion
+	 *
+	 * This allows a simple limitation of the tilt angle, the vehicle flies towards the direction that the stick
+	 * points to, and changes of the stick input are linear.
+	 */
+	const float x = _manual.x * _params.man_tilt_max;
+	const float y = _manual.y * _params.man_tilt_max;
+
+	// we want to fly towards the direction of (x, y), so we use a perpendicular axis angle vector in the XY-plane
+	matrix::Vector2f v = matrix::Vector2f(y, -x);
+	float v_norm = v.norm(); // the norm of v defines the tilt angle
+
+	if (v_norm > _params.man_tilt_max) { // limit to the configured maximum tilt angle
+		v *= _params.man_tilt_max / v_norm;
+	}
+
+	matrix::Quatf q_sp_rpy = matrix::AxisAnglef(v(0), v(1), 0.f);
+	// The axis angle can change the yaw as well (but only at higher tilt angles. Note: we're talking
+	// about the world frame here, in terms of body frame the yaw rate will be unaffected).
+	// This the the formula by how much the yaw changes:
+	//   let a := tilt angle, b := atan(y/x) (direction of maximum tilt)
+	//   yaw = atan(-2 * sin(b) * cos(b) * sin^2(a/2) / (1 - 2 * cos^2(b) * sin^2(a/2))).
+	matrix::Eulerf euler_sp = q_sp_rpy;
+	// Since the yaw setpoint is integrated, we extract the offset here,
+	// so that we can remove it before the next iteration
+
+	// yaw setpoint is integrated over time, but we don't want to integrate the offset's
+	yaw_sp -= _man_yaw_offset;
+	_man_yaw_offset = euler_sp(2);
+
+	matrix::Vector3f rpy;
+
+	// update the setpoints
+	rpy(0) = euler_sp(0);
+	rpy(1) = euler_sp(1);
+	rpy(2) = yaw_sp + euler_sp(2);
+
+	/* only if optimal recovery is not used, modify roll/pitch */
+	if (!(_vehicle_status.is_vtol && _params.opt_recover)) {
+		// construct attitude setpoint rotation matrix. modify the setpoints for roll
+		// and pitch such that they reflect the user's intention even if a yaw error
+		// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
+		// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
+		// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
+		// heading of the vehicle.
+		// The effect of that can be seen with:
+		// - roll/pitch into one direction, keep it fixed (at high angle)
+		// - apply a fast yaw rotation
+		// - look at the roll and pitch angles: they should stay pretty much the same as when not yawing
+
+		// calculate our current yaw error
+		float yaw_error = _wrap_pi(rpy(2) - _yaw);
+
+		// compute the vector obtained by rotating a z unit vector by the rotation
+		// given by the roll and pitch commands of the user
+		math::Vector<3> zB = {0, 0, 1};
+		math::Matrix < 3, 3 > R_sp_roll_pitch;
+		R_sp_roll_pitch.from_euler(rpy(0), rpy(1), 0);
+		math::Vector < 3 > z_roll_pitch_sp = R_sp_roll_pitch * zB;
+
+		// transform the vector into a new frame which is rotated around the z axis
+		// by the current yaw error. this vector defines the desired tilt when we look
+		// into the direction of the desired heading
+		math::Matrix < 3, 3 > R_yaw_correction;
+		R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error);
+		z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
+
+		// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
+		// R_tilt is computed from_euler; only true if cos(roll) not equal zero
+		// -> valid if roll is not +-pi/2;
+		rpy(0) = -asinf(z_roll_pitch_sp(1));
+		rpy(1) = atan2f(z_roll_pitch_sp(0), z_roll_pitch_sp(2));
+	}
+
+	return rpy;
+
+
 }
 
 int

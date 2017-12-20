@@ -245,6 +245,8 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
+ * Maximum horizontal speed in auto at 90 degrees corners.
+ *
  * Cruise speed when angle prev-current/current-next setpoint
  * is 90 degrees. It should be lower than MPC_XY_CRUISE.
  *
@@ -260,9 +262,10 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_CRUISE_90, 3.0f);
 
 /**
- * Maximum horizontal velocity setpoint for manual controlled mode
- * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
- * the setpoint will be capped to MPC_XY_VEL_MAX
+ * Maximum horizontal speed for manual controlled mode.
+ *
+ * If MPC_VEL_MANUAL is set larger than MPC_XY_VEL_MAX, then
+ * the horizontal speed will be capped to MPC_XY_VEL_MAX.
  *
  * @unit m/s
  * @min 3.0
@@ -276,8 +279,8 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.0f);
 /**
  * Maximum horizontal velocity
  *
- * Maximum horizontal velocity in AUTO mode. If higher speeds
- * are commanded in a mission they will be capped to this velocity.
+ * Maximum global horizontal velocity in any mode. Any demanded speed will
+ * be capped to MPC_XY_VEL_MAX.
  *
  * @unit m/s
  * @min 0.0

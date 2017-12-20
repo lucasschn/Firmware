@@ -3475,7 +3475,6 @@ MulticopterPositionControl::task_main()
 			/* get all the setpoints */
 			matrix::Vector3f thrust_sp = _control.getThrustSetpoint();
 			float yaw_sp = _control.getYawSetpoint();
-			float throttle = _control.getThrottle();
 
 			/* if any of the thrust setpoint is bogus, send out a warning */
 			if (!PX4_ISFINITE(thrust_sp(0)) || !PX4_ISFINITE(thrust_sp(1)) || !PX4_ISFINITE(thrust_sp(2))) {
@@ -3483,17 +3482,6 @@ MulticopterPositionControl::task_main()
 			}
 
 			matrix::Vector3f rpy = get_stick_roll_pitch(yaw_sp);
-
-			/* fill local position, velocity and thrust setpoint */
-			_local_pos_sp.timestamp = hrt_absolute_time();
-			_local_pos_sp.x = _control.getPosSp()(0);
-			_local_pos_sp.y = _control.getPosSp()(1);
-			_local_pos_sp.z = _control.getPosSp()(2);
-			_local_pos_sp.yaw = _control.getYawSetpoint();
-			_local_pos_sp.vx = _control.getVelSp()(0); //_vel_sp_before_realsense(0); //FIXME
-			_local_pos_sp.vy = _control.getVelSp()(1); //_vel_sp_before_realsense(1);
-			_local_pos_sp.vz = _control.getVelSp()(2); //_vel_sp_before_realsense(2);
-
 
 			/* fill attitude */
 			_att_sp.roll_body = rpy(0);
@@ -3503,7 +3491,7 @@ MulticopterPositionControl::task_main()
 			q_sp.copyTo(_att_sp.q_d);
 			_att_sp.q_d_valid = true;
 			/* fill and publish att_sp message */
-			_att_sp.thrust = throttle;
+			_att_sp.thrust = _control.getThrottle();
 			_att_sp.timestamp = hrt_absolute_time();
 
 			publish_local_pos_sp();
@@ -3650,6 +3638,16 @@ MulticopterPositionControl::publish_attitude()
 void
 MulticopterPositionControl::publish_local_pos_sp()
 {
+	/* fill local position, velocity and thrust setpoint */
+	_local_pos_sp.timestamp = hrt_absolute_time();
+	_local_pos_sp.x = _control.getPosSp()(0);
+	_local_pos_sp.y = _control.getPosSp()(1);
+	_local_pos_sp.z = _control.getPosSp()(2);
+	_local_pos_sp.yaw = _control.getYawSetpoint();
+	_local_pos_sp.vx = _control.getVelSp()(0);
+	_local_pos_sp.vy = _control.getVelSp()(1);
+	_local_pos_sp.vz = _control.getVelSp()(2);
+
 	/* publish local position setpoint */
 	if (_local_pos_sp_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_local_position_setpoint),

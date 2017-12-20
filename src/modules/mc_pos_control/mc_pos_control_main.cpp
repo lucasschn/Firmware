@@ -3471,6 +3471,8 @@ MulticopterPositionControl::task_main()
 			_control.updateSetpoint(_flight_tasks.getPositionSetpoint());
 			_control.updateConstraints(constraints);
 			_control.generateThrustYawSetpoint(dt);
+
+			/* get all the setpoints */
 			matrix::Vector3f thrust_sp = _control.getThrustSetpoint();
 			float yaw_sp = _control.getYawSetpoint();
 			float throttle = _control.getThrottle();
@@ -3675,9 +3677,7 @@ MulticopterPositionControl::updateConstraints(Controller::Constraints &constrain
 		/* Auto landing tilt */
 		constraints.tilt_max = _params.tilt_max_land;
 
-	} else if (_control_mode.flag_control_velocity_enabled
-		   || _control_mode.flag_control_acceleration_enabled) {
-
+	} else {
 		/* Velocity/acceleration control tilt */
 		constraints.tilt_max = _params.tilt_max_air;
 	}

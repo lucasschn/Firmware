@@ -2329,7 +2329,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
 		 * for a short time interval after takeoff. Fixed wing vehicles can recover using GPS heading,
-		 *  but rotary wing vehicles cannot so the position and velocity validity needs to be latched
+		 * but rotary wing vehicles cannot so the position and velocity validity needs to be latched
 		 * to false after failure to prevent flyaway crashes */
 		if (run_quality_checks && status.is_rotary_wing) {
 			bool estimator_status_updated = false;
@@ -3651,6 +3651,7 @@ int commander_thread_main(int argc, char *argv[])
 	orb_unsubscribe(param_changed_sub);
 	orb_unsubscribe(battery_sub);
 	orb_unsubscribe(land_detector_sub);
+	orb_unsubscribe(estimator_status_sub);
 
 	thread_running = false;
 

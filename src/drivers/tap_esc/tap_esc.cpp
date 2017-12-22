@@ -164,7 +164,7 @@ private:
 	void		subscribe();
 
 	void send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm);
-	void send_tune_packet(EscbusTunePacket &tune_packet);
+	inline void send_tune_packet(EscbusTunePacket &tune_packet);
 	static int control_callback_trampoline(uintptr_t handle,
 					       uint8_t control_group, uint8_t control_index, float &input);
 	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
@@ -1100,7 +1100,7 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("tap_esc",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				      1200,
+				      1300,
 				      (px4_main_t)&run_trampoline,
 				      nullptr);
 

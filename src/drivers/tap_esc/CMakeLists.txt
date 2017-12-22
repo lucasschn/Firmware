@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__tap_esc
 	MAIN tap_esc
-	STACK_MAIN 1600
+	STACK_MAIN 1500
 	COMPILE_FLAGS
 		-Wno-missing-field-initializers
 	SRCS

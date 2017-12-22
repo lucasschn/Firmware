@@ -451,6 +451,8 @@ private:
 
 	bool manual_wants_takeoff();
 
+	void update_smooth_takeoff();
+
 	/**
 	 * Temporary method for flight control compuation
 	 */
@@ -3416,18 +3418,7 @@ MulticopterPositionControl::task_main()
 			_vel_sp_prev = _vel;
 		}
 
-		if (!_in_smooth_takeoff && _vehicle_land_detected.landed && _control_mode.flag_armed &&
-		    (in_auto_takeoff() || manual_wants_takeoff())) {
-			_in_smooth_takeoff = true;
-			// This ramp starts negative and goes to positive later because we want to
-			// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
-			_takeoff_vel_limit = -0.5f;
-		}
-
-		else if (!_control_mode.flag_armed) {
-			// If we're disarmed and for some reason were in a smooth takeoff, we reset that.
-			_in_smooth_takeoff = false;
-		}
+		update_smooth_takeoff();
 
 		/* set triplets to invalid if we just landed */
 		if (_vehicle_land_detected.landed && !was_landed) {
@@ -3637,6 +3628,24 @@ MulticopterPositionControl::task_main()
 	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
 
 	_control_task = -1;
+}
+
+void
+MulticopterPositionControl:: update_smooth_takeoff() {
+
+	if (!_in_smooth_takeoff && _vehicle_land_detected.landed
+			&& _control_mode.flag_armed
+			&& (in_auto_takeoff() || manual_wants_takeoff())) {
+		_in_smooth_takeoff = true;
+		// This ramp starts negative and goes to positive later because we want to
+		// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
+		_takeoff_vel_limit = -0.5f;
+	}
+
+	else if (!_control_mode.flag_armed) {
+		// If we're disarmed and for some reason were in a smooth takeoff, we reset that.
+		_in_smooth_takeoff = false;
+	}
 }
 
 void

@@ -247,18 +247,6 @@ private:
 		deceleration
 	};
 
-	/* Current supported flight-modes */
-	enum class FlightModes {
-		manual_pure,
-		manual_altitude,
-		manual_position,
-		autonomous,
-		offboard_position,
-		offboard_velocity,
-		offboard_velocity_altitude
-	};
-	FlightModes _flightmode{FlightModes::manual_pure};
-
 	manual_stick_input _user_intention_xy; /**< defines what the user intends to do derived from the stick input */
 	manual_stick_input
 	_user_intention_z; /**< defines what the user intends to do derived from the stick input in z direciton */
@@ -965,43 +953,15 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 	}
 
-	/* Set flight-modes based on conrol-mode */
-	if (_control_mode.flag_control_manual_enabled) {
+	if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
+		_flight_tasks.switchTask(2);
 
-		if (_control_mode.flag_control_position_enabled
-		    && _control_mode.flag_control_altitude_enabled) {
-			_flightmode = FlightModes::manual_position;
-			_flight_tasks.switchTask(3);
-
-		} else if (_control_mode.flag_control_altitude_enabled) {
-			_flightmode = FlightModes::manual_altitude;
-			_flight_tasks.switchTask(2);
-
-		} else if (_control_mode.flag_control_attitude_enabled) {
-			_flightmode = FlightModes::manual_pure;
-		}
-
-	} else if (_control_mode.flag_control_auto_enabled) {
-		_flightmode = FlightModes::autonomous;
-
-	} else if (_control_mode.flag_control_offboard_enabled) {
-
-		if (_control_mode.flag_control_position_enabled
-		    && _control_mode.flag_control_altitude_enabled) {
-			_flightmode = FlightModes::offboard_position;
-
-		} else if (_control_mode.flag_control_velocity_enabled
-			   && _control_mode.flag_control_climb_rate_enabled) {
-			_flightmode = FlightModes::offboard_velocity;
-
-		} else if (_control_mode.flag_control_velocity_enabled
-			   && _control_mode.flag_control_altitude_enabled) {
-			_flightmode = FlightModes::offboard_velocity_altitude;
-		}
+	} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
+		_flight_tasks.switchTask(3);
 
 	} else {
-
-		PX4_ERR("Current task not supported");
+		// not supported yet.
+		_flight_tasks.switchTask(-1);
 	}
 
 	orb_check(_manual_sub, &updated);
@@ -3449,9 +3409,7 @@ MulticopterPositionControl::task_main()
 
 		if (_flight_tasks.isAnyTaskActive() && TEST_FLIGHTTASK) {
 
-
-			if (_flightmode == FlightModes::manual_position
-			    && _flight_tasks.isAnyTaskActive()) {
+			if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
 
 				/* we set triplets to false
 				 * this ensures that when switching to auto, the position
@@ -3483,8 +3441,7 @@ MulticopterPositionControl::task_main()
 
 				publish_attitude();
 
-			} else if (_flightmode == FlightModes::manual_altitude
-				   && _flight_tasks.isAnyTaskActive()) {
+			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
 
 				/* we set triplets to false
 				 * this ensures that when switching to auto, the position
@@ -3515,9 +3472,7 @@ MulticopterPositionControl::task_main()
 				float yaw_sp = _control.getYawSetpoint();
 
 				/* if any of the thrust setpoint is bogus, send out a warning */
-				if (!PX4_ISFINITE(
-					    thrust_sp(
-						    0)) || !PX4_ISFINITE(thrust_sp(1)) || !PX4_ISFINITE(thrust_sp(2))) {
+				if (!PX4_ISFINITE(thrust_sp(0)) || !PX4_ISFINITE(thrust_sp(1)) || !PX4_ISFINITE(thrust_sp(2))) {
 					warn_rate_limited("Thrust setpoint not finite");
 				}
 

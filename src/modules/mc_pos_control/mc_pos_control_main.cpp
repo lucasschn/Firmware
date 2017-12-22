@@ -3441,83 +3441,103 @@ MulticopterPositionControl::task_main()
 			_alt_hold_engaged = false;
 		}
 
-		if (_flightmode == FlightModes::manual_position && _flight_tasks.isAnyTaskActive()) {
+		/* Note: Flighttask is not officially supported. Therefore, any flighttask
+		 * related implementation is currently only for testing.
+		 * If you want to test Flighttask, set the boolean TESTFLIGHTTASK to true.
+		 */
+		bool TEST_FLIGHTTASK = false;
 
-			/* we set triplets to false
-			 * this ensures that when switching to auto, the position
-			 * controller will not use the old triplets but waits until triplets
-			 * have been updated */
-			_mode_auto = false;
-			_pos_sp_triplet.current.valid = false;
-			_pos_sp_triplet.previous.valid = false;
-			_hold_offboard_xy = false;
-			_hold_offboard_z = false;
-
-			_flight_tasks.update();
-			/* get _contstraints depending on flight mode */
-			Controller::Constraints constraints;
-			updateConstraints(constraints);
-
-			/* Run position mode without smoothing */
-			matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(&(_R.data[0][0]));
-			_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))), R);
-			_control.updateSetpoint(_flight_tasks.getPositionSetpoint());
-			_control.updateConstraints(constraints);
-			_control.generateThrustYawSetpoint(dt);
-
-			_att_sp = ControlMath::thrustToAttitude(_control.getThrustSetpoint(), _control.getYawSetpoint());
-
-			publish_attitude();
+		if (_flight_tasks.isAnyTaskActive() && TEST_FLIGHTTASK) {
 
 
-		} else if (_flightmode == FlightModes::manual_altitude && _flight_tasks.isAnyTaskActive()) {
+			if (_flightmode == FlightModes::manual_position
+			    && _flight_tasks.isAnyTaskActive()) {
 
-			/* we set triplets to false
-			 * this ensures that when switching to auto, the position
-			 * controller will not use the old triplets but waits until triplets
-			 * have been updated */
-			_mode_auto = false;
-			_pos_sp_triplet.current.valid = false;
-			_pos_sp_triplet.previous.valid = false;
-			_hold_offboard_xy = false;
-			_hold_offboard_z = false;
+				/* we set triplets to false
+				 * this ensures that when switching to auto, the position
+				 * controller will not use the old triplets but waits until triplets
+				 * have been updated */
+				_mode_auto = false;
+				_pos_sp_triplet.current.valid = false;
+				_pos_sp_triplet.previous.valid = false;
+				_hold_offboard_xy = false;
+				_hold_offboard_z = false;
 
-			_flight_tasks.update();
-			/* get _contstraints depending on flight mode */
-			Controller::Constraints constraints;
-			updateConstraints(constraints);
+				_flight_tasks.update();
+				/* get _contstraints depending on flight mode */
+				Controller::Constraints constraints;
+				updateConstraints(constraints);
 
-			/* Run altitude mode without smoothing */
-			matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(&(_R.data[0][0]));
-			_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))), R);
-			_control.updateSetpoint(_flight_tasks.getPositionSetpoint());
-			_control.updateConstraints(constraints);
-			_control.generateThrustYawSetpoint(dt);
+				/* Run position mode without smoothing */
+				matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(
+									&(_R.data[0][0]));
+				_control.updateState(_local_pos,
+						     matrix::Vector3f(&(_vel_err_d(0))), R);
+				_control.updateSetpoint(_flight_tasks.getPositionSetpoint());
+				_control.updateConstraints(constraints);
+				_control.generateThrustYawSetpoint(dt);
 
-			/* get all the setpoints */
-			matrix::Vector3f thrust_sp = _control.getThrustSetpoint();
-			float yaw_sp = _control.getYawSetpoint();
+				_att_sp = ControlMath::thrustToAttitude(
+						  _control.getThrustSetpoint(),
+						  _control.getYawSetpoint());
 
-			/* if any of the thrust setpoint is bogus, send out a warning */
-			if (!PX4_ISFINITE(thrust_sp(0)) || !PX4_ISFINITE(thrust_sp(1)) || !PX4_ISFINITE(thrust_sp(2))) {
-				warn_rate_limited("Thrust setpoint not finite");
+				publish_attitude();
+
+			} else if (_flightmode == FlightModes::manual_altitude
+				   && _flight_tasks.isAnyTaskActive()) {
+
+				/* we set triplets to false
+				 * this ensures that when switching to auto, the position
+				 * controller will not use the old triplets but waits until triplets
+				 * have been updated */
+				_mode_auto = false;
+				_pos_sp_triplet.current.valid = false;
+				_pos_sp_triplet.previous.valid = false;
+				_hold_offboard_xy = false;
+				_hold_offboard_z = false;
+
+				_flight_tasks.update();
+				/* get _contstraints depending on flight mode */
+				Controller::Constraints constraints;
+				updateConstraints(constraints);
+
+				/* Run altitude mode without smoothing */
+				matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(
+									&(_R.data[0][0]));
+				_control.updateState(_local_pos,
+						     matrix::Vector3f(&(_vel_err_d(0))), R);
+				_control.updateSetpoint(_flight_tasks.getPositionSetpoint());
+				_control.updateConstraints(constraints);
+				_control.generateThrustYawSetpoint(dt);
+
+				/* get all the setpoints */
+				matrix::Vector3f thrust_sp = _control.getThrustSetpoint();
+				float yaw_sp = _control.getYawSetpoint();
+
+				/* if any of the thrust setpoint is bogus, send out a warning */
+				if (!PX4_ISFINITE(
+					    thrust_sp(
+						    0)) || !PX4_ISFINITE(thrust_sp(1)) || !PX4_ISFINITE(thrust_sp(2))) {
+					warn_rate_limited("Thrust setpoint not finite");
+				}
+
+				matrix::Vector3f rpy = get_stick_roll_pitch(yaw_sp);
+
+				/* fill attitude */
+				_att_sp.roll_body = rpy(0);
+				_att_sp.pitch_body = rpy(1);
+				_att_sp.yaw_body = rpy(2);
+				matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body,
+								    _att_sp.pitch_body, _att_sp.yaw_body);
+				q_sp.copyTo(_att_sp.q_d);
+				_att_sp.q_d_valid = true;
+				/* fill and publish att_sp message */
+				_att_sp.thrust = _control.getThrottle();
+				_att_sp.timestamp = hrt_absolute_time();
+
+				publish_local_pos_sp();
+				publish_attitude();
 			}
-
-			matrix::Vector3f rpy = get_stick_roll_pitch(yaw_sp);
-
-			/* fill attitude */
-			_att_sp.roll_body = rpy(0);
-			_att_sp.pitch_body = rpy(1);
-			_att_sp.yaw_body = rpy(2);
-			matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
-			q_sp.copyTo(_att_sp.q_d);
-			_att_sp.q_d_valid = true;
-			/* fill and publish att_sp message */
-			_att_sp.thrust = _control.getThrottle();
-			_att_sp.timestamp = hrt_absolute_time();
-
-			publish_local_pos_sp();
-			publish_attitude();
 
 		} else {
 
@@ -3631,11 +3651,12 @@ MulticopterPositionControl::task_main()
 }
 
 void
-MulticopterPositionControl:: update_smooth_takeoff() {
+MulticopterPositionControl:: update_smooth_takeoff()
+{
 
 	if (!_in_smooth_takeoff && _vehicle_land_detected.landed
-			&& _control_mode.flag_armed
-			&& (in_auto_takeoff() || manual_wants_takeoff())) {
+	    && _control_mode.flag_armed
+	    && (in_auto_takeoff() || manual_wants_takeoff())) {
 		_in_smooth_takeoff = true;
 		// This ramp starts negative and goes to positive later because we want to
 		// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.

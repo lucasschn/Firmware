@@ -88,6 +88,7 @@
 #include <uORB/topics/distance_sensor.h>
 #include <lib/conversion/rotation.h>
 #include <drivers/realsense/realsense.h>
+#include "Utility/ControlMath.hpp"
 #define TILT_COS_MAX	0.7f
 /* --- */
 
@@ -968,6 +969,7 @@ MulticopterPositionControl::poll_subscriptions()
 		if (_control_mode.flag_control_position_enabled
 		    && _control_mode.flag_control_altitude_enabled) {
 			_flightmode = FlightModes::manual_position;
+			_flight_tasks.switchTask(3);
 
 		} else if (_control_mode.flag_control_altitude_enabled) {
 			_flightmode = FlightModes::manual_altitude;
@@ -3448,7 +3450,36 @@ MulticopterPositionControl::task_main()
 			_alt_hold_engaged = false;
 		}
 
-		if (_flightmode == FlightModes::manual_altitude && _flight_tasks.isAnyTaskActive()) {
+		if (_flightmode == FlightModes::manual_position && _flight_tasks.isAnyTaskActive()) {
+
+			/* we set triplets to false
+			 * this ensures that when switching to auto, the position
+			 * controller will not use the old triplets but waits until triplets
+			 * have been updated */
+			_mode_auto = false;
+			_pos_sp_triplet.current.valid = false;
+			_pos_sp_triplet.previous.valid = false;
+			_hold_offboard_xy = false;
+			_hold_offboard_z = false;
+
+			_flight_tasks.update();
+			/* get _contstraints depending on flight mode */
+			Controller::Constraints constraints;
+			updateConstraints(constraints);
+
+			/* Run position mode without smoothing */
+			matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(&(_R.data[0][0]));
+			_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))), R);
+			_control.updateSetpoint(_flight_tasks.getPositionSetpoint());
+			_control.updateConstraints(constraints);
+			_control.generateThrustYawSetpoint(dt);
+
+			_att_sp = ControlMath::thrustToAttitude(_control.getThrustSetpoint(), _control.getYawSetpoint());
+
+			publish_attitude();
+
+
+		} else if (_flightmode == FlightModes::manual_altitude && _flight_tasks.isAnyTaskActive()) {
 
 			/* we set triplets to false
 			 * this ensures that when switching to auto, the position
@@ -3626,6 +3657,8 @@ MulticopterPositionControl::publish_attitude()
 	       !(_control_mode.flag_control_position_enabled ||
 		 _control_mode.flag_control_velocity_enabled ||
 		 _control_mode.flag_control_acceleration_enabled)))) {
+
+		_att_sp.timestamp = hrt_absolute_time();
 
 		if (_att_sp_pub != nullptr) {
 			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);

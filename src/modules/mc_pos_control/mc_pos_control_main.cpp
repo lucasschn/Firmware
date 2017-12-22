@@ -3442,12 +3442,21 @@ MulticopterPositionControl::task_main()
 				_control.updateConstraints(constraints);
 				_control.generateThrustYawSetpoint(dt);
 
+				/* fill local position, velocity and thrust setpoint */
+				_local_pos_sp.timestamp = hrt_absolute_time();
+				_local_pos_sp.x = _control.getPosSp()(0);
+				_local_pos_sp.y = _control.getPosSp()(1);
+				_local_pos_sp.z = _control.getPosSp()(2);
+				_local_pos_sp.yaw = _control.getYawSetpoint();
+				_local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
+				_local_pos_sp.vx = _control.getVelSp()(0);
+				_local_pos_sp.vy = _control.getVelSp()(1);
+				_local_pos_sp.vz = _control.getVelSp()(2);
+
 				/* We adjust thrust setpoint based on landdetector */
 				matrix::Vector3f thr_sp = _control.getThrustSetpoint();
 				landdetection_thrust_limit(thr_sp);
 				_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
-
-				publish_local_pos_sp();
 
 			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
 
@@ -3467,6 +3476,17 @@ MulticopterPositionControl::task_main()
 				landdetection_thrust_limit(thr_sp);
 				float yaw_sp = _control.getYawSetpoint();
 
+				/* fill local position, velocity and thrust setpoint */
+				_local_pos_sp.timestamp = hrt_absolute_time();
+				_local_pos_sp.x = _control.getPosSp()(0);
+				_local_pos_sp.y = _control.getPosSp()(1);
+				_local_pos_sp.z = _control.getPosSp()(2);
+				_local_pos_sp.yaw = _control.getYawSetpoint();
+				_local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
+				_local_pos_sp.vx = _control.getVelSp()(0);
+				_local_pos_sp.vy = _control.getVelSp()(1);
+				_local_pos_sp.vz = _control.getVelSp()(2);
+
 				/* This entire logic is temporary:
 				 * Once FlightTasks support thrust setpoints,
 				 * it is no longer required to distinguish between modes.
@@ -3482,11 +3502,9 @@ MulticopterPositionControl::task_main()
 				_att_sp.q_d_valid = true;
 				/* fill and publish att_sp message */
 				_att_sp.thrust = thr_sp.length();
-
-				publish_local_pos_sp();
-
 			}
 
+			publish_local_pos_sp();
 			publish_attitude();
 
 		} else {
@@ -3660,16 +3678,8 @@ MulticopterPositionControl::publish_attitude()
 void
 MulticopterPositionControl::publish_local_pos_sp()
 {
-	/* fill local position, velocity and thrust setpoint */
-	_local_pos_sp.timestamp = hrt_absolute_time();
-	_local_pos_sp.x = _control.getPosSp()(0);
-	_local_pos_sp.y = _control.getPosSp()(1);
-	_local_pos_sp.z = _control.getPosSp()(2);
-	_local_pos_sp.yaw = _control.getYawSetpoint();
-	_local_pos_sp.vx = _control.getVelSp()(0);
-	_local_pos_sp.vy = _control.getVelSp()(1);
-	_local_pos_sp.vz = _control.getVelSp()(2);
 
+	_local_pos_sp.timestamp = hrt_absolute_time();
 	/* publish local position setpoint */
 	if (_local_pos_sp_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_local_position_setpoint),
@@ -3719,13 +3729,21 @@ MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_
 void
 MulticopterPositionControl::set_idle_state()
 {
+	_local_pos_sp.x = _pos(0);
+	_local_pos_sp.y = _pos(1);
+	_local_pos_sp.z = _pos(2) + 1.0f; //1m into ground when idle
+	_local_pos_sp.vx = 0.0f;
+	_local_pos_sp.vy = 0.0f;
+	_local_pos_sp.vz = 1.0f; //1m/s into ground
+	_local_pos_sp.yaw = _yaw;
+	_local_pos_sp.yawspeed = 0.0f;
+
 	_att_sp.roll_body = 0.0f;
 	_att_sp.pitch_body = 0.0f;
 	_att_sp.yaw_body = _yaw;
 	_att_sp.yaw_sp_move_rate = 0.0f;
 	_att_sp.q_d_valid = false;
 	_att_sp.thrust = 0.0f;
-
 }
 
 void

@@ -94,6 +94,12 @@
 
 #define SIGMA_SINGLE_OP			0.000001f
 #define SIGMA_NORM			0.001f
+
+/* Note: Flighttask is not officially supported. Therefore, any flighttask
+ * related implementation is currently only for testing.
+ * If you want to test Flighttask, set the boolean TESTFLIGHTTASK to true.
+ */
+#define TEST_FLIGHTTASK false
 /**
  * Multicopter position control app start / stop handling function
  *
@@ -3400,12 +3406,6 @@ MulticopterPositionControl::task_main()
 		if (!_control_mode.flag_control_altitude_enabled || !_control_mode.flag_control_manual_enabled) {
 			_alt_hold_engaged = false;
 		}
-
-		/* Note: Flighttask is not officially supported. Therefore, any flighttask
-		 * related implementation is currently only for testing.
-		 * If you want to test Flighttask, set the boolean TESTFLIGHTTASK to true.
-		 */
-		bool TEST_FLIGHTTASK = false;
 
 		if (_flight_tasks.isAnyTaskActive() && TEST_FLIGHTTASK) {
 

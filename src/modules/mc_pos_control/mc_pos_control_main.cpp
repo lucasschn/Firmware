@@ -49,7 +49,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include "TranslationControl.hpp"
+#include "PositionControl.hpp"
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_tasks.h>
@@ -237,7 +237,7 @@ private:
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
 
-	TranslationControl _control{};
+	PositionControl _control{};
 
 	FlightTasks _flight_tasks;
 
@@ -3464,7 +3464,6 @@ MulticopterPositionControl::task_main()
 				/*
 				 * Run altitude mode without smoothing
 				 * */
-
 				matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(&(_R.data[0][0]));
 				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))), R);
 				_control.updateSetpoint(setpoint);

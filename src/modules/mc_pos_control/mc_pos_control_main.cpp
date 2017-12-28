@@ -3680,6 +3680,7 @@ MulticopterPositionControl::publish_local_pos_sp()
 {
 
 	_local_pos_sp.timestamp = hrt_absolute_time();
+
 	/* publish local position setpoint */
 	if (_local_pos_sp_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_local_position_setpoint),

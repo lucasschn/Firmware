@@ -3457,6 +3457,7 @@ MulticopterPositionControl::task_main()
 				matrix::Vector3f thr_sp = _control.getThrustSetpoint();
 				landdetection_thrust_limit(thr_sp);
 				_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
+				_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
 
 			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
 
@@ -3497,6 +3498,7 @@ MulticopterPositionControl::task_main()
 				_att_sp.roll_body = rpy(0);
 				_att_sp.pitch_body = rpy(1);
 				_att_sp.yaw_body = rpy(2);
+				_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
 				matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 				q_sp.copyTo(_att_sp.q_d);
 				_att_sp.q_d_valid = true;
@@ -3743,7 +3745,9 @@ MulticopterPositionControl::set_idle_state()
 	_att_sp.pitch_body = 0.0f;
 	_att_sp.yaw_body = _yaw;
 	_att_sp.yaw_sp_move_rate = 0.0f;
-	_att_sp.q_d_valid = false;
+	matrix::Quatf q_sp = matrix::Eulerf(0.0f, 0.0f, _yaw);
+	q_sp.copyTo(_att_sp.q_d);
+	_att_sp.q_d_valid = true; //TODO: check if this flag is used anywhere
 	_att_sp.thrust = 0.0f;
 }
 

@@ -3561,7 +3561,7 @@ MulticopterPositionControl::task_main()
 			/* generate attitude setpoint from manual controls */
 			if (!_flight_tasks.isAnyTaskActive()) {
 				if (_control_mode.flag_control_manual_enabled
-						&& _control_mode.flag_control_attitude_enabled) {
+				    && _control_mode.flag_control_attitude_enabled) {
 
 					generate_attitude_setpoint(dt);
 

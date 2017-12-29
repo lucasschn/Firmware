@@ -971,6 +971,9 @@ MulticopterPositionControl::poll_subscriptions()
 	} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
 		_flight_tasks.switchTask(4);
 
+	} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL) {
+		_flight_tasks.switchTask(5);
+
 	} else {
 		// not supported yet.
 		_flight_tasks.switchTask(-1);
@@ -3430,6 +3433,27 @@ MulticopterPositionControl::task_main()
 				// Keep throttle low while still on ground.
 				set_idle_state();
 
+			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL) {
+
+				matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(&(_R.data[0][0]));
+				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))), R);
+				_control.updateSetpoint(setpoint);
+				_control.updateSetpoint(setpoint);
+				_control.generateThrustYawSetpoint(dt);
+
+				/* fill local position, velocity and thrust setpoint */
+				_local_pos_sp.timestamp = hrt_absolute_time();
+				_local_pos_sp.x = 0.0f;
+				_local_pos_sp.y = 0.0f;
+				_local_pos_sp.z = 0.0f;
+				_local_pos_sp.yaw = _control.getYawSetpoint();
+				_local_pos_sp.yawspeed = setpoint.yawspeed;
+				_local_pos_sp.vx = 0.0f;
+				_local_pos_sp.vy = 0.0f;
+				_local_pos_sp.vz = 0.0f;
+
+				_att_sp = ControlMath::thrustToAttitude(&_control.getThrustSetpoint()(0), _control.getYawSetpoint());
+				_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
 			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
 
 				/*

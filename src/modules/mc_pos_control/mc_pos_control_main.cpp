@@ -3433,35 +3433,12 @@ MulticopterPositionControl::task_main()
 				// Keep throttle low while still on ground.
 				set_idle_state();
 
-			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL) {
+			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL ||
+				   _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL ||
+				   _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
 
-				matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(&(_R.data[0][0]));
-				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))), R);
-				_control.updateSetpoint(setpoint);
-				_control.updateSetpoint(setpoint);
-				_control.generateThrustYawSetpoint(dt);
 
-				/* fill local position, velocity and thrust setpoint */
-				_local_pos_sp.timestamp = hrt_absolute_time();
-				_local_pos_sp.x = 0.0f;
-				_local_pos_sp.y = 0.0f;
-				_local_pos_sp.z = 0.0f;
-				_local_pos_sp.yaw = _control.getYawSetpoint();
-				_local_pos_sp.yawspeed = setpoint.yawspeed;
-				_local_pos_sp.vx = 0.0f;
-				_local_pos_sp.vy = 0.0f;
-				_local_pos_sp.vz = 0.0f;
-
-				_att_sp = ControlMath::thrustToAttitude(&_control.getThrustSetpoint()(0), _control.getYawSetpoint());
-				_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
-			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
-
-				/*
-				 * Run position mode without smoothing
-				 * */
-
-				matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(&(_R.data[0][0]));
-				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))), R);
+				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
 				_control.updateSetpoint(setpoint);
 				_control.updateConstraints(constraints);
 				_control.generateThrustYawSetpoint(dt);
@@ -3479,54 +3456,11 @@ MulticopterPositionControl::task_main()
 
 				/* We adjust thrust setpoint based on landdetector */
 				matrix::Vector3f thr_sp = _control.getThrustSetpoint();
-				landdetection_thrust_limit(thr_sp);
+				landdetection_thrust_limit(thr_sp); //TODO: only do that if not in pure manual
+
 				_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
 				_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
 
-			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
-
-				/*
-				 * Run altitude mode without smoothing
-				 * */
-				matrix::Matrix<float, 3, 3> R = matrix::Matrix<float, 3, 3>(&(_R.data[0][0]));
-				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))), R);
-				_control.updateSetpoint(setpoint);
-				_control.updateConstraints(constraints);
-				_control.generateThrustYawSetpoint(dt);
-
-				/* Get all the setpoints */
-				/* We adjust thrust setpoint based on landdetector */
-				matrix::Vector3f thr_sp = _control.getThrustSetpoint();
-				landdetection_thrust_limit(thr_sp);
-				float yaw_sp = _control.getYawSetpoint();
-
-				/* fill local position, velocity and thrust setpoint */
-				_local_pos_sp.timestamp = hrt_absolute_time();
-				_local_pos_sp.x = _control.getPosSp()(0);
-				_local_pos_sp.y = _control.getPosSp()(1);
-				_local_pos_sp.z = _control.getPosSp()(2);
-				_local_pos_sp.yaw = _control.getYawSetpoint();
-				_local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
-				_local_pos_sp.vx = _control.getVelSp()(0);
-				_local_pos_sp.vy = _control.getVelSp()(1);
-				_local_pos_sp.vz = _control.getVelSp()(2);
-
-				/* This entire logic is temporary:
-				 * Once FlightTasks support thrust setpoints,
-				 * it is no longer required to distinguish between modes.
-				 */
-				matrix::Vector3f rpy = get_stick_roll_pitch(yaw_sp);
-
-				/* fill attitude */
-				_att_sp.roll_body = rpy(0);
-				_att_sp.pitch_body = rpy(1);
-				_att_sp.yaw_body = rpy(2);
-				_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
-				matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
-				q_sp.copyTo(_att_sp.q_d);
-				_att_sp.q_d_valid = true;
-				/* fill and publish att_sp message */
-				_att_sp.thrust = thr_sp.length();
 			}
 
 			publish_local_pos_sp();

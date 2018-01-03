@@ -83,6 +83,8 @@ enum Protocol {
 	TCP,
 };
 
+#define HASH_PARAM "_HASH_CHECK"
+
 class Mavlink
 {
 

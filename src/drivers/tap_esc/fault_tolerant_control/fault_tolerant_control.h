@@ -44,6 +44,11 @@ public:
 	int		get_parameters_update();
 
 	/**
+	 * Update ftc enable parameter cache.
+	 */
+	bool	get_ftc_state();
+
+	/**
 	 * Check for parameter update and handle it.
 	 */
 	void 	parameter_update_poll();
@@ -57,11 +62,13 @@ private:
 	struct {
 		param_t motor_failure_gain;
 		param_t propeller_reverse_coefficient;
+		param_t ftc_flag;
 	}	_params_handles;		/**< handles for interesting parameters */
 
 	struct {
 		float motor_failure_gain;
 		float propeller_reverse_coefficient;
+		int32_t ftc_flag;
 	}	_params;
 
 	math::LowPassFilter2p

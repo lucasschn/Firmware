@@ -177,3 +177,15 @@ PARAM_DEFINE_FLOAT(FTC_YAWRATE_I, 0.1f);
  * @group Fault Tolerant Control
  */
 PARAM_DEFINE_FLOAT(FTC_YAWRATE_D, 0.0f);
+
+/**
+ * FTC configuration enable
+ *
+ * When this configuration is enabled the system will fault tolerant control when ESCs have fault.
+ *
+ * @value 0 Disabled
+ * @value 1 ENABLE FTC
+ *
+ * @group Fault Tolerant Control
+ */
+PARAM_DEFINE_INT32(FTC_ENABLE, 0);

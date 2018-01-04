@@ -23,6 +23,7 @@ FaultTolerantControl::FaultTolerantControl() :
 
 	if (get_parameters_handle() == OK) {
 		get_parameters_update();
+		get_ftc_state();
 	}
 
 }
@@ -36,6 +37,7 @@ int FaultTolerantControl::get_parameters_handle()
 {
 	_params_handles.motor_failure_gain		=	param_find("FTC_GAIN");
 	_params_handles.propeller_reverse_coefficient	=	param_find("PROPELL_REV_COEF");
+	_params_handles.ftc_flag	=	param_find("FTC_ENABLE");
 
 	return OK;
 }
@@ -48,6 +50,20 @@ int FaultTolerantControl::get_parameters_update()
 	param_get(_params_handles.propeller_reverse_coefficient, &p);	_params.propeller_reverse_coefficient 	= p;
 
 	return OK;
+}
+
+bool FaultTolerantControl::get_ftc_state()
+{
+	int32_t p;
+
+	param_get(_params_handles.ftc_flag, &p);	_params.ftc_flag 	= p;
+
+	if (_params.ftc_flag) {
+		return true;
+
+	} else {
+		return false;
+	}
 }
 
 void FaultTolerantControl::parameter_update_poll()

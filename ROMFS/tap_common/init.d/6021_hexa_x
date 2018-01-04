@@ -300,6 +300,9 @@ then
 	param set SYS_CAL_ACC_TOL 1
 	param set SYS_CAL_GYRO_TOL 0.1
 
+	# enable fault tolerant control
+	param set FTC_ENABLE 1
+
 	param save
 fi
 

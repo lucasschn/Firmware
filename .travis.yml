@@ -45,7 +45,7 @@ matrix:
       env: BUILD_TARGET=clang-tidy
     - os: osx
       sudo: true
-      osx_image: xcode8.3
+      osx_image: xcode9.2
       env: BUILD_TARGET=tests
 
 cache:

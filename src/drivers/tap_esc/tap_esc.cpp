@@ -716,7 +716,7 @@ TAP_ESC::cycle()
 
 						// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
 						if (((hrt_absolute_time() - _wait_esc_save_log) > 5000000)
-							|| (_esc_feedback.esc[diagonal_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
+						    || (_esc_feedback.esc[diagonal_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
 							// stop the failure motor
 							motor_out[diagonal_motor_num] = RPMSTOPPED;
 
@@ -729,7 +729,7 @@ TAP_ESC::cycle()
 
 						// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
 						if (((hrt_absolute_time() - _wait_esc_save_log) > 5000000)
-							|| (_esc_feedback.esc[failure_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
+						    || (_esc_feedback.esc[failure_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
 							// stop the failure motor
 							motor_out[failure_motor_num] = RPMSTOPPED;
 

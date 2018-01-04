@@ -669,47 +669,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 		break;
 
-	case commander_state_s::MAIN_STATE_POSCTL: {
-
-			if (rc_lost && is_armed) {
-				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
-
-				set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
-
-				/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
-				/* A local position estimate is enough for POSCTL for multirotors,
-				 * this enables POSCTL using e.g. flow.
-				 * For fixedwing, a global position is needed. */
-
-			} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, !(posctl_nav_loss_act == 1), !status->is_rotary_wing)) {
-				// nothing to do - everything done in check_invalid_pos_nav_state
-
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
-			}
-		}
-		break;
-	case commander_state_s::MAIN_STATE_SPORT: {
-
-			if (rc_lost && is_armed) {
-				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
-
-				set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
-
-				/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
-				/* A local position estimate is enough for POSCTL for multirotors,
-				 * this enables POSCTL using e.g. flow.
-				 * For fixedwing, a global position is needed. */
-
-			} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, !(posctl_nav_loss_act == 1), !status->is_rotary_wing)) {
-				// nothing to do - everything done in check_invalid_pos_nav_state
-
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_SPORT;
-			}
-		}
-		break;
-
+	case commander_state_s::MAIN_STATE_POSCTL:
+	case commander_state_s::MAIN_STATE_SPORT:
 	case commander_state_s::MAIN_STATE_SMART: {
 
 			if (rc_lost && is_armed) {
@@ -724,8 +685,19 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 			} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, !(posctl_nav_loss_act == 1), !status->is_rotary_wing)) {
 				// nothing to do - everything done in check_invalid_pos_nav_state
+
 			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_SMART;
+				switch (internal_state->main_state) {
+				case commander_state_s::MAIN_STATE_SPORT:
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_SPORT;
+					break;
+				case commander_state_s::MAIN_STATE_SMART:
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_SMART;
+					break;
+				default:
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+					break;
+				}
 			}
 		}
 		break;

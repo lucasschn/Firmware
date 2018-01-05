@@ -685,7 +685,7 @@ TAP_ESC::cycle()
 
 #endif
 
-		if (_fault_tolerant_control->get_ftc_state()) {
+		if (_fault_tolerant_control->get_ftc_enable()) {
 
 			int failure_motor_num = -1;
 

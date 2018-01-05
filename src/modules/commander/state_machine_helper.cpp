@@ -72,10 +72,8 @@ static const char reason_no_rc[] = "RC lost";
 static const char reason_no_offboard[] = "offboard control timeout";
 static const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
 static const char reason_no_gps[] = "GPS lost";
-static const char reason_no_gps_cmd[] = "no GPS cmd";
 static const char reason_no_local_position[] = "no local position";
 static const char reason_no_global_position[] = "no global position";
-static const char reason_no_home[] = "no home";
 static const char reason_no_datalink[] = "no datalink";
 
 // This array defines the arming state transitions. The rows are the new state, and the columns

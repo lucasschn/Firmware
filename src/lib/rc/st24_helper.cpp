@@ -37,6 +37,8 @@
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>
 
+#include <unistd.h>
+
 void St24Helper::init(int rcs_fd)
 {
 	_vehicle_landed_sub = orb_subscribe(ORB_ID(vehicle_land_detected));

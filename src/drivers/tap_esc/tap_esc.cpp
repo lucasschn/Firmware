@@ -168,7 +168,9 @@ private:
 					       uint8_t control_group, uint8_t control_index, float &input);
 	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
 
+#ifdef BOARD_SUPPORT_FTC
 	FaultTolerantControl *_fault_tolerant_control = nullptr;
+#endif
 	int esc_failure_check(uint8_t channel_id);
 	hrt_abstime
 	_wait_esc_save_log; // wait time for ESC saves log,because when motors stop ESC will do not has enough time to save log
@@ -229,8 +231,9 @@ TAP_ESC::TAP_ESC():
 
 	_outputs.noutputs = 0;
 
+#ifdef BOARD_SUPPORT_FTC
 	_fault_tolerant_control = new FaultTolerantControl();
-
+#endif
 }
 
 TAP_ESC::~TAP_ESC()
@@ -257,10 +260,14 @@ TAP_ESC::~TAP_ESC()
 
 	// clean up the alternate device node
 	//unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
+#ifdef BOARD_SUPPORT_FTC
+
 	if (_fault_tolerant_control != nullptr) {
 		delete _fault_tolerant_control;
 		_fault_tolerant_control = nullptr;
 	}
+
+#endif
 }
 
 /** @see ModuleBase */
@@ -685,6 +692,8 @@ TAP_ESC::cycle()
 
 #endif
 
+#ifdef BOARD_SUPPORT_FTC
+
 		if (_fault_tolerant_control->get_ftc_enable()) {
 
 			int failure_motor_num = -1;
@@ -760,6 +769,8 @@ TAP_ESC::cycle()
 				}
 			}
 		}
+
+#endif
 
 		/* Kill switch is enabled, emergency stop */
 		if (_armed.manual_lockdown) {

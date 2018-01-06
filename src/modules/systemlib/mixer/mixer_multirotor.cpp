@@ -331,8 +331,11 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 				yaw = 0.0f;
 
 			} else {
+				const bool do_ftc = space < _rotor_count;
+				// don't reduction thrust for yaw control when motors have fault
+				float thrust_compensation = do_ftc ? thrust : thrust - thrust_reduction;
 				yaw = (1.0f - ((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
-					       roll_pitch_scale + (thrust - thrust_reduction) + boost)) / _rotors[i].yaw_scale;
+					       roll_pitch_scale + thrust_compensation + boost)) / _rotors[i].yaw_scale;
 			}
 		}
 	}

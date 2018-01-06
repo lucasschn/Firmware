@@ -575,7 +575,19 @@ TAP_ESC::cycle()
 			}
 		}
 
-		size_t num_outputs = _channels_count;
+		uint8_t motor_fault_count = 0;
+
+		/* get the fault motor counter */
+		for (unsigned i = 0; i < _channels_count; i++) {
+			const bool bit_set_fault = _esc_feedback.engine_failure_report.motor_state & (1 << i);
+
+			if (bit_set_fault) {
+				motor_fault_count ++;
+			}
+		}
+
+		/* get the actual number of motors */
+		uint8_t num_outputs = _channels_count - motor_fault_count;
 
 		/* can we mix? */
 		if (_is_armed && _mixers != nullptr) {

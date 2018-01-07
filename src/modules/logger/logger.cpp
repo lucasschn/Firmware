@@ -1819,7 +1819,7 @@ void Logger::write_parameters()
 	param_t param = 0;
 
 	do {
-		// get next parameter which is invalid OR used
+		// skip over all parameters which are not invalid and not used
 		do {
 			param = param_for_index(param_idx);
 			++param_idx;
@@ -1827,7 +1827,7 @@ void Logger::write_parameters()
 
 		// save parameters which are valid AND used
 		if (param != PARAM_INVALID) {
-			/* get parameter type and size */
+			// get parameter type and size
 			const char *type_str;
 			param_type_t type = param_type(param);
 			size_t value_size = 0;
@@ -1847,12 +1847,23 @@ void Logger::write_parameters()
 				continue;
 			}
 
-			/* format parameter key (type and name) */
+			// format parameter key (type and name)
 			msg.key_len = snprintf(msg.key, sizeof(msg.key), "%s %s", type_str, param_name(param));
 			size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
-			/* copy parameter value directly to buffer */
-			param_get(param, &buffer[msg_size]);
+			// copy parameter value directly to buffer
+			switch (type) {
+			case PARAM_TYPE_INT32:
+				param_get(param, (int32_t*)&buffer[msg_size]);
+				break;
+
+			case PARAM_TYPE_FLOAT:
+				param_get(param, (float*)&buffer[msg_size]);
+				break;
+
+			default:
+				continue;
+			}
 			msg_size += value_size;
 
 			msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
@@ -1876,7 +1887,7 @@ void Logger::write_changed_parameters()
 	param_t param = 0;
 
 	do {
-		// get next parameter which is invalid OR used
+		// skip over all parameters which are not invalid and not used
 		do {
 			param = param_for_index(param_idx);
 			++param_idx;
@@ -1885,7 +1896,7 @@ void Logger::write_changed_parameters()
 		// log parameters which are valid AND used AND unsaved
 		if ((param != PARAM_INVALID) && param_value_unsaved(param)) {
 
-			/* get parameter type and size */
+			// get parameter type and size
 			const char *type_str;
 			param_type_t type = param_type(param);
 			size_t value_size = 0;
@@ -1905,15 +1916,26 @@ void Logger::write_changed_parameters()
 				continue;
 			}
 
-			/* format parameter key (type and name) */
+			// format parameter key (type and name)
 			msg.key_len = snprintf(msg.key, sizeof(msg.key), "%s %s", type_str, param_name(param));
 			size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
-			/* copy parameter value directly to buffer */
-			param_get(param, &buffer[msg_size]);
+			// copy parameter value directly to buffer
+			switch (type) {
+			case PARAM_TYPE_INT32:
+				param_get(param, (int32_t*)&buffer[msg_size]);
+				break;
+
+			case PARAM_TYPE_FLOAT:
+				param_get(param, (float*)&buffer[msg_size]);
+				break;
+
+			default:
+				continue;
+			}
 			msg_size += value_size;
 
-			/* msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size */
+			// msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size
 			msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 			write_message(buffer, msg_size);
@@ -1938,7 +1960,7 @@ int Logger::check_free_space()
 		max_log_dirs_to_keep = INT32_MAX;
 	}
 
-	/* remove old logs if the free space falls below a threshold */
+	// remove old logs if the free space falls below a threshold
 	do {
 		if (statfs(LOG_ROOT, &statfs_buf) != 0) {
 			return PX4_ERROR;

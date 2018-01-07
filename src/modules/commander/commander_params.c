@@ -771,6 +771,8 @@ PARAM_DEFINE_FLOAT(COM_LND_INTRUPT, 1.0f);
  * The first flight is 0.
  *
  * @group Commander
+ * @category system
+ * @volatile
  * @min 0
  */
 PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);

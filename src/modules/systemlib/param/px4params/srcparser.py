@@ -58,6 +58,7 @@ class Parameter(object):
         self.name = name
         self.type = type
         self.default = default
+        self.volatile = "false"
 
     def GetName(self):
         return self.name
@@ -67,6 +68,9 @@ class Parameter(object):
 
     def GetDefault(self):
         return self.default
+
+    def GetVolatile(self):
+        return self.volatile
 
     def SetField(self, code, value):
         """
@@ -85,6 +89,12 @@ class Parameter(object):
         Set named enum value
         """
         self.bitmask[index] = bit
+
+    def SetVolatile(self):
+        """
+        Set volatile flag
+        """
+        self.volatile = "true"
 
     def GetFieldCodes(self):
         """
@@ -286,6 +296,8 @@ class SourceParser(object):
                         for tag in tags:
                             if tag == "group":
                                 group = tags[tag]
+                            elif tag == "volatile":
+                                param.SetVolatile()
                             elif tag not in self.valid_tags:
                                 sys.stderr.write("Skipping invalid documentation tag: '%s'\n" % tag)
                                 return False
@@ -336,6 +348,9 @@ class SourceParser(object):
                 if default != "" and not self.IsNumber(default):
                     sys.stderr.write("Default value not number: {0} {1}\n".format(name, default))
                     return False
+                # if default != "" and "." not in default:
+                #     sys.stderr.write("Default value does not contain dot (e.g. 10 needs to be written as 10.0): {0} {1}\n".format(name, default))
+                #     return False
                 if min != "":
                     if not self.IsNumber(min):
                         sys.stderr.write("Min value not number: {0} {1}\n".format(name, min))

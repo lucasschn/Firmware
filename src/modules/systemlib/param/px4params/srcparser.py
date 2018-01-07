@@ -59,6 +59,7 @@ class Parameter(object):
         self.type = type
         self.default = default
         self.volatile = "false"
+        self.category = ""
 
     def GetName(self):
         return self.name
@@ -68,6 +69,9 @@ class Parameter(object):
 
     def GetDefault(self):
         return self.default
+
+    def GetCategory(self):
+        return self.category.title()
 
     def GetVolatile(self):
         return self.volatile
@@ -95,6 +99,12 @@ class Parameter(object):
         Set volatile flag
         """
         self.volatile = "true"
+
+    def SetCategory(self, category):
+        """
+        Set param category
+        """
+        self.category = category
 
     def GetFieldCodes(self):
         """
@@ -169,7 +179,7 @@ class SourceParser(object):
     re_remove_dots = re.compile(r'\.+$')
     re_remove_carriage_return = re.compile('\n+')
 
-    valid_tags = set(["group", "board", "min", "max", "unit", "decimal", "increment", "reboot_required", "value", "boolean", "bit", "level", "volatile"])
+    valid_tags = set(["group", "board", "min", "max", "unit", "decimal", "increment", "reboot_required", "value", "boolean", "bit", "category", "volatile"])
 
     # Order of parameter groups
     priority = {
@@ -298,6 +308,8 @@ class SourceParser(object):
                                 group = tags[tag]
                             elif tag == "volatile":
                                 param.SetVolatile()
+                            elif tag == "category":
+                                param.SetCategory(tags[tag])
                             elif tag not in self.valid_tags:
                                 sys.stderr.write("Skipping invalid documentation tag: '%s'\n" % tag)
                                 return False

@@ -232,7 +232,17 @@ TAP_ESC::TAP_ESC():
 	_outputs.noutputs = 0;
 
 #ifdef BOARD_SUPPORT_FTC
-	_fault_tolerant_control = new FaultTolerantControl();
+	int32_t ftc_enable;
+	param_get(param_find("FTC_ENABLE"), &ftc_enable);
+
+	if (ftc_enable != 0) {
+		PX4_INFO("fault-tolerant-control enabled");
+		_fault_tolerant_control = new FaultTolerantControl();
+
+	} else {
+		PX4_WARN("fault-tolerant-control disabled by parameter");
+	}
+
 #endif
 }
 
@@ -706,7 +716,7 @@ TAP_ESC::cycle()
 
 #ifdef BOARD_SUPPORT_FTC
 
-		if (_fault_tolerant_control->get_ftc_enable()) {
+		if (_fault_tolerant_control != nullptr) {
 
 			int failure_motor_num = -1;
 

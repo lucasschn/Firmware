@@ -69,9 +69,10 @@
 
 const uint8_t TAP_ESC_UPLOADER::_device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
 
-TAP_ESC_UPLOADER::TAP_ESC_UPLOADER(uint8_t esc_counter) :
+TAP_ESC_UPLOADER::TAP_ESC_UPLOADER(const char *device, uint8_t esc_counter) :
 	_esc_fd(-1),
 	_fw_fd(-1),
+	_device(device),
 	_esc_counter(esc_counter),
 	_uploader_packet{},
 	_mavlink_log_pub(nullptr)
@@ -144,8 +145,8 @@ TAP_ESC_UPLOADER::upload_id(uint8_t esc_id, int32_t fw_size)
 			break;
 
 		} else {
-			/* send sync interval time: 2ms */
-			usleep(2000);
+			/* send sync interval time: 50ms */
+			usleep(50000);
 		}
 	}
 
@@ -325,8 +326,8 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 				break;
 
 			} else {
-				/* send sync interval time: 2ms */
-				usleep(2000);
+				/* send sync interval time: 50ms */
+				usleep(50000);
 			}
 		}
 
@@ -1162,11 +1163,8 @@ TAP_ESC_UPLOADER::reboot(uint8_t esc_id)
 int
 TAP_ESC_UPLOADER::initialise_uart()
 {
-#ifndef TAP_ESC_SERIAL_DEVICE
-#error Must define TAP_ESC_SERIAL_DEVICE in board configuration to support firmware upload
-#endif
 	/* open uart */
-	_esc_fd = open(TAP_ESC_SERIAL_DEVICE, O_RDWR);
+	_esc_fd = open(_device, O_RDWR);
 	int termios_state = -1;
 
 	if (_esc_fd < 0) {
@@ -1184,13 +1182,13 @@ TAP_ESC_UPLOADER::initialise_uart()
 
 	/* set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		PX4_LOG("failed to set baudrate for %s: %d\n", TAP_ESC_SERIAL_DEVICE, termios_state);
+		PX4_LOG("failed to set baudrate for %s: %d\n", _device, termios_state);
 		close(_esc_fd);
 		return -1;
 	}
 
 	if ((termios_state = tcsetattr(_esc_fd, TCSANOW, &uart_config)) < 0) {
-		PX4_LOG("tcsetattr failed for %s\n", TAP_ESC_SERIAL_DEVICE);
+		PX4_LOG("tcsetattr failed for %s\n", _device);
 		close(_esc_fd);
 		return -1;
 	}

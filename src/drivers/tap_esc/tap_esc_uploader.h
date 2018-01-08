@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define TAP_ESC_SERIAL_DEVICE	"/dev/ttyS2"
 #define TAP_ESC_FW_SEARCH_PATHS {"/etc/extras/tap_esc.bin", "/fs/microsd/tap_esc.bin", nullptr }
 #define PROTO_SUPPORT_BL_REV 5	/**< supported bootloader protocol revision */
 #define SYNC_RETRY_TIMES     5	/**< esc sync failed allow retry times*/
@@ -54,7 +53,7 @@
 class TAP_ESC_UPLOADER
 {
 public:
-	TAP_ESC_UPLOADER(uint8_t esc_counter);
+	TAP_ESC_UPLOADER(const char *device, uint8_t esc_counter);
 	virtual ~TAP_ESC_UPLOADER();
 
 	int		upload(const char *filenames[]);
@@ -216,6 +215,7 @@ private:
 
 	int			_esc_fd;
 	int			_fw_fd;
+	const char *_device;
 	uint8_t 	_esc_counter;
 
 	/* _device_mux_map[sel]:Asign the id's to the ESC to match the mux */

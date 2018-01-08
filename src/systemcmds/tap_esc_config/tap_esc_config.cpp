@@ -46,6 +46,10 @@
 #include <drivers/tap_esc/drv_tap_esc.h>  // ESC_UART_BUF
 #include <drivers/tap_esc/tap_esc_common.h>
 
+#if !defined(BOARD_TAP_ESC_MODE)
+#define  BOARD_TAP_ESC_MODE 0
+#endif
+
 /**
  *  Print command line usage
  */
@@ -56,7 +60,7 @@ static void	print_usage(const char *reason = nullptr);
  *  @param fw_paths Firmware paths to search for the binary file. Must be terminated with a nullptr entry.
  *  @param device Unix path of UART device where ESCs are connected to
  *  @param num_escs Number of ESCs that are currently connected to the board
- *  @return 0 on success, 1 on error instantiating the uploader and othwerwise errno (linux man)
+ *  @return PX4_OK on success, PX4_ERROR on error instantiating the uploader and othwerwise errno (linux man)
  */
 static int upload_firmware(const char *fw_paths[], const char *device, uint8_t num_escs);
 
@@ -65,7 +69,7 @@ static int upload_firmware(const char *fw_paths[], const char *device, uint8_t n
  *  @param fw_paths Firmware paths to search for the binary file. Must be terminated with a nullptr entry.
  *  @param device Unix path of UART device where ESCs are connected to
  *  @param num_escs Number of ESCs that are currently connected to the board
- *  @return 0 on success, -1 on error
+ *  @return PX4_OK on success, PX4_ERROR on error
  */
 static int check_crc(const char *fw_paths[], const char *device, uint8_t num_escs);
 
@@ -75,7 +79,7 @@ static int check_crc(const char *fw_paths[], const char *device, uint8_t num_esc
  *  @param device Unix path of UART device where ESCs are connected to
  *  @param id ID that should be assigned to an ESC, starting from 0
  *  @param num_escs Number of ESCs that are currently connected to the board
- *  @return 0 on success, -1 on error
+ *  @return PX4_OK on success, PX4_ERROR on error
  */
 static int configure_esc_id(const char *device, int8_t id, uint8_t num_escs);
 
@@ -129,15 +133,13 @@ tap_esc_config checkcrc -d /dev/ttyS2 -n 6
 
 static int upload_firmware(const char * fw_paths[], const char * device, uint8_t num_escs)
 {
-	// TODO: Make use of device!
 	TAP_ESC_UPLOADER *uploader = nullptr;
-	uploader = new TAP_ESC_UPLOADER(num_escs);
+	uploader = new TAP_ESC_UPLOADER(device, num_escs);
 
 	if (uploader==nullptr)
 	{
 		PX4_ERR("failed to initialize firmware uploader");
-		delete uploader;
-		return 1;
+		return PX4_ERROR;
 	}
 
 	PX4_INFO("flashing firmware %s", fw_paths[0]);
@@ -150,20 +152,32 @@ static int upload_firmware(const char * fw_paths[], const char * device, uint8_t
 		break;
 
 	case -ENOENT:
-		PX4_ERR("firmware file not found");
+		PX4_ERR("firmware upload failed with error: %s (%d). The firmware file "
+						"could not be found", strerror(ret), ret);
+		break;
 
 	case -EEXIST:
+		PX4_ERR("firmware upload failed with error: %s (%d)", strerror(ret), ret);
+		break;
+
 	case -EIO:
-		PX4_ERR("error updating ESCs - check that bootloader mode is enabled");
+		PX4_ERR("firmware upload failed with error: %s (%d). Check that bootloader "
+						"mode is enabled", strerror(ret), ret);
+		break;
 
 	case -EINVAL:
-		PX4_ERR("firmware verification failed - try again");
+		PX4_ERR("firmware upload failed with error: %s (%d). Firmware verification "
+						"failed, try again", strerror(ret), ret);
+		break;
 
 	case -ETIMEDOUT:
-		PX4_ERR("timed out waiting for bootloader - power-cycle and try again");
+		PX4_ERR("firmware upload failed with error: %s (%d). Timed out waiting for "
+						"bootloader - power-cycle and try again", strerror(ret), ret);
+		break;
 
 	default:
-		PX4_ERR("unexpected error %d", ret);
+		PX4_ERR("unexpected error %s (%d)", strerror(ret), ret);
+		break;
 	}
 
 	return ret;
@@ -172,13 +186,12 @@ static int upload_firmware(const char * fw_paths[], const char * device, uint8_t
 static int check_crc(const char * fw_paths[], const char * device, uint8_t num_escs)
 {
 	TAP_ESC_UPLOADER *uploader = nullptr;
-	uploader = new TAP_ESC_UPLOADER(num_escs);
+	uploader = new TAP_ESC_UPLOADER(device, num_escs);
 
 	if (uploader==nullptr)
 	{
 		PX4_ERR("failed to initialize firmware uploader");
-		delete uploader;
-		return -1;
+		return PX4_ERROR;
 	}
 
 	int ret = uploader->checkcrc(&fw_paths[0]);
@@ -214,8 +227,8 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 	ret = tap_esc_common::send_packet(uart_fd, packet, 0);
 	if (ret < 0) {
 		PX4_ERR("Error sending basic config packet to ESCs");
-		return
-		 ret;
+		tap_esc_common::deinitialise_uart(uart_fd);
+		return ret;
 	}
 
 	usleep(30000);
@@ -233,6 +246,7 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 		ret = tap_esc_common::send_packet(uart_fd, unlock_packet, -1);
 		if (ret < 0) {
 			PX4_ERR("failed sending the ESC basic configuration packet");
+			tap_esc_common::deinitialise_uart(uart_fd);
 			return ret;
 		}
 
@@ -293,7 +307,7 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 	}
 
 	tap_esc_common::deinitialise_uart(uart_fd);
-	return 0;
+	return PX4_OK;
 }
 
 int tap_esc_config_main(int argc, char *argv[]) {
@@ -333,19 +347,19 @@ int tap_esc_config_main(int argc, char *argv[]) {
 
 	if (myoptind >= argc) {
 		print_usage();
-		return 1;
+		return PX4_ERROR;
 	}
 
 	if (device == nullptr || strlen(device) == 0){
 		print_usage("device not specified");
-		return 1;
+		return PX4_ERROR;
 	}
+
 	if (num_escs==0)
 	{
 		print_usage("number of ESCs must be positive");
-		return 1;
+		return PX4_ERROR;
 	}
-
 
 	if (!strcmp(argv[myoptind], "checkcrc")) {
 		return check_crc(&firmware_paths[0], device, num_escs);
@@ -354,7 +368,7 @@ int tap_esc_config_main(int argc, char *argv[]) {
 		if (id_config_num>=num_escs)
 		{
 			print_usage("ID mut be smaller than the number of channels");
-			return 1;
+			return PX4_ERROR;
 		}
 		return configure_esc_id(device, id_config_num, num_escs);
 
@@ -363,8 +377,8 @@ int tap_esc_config_main(int argc, char *argv[]) {
 
 	} else {
 		print_usage("Command not recognised");
-		return 1;
+		return PX4_ERROR;
 	}
 
-	return 0;
+	return PX4_OK;
 }

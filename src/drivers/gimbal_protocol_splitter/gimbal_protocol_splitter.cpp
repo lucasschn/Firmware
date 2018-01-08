@@ -222,7 +222,7 @@ ssize_t YMavlinkDev::write(struct file *filp, const char *buffer, size_t buflen)
 			return 0;
 		}
 
-	//no break
+	/* FALLTHROUGH */
 	case ParserState::GotLength:
 		_packet_len -= buflen;
 		ret = ::write(_fd, buffer, buflen);
@@ -298,7 +298,7 @@ ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 			return 0;
 		}
 
-	//no break
+	/* FALLTHROUGH */
 	case ParserState::GotLength: {
 			_packet_len -= buflen;
 			int buf_free;

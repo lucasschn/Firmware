@@ -490,7 +490,7 @@ ssize_t MavlinkDuplicator::write(struct file *filp, const char *buffer, size_t b
 			return -1;
 		}
 
-	//no break
+	/* FALLTHROUGH */
 	case ParserState::GotLength: {
 			_packet_len -= buflen;
 

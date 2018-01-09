@@ -969,7 +969,7 @@ MulticopterPositionControl::poll_subscriptions()
 		_flight_tasks.switchTask(6); //smooth altitude
 
 	} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
-		_flight_tasks.switchTask(4);
+		_flight_tasks.switchTask(7); //sooth position
 
 	} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL) {
 		_flight_tasks.switchTask(5);

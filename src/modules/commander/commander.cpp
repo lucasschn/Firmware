@@ -2357,7 +2357,7 @@ int commander_thread_main(int argc, char *argv[])
 						time_last_spd_low = hrt_absolute_time();
 					}
 
-					// pass if sufficient time has lapsed from takeoff of if the speed threshold has been exceeded for more than 3 sec
+					// pass if sufficient time has lapsed from takeoff or if the speed threshold has been exceeded for more than 3 sec
 					if (sufficient_time || ((hrt_absolute_time() - time_last_spd_low) > 3*1000*1000)) {
 						nav_test_passed = true;
 					}

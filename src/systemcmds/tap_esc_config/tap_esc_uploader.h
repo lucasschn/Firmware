@@ -40,8 +40,6 @@
 #define _TAP_ESC_UPLOADER_H
 
 #include <drivers/tap_esc/drv_tap_esc.h>
-
-#include <cfloat>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -52,7 +50,8 @@
 #define ESCBUS_DATA_CRC_LEN 248 /**< length of data field is 255 and plus one byte for CRC*/
 #define ESC_WAIT_BEFORE_READ 1	/**< ms, wait before reading to save read() calls*/
 #define ESC_VERSION_OFFSET_ADDR 0x200 /**< ESCs firmware version offset address in tap_esc.bin file */
-#define ESC_FW_VER_BYTE 4		/**< bytes of ESC firmware version */
+#define ESC_FW_VER_BYTES 4		/**< Number of bytes used to encode ESC firmware version */
+#define CODE_ESCS_ALREADY_UPTODATE 1
 
 class TAP_ESC_UPLOADER
 {
@@ -70,12 +69,13 @@ public:
 	 * @return OK on success, or -errno otherwise.
 	 */
 	int read_esc_version_from_bin(const char *filenames[], uint32_t &ver);
+
 	/*
-	 * Check version of firmware currently loaded on ESCs and update if necessary
+	 * Update ESC firmware with newer version from binary, if necessary.
 	 * @param filenames
-	 * @return OK on success, or -errno otherwise.
+	 * @return 'CODE_ESCS_ALREADY_UPTODATE' if no update is required, 'PX4_OK' if updated, or '-errno' otherwise.
 	 */
-	int ensure_version(const char *filenames[]);
+	int update_fw(const char *filenames[]);
 
 private:
 

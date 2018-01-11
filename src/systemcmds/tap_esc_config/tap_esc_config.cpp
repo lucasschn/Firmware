@@ -61,7 +61,7 @@ static void	print_usage(const char *reason = nullptr);
  *  @param fw_paths Firmware paths to search for the binary file. Must be terminated with a nullptr entry.
  *  @param device Unix path of UART device where ESCs are connected to
  *  @param num_escs Number of ESCs that are currently connected to the board
- *  @return PX4_OK on success, PX4_ERROR on error instantiating the uploader and othwerwise errno (linux man)
+ *  @return PX4_OK on success, PX4_ERROR on error instantiating the uploader and othwerwise -errno (linux man)
  */
 static int upload_firmware(const char *fw_paths[], const char *device, uint8_t num_escs);
 
@@ -70,7 +70,7 @@ static int upload_firmware(const char *fw_paths[], const char *device, uint8_t n
  *  @param fw_paths Firmware paths to search for the binary file. Must be terminated with a nullptr entry.
  *  @param device Unix path of UART device where ESCs are connected to
  *  @param num_escs Number of ESCs that are currently connected to the board
- *  @return PX4_OK on success, PX4_ERROR on error
+ *  @return PX4_OK on success, PX4_ERROR on error or -errno (linux man) if available
  */
 static int check_crc(const char *fw_paths[], const char *device, uint8_t num_escs);
 
@@ -80,11 +80,21 @@ static int check_crc(const char *fw_paths[], const char *device, uint8_t num_esc
  *  @param device Unix path of UART device where ESCs are connected to
  *  @param id ID that should be assigned to an ESC, starting from 0
  *  @param num_escs Number of ESCs that are currently connected to the board
- *  @return PX4_OK on success, PX4_ERROR on error
+ *  @return PX4_OK on success, PX4_ERROR on error or -errno (linux man) if available
  */
 static int configure_esc_id(const char *device, int8_t id, uint8_t num_escs);
 
-static int ensure_version(const char *fw_paths[], const char *device, uint8_t num_escs);
+/**
+ *  Update the ESCs with a firmware binary, if the binary has a newer version.
+ *  A version request is sent to each ESC and compared with the version of the
+ *  binary. In the event, that the ESCs are outdated and do not yet support the
+ *  version query, an update is attempted anyway.
+ *  @param fw_paths Firmware paths to search for the binary file. Must be terminated with a nullptr entry.
+ *  @param device Unix path of UART device where ESCs are connected to
+ *  @param num_escs Number of ESCs that are currently connected to the board
+ *  @return PX4_OK on success, -errno (linux man) on error
+ */
+static int update_fw(const char *fw_paths[], const char *device, uint8_t num_escs);
 
 extern "C" {
 	__EXPORT int tap_esc_config_main(int argc, char *argv[]);
@@ -99,19 +109,19 @@ static void print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Command-line tool to configure, flash and check ESCs.
+Command-line tool to configure, flash and check ESC firmware.
 
-To use it make sure no esc driver is running and using the same serial device'.
+To use it make sure no esc driver is running ("tap_esc stop")'.
 
 ### Examples
-Flash firmware to board with six ESC channels connected to /dev/ttyS2
+Flash firmware to 6 ESC channels connected to /dev/ttyS2
 $ tap_esc_config upload /dev/ttyS2 -n 6
 
-Configure ID of all ESCs of a quadrotor
+Configure ID of all ESCs of a quadrotor (not supported by all ESCs)
 tap_esc_config identify -d /dev/ttyS4 -n 4
 
 Check firmware CRC of al ESCs and re-flash on mismatch
-tap_esc_config checkcrc -d /dev/ttyS2 -n 6
+tap_esc_config checkcrc -d /dev/ttyS4 -n 6
 
 )DESCR_STR");
 
@@ -122,24 +132,24 @@ tap_esc_config checkcrc -d /dev/ttyS2 -n 6
 	PRINT_MODULE_USAGE_PARAM_INT('n', 0, 4, 8, "Number of ESCs", false);
 	PRINT_MODULE_USAGE_PARAM_INT('t', 0, 0, 8, "Target ESC of which to configure ID. If not specified all ESCs will be configured", true);
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("checkcrc", "Check CRC of firmware and re-flash on mismatch");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("checkcrc", "Check CRC of firmware of ESCs and binary file and re-flash on mismatch");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Device used to talk to ESCs", false);
 	PRINT_MODULE_USAGE_PARAM_INT('n', 0, 6, 8, "Number of ESCs", false);
-	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Firmware used to flash", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Firmware binary file", true);
 
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("upload", "Upload new firmware to ESCs");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("upload", "Upload firmware from binary to ESCs. No version check happens!");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Device used to talk to ESCs", false);
 	PRINT_MODULE_USAGE_PARAM_INT('n', 0, 6, 8, "Number of ESCs", false);
-	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Firmware used to check CRC against", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Firmware binary file", true);
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("ensure_version", "auto upgrade and read ESC's firmware version from ESC bin file");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("update_fw", "Update ESC firmware from binary if binary has newer version");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Device used to talk to ESCs", false);
 	PRINT_MODULE_USAGE_PARAM_INT('n', 0, 6, 8, "Number of ESCs", false);
+	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Firmware binary file", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bin_version", "read ESC's firmware version from ESC bin file");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Device used to talk to ESCs", false);
-	PRINT_MODULE_USAGE_PARAM_INT('n', 0, 6, 8, "Number of ESCs", false);
+	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Firmware binary file", true);
 }
 
 static int upload_firmware(const char * fw_paths[], const char * device, uint8_t num_escs)
@@ -217,30 +227,25 @@ static int check_crc(const char * fw_paths[], const char * device, uint8_t num_e
 
 static int read_bin_version(const char * fw_paths[], const char * device, uint8_t num_escs)
 {
-	TAP_ESC_UPLOADER *uploader = nullptr;
-	uploader = new TAP_ESC_UPLOADER(device, num_escs);
+	TAP_ESC_UPLOADER *uploader = new TAP_ESC_UPLOADER(device, num_escs);
 
 	if (uploader==nullptr)
 	{
 		PX4_ERR("failed to initialize firmware uploader");
-		delete uploader;
 		return -1;
 	}
 
 	uint32_t firmware_version = 0;
 	int ret = uploader->read_esc_version_from_bin(&fw_paths[0], firmware_version);
+	delete uploader;
 
 	if (ret == OK) {
 		PX4_INFO("the ESC firmware version of bin file is %4.4f",(double)firmware_version * 0.01);
 	} else {
 		PX4_ERR("failed to read the ESC firmware version of bin file");
-		delete uploader;
-		return ret;
 	}
 
-	delete uploader;
-
-	return true;
+	return ret;
 }
 
 static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
@@ -349,43 +354,50 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 	return PX4_OK;
 }
 
-int ensure_version(const char *fw_paths[], const char *device, uint8_t num_escs) {
-	TAP_ESC_UPLOADER *uploader = nullptr;
-	uploader = new TAP_ESC_UPLOADER(device, num_escs);
+int update_fw(const char *fw_paths[], const char *device, uint8_t num_escs) {
+	TAP_ESC_UPLOADER *uploader = new TAP_ESC_UPLOADER(device, num_escs);
 
 	if (uploader==nullptr)
 	{
 		PX4_ERR("failed to initialize firmware uploader");
-		delete uploader;
-		return 1;
+		return PX4_ERROR;
 	}
 
-	int ret = uploader->ensure_version(&fw_paths[0]);
+	int ret = uploader->update_fw(&fw_paths[0]);
 	delete uploader;
 
 	switch (ret) {
 	case OK:
-		PX4_INFO("success! ESC firmware checks out");
+		PX4_INFO("ESC firmware is up to date");
+		break;
+
+	case CODE_ESCS_ALREADY_UPTODATE:
+		PX4_INFO("ESCs have current firmware. No update necessary.");
 		break;
 
 	case -ENOENT:
 		PX4_ERR("firmware file not found");
+		break;
 
-	case -EEXIST:
 	case -EIO:
 		PX4_ERR("error updating ESCs - check that bootloader mode is enabled");
+		break;
 
 	case -EINVAL:
 		PX4_ERR("firmware verification failed - try again");
+		break;
 
 	case -ETIMEDOUT:
 		PX4_ERR("timed out waiting for bootloader - power-cycle and try again");
+		break;
 
 	case -EBADRQC:
 		PX4_INFO("ESC firmware version is same with ESC bin file version");
+		break;
 
 	default:
 		PX4_ERR("unexpected error %d", ret);
+		break;
 	}
 
 	return ret;
@@ -431,17 +443,23 @@ int tap_esc_config_main(int argc, char *argv[]) {
 		return PX4_ERROR;
 	}
 
+	/* Commands that do not require device and number of ESCs as arguments */
+	if (!strcmp(argv[myoptind], "bin_version")) {
+		return read_bin_version(&firmware_paths[0], device, num_escs);
+	}
+
+	/* Sanity-check for provided arguments */
 	if (device == nullptr || strlen(device) == 0){
 		print_usage("device not specified");
 		return PX4_ERROR;
 	}
-
-	if (num_escs==0)
+	else if (num_escs==0)
 	{
 		print_usage("number of ESCs must be positive");
 		return PX4_ERROR;
 	}
 
+	/* Commands that require device and number of ESCs as arguments follow now */
 	if (!strcmp(argv[myoptind], "checkcrc")) {
 		return check_crc(&firmware_paths[0], device, num_escs);
 
@@ -451,16 +469,14 @@ int tap_esc_config_main(int argc, char *argv[]) {
 			print_usage("ID mut be smaller than the number of channels");
 			return PX4_ERROR;
 		}
+
 		return configure_esc_id(device, id_config_num, num_escs);
 
 	} else if (!strcmp(argv[myoptind], "upload")) {
 		return upload_firmware(&firmware_paths[0], device, num_escs);
 
-	} else if (!strcmp(argv[myoptind], "ensure_version")) {
-		return ensure_version(&firmware_paths[0], device, num_escs);
-
-	} else if (!strcmp(argv[myoptind], "bin_version")) {
-		return read_bin_version(&firmware_paths[0], device, num_escs);
+	} else if (!strcmp(argv[myoptind], "update_fw")) {
+		return update_fw(&firmware_paths[0], device, num_escs);
 
 	} else {
 		print_usage("Command not recognised");

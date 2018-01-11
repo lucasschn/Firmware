@@ -300,14 +300,6 @@ then
 	param set SYS_CAL_GYRO_TOL 0.1
 
 	param save
-
-	# Check for an ESC update
-	# if there is one, flash each ESC
-	# tap_esc_config checkcrc -d ${ESC_TTY} -n 6
-
-	# Reboot to be on the safe side that the ESC update
-	# did not consume RAM we are missing to fly
-	# reboot
 fi
 
 # Set test pilot mode
@@ -323,7 +315,10 @@ fi
 #
 # If necessary and possible, update ESC firmware before starting the ESC driver
 #
-tap_esc_config ensure_version -d ${ESC_TTY} -n 6
+if tap_esc_config update_fw -d ${ESC_TTY} -n 6
+then
+	reboot
+fi
 
 #
 # ESC driver

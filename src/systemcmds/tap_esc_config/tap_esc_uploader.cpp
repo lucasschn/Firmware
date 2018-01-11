@@ -580,7 +580,8 @@ TAP_ESC_UPLOADER::send_packet(EscUploaderMessage &packet, int responder)
 			return -EINVAL;
 		}
 
-		// if msg_id is ESCBUS_MSG_ID_REQUEST_INFO,need seed channel ID not ESC hardware id
+		/* For messages with id ESCBUS_MSG_ID_REQUEST_INFO we need to send
+		   the channel ID, not the ESC hardware ID */
 		int esc_select_id = ((packet.msg_id == ESCBUS_MSG_ID_REQUEST_INFO) ? responder : _device_mux_map[responder]);
 		tap_esc_common::select_responder(esc_select_id);
 	}
@@ -780,7 +781,7 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, int param, uin
 
 		break;
 
-	case REQEST_INFO_DEVICE:
+	case REQUEST_INFO_DEVICE:
 		if (_uploader_packet.msg_id == ESCBUS_MSG_ID_DEVICE_INFO) {
 			if (_uploader_packet.d.firmware_revis_packet.myID != esc_id) {
 				PX4_LOG("get device firmware revision id don't match, myID: 0x%02x, esc_id: 0x%02x",
@@ -878,15 +879,19 @@ static int read_with_retry(int fd, void *buf, size_t n)
 {
 	int ret;
 	uint8_t retries = 0;
+	const uint8_t max_retries = 100;
 
 	do {
 		ret = read(fd, buf, n);
-	} while (ret == -1 && retries++ < 100);
+
+		if (ret < 0) {
+			PX4_WARN("failed reading fw, retrying (%i/%i)", retries + 1, max_retries - 1);
+		}
+	} while (ret == -1 && retries++ < max_retries);
 
 	if (retries != 0) {
-		printf("read of %u bytes needed %u retries\n",
-		       (unsigned)n,
-		       (unsigned)retries);
+		PX4_WARN("read of %u bytes needed %u retries", (unsigned)n,
+			 (unsigned)retries);
 	}
 
 	return ret;
@@ -1184,22 +1189,23 @@ int TAP_ESC_UPLOADER::read_esc_version_from_bin(const char *filenames[], uint32_
 		return fw_size;
 	}
 
+	/* Jump to first byte of encoded firmware version */
 	ret = lseek(_fw_fd, ESC_VERSION_OFFSET_ADDR, SEEK_SET);
 
 	if (ret < 0) {
 		return ret;
 	}
 
-	ret = read_with_retry(_fw_fd, version_buf, ESC_FW_VER_BYTE);
+	ret = read_with_retry(_fw_fd, version_buf, ESC_FW_VER_BYTES);
 
 	if (ret < 0) {
 		return ret;
 	}
 
-	// read ESC firmware version Little-Endian
+	/* Decode ESC firmware version (little-Endian)*/
 	ver = (version_buf[3] << 24) + (version_buf[2] << 16) + (version_buf[1] << 8) + version_buf[0];
 
-	// check the value is invalid
+	/* check the decoded value is invalid */
 	if (!PX4_ISFINITE(ver) || ver == 0) {
 		return -EBADRQC;
 	}
@@ -1207,15 +1213,20 @@ int TAP_ESC_UPLOADER::read_esc_version_from_bin(const char *filenames[], uint32_
 	return OK;
 }
 
-int TAP_ESC_UPLOADER::ensure_version(const char *filenames[])
+int TAP_ESC_UPLOADER::update_fw(const char *filenames[])
 {
 	int ret = -1;
 
-	uint32_t target_fw_version = 0;
-	ret = read_esc_version_from_bin(filenames, target_fw_version);
+	uint32_t fw_binary_version = 0;
+	ret = read_esc_version_from_bin(filenames, fw_binary_version);
 
-	// get ESCs firmware version is error
-	if (ret != OK) {
+	/* Catch errors if firmware version could not be read from binay */
+	if (ret == -EBADRQC) {
+		PX4_WARN("Firmware version from binary is invalid - not updating!");
+		return ret;
+
+	} else if (ret != OK) {
+		PX4_WARN("Could not read firmware version from binary - not updating!");
 		return ret;
 	}
 
@@ -1226,34 +1237,34 @@ int TAP_ESC_UPLOADER::ensure_version(const char *filenames[])
 		return ret;
 	}
 
-	bool version_mismatch = false;
-
-	/* check firmware versions */
+	/* check firmware version of each ESC */
 	for (uint8_t esc_id = 0; esc_id < _esc_counter; esc_id++) {
 
-		uint32_t current_fw_version = 0;
+		uint32_t fw_esc_version = 0;
 
 		/* get device firmware revision */
-		ret = get_device_info(esc_id, ESCBUS_MSG_ID_REQUEST_INFO, REQEST_INFO_DEVICE, current_fw_version);
+		ret = get_device_info(esc_id, ESCBUS_MSG_ID_REQUEST_INFO, REQUEST_INFO_DEVICE, fw_esc_version);
 
-		// check version is more than current firmware version,upload ESC firmware
-		if (ret == OK && (target_fw_version > current_fw_version)) {
-			PX4_INFO("esc_id %d has fw version mismatch (%4.4f instead of %4.4f)", esc_id, (double)current_fw_version * 0.01,
-				 (double)target_fw_version * 0.01);
-			version_mismatch = true;
-			// will stop when at least one ESC has a version mismatch
-			break;
+		/* check if ESC firmware is too old to understand command, in which case the
+		   response runs into a timeout */
+		if (ret == -ETIMEDOUT) {
+			PX4_INFO("ESC did not respond to version request command. Probably out of date.");
+			ret = checkcrc(filenames);  // Will reboot ESCs after it's done
+			return ret;  // No need to check other ESCs, we will flash all of them anyway!
 		}
-	}
 
-	if (version_mismatch) {
-		// check all ESCs CRC and update firmware if necessary
-		PX4_INFO("At least one ESC has a version mismatch. Running checkcrc for all ESCs!");
-		ret = checkcrc(filenames);  // Will reboot ESCs after it's done
-		return ret;
+		/* check if firmware version of binary is newer than firmware currently on ESCs */
+		else if (ret == OK && (fw_binary_version > fw_esc_version)) {
+			PX4_INFO("esc_id %d has fw version mismatch (%4.4f instead of %4.4f)", esc_id, (double)fw_esc_version * 0.01,
+				 (double)fw_binary_version * 0.01);
+			PX4_INFO("At least one ESC has a version mismatch. Running checkcrc for all ESCs!");
+			ret = checkcrc(filenames);  // Will reboot ESCs after it's done
+			return ret;
 
-	} else {
-		ret = -EBADRQC;
+		} else {
+			/* ESCs have not been updated */
+			return CODE_ESCS_ALREADY_UPTODATE;
+		}
 	}
 
 	return ret;

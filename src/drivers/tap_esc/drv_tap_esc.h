@@ -154,7 +154,7 @@ typedef enum {
 	REQEST_INFO_RUN,
 	REQEST_INFO_STUDY,
 	REQEST_INFO_COMM,
-	REQEST_INFO_DEVICE,
+	REQUEST_INFO_DEVICE,
 } InfoTypes;
 
 typedef  struct {

@@ -3684,7 +3684,7 @@ MulticopterPositionControl::task_main()
 				_local_pos_sp.vx = _control.getVelSp()(0);
 				_local_pos_sp.vy = _control.getVelSp()(1);
 				_local_pos_sp.vz = _control.getVelSp()(2);
-				_control.getThrustSetpoint().copyTo(_local_pos_sp.thr);
+				_control.getThrustSetpoint().copyTo(_local_pos_sp.thrust);
 
 				/* We adjust thrust setpoint based on landdetector */
 				matrix::Vector3f thr_sp = _control.getThrustSetpoint();

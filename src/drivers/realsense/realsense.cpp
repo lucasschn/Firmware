@@ -55,6 +55,8 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
+#include <lib/FlightTasks/FlightTasks.hpp>
+
 #include "realsense.h"
 
 #define B460800 460800
@@ -126,6 +128,8 @@ private:
 	ringbuffer::RingBuffer	*_rb_gyro;
 	int _uart_fd = -1;
 
+	FlightTasks _flight_tasks;
+
 	orb_advert_t _realsense_avoidance_setpoint_pub;
 	orb_advert_t _optical_flow_pub;
 	orb_advert_t _distance_sensor_pub;
@@ -188,6 +192,7 @@ REALSENSE::REALSENSE(const char *port):
 	_vehicle_status{},
 	_work{},
 	_rb_gyro(nullptr),
+	_flight_tasks(),
 	_realsense_avoidance_setpoint_pub(nullptr),
 	_optical_flow_pub(nullptr),
 	_distance_sensor_pub(nullptr),
@@ -324,7 +329,7 @@ REALSENSE::poll_subscriptions()				 // update all msg
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 	}
 
-	orb_check(_vehicle_status_sub, &updated);
+	orb_check(_vehicle_attitude_sub, &updated);
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
@@ -412,8 +417,8 @@ REALSENSE::_send_obstacle_avoidance_data()
 	}
 
 	// set flag for Sense&Stop
-	if (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON
-	    && _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
+	if ((_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+	    && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) && (!_flight_tasks.isAnyTaskActive())) {
 		flag |= ObstacleAvoidanceInputFlags::USE_SMALL_VEHICLE_SIZE;
 	}
 

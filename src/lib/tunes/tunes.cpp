@@ -37,9 +37,11 @@
 
 #include "tunes.h"
 
+#include <px4_defines.h>
 #include <px4_log.h>
-#include <math.h>
 #include <ctype.h>
+#include <errno.h>
+#include <math.h>
 
 #define TUNE_ERROR -1
 #define TUNE_STOP 0
@@ -337,10 +339,10 @@ tune_end:
 	}
 }
 
-unsigned Tunes::note_to_frequency(unsigned note)
+uint32_t Tunes::note_to_frequency(unsigned note)
 {
 	// compute the frequency (Hz)
-	return (unsigned)(880.0f * powf(2.0f, ((int)note - 46) / 12.0f));
+	return (uint32_t)(880.0f * powf(2.0f, ((int)note - 46) / 12.0f));
 }
 
 unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned dots)

@@ -42,9 +42,10 @@
 #include <px4_getopt.h>
 #include <px4_module.h>
 #include <px4_log.h>
-#include <drivers/tap_esc/tap_esc_uploader.h>
 #include <drivers/tap_esc/drv_tap_esc.h>  // ESC_UART_BUF
 #include <drivers/tap_esc/tap_esc_common.h>
+
+#include "tap_esc_uploader.h"
 
 #if !defined(BOARD_TAP_ESC_MODE)
 #define  BOARD_TAP_ESC_MODE 0

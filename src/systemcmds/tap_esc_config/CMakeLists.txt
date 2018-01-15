@@ -36,6 +36,7 @@ px4_add_module(
 	STACK_MAIN 2500  # TODO: Figure out what the proper stack size is
 	COMPILE_FLAGS
 	SRCS
+		tap_esc_uploader.cpp
 		tap_esc_config.cpp
 	DEPENDS
 		platforms__common

@@ -60,9 +60,9 @@
 #include <drivers/drv_hrt.h>
 #include <sys/ioctl.h>
 
-#include "drv_tap_esc.h"
+#include "drivers/tap_esc/drv_tap_esc.h"
 #include "tap_esc_uploader.h"
-#include "tap_esc_common.h"
+#include "drivers/tap_esc/tap_esc_common.h"
 
 // define for comms logging
 //#define UDEBUG

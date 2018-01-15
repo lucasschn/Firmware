@@ -44,7 +44,13 @@
 #include <px4_posix.h>
 #include <px4_config.h>
 
+#include <sys/ioctl.h>
 #include <termios.h>
+
+#ifdef __PX4_QURT
+#include <dev_fs_lib_serial.h>
+#endif
+
 
 #ifndef B250000
 #define B250000 250000
@@ -84,13 +90,29 @@ int initialise_uart(const char *const device, int &uart_file_des)
 #else
 	// open uart
 	uart_file_des = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
-	int termios_state = -1;
 
 	if (uart_file_des < 0) {
 		PX4_ERR("failed to open uart device!");
 		return -1;
 	}
 
+
+#ifdef __PX4_QURT
+	// Set baud-rate snapdragon style !
+	// Snapdragon needs special treatment as the speed B250000 is non-standard
+	// and not supported by QURT's POSIX-like interface.
+	dspal_serial_ioctl_data_rate ioctl_baud_rate;
+	ioctl_baud_rate.bit_rate = DSPAL_SIO_BITRATE_250000;
+	int ioctl_ret = ioctl(uart_file_des, SERIAL_IOCTL_SET_DATA_RATE, &ioctl_baud_rate);
+
+	if (ioctl_ret) {
+		PX4_ERR("error while configuring baud-rate");
+		close(uart_file_des);
+		return -1;
+	}
+
+#else
+	int termios_state = -1;
 	// set baud rate
 	int speed = B250000;
 	struct termios uart_config;
@@ -116,6 +138,8 @@ int initialise_uart(const char *const device, int &uart_file_des)
 	if (enable_flow_control(uart_file_des, false)) {
 		PX4_WARN("hardware flow disable failed");
 	}
+
+#endif  // __PX4_QURT
 
 	return 0;
 #endif

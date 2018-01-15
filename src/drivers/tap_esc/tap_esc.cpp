@@ -108,7 +108,7 @@ public:
 	void run() override;
 
 	virtual int	init();
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
+	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
 	void cycle();
 
 private:
@@ -142,7 +142,7 @@ private:
 	// It needs to support the number of ESC
 	int	_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
-	pollfd	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
+	px4_pollfd_struct_t	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
@@ -169,12 +169,13 @@ private:
 					       uint8_t control_group, uint8_t control_index, float &input);
 	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
 
-	hrt_abstime _send_next_tune;
 	FaultTolerantControl *_fault_tolerant_control = nullptr;
 	int esc_failure_check(uint8_t channel_id);
 	hrt_abstime
 	_wait_esc_save_log; // wait time for ESC saves log,because when motors stop ESC will do not has enough time to save log
+#ifdef CONFIG_ARCH_BOARD_TAP_V2
 	int _stall_by_lost_prop; // the flag that when the motor stall by a collision of another motor's lost propeller
+#endif
 };
 
 char TAP_ESC::_device[DEVICE_ARGUMENT_MAX_LENGTH] = {};
@@ -208,9 +209,11 @@ TAP_ESC::TAP_ESC():
 	_groups_subscribed(0),
 	_pwm_default_rate(400),
 	_current_update_rate(0),
-	_send_next_tune(0),
-	_wait_esc_save_log(0),
+	_wait_esc_save_log(0)
+#ifdef CONFIG_ARCH_BOARD_TAP_V2
+	,
 	_stall_by_lost_prop(-1)
+#endif
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
@@ -617,7 +620,7 @@ TAP_ESC::cycle()
 	/* check if anything updated.
 	 * the timeout needs to be small in order to react promptly to tune requests
 	 */
-	int ret = ::poll(_poll_fds, _poll_fds_num, 5);
+	int ret = px4_poll(_poll_fds, _poll_fds_num, 5);
 
 
 	/* this would be bad... */
@@ -985,7 +988,7 @@ int TAP_ESC::control_callback(uint8_t control_group, uint8_t control_index, floa
 }
 
 int
-TAP_ESC::ioctl(file *filp, int cmd, unsigned long arg)
+TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -1002,7 +1005,7 @@ TAP_ESC::ioctl(file *filp, int cmd, unsigned long arg)
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
-			unsigned buflen = strnlen(buf, 1024);
+			unsigned buflen = strlen(buf);
 
 			if (_mixers == nullptr) {
 				_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);

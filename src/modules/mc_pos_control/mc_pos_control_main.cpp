@@ -1107,6 +1107,20 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 	}
 
+	if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
+		_flight_tasks.switchTask(FlightTaskIndex::AltitudeSmooth); //smooth altitude
+
+	} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
+		_flight_tasks.switchTask(FlightTaskIndex::PositionSmooth); //smooth position
+
+	} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL) {
+		_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
+
+	} else {
+		// not supported yet.
+		_flight_tasks.switchTask(FlightTaskIndex::None);
+	}
+
 	orb_check(_manual_sub, &updated);
 
 	if (updated) {
@@ -3703,7 +3717,7 @@ MulticopterPositionControl::task_main()
 			/* map commander modes to tasks */
 			switch (_vehicle_status.nav_state) {
 			case vehicle_status_s::NAVIGATION_STATE_SPORT:
-				_flight_tasks.switchTask(2);
+				_flight_tasks.switchTask(FlightTaskIndex::Sport);
 				break;
 
 			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
@@ -3711,7 +3725,7 @@ MulticopterPositionControl::task_main()
 				break;
 
 			default:
-				_flight_tasks.switchTask(-1);
+				_flight_tasks.switchTask(FlightTaskIndex::None);
 			}
 
 

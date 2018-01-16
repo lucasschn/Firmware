@@ -86,16 +86,15 @@ TAP_ESC_UPLOADER::~TAP_ESC_UPLOADER()
 }
 
 int32_t
-TAP_ESC_UPLOADER::initialise_firmware_file(const char *filenames[])
+TAP_ESC_UPLOADER::initialise_firmware_file(const char *filenames[], int &fw_fd)
 {
 	const char *filename = NULL;
-	int32_t firmware_size;
 
 	/* allow an early abort and look for file first */
 	for (unsigned i = 0; filenames[i] != nullptr; i++) {
-		_fw_fd = open(filenames[i], O_RDONLY);
+		fw_fd = open(filenames[i], O_RDONLY);
 
-		if (_fw_fd < 0) {
+		if (fw_fd < 0) {
 			PX4_LOG("failed to open %s", filenames[i]);
 			continue;
 		}
@@ -117,13 +116,11 @@ TAP_ESC_UPLOADER::initialise_firmware_file(const char *filenames[])
 		return -errno;
 	}
 
-	firmware_size = st.st_size;
-
-	if (_fw_fd == -1) {
+	if (fw_fd == -1) {
 		return -ENOENT;
 	}
 
-	return firmware_size;
+	return st.st_size;
 }
 
 int
@@ -249,7 +246,7 @@ TAP_ESC_UPLOADER::upload(const char *filenames[])
 	int32_t fw_size;
 	uint16_t esc_fail_mask = 0;
 
-	fw_size = initialise_firmware_file(filenames);
+	fw_size = initialise_firmware_file(filenames, _fw_fd);
 
 	if (fw_size < 0) {
 		PX4_LOG("initialise firmware file failed");
@@ -301,7 +298,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 	int ret = -1;
 	uint16_t esc_fail_mask = 0;
 
-	fw_size = initialise_firmware_file(filenames);
+	fw_size = initialise_firmware_file(filenames, _fw_fd);
 
 	if (fw_size < 0) {
 		PX4_LOG("initialise firmware file failed");
@@ -490,8 +487,8 @@ TAP_ESC_UPLOADER::parse_tap_esc_feedback(uint8_t decode_data, EscUploaderMessage
 
 	switch (state) {
 	case HEAD:
-		if (decode_data == 0xFE) {
-			packetdata->head = 0xFE; //just_keep the format
+		if (decode_data == PACKET_HEAD) {
+			packetdata->head = PACKET_HEAD; //just_keep the format
 			state = LEN;
 
 		}
@@ -614,7 +611,7 @@ TAP_ESC_UPLOADER::sync(uint8_t esc_id)
 	int ret;
 
 	/* send sync packet */
-	EscUploaderMessage sync_packet = {0xfe, sizeof(EscbusBootSyncPacket), PROTO_GET_SYNC};
+	EscUploaderMessage sync_packet = {PACKET_HEAD, sizeof(EscbusBootSyncPacket), PROTO_GET_SYNC};
 	sync_packet.d.sync_packet.myID = esc_id;
 	send_packet(sync_packet, esc_id);
 
@@ -656,14 +653,14 @@ TAP_ESC_UPLOADER::sync(uint8_t esc_id)
 }
 
 int
-TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, int param, uint32_t &val)
+TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t &val)
 {
 	int ret;
 
-	/* send device information packet */
-	EscUploaderMessage device_info_packet = {0xfe, sizeof(EscbusGetDevicePacket), msg_id};
+	/*prepare information request packet */
+	EscUploaderMessage device_info_packet = {PACKET_HEAD, sizeof(EscbusGetDevicePacket), msg_id};
 	device_info_packet.d.device_info_packet.myID = esc_id;
-	device_info_packet.d.device_info_packet.deviceInfo = param;
+	device_info_packet.d.device_info_packet.deviceInfo = msg_arg;
 	send_packet(device_info_packet, esc_id);
 
 	/* read and parse device information feedback packet, blocking 50ms */
@@ -674,7 +671,7 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, int param, uin
 	}
 
 	/* check device information feedback is ok or fail */
-	switch (param) {
+	switch (msg_arg) {
 
 	case PROTO_DEVICE_BL_REV:
 		if (_uploader_packet.msg_id == PROTO_OK) {
@@ -835,7 +832,7 @@ TAP_ESC_UPLOADER::erase(uint8_t esc_id)
 	PX4_LOG("erase...");
 
 	/* send erase packet */
-	EscUploaderMessage erase_packet = {0xfe, sizeof(EscbusBootErasePacket), PROTO_CHIP_ERASE};
+	EscUploaderMessage erase_packet = {PACKET_HEAD, sizeof(EscbusBootErasePacket), PROTO_CHIP_ERASE};
 	erase_packet.d.erase_packet.myID = esc_id;
 	send_packet(erase_packet, esc_id);
 
@@ -879,15 +876,11 @@ static int read_with_retry(int fd, void *buf, size_t n)
 {
 	int ret;
 	uint8_t retries = 0;
-	const uint8_t max_retries = 100;
 
 	do {
 		ret = read(fd, buf, n);
 
-		if (ret < 0) {
-			PX4_WARN("failed reading fw, retrying (%i/%i)", retries + 1, max_retries - 1);
-		}
-	} while (ret == -1 && retries++ < max_retries);
+	} while (ret == -1 && retries++ < 100);
 
 	if (retries != 0) {
 		PX4_WARN("read of %u bytes needed %u retries", (unsigned)n,
@@ -955,7 +948,7 @@ TAP_ESC_UPLOADER::program(uint8_t esc_id, size_t fw_size)
 		sent += count;
 
 		/* send program packet */
-		EscUploaderMessage program_packet = {0xfe, sizeof(EscbusBootProgPacket), PROTO_PROG_MULTI};
+		EscUploaderMessage program_packet = {PACKET_HEAD, sizeof(EscbusBootProgPacket), PROTO_PROG_MULTI};
 		program_packet.d.program_packet.myID = esc_id;
 
 		for (uint8_t i = 0; i < PROG_MULTI_MAX; i++) {
@@ -1082,7 +1075,7 @@ TAP_ESC_UPLOADER::verify_crc(uint8_t esc_id, size_t fw_size_local)
 	}
 
 	/* send flash crc packet */
-	EscUploaderMessage flash_crc_packet = {0xfe, sizeof(EscbusFlashCRCPacket), PROTO_GET_CRC};
+	EscUploaderMessage flash_crc_packet = {PACKET_HEAD, sizeof(EscbusFlashCRCPacket), PROTO_GET_CRC};
 	flash_crc_packet.d.flash_crc_packet.myID = esc_id;
 	send_packet(flash_crc_packet, esc_id);
 
@@ -1137,7 +1130,7 @@ TAP_ESC_UPLOADER::reboot(uint8_t esc_id)
 	int ret;
 
 	/* send reboot packet */
-	EscUploaderMessage reboot_packet = {0xfe, sizeof(EscbusRebootPacket), PROTO_REBOOT};
+	EscUploaderMessage reboot_packet = {PACKET_HEAD, sizeof(EscbusRebootPacket), PROTO_REBOOT};
 	reboot_packet.d.reboot_packet.myID = esc_id;
 	send_packet(reboot_packet, esc_id);
 
@@ -1176,27 +1169,19 @@ TAP_ESC_UPLOADER::reboot(uint8_t esc_id)
 	return OK;
 }
 
-int TAP_ESC_UPLOADER::read_esc_version_from_bin(const char *filenames[], uint32_t &ver)
+int TAP_ESC_UPLOADER::read_esc_version_from_bin(int fw_fd, uint32_t &ver)
 {
-	int ret;
-	int32_t fw_size;
+	int ret = -1;
 	uint8_t version_buf[4];
 
-	fw_size = initialise_firmware_file(filenames);
-
-	if (fw_size < 0) {
-		PX4_LOG("initialise firmware file failed");
-		return fw_size;
-	}
-
 	/* Jump to first byte of encoded firmware version */
-	ret = lseek(_fw_fd, ESC_VERSION_OFFSET_ADDR, SEEK_SET);
+	ret = lseek(fw_fd, ESC_VERSION_OFFSET_ADDR, SEEK_SET);
 
 	if (ret < 0) {
 		return ret;
 	}
 
-	ret = read_with_retry(_fw_fd, version_buf, ESC_FW_VER_BYTES);
+	ret = read(fw_fd, version_buf, ESC_FW_VER_BYTES);
 
 	if (ret < 0) {
 		return ret;
@@ -1217,8 +1202,15 @@ int TAP_ESC_UPLOADER::update_fw(const char *filenames[])
 {
 	int ret = -1;
 
+	ret = initialise_firmware_file(filenames, _fw_fd);
+
+	if (ret < 0) {
+		PX4_LOG("initialise firmware file failed");
+		return ret;
+	}
+
 	uint32_t fw_binary_version = 0;
-	ret = read_esc_version_from_bin(filenames, fw_binary_version);
+	ret = read_esc_version_from_bin(_fw_fd, fw_binary_version);
 
 	/* Catch errors if firmware version could not be read from binay */
 	if (ret == -EBADRQC) {

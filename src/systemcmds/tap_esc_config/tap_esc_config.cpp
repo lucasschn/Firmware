@@ -74,6 +74,14 @@ static int upload_firmware(const char *fw_paths[], const char *device, uint8_t n
  */
 static int check_crc(const char *fw_paths[], const char *device, uint8_t num_escs);
 
+
+/**
+ *  Read and decode version from a firmware binary file
+ *  @param fw_paths paths where to look for the binary, starting at first entry, must be null-terminated
+ *  @return OK on success, -errno otherwise
+ */
+static int read_bin_version(const char *fw_paths[]);
+
 /**
  *  Specify the ESC ID of connected ESCs by manually touching and turning the
  *  motors.
@@ -225,19 +233,19 @@ static int check_crc(const char * fw_paths[], const char * device, uint8_t num_e
 	return ret;
 }
 
-static int read_bin_version(const char * fw_paths[], const char * device, uint8_t num_escs)
+static int read_bin_version(const char * fw_paths[])
 {
-	TAP_ESC_UPLOADER *uploader = new TAP_ESC_UPLOADER(device, num_escs);
+	int ret = -1;
+	int fw_fd = 0;
+	uint32_t firmware_version = 0;
 
-	if (uploader==nullptr)
-	{
-		PX4_ERR("failed to initialize firmware uploader");
-		return -1;
+	ret = TAP_ESC_UPLOADER::initialise_firmware_file(&fw_paths[0], fw_fd);
+	if (ret < 0) {
+		PX4_LOG("initialise firmware file failed");
+		return ret;
 	}
 
-	uint32_t firmware_version = 0;
-	int ret = uploader->read_esc_version_from_bin(&fw_paths[0], firmware_version);
-	delete uploader;
+	ret = TAP_ESC_UPLOADER::read_esc_version_from_bin(fw_fd, firmware_version);
 
 	if (ret == OK) {
 		PX4_INFO("the ESC firmware version of bin file is %4.4f",(double)firmware_version * 0.01);
@@ -445,7 +453,7 @@ int tap_esc_config_main(int argc, char *argv[]) {
 
 	/* Commands that do not require device and number of ESCs as arguments */
 	if (!strcmp(argv[myoptind], "bin_version")) {
-		return read_bin_version(&firmware_paths[0], device, num_escs);
+		return read_bin_version(&firmware_paths[0]);
 	}
 
 	/* Sanity-check for provided arguments */

@@ -68,7 +68,7 @@ public:
 	 * @param ver: get the ESC firmware version in format xx.yy * 100
 	 * @return OK on success, or -errno otherwise.
 	 */
-	int read_esc_version_from_bin(const char *filenames[], uint32_t &ver);
+	static int read_esc_version_from_bin(int fw_fd, uint32_t &ver);
 
 	/*
 	 * Update ESC firmware with newer version from binary, if necessary.
@@ -77,27 +77,35 @@ public:
 	 */
 	int update_fw(const char *filenames[]);
 
+	/*
+	 * Open firmware binary file from a prioritized list of filenames
+	 * @param filenames array of paths to try and open, must be NULL-terminated
+	 * @param fw_fd file descriptor for firmware binary
+	 * @return file size on success or -errno on failure
+	 */
+	static int32_t 	initialise_firmware_file(const char *filenames[], int &fw_fd);
+
 private:
 
 #pragma pack(push,1)
 
 	typedef enum {
 
-		PROTO_NOP				= 0x00,
+		PROTO_NOP			= 0x00,
 
 		/**
 		 * receive tap esc feedback information
 		 */
-		PROTO_OK				= 0x10,		/**< INSYNC/OK - 'ok' response */
+		PROTO_OK			= 0x10,		/**< INSYNC/OK - 'ok' response */
 		PROTO_FAILED			= 0x11,		/**< INSYNC/FAILED  - 'fail' response */
 		PROTO_INVALID			= 0x13,		/**< INSYNC/INVALID - 'invalid' response for bad commands */
-		PROTO_BAD_SILICON_REV  	= 0x14,		/**< On the F4 series there is an issue with < Rev 3 silicon */
+		PROTO_BAD_SILICON_REV  		= 0x14,		/**< On the F4 series there is an issue with < Rev 3 silicon */
 
 		/**
 		 * send to tap esc command information
 		 */
 		PROTO_GET_SYNC			= 0x21,		/**< NOP for re-establishing sync */
-		PROTO_GET_DEVICE		= 0x22,		/**< get device ID bytes */
+		PROTO_GET_DEVICE_INFO		= 0x22,		/**< get device ID bytes */
 		PROTO_CHIP_ERASE		= 0x23,		/**< erase program area and reset program address */
 		PROTO_PROG_MULTI		= 0x27,		/**< write bytes at program address and increment */
 		PROTO_GET_CRC			= 0x29,		/**< compute & return a CRC */
@@ -107,17 +115,17 @@ private:
 		PROTO_SET_DELAY			= 0x2d,		/**< set minimum boot delay */
 		PROTO_GET_CHIP_DES		= 0x2e,		/**< read chip version In ASCII */
 		PROTO_REBOOT			= 0x30,		/**< boot the application */
-		PROTO_MSG_ID_MAX_NUM    = 0x40,		/**< support protocol maximum message ID command */
+		PROTO_MSG_ID_MAX_NUM    	= 0x40,		/**< support protocol maximum message ID command */
 
 		/* argument values for PROTO_GET_DEVICE */
-		PROTO_DEVICE_BL_REV		= 1,		/**< bootloader revision */
+		PROTO_DEVICE_BL_REV	= 1,		/**< bootloader revision */
 		PROTO_DEVICE_BOARD_ID	= 2,		/**< board ID Use for distinguishing ESC chip, each chip corresponds to a fixed value */
 		PROTO_DEVICE_BOARD_REV	= 3,		/**< board revision */
 		PROTO_DEVICE_FW_SIZE	= 4,		/**< size of flashable area */
 		PROTO_DEVICE_VEC_AREA	= 5,		/**< contents of reserved vectors 7-10 */
-		PROTO_DEVICE_FW_REV		= 6,		/**< firmware revision */
+		PROTO_DEVICE_FW_REV	= 6,		/**< firmware revision */
 
-		PROG_MULTI_MAX			= 128,		/**< protocol max is 255, must be multiple of 4 */
+		PROG_MULTI_MAX		= 128,		/**< protocol max is 255, must be multiple of 4 */
 
 	} ESCBUS_UPLOADER_MESSAGE_ID;
 
@@ -240,7 +248,6 @@ private:
 	static const uint8_t 	_device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	EscUploaderMessage  	_uploader_packet;
 	orb_advert_t    		_mavlink_log_pub;
-	int32_t 	initialise_firmware_file(const char *filenames[]);
 	int			upload_id(uint8_t esc_id, int32_t fw_size);
 	int 		recv_byte_with_timeout(uint8_t *c, unsigned timeout);
 	int 		read_and_parse_data(unsigned timeout = 50);
@@ -249,7 +256,7 @@ private:
 	uint8_t 	crc_packet(EscUploaderMessage &p);
 	int 		send_packet(EscUploaderMessage &packet, int responder);
 	int			sync(uint8_t esc_id);
-	int			get_device_info(uint8_t esc_id, uint8_t msg_id, int param, uint32_t &val);
+	int			get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t &val);
 	int			erase(uint8_t esc_id);
 	int			program(uint8_t esc_id, size_t fw_size);
 	int			verify_crc(uint8_t esc_id, size_t fw_size_local);

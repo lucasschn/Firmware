@@ -350,7 +350,7 @@ TAP_ESC::init()
 		EscPacket packet_info = {PACKET_HEAD, sizeof(InfoRequest), ESCBUS_MSG_ID_REQUEST_INFO};
 		InfoRequest &info_req = packet_info.d.reqInfo;
 		info_req.channelID = cid;
-		info_req.requestInfoType = REQEST_INFO_BASIC;
+		info_req.requestInfoType = REQUEST_INFO_BASIC;
 
 		ret = tap_esc_common::send_packet(_uart_fd, packet_info, cid);
 

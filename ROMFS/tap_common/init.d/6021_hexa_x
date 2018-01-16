@@ -317,6 +317,15 @@ fi
 #
 if tap_esc_config update_fw -d ${ESC_TTY} -n 6
 then
+  # reboot should theoretically not be possible since tap_esc_config runs and
+	# then exits before starting the tap_esc driver. However, currently there are
+	# two problems when omitting the reboot:
+	# 1. When the ESCs are upgraded, tap_esc will be started after the fw has been
+	#    flashed. For some reason the LEDs then blink purple instead of the normal
+	#    pattern.
+	# 2. There is less free memory after an ESC fw upgrade, even though
+	#    tap_esc_config exited. This could indicate a memory leak in the uploader.
+	#
 	reboot
 fi
 

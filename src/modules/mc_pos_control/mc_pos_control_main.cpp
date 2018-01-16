@@ -815,7 +815,7 @@ MulticopterPositionControl::obstacle_avoidance_sonar(float altitude_above_home)
 		_vel_max_xy = 4.0f;
 
 		/* sonar is pointing forward, data stream is running, omit floor detection in low altitude */
-		const bool valid_sonar_measurament = _sonar_measurament.orientation == ROTATION_PITCH_90 &&
+		const bool valid_sonar_measurament = _sonar_measurament.orientation == distance_sensor_s::ROTATION_FORWARD_FACING &&
 						     hrt_elapsed_time((hrt_abstime *)&_sonar_measurament.timestamp) < SONAR_STREAM_TIMEOUT_US &&
 						     altitude_above_home > 1.5f;
 		/* anything but maximum distance measurement is considered an obstacle */

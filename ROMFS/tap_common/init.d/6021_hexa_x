@@ -131,6 +131,7 @@ then
 		param set BAT_EMERGEN_THR 0.05
 
 		# RC
+		param set COM_RC_OVERRIDE 1
 		param set COM_RC_LOSS_T 3.0
 		param set COM_DL_LOSS_T 10
 

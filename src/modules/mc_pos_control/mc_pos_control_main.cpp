@@ -3071,6 +3071,13 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 	float tilt_max = _params.tilt_max_air;
 	float thr_max = _params.thr_max;
 
+	float altitude_above_home = -(_pos(2) - _home_pos.z);
+
+	if ((altitude_above_home < 2.3f) && (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
+	    && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL)) {
+		tilt_max = math::radians(20.0f);
+	}
+
 	// We can only run the control if we're already in-air, have a takeoff setpoint,
 	// or if we're in offboard control.
 	// Otherwise, we should just bail out

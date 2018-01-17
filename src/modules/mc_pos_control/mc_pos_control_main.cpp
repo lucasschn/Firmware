@@ -2423,7 +2423,11 @@ void MulticopterPositionControl::control_auto()
 				matrix::Vector2f vec_prev_to_pos((_pos(0) - _prev_pos_sp(0)), (_pos(1) - _prev_pos_sp(1)));
 
 				/* current velocity along track */
-				float vel_sp_along_track_prev = matrix::Vector2f(_vel_sp(0), _vel_sp(1)) * unit_prev_to_current;
+				float vel_sp_along_track_prev = matrix::Vector2f(&_vel_sp(0)) * unit_prev_to_current;
+
+				if (use_realsense()) {
+					vel_sp_along_track_prev = matrix::Vector2f(&_vel_sp_desired(0)) * unit_prev_to_current;
+				}
 
 				/* distance to target when brake should occur */
 				float target_threshold_xy = 1.5f * get_cruising_speed_xy();
@@ -2980,7 +2984,16 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	/* Previous position setpoint is used for creating position locks.*/
 	_pos_sp_prev = _pos_sp;
 
-	_vel_sp_prev = _vel_sp;
+	if (use_realsense()) {
+		/* Slewrate is also active for angle mode. If realsense is on, the previous
+		 * velocity setpoint will be set to desired setpoint to ensure that setpoint
+		 * increases linearly with acceleration.
+		 */
+		_vel_sp_prev = math::Vector<3>(&_vel_sp_desired(0));
+
+	} else {
+		_vel_sp_prev = _vel_sp;
+	}
 }
 
 void

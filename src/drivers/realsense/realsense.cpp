@@ -53,6 +53,7 @@
 #include <uORB/topics/realsense_distance_info.h>
 #include <uORB/topics/realsense_distance_360.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include "realsense.h"
 
@@ -114,11 +115,13 @@ private:
 	int 	_vehicle_attitude_sub;
 	int 	_distance_sensor_subs[DISTANCE_SENSOR_INSTANCES];
 	int 	_manual_sub;
+	int 	_vehicle_status_sub;
 	float _current_distance;
 	struct vehicle_local_position_s _local_pos;
 	struct vehicle_local_position_setpoint_s _local_pos_sp;
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
+	struct vehicle_status_s _vehicle_status;
 	struct work_s	_work;
 	ringbuffer::RingBuffer	*_rb_gyro;
 	int _uart_fd = -1;
@@ -176,11 +179,13 @@ REALSENSE::REALSENSE(const char *port):
 	_vehicle_attitude_sub(-1),
 	_distance_sensor_subs{},
 	_manual_sub(-1),
+	_vehicle_status_sub(-1),
 	_current_distance(0.0f),
 	_local_pos{},
 	_local_pos_sp{},
 	_attitude {},
 	_manual{},
+	_vehicle_status{},
 	_work{},
 	_rb_gyro(nullptr),
 	_realsense_avoidance_setpoint_pub(nullptr),
@@ -319,6 +324,12 @@ REALSENSE::poll_subscriptions()				 // update all msg
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 	}
 
+	orb_check(_vehicle_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	}
+
 }
 
 void
@@ -401,7 +412,8 @@ REALSENSE::_send_obstacle_avoidance_data()
 	}
 
 	// set flag for Sense&Stop
-	if (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE) {
+	if (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON
+	    && _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
 		flag |= ObstacleAvoidanceInputFlags::USE_SMALL_VEHICLE_SIZE;
 	}
 
@@ -734,6 +746,7 @@ REALSENSE::_init_realsense() 							 // init - initialise the sensor
 		}
 
 		_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+		_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 		_initialized = true;
 	}

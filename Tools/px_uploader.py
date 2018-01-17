@@ -217,7 +217,7 @@ class uploader(object):
 
     def __init__(self, portname, baudrate_bootloader, baudrate_flightstack):
         # open the port, keep the default timeout short so we can poll quickly
-        self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5)
+        self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.8)
         self.otp = b''
         self.sn = b''
         self.baudrate_bootloader = baudrate_bootloader

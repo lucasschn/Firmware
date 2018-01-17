@@ -2957,13 +2957,9 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
 
 	/* apply slewrate (aka acceleration limit) for smooth flying */
-	if (!_control_mode.flag_control_auto_enabled && !_flight_tasks.isAnyTaskActive()) {
+	if (!_control_mode.flag_control_auto_enabled && !_flight_tasks.isAnyTaskActive() && !_in_smooth_takeoff) {
 		vel_sp_slewrate();
 	}
-
-	/* TODO: move this to the end
-	 * reset previous vel sp */
-	_vel_sp_prev = _vel_sp;
 
 	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
 	if (_in_smooth_takeoff) {
@@ -2978,14 +2974,13 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	if(!_in_smooth_takeoff) {
 		/* tap specific: handle obstacle avoidance */
 		obstacle_avoidance(altitude_above_home);
-		/* reset previous vel sp */
-		_vel_sp_prev = _vel_sp;
+
 	}
 
-	/* previous position setpoint is used for creating position
-	 * locks
-	 */
+	/* Previous position setpoint is used for creating position locks.*/
 	_pos_sp_prev = _pos_sp;
+
+	_vel_sp_prev = _vel_sp;
 }
 
 void

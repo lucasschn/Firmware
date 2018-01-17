@@ -754,7 +754,7 @@ HC_SR04::cycle()
 			struct manual_control_setpoint_s manual;
 			orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &manual);
 
-			if (manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF) {
+			if (manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 
 				/* The set point message is published periodically; We only want the deltas
 				 * to cause changes in the physical PWM state.

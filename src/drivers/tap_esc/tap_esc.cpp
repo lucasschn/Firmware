@@ -168,7 +168,7 @@ private:
 					       uint8_t control_group, uint8_t control_index, float &input);
 	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
 
-#ifdef BOARD_SUPPORT_FTC
+#ifdef BOARD_SUPPORTS_FTC
 	FaultTolerantControl *_fault_tolerant_control = nullptr;
 #endif
 	int esc_failure_check(uint8_t channel_id);
@@ -231,7 +231,7 @@ TAP_ESC::TAP_ESC():
 
 	_outputs.noutputs = 0;
 
-#ifdef BOARD_SUPPORT_FTC
+#ifdef BOARD_SUPPORTS_FTC
 	int32_t ftc_enable;
 	param_get(param_find("FTC_ENABLE"), &ftc_enable);
 
@@ -270,7 +270,7 @@ TAP_ESC::~TAP_ESC()
 
 	// clean up the alternate device node
 	//unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
-#ifdef BOARD_SUPPORT_FTC
+#ifdef BOARD_SUPPORTS_FTC
 
 	if (_fault_tolerant_control != nullptr) {
 		delete _fault_tolerant_control;
@@ -714,7 +714,7 @@ TAP_ESC::cycle()
 
 #endif
 
-#ifdef BOARD_SUPPORT_FTC
+#ifdef BOARD_SUPPORTS_FTC
 
 		if (_fault_tolerant_control != nullptr) {
 

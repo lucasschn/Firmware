@@ -39,6 +39,19 @@
  */
 
 /**
+ * FTC configuration enable
+ *
+ * Flag for enabling fault-tolerant-control. This has no effect on boards that
+ * do not support FTC.
+ *
+ * @value 0 Disabled
+ * @value 1 Enabled
+ *
+ * @group Fault Tolerant Control
+ */
+PARAM_DEFINE_INT32(FTC_ENABLE, 1);
+
+/**
  * motor failure P gain compensate for fault tolerant control
  *
  * fault tolerant control handling when the motor(e.g motor0) have failure,error_pwm = (motor1 pwm - motor0 pwm)*(proportional gain compensate)
@@ -177,15 +190,3 @@ PARAM_DEFINE_FLOAT(FTC_YAWRATE_I, 0.1f);
  * @group Fault Tolerant Control
  */
 PARAM_DEFINE_FLOAT(FTC_YAWRATE_D, 0.0f);
-
-/**
- * FTC configuration enable
- *
- * When this configuration is enabled the system will fault tolerant control when ESCs have fault.
- *
- * @value 0 Disabled
- * @value 1 ENABLE FTC
- *
- * @group Fault Tolerant Control
- */
-PARAM_DEFINE_INT32(FTC_ENABLE, 0);

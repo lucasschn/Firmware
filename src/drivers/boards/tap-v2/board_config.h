@@ -301,7 +301,7 @@ extern  bool esc_disabled_for_console;
 
 #define BOARD_USE_ESC_CURRENT_REPORT // each ESC reports its current estimate
 
-#define BOARD_SUPPORT_FTC // supporting fault tolerant control for heaxcopter
+#define BOARD_SUPPORTS_FTC // Board supports fault tolerant control. Set param FTC_ENABLE to 1 to enable it.
 
 __BEGIN_DECLS
 

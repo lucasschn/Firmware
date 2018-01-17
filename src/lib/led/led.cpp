@@ -142,6 +142,8 @@ int LedController::update(LedControlData &control_data)
 
 					if (cur_data.blink_times_left == 246) {
 						// handle toggling for infinite case: decrease between 255 and 246
+						// In order to handle the flash mode infinite case it needs a
+						// total of 10 steps.
 						cur_data.blink_times_left = 255;
 						++num_blinking_do_not_change_state;
 

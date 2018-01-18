@@ -3954,6 +3954,10 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 			return res;
 		}
 
+		if (no_mode_switch_low_battery) {
+			return res;
+		}
+
 		if (new_mode < 0) {
 			/* slot is unused */
 			res = TRANSITION_NOT_CHANGED;

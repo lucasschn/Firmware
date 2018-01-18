@@ -42,7 +42,7 @@
 // undefine the serial port of the RC not used on OB rc input over mavlink
 #undef RC_SERIAL_PORT
 
-#define TAP_ESC_NO_VERIFY_CONFIG
+#define BOARD_TAP_ESC_NO_VERIFY_CONFIG
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
 
 #undef PX4_I2C_BUS_EXPANSION3 // undefine expansion3 bus since it is used by the baro

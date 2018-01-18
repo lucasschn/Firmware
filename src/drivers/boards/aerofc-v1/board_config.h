@@ -144,9 +144,9 @@
 /*
  * ESCs do not respond
  */
-#define BOARD_TAP_ESC_NO_VERIFY_CONFIG 1
+#define BOARD_TAP_ESC_NO_VERIFY_CONFIG
 
-#define BOARD_TAP_ESC_MODE 1
+#define BOARD_TAP_ESC_MODE 1  // select open-loop control mode for ESCs
 
 #define MEMORY_CONSTRAINED_SYSTEM
 

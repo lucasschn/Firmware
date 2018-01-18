@@ -69,10 +69,6 @@
 
 #include "drv_tap_esc.h"
 
-#if !defined(BOARD_TAP_ESC_NO_VERIFY_CONFIG)
-#  define BOARD_TAP_ESC_NO_VERIFY_CONFIG
-#endif
-
 #if !defined(BOARD_TAP_ESC_MODE)
 #  define BOARD_TAP_ESC_MODE 0
 #endif

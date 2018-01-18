@@ -69,6 +69,10 @@
 
 #include "drv_tap_esc.h"
 
+#ifdef __PX4_QURT
+#define BOARD_TAP_ESC_NO_VERIFY_CONFIG
+#endif
+
 #if !defined(BOARD_TAP_ESC_MODE)
 #  define BOARD_TAP_ESC_MODE 0
 #endif
@@ -581,6 +585,11 @@ TAP_ESC::cycle()
 		subscribe();
 		_groups_subscribed = _groups_required;
 		_current_update_rate = 0;
+	}
+
+	if (_groups_required == 0) {
+		// No work to do, for instance when mixer has not been loaded yet.
+		return;
 	}
 
 	unsigned max_rate = _pwm_default_rate ;

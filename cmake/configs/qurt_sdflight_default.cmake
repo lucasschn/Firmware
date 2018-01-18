@@ -44,6 +44,8 @@ set(config_module_list
 	# System commands
 	#
 	systemcmds/param
+	systemcmds/mixer
+	systemcmds/motor_test
 
 	#
 	# Estimation modules
@@ -77,6 +79,7 @@ set(config_module_list
 	drivers/spektrum_rc
 	drivers/qshell/qurt
 	drivers/snapdragon_pwm_out
+	drivers/tap_esc
 
 	#
 	# Libraries
@@ -95,6 +98,8 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	lib/FlightTasks
+	lib/led
+	lib/tunes
 
 	#
 	# QuRT port

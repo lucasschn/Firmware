@@ -4,21 +4,9 @@
 # the DSP side.
 
 # The config between different QURT builds is shared.
-include(configs/qurt_sdflight_default)
+include(configs/qurt_sdflight_yuneec)
 
 # This definition allows to differentiate the specific board.
 add_definitions(
 	-D__PX4_QURT_EAGLE
 )
-
-
-#
-# PX4 drivers
-#
-drivers/tap_esc
-
-#
-# Libraries
-#
-lib/led
-lib/tunes

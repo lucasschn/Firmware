@@ -69,8 +69,9 @@
 
 #include "drv_tap_esc.h"
 
+// Skip ESC ID verification on snapdragon
 #ifdef __PX4_QURT
-#define BOARD_TAP_ESC_NO_VERIFY_CONFIG
+#  define BOARD_TAP_ESC_NO_VERIFY_CONFIG
 #endif
 
 #if !defined(BOARD_TAP_ESC_MODE)
@@ -588,7 +589,8 @@ TAP_ESC::cycle()
 	}
 
 	if (_groups_required == 0) {
-		// No work to do, for instance when mixer has not been loaded yet.
+		// This driver has no work to do, for instance when mixer has not been
+		// loaded yet. There is no reason to run through the cycle now.
 		return;
 	}
 

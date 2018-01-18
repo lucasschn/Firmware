@@ -18,7 +18,7 @@ endif()
 # Disable the creation of the parameters.xml file by scanning individual
 # source files, and scan all source files.  This will create a parameters.xml
 # file that contains all possible parameters, even if the associated module
-# is not used.  This is necessary for parameter synchronization between the 
+# is not used.  This is necessary for parameter synchronization between the
 # ARM and DSP processors.
 set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 
@@ -44,6 +44,8 @@ set(config_module_list
 	# System commands
 	#
 	systemcmds/param
+	systemcmds/mixer
+	systemcmds/motor_test
 
 	#
 	# Estimation modules
@@ -77,6 +79,7 @@ set(config_module_list
 	drivers/spektrum_rc
 	drivers/qshell/qurt
 	drivers/snapdragon_pwm_out
+	drivers/tap_esc
 
 	#
 	# Libraries
@@ -95,6 +98,8 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	lib/FlightTasks
+	lib/led
+	lib/tunes
 
 	#
 	# QuRT port

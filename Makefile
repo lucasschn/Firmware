@@ -166,7 +166,7 @@ broadcast: posix_sitl_broadcast
 eagle_default: posix_eagle_default qurt_eagle_default
 eagle_rtps: posix_eagle_rtps qurt_eagle_default
 eagle_legacy_default: posix_eagle_legacy qurt_eagle_legacy
-eagle_yuneec:  posix_eagle_default qurt_eagle_default
+eagle_yuneec:  posix_eagle_default qurt_eagle_yuneec
 excelsior_default: posix_excelsior_default qurt_excelsior_default
 excelsior_rtps: posix_excelsior_rtps qurt_excelsior_default
 excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy

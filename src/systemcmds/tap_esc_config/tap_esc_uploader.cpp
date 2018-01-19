@@ -1241,8 +1241,10 @@ int TAP_ESC_UPLOADER::update_fw(const char *filenames[])
 		   response runs into a timeout */
 		if (ret == -ETIMEDOUT) {
 			PX4_INFO("ESC did not respond to version request command. Probably out of date.");
-			ret = checkcrc(filenames);  // Will reboot ESCs after it's done
-			return ret;  // No need to check other ESCs, we will flash all of them anyway!
+			/* Check CRC of ESC firmware and compare to CRC of binary file. On
+			   mismatch the firmware is re-upload to the ESC. This will also
+				 reboot the ESCs after it is done */
+			return checkcrc(filenames);
 		}
 
 		/* check if firmware version of binary is newer than firmware currently on ESCs */
@@ -1250,14 +1252,13 @@ int TAP_ESC_UPLOADER::update_fw(const char *filenames[])
 			PX4_INFO("esc_id %d has fw version mismatch (%4.4f instead of %4.4f)", esc_id, (double)fw_esc_version * 0.01,
 				 (double)fw_binary_version * 0.01);
 			PX4_INFO("At least one ESC has a version mismatch. Running checkcrc for all ESCs!");
-			ret = checkcrc(filenames);  // Will reboot ESCs after it's done
-			return ret;
-
-		} else {
-			/* ESCs have not been updated */
-			return CODE_ESCS_ALREADY_UPTODATE;
+			/* Check CRC of ESC firmware and compare to CRC of binary file. On
+			   mismatch the firmware is re-upload to the ESC. This will also
+				 reboot the ESCs after it is done */
+			return checkcrc(filenames);
 		}
 	}
 
-	return ret;
+	/* ESCs did not require update */
+	return CODE_ESCS_ALREADY_UPTODATE;
 }

@@ -101,6 +101,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 			reset_playing_tune = true;
 			config_tone();
 
+		/* FALLTHROUGH */
 		default:
 
 			// TODO: come up with a better strategy

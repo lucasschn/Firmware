@@ -67,8 +67,6 @@ enum MAVLINK_WPM_CODES {
 	MAVLINK_WPM_CODE_ENUM_END
 };
 
-#define MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT 5000000    ///< Protocol communication action timeout in useconds
-#define MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT 500000        ///< Protocol communication retry timeout in useconds
 
 class Mavlink;
 
@@ -92,8 +90,10 @@ public:
 	void check_active_mission(void);
 
 private:
-	enum MAVLINK_WPM_STATES _state;					///< Current state
-	enum MAV_MISSION_TYPE _mission_type;				///< mission type of current transmission (only one at a time possible)
+	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state
+	enum MAV_MISSION_TYPE _mission_type {MAV_MISSION_TYPE_MISSION};	///< mission type of current transmission (only one at a time possible)
+
+	uint64_t		_time_last_recv{0};
 
 	uint64_t		_time_last_recv;
 	uint64_t		_time_last_sent;
@@ -102,7 +102,9 @@ private:
 	uint32_t		_action_timeout;
 	uint32_t		_retry_timeout;
 
-	bool			_int_mode;				///< Use accurate int32 instead of float
+	static constexpr uint32_t _operation_timeout_us = 5000000;
+
+	unsigned		_filesystem_errcount{0};		///< File system error count
 
 	unsigned		_filesystem_errcount;			///< File system error count
 

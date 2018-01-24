@@ -110,6 +110,15 @@ RTL::on_activation()
 		cmd.param3 = 1.0f;
 		_navigator->publish_vehicle_cmd(&cmd);
 	}
+
+	{
+		// Disable camera time based image capture
+		vehicle_command_s cmd = {};
+		cmd.command = vehicle_command_s::VEHICLE_CMD_IMAGE_STOP_CAPTURE;
+		// Pause trigger
+		cmd.param1 = 0.0f;
+		_navigator->publish_vehicle_cmd(&cmd);
+	}
 }
 
 void

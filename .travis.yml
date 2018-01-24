@@ -65,11 +65,9 @@ script:
 after_success:
   - set -ev
   - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      cp build/tap-v2_default/tap-v2_default.px4 build/tap-v2_default/autopilot.px4;
 
-     ./Tools/generate_yuneec.py build/tap-v2_default/tap-v2_default.px4 build/tap-v2_default/autopilot.yuneec ${AUTOPILOT_AES_KEY};
       mkdir -p s3autopilot;
-      cp build/tap-v2_default/autopilot.yuneec s3autopilot;
+      ./Tools/generate_yuneec.py build/tap-v2_default/tap-v2_default.px4 s3autopilot/autopilot.yuneec ${AUTOPILOT_AES_KEY};
       echo "${TRAVIS_TAG}" > s3autopilot/version;
       sha256sum s3autopilot/autopilot.yuneec | head -c 64 > s3autopilot/hash;
 

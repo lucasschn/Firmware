@@ -588,11 +588,15 @@ TAP_ESC::cycle()
 		_current_update_rate = 0;
 	}
 
+#ifdef __PX4_QURT
+
 	if (_groups_required == 0) {
 		// This driver has no work to do, for instance when mixer has not been
 		// loaded yet. There is no reason to run through the cycle now.
 		return;
 	}
+
+#endif
 
 	unsigned max_rate = _pwm_default_rate ;
 

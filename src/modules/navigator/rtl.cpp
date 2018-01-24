@@ -100,6 +100,16 @@ RTL::on_activation()
 	}
 
 	set_rtl_item();
+
+	{
+		// Disable camera distance based trigger
+		vehicle_command_s cmd = {};
+		cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
+		// Pause trigger
+		cmd.param1 = -1.0f;
+		cmd.param3 = 1.0f;
+		_navigator->publish_vehicle_cmd(&cmd);
+	}
 }
 
 void

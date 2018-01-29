@@ -3504,7 +3504,13 @@ MulticopterPositionControl::task_main()
 				_local_pos_sp.vy = _vel_sp(1); //_vel_sp_before_realsense(1);
 				_local_pos_sp.vz = _vel_sp(2); //_vel_sp_before_realsense(2);
 
+				/* publish local position setpoint */
+				if (_local_pos_sp_pub != nullptr) {
+					orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
 
+				} else {
+					_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
+				}
 
 			} else {
 				/* position controller disabled, reset setpoints */

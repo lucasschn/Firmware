@@ -816,38 +816,45 @@ REALSENSE::_initialise_uart(const char *device)
 
 	if (_uart_fd < 0) {
 		PX4_ERR("failed to open uart device!");
-		return -1;
+		return PX4_ERROR;
 	}
 
 	struct termios uart_config;
 
-	int termios_state = -1;
+	int termios_state;
 
 	/* fill the struct for the new configuration */
-	tcgetattr(_uart_fd, &uart_config);
+	if (tcgetattr(_uart_fd, &uart_config)) {
+		PX4_ERR("error getting uart configuration");
+		return PX4_ERROR;
+	}
 
 	/* properly configure the terminal (see also https://en.wikibooks.org/wiki/Serial_Programming/termios ) */
 
 	// clear ONLCR flag (which appends a CR for every LF)
 	uart_config.c_oflag &= ~ONLCR;
 
+	// clear CRTSCTS flag (which enables flow-control)
+	// This fixes the issue where we are no longer able to write to the realsense.
+	uart_config.c_cflag &= ~CRTSCTS;
+
 	/* set baud rate */
 	if ((termios_state = cfsetispeed(&uart_config, B460800)) < 0) {
 		PX4_ERR("ERR: %d (cfsetispeed)", termios_state);
 		::close(_uart_fd);
-		return -1;
+		return PX4_ERROR;
 	}
 
 	if ((termios_state = cfsetospeed(&uart_config, B460800)) < 0) {
 		PX4_ERR("ERR: %d (cfsetospeed)", termios_state);
 		::close(_uart_fd);
-		return -1;
+		return PX4_ERROR;
 	}
 
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
 		PX4_ERR("ERR: %d (tcsetattr)", termios_state);
 		::close(_uart_fd);
-		return -1;
+		return PX4_ERROR;
 	}
 
 	return PX4_OK;

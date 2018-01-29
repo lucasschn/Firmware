@@ -10,6 +10,7 @@ git:
 branches:
   only:
   - tap-v3
+  - /^v[0-9].*$/
 
 matrix:
   fast_finish: true

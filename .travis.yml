@@ -79,25 +79,30 @@ after_success:
 
       function upload_to_s3 { s3cmd --add-header=x-amz-meta-firmware-version:${TRAVIS_TAG} -m $3 --acl-public --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} --add-header="Cache-Control:public, max-age=0" put $1 s3://${S3_BUCKET_NAME}/$2; };
 
+      release_type="unspecified";
+
       if [[ is_rc -eq 1 ]]; then
           echo "Deploying release candidate ...";
-          upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tapv3/rc/autopilot-${TRAVIS_TAG}.yuneec application/octet-stream;
+          release_type="rc";
       elif [[ is_alpha -eq 1 ]]; then
           echo "Deploying alpha version ...";
-          upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tapv3/alpha/autopilot-${TRAVIS_TAG}.yuneec application/octet-stream;
+          release_type="alpha";
       elif [[ is_beta -eq 1 ]]; then
           echo "Deploying beta version ...";
-          upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tapv3/beta/autopilot-${TRAVIS_TAG}.yuneec application/octet-stream;
+          release_type="beta";
       elif [[ is_release -eq 1 ]]; then
           echo "Deploying release version ...";
-          upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tapv3/latest/autopilot.yuneec application/octet-stream;
-          upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tapv3/${TRAVIS_TAG}/autopilot.yuneec application/octet-stream;
-          upload_to_s3 s3autopilot/version autopilot/tapv3/latest/version text/plain;
-          upload_to_s3 s3autopilot/version autopilot/tapv3/${TRAVIS_TAG}/version text/plain;
-          upload_to_s3 s3autopilot/hash autopilot/tapv3/latest/hash text/plain;
-          upload_to_s3 s3autopilot/hash autopilot/tapv3/${TRAVIS_TAG}/hash text/plain;
+          release_type="release";
       else
           echo "Deploying developer version ...";
-          upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tapv3/developer/autopilot-${TRAVIS_COMMIT}.yuneec application/octet-stream;
+          release_type="developer";
       fi;
+
+      upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tapv3/$release_type/latest/autopilot.yuneec application/octet-stream;
+      upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tapv3/$release_type/${TRAVIS_TAG}/autopilot.yuneec application/octet-stream;
+      upload_to_s3 s3autopilot/version          autopilot/tapv3/$release_type/latest/version text/plain;
+      upload_to_s3 s3autopilot/version          autopilot/tapv3/$release_type/${TRAVIS_TAG}/version text/plain;
+      upload_to_s3 s3autopilot/hash             autopilot/tapv3/$release_type/latest/hash text/plain;
+      upload_to_s3 s3autopilot/hash             autopilot/tapv3/$release_type/${TRAVIS_TAG}/hash text/plain;
+
     fi;

@@ -4,7 +4,7 @@
 language: cpp
 
 git:
-  depth: 50
+  depth: 150
 
 # white list
 branches:
@@ -69,8 +69,8 @@ after_success:
 
       mkdir -p s3autopilot;
       ./Tools/generate_yuneec.py build/tap-v2_default/tap-v2_default.px4 s3autopilot/autopilot.yuneec ${AUTOPILOT_AES_KEY};
-      git describe --tags > s3autopilot/version;
-      cat s3autopilot/version;
+      fwversion=$(git describe --tags);
+      echo "$fwversion" > s3autopilot/version;
       sha256sum s3autopilot/autopilot.yuneec | head -c 64 > s3autopilot/hash;
 
       is_alpha=`echo "$TRAVIS_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+-[0-9]\+.[0-9]\+.[0-9]\+alpha[0-9]\+$' | wc -l`;
@@ -104,11 +104,11 @@ after_success:
         upload_to_s3 s3autopilot/version          autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/version text/plain;
         upload_to_s3 s3autopilot/hash             autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/hash text/plain;
       else
-        upload_to_s3 s3autopilot/autopilot.yuneec autopilot/${TRAVIS_BRANCH}/$release_type/latest/autopilot.yuneec application/octet-stream;
-        upload_to_s3 s3autopilot/autopilot.yuneec autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_TAG}/autopilot.yuneec application/octet-stream;
-        upload_to_s3 s3autopilot/version          autopilot/${TRAVIS_BRANCH}/$release_type/latest/version text/plain;
-        upload_to_s3 s3autopilot/version          autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_TAG}/version text/plain;
-        upload_to_s3 s3autopilot/hash             autopilot/${TRAVIS_BRANCH}/$release_type/latest/hash text/plain;
-        upload_to_s3 s3autopilot/hash             autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_TAG}/hash text/plain;
+        upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tap-v3/$release_type/latest/autopilot.yuneec application/octet-stream;
+        upload_to_s3 s3autopilot/version          autopilot/tap-v3/$release_type/latest/version text/plain;
+        upload_to_s3 s3autopilot/hash             autopilot/tap-v3/$release_type/latest/hash text/plain;
+        upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tap-v3/$release_type/${fwversion}/autopilot.yuneec application/octet-stream;
+        upload_to_s3 s3autopilot/version          autopilot/tap-v3/$release_type/${fwversion}/version text/plain;
+        upload_to_s3 s3autopilot/hash             autopilot/tap-v3/$release_type/${fwversion}/hash text/plain;
       fi;
     fi;

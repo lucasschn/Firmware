@@ -160,13 +160,15 @@ then
 	# Flight modes
 	#
 
-	# RTL
-	param set COM_FLTMODE1 5
+	#
+	# Flight modes
+	#
+	# Altitude hold
+	param set COM_FLTMODE6 1
 	# Position
 	param set COM_FLTMODE4 2
-	# Other switch depends on test pilot setting
-	#Manual
-	param set COM_FLTMODE6 0
+	# RTL
+	param set COM_FLTMODE1 5
 
 	#
 	# ST16 RC settings
@@ -272,16 +274,6 @@ then
 	# Reboot to be on the safe side that the ESC update
 	# did not consume RAM we are missing to fly
 	# reboot
-fi
-
-# Set test pilot mode
-if param compare RC_TESTPILOT 0
-then
-	# Altitude hold
-	param set COM_FLTMODE6 1
-else
-	# Complete manual mode
-	param set COM_FLTMODE6 0
 fi
 
 tap_esc start -d ${ESC_TTY} -n 4

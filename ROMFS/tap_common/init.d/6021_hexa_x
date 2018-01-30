@@ -199,11 +199,12 @@ then
 	#
 	# Flight modes
 	#
-	# RTL
-	param set COM_FLTMODE1 5
+	# Altitude hold
+	param set COM_FLTMODE6 1
 	# Position
 	param set COM_FLTMODE4 2
-	# Other switch depends on test pilot setting
+	# RTL
+	param set COM_FLTMODE1 5
 
 	#
 	# ST16 RC settings
@@ -300,16 +301,6 @@ then
 	param set SYS_CAL_GYRO_TOL 0.1
 
 	param save
-fi
-
-# Set test pilot mode
-if param compare RC_TESTPILOT 0
-then
-	# Altitude hold
-	param set COM_FLTMODE6 1
-else
-	# Complete manual mode
-	param set COM_FLTMODE6 0
 fi
 
 #

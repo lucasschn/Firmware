@@ -810,7 +810,8 @@ MulticopterPositionControl::obstacle_avoidance_sonar(float altitude_above_home)
 {
 	const bool obsavoid_on = _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON;
 
-	if (obsavoid_on) {
+	/* don't run obstacle avoidance in altitude mode because there are altitude jumps */
+	if (obsavoid_on && _control_mode.flag_control_velocity_enabled) {
 		/* slow down in obstacle avoidance to allow for braking in front of an obstacle */
 		_vel_max_xy = 4.0f;
 

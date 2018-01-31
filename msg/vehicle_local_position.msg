@@ -29,9 +29,13 @@ uint8 vxy_reset_counter
 
 float32 delta_vz
 uint8 vz_reset_counter
+# Acceleration in NED frame
+float32 ax        # North velocity derivative in NED earth-fixed frame, (metres/sec^2)
+float32 ay        # East velocity derivative in NED earth-fixed frame, (metres/sec^2)
+float32 az        # Down velocity derivative in NED earth-fixed frame, (metres/sec^2)
 
 # Heading
-float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians) 
+float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians)
 
 # Position of reference point (local NED frame origin) in global (GPS / WGS84) frame
 bool xy_global				# true if position (x, y) has a valid global reference (ref_lat, ref_lon)
@@ -50,5 +54,9 @@ float32 eph				# Standard deviation of horizontal position error, (metres)
 float32 epv				# Standard deviation of vertical position error, (metres)
 float32 evh				# Standard deviation of horizontal velocity error, (metres/sec)
 float32 evv				# Standard deviation of horizontal velocity error, (metres/sec)
+
+# estimator specified vehicle limits
+float32 vxy_max				# maximum horizontal speed - set to 0 when not applicable (metres/sec)
+bool limit_hagl				# true when the height above ground needs to be limited to observe optical flow focus and range finder limits
 
 # TOPICS vehicle_local_position vehicle_local_position_groundtruth vehicle_vision_position

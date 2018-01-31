@@ -65,6 +65,7 @@ set(msg_files
 	hil_sensor.msg
 	home_position.msg
 	input_rc.msg
+	landing_target_pose.msg
 	led_control.msg
 	log_message.msg
 	manual_control_setpoint.msg

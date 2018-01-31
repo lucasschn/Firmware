@@ -50,7 +50,6 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
-#include <systemlib/systemlib.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_innovations.h>
@@ -69,6 +68,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/landing_target_pose.h>
 
 using control::BlockParamFloat;
 using control::BlockParamExtFloat;
@@ -107,14 +107,14 @@ public:
 	int print_status() override;
 
 private:
-	int getRangeSubIndex(const int *subs); ///< get subscribtion index of first downward-facing range sensor
+	int getRangeSubIndex(const int *subs); ///< get subscription index of first downward-facing range sensor
 
 	bool 	_replay_mode = false;			///< true when we use replay data from a log
 
 	// time slip monitoring
 	uint64_t _integrated_time_us = 0;	///< integral of gyro delta time from start (uSec)
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
-	uint64_t _last_time_slip_us = 0;	///< Last time slip (uSec)
+	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
 
 	// Initialise time stamps used to send sensor data to the EKF and for logging
 	uint64_t _timestamp_mag_us = 0;		///< magnetomer data timestamp (uSec)
@@ -157,8 +157,10 @@ private:
 		0.5f;	///< Maximum permissible velocity innovation to pass pre-flight checks (m/sec)
 	static constexpr float _hgt_innov_test_lim =
 		1.5f;	///< Maximum permissible height innovation to pass pre-flight checks (m)
+	static constexpr float _nav_yaw_innov_test_lim =
+		0.25f;	///< Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame observations (rad)
 	static constexpr float _yaw_innov_test_lim =
-		0.25f;	///< Maximum permissible yaw innovation to pass pre-flight checks (rad)
+		0.52f;	///< Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
 	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
 	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
 
@@ -189,6 +191,7 @@ private:
 	BlockParamExtFloat _rng_delay_ms;	///< range finder measurement delay relative to the IMU (mSec)
 	BlockParamExtFloat _airspeed_delay_ms;	///< airspeed measurement delay relative to the IMU (mSec)
 	BlockParamExtFloat _ev_delay_ms;	///< off-board vision measurement delay relative to the IMU (mSec)
+	BlockParamExtFloat _auxvel_delay_ms;	///< auxillary velocity measurement delay relative to the IMU (mSec)
 
 	BlockParamExtFloat _gyro_noise;	///< IMU angular rate noise used for covariance prediction (rad/sec)
 	BlockParamExtFloat _accel_noise;	///< IMU acceleration noise use for covariance prediction (m/sec**2)
@@ -216,6 +219,7 @@ private:
 	BlockParamExtFloat _mag_heading_noise;	///< measurement noise used for simple heading fusion (rad)
 	BlockParamExtFloat _mag_noise;		///< measurement noise used for 3-axis magnetoemeter fusion (Gauss)
 	BlockParamExtFloat _eas_noise;		///< measurement noise used for airspeed fusion (m/sec)
+	BlockParamExtFloat _beta_innov_gate; ///< synthetic sideslip innovation consistency gate size (STD)
 	BlockParamExtFloat _beta_noise;	///< synthetic sideslip noise (rad)
 	BlockParamExtFloat _mag_declination_deg;///< magnetic declination (degrees)
 	BlockParamExtFloat _heading_innov_gate;///< heading fusion innovation consistency gate size (STD)
@@ -340,6 +344,7 @@ Ekf2::Ekf2():
 	_rng_delay_ms(this, "RNG_DELAY", true, _params->range_delay_ms),
 	_airspeed_delay_ms(this, "ASP_DELAY", true, _params->airspeed_delay_ms),
 	_ev_delay_ms(this, "EV_DELAY", true, _params->ev_delay_ms),
+	_auxvel_delay_ms(this, "AVEL_DELAY", true, _params->auxvel_delay_ms),
 	_gyro_noise(this, "GYR_NOISE", true, _params->gyro_noise),
 	_accel_noise(this, "ACC_NOISE", true, _params->accel_noise),
 	_gyro_bias_p_noise(this, "GYR_B_NOISE", true, _params->gyro_bias_p_noise),
@@ -360,6 +365,7 @@ Ekf2::Ekf2():
 	_mag_heading_noise(this, "HEAD_NOISE", true, _params->mag_heading_noise),
 	_mag_noise(this, "MAG_NOISE", true, _params->mag_noise),
 	_eas_noise(this, "EAS_NOISE", true, _params->eas_noise),
+	_beta_innov_gate(this, "BETA_GATE", true, _params->beta_innov_gate),
 	_beta_noise(this, "BETA_NOISE", true, _params->beta_noise),
 	_mag_declination_deg(this, "MAG_DECL", true, _params->mag_declination_deg),
 	_heading_innov_gate(this, "HDG_GATE", true, _params->heading_innov_gate),
@@ -423,10 +429,10 @@ Ekf2::Ekf2():
 	_mag_bias_id(this, "MAGBIAS_ID"),
 	_mag_bias_saved_variance(this, "MAGB_VREF"),
 	_mag_bias_alpha(this, "MAGB_K"),
-	_acc_bias_lim(this, "EKF2_ABL_LIM", false, _params->acc_bias_lim),
-	_acc_bias_learn_acc_lim(this, "EKF2_ABL_ACCLIM", false, _params->acc_bias_learn_acc_lim),
-	_acc_bias_learn_gyr_lim(this, "EKF2_ABL_GYRLIM", false, _params->acc_bias_learn_gyr_lim),
-	_acc_bias_learn_tc(this, "EKF2_ABL_TAU", false, _params->acc_bias_learn_tc),
+	_acc_bias_lim(this, "ABL_LIM", true, _params->acc_bias_lim),
+	_acc_bias_learn_acc_lim(this, "ABL_ACCLIM", true, _params->acc_bias_learn_acc_lim),
+	_acc_bias_learn_gyr_lim(this, "ABL_GYRLIM", true, _params->acc_bias_learn_gyr_lim),
+	_acc_bias_learn_tc(this, "ABL_TAU", true, _params->acc_bias_learn_tc),
 	_drag_noise(this, "DRAG_NOISE", true, _params->drag_noise),
 	_bcoef_x(this, "BCOEF_X", true, _params->bcoef_x),
 	_bcoef_y(this, "BCOEF_Y", true, _params->bcoef_y),
@@ -444,7 +450,7 @@ int Ekf2::print_status()
 {
 	PX4_INFO("local position OK %s", (_ekf.local_position_is_valid()) ? "yes" : "no");
 	PX4_INFO("global position OK %s", (_ekf.global_position_is_valid()) ? "yes" : "no");
-	PX4_INFO("time slip: %" PRIu64 " us", _last_time_slip_us);
+	PX4_INFO("time slip: %" PRId64 " us", _last_time_slip_us);
 	return 0;
 }
 
@@ -462,6 +468,9 @@ void Ekf2::run()
 	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
 	int sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+	int landing_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
+
+	bool imu_bias_reset_request = false;
 
 	// because we can have several distance sensor instances with different orientations
 	int range_finder_subs[ORB_MULTI_MAX_INSTANCES];
@@ -492,7 +501,8 @@ void Ekf2::run()
 	vehicle_status_s vehicle_status = {};
 	sensor_selection_s sensor_selection = {};
 	sensor_baro_s sensor_baro = {};
-	sensor_baro.pressure = 1013.5; // initialise pressure to sea level
+	sensor_baro.pressure = 1013.5f; // initialise pressure to sea level
+	landing_target_pose_s landing_target_pose = {};
 
 	while (!should_exit()) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -532,6 +542,7 @@ void Ekf2::run()
 		bool vision_position_updated = false;
 		bool vision_attitude_updated = false;
 		bool vehicle_status_updated = false;
+		bool landing_target_pose_updated = false;
 
 		orb_copy(ORB_ID(sensor_combined), sensors_sub, &sensors);
 		// update all other topics if they have new data
@@ -565,8 +576,27 @@ void Ekf2::run()
 
 		orb_check(sensor_selection_sub, &sensor_selection_updated);
 
-		if (sensor_selection_updated) {
+		// Always update sensor selction first time through if time stamp is non zero
+		if (sensor_selection_updated || (sensor_selection.timestamp == 0)) {
+			sensor_selection_s sensor_selection_prev = sensor_selection;
 			orb_copy(ORB_ID(sensor_selection), sensor_selection_sub, &sensor_selection);
+
+			if ((sensor_selection_prev.timestamp > 0) && (sensor_selection.timestamp > sensor_selection_prev.timestamp)) {
+				if (sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
+					PX4_WARN("accel id changed, resetting IMU bias");
+					imu_bias_reset_request = true;
+				}
+
+				if (sensor_selection.gyro_device_id != sensor_selection_prev.gyro_device_id) {
+					PX4_WARN("gyro id changed, resetting IMU bias");
+					imu_bias_reset_request = true;
+				}
+			}
+		}
+
+		// attempt reset until successful
+		if (imu_bias_reset_request) {
+			imu_bias_reset_request = !_ekf.reset_imu_bias();
 		}
 
 		orb_check(optical_flow_sub, &optical_flow_updated);
@@ -686,13 +716,15 @@ void Ekf2::run()
 				uint32_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
 
 				if (mag_time_ms - _mag_time_ms_last_used > _params->sensor_interval_min_ms) {
-					float mag_sample_count_inv = 1.0f / (float)_mag_sample_count;
+					const float mag_sample_count_inv = 1.0f / _mag_sample_count;
 					// calculate mean of measurements and correct for learned bias offsets
 					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv - _mag_bias_x.get(),
 								    _mag_data_sum[1] *mag_sample_count_inv - _mag_bias_y.get(),
 								    _mag_data_sum[2] *mag_sample_count_inv - _mag_bias_z.get()
 								   };
+
 					_ekf.setMagData(1000 * (uint64_t)mag_time_ms, mag_data_avg_ga);
+
 					_mag_time_ms_last_used = mag_time_ms;
 					_mag_time_sum_ms = 0;
 					_mag_sample_count = 0;
@@ -725,7 +757,7 @@ void Ekf2::run()
 
 					// estimate air density assuming typical 20degC ambient temperature
 					const float pressure_to_density = 100.0f / (CONSTANTS_AIR_GAS_CONST * (20.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
-					float rho = pressure_to_density * sensor_baro.pressure;
+					const float rho = pressure_to_density * sensor_baro.pressure;
 					_ekf.set_air_density(rho);
 
 					// calculate static pressure error = Pmeas - Ptruth
@@ -750,6 +782,7 @@ void Ekf2::run()
 
 					// push to estimator
 					_ekf.setBaroData(1000 * (uint64_t)balt_time_ms, balt_data_avg);
+
 					_balt_time_ms_last_used = balt_time_ms;
 					_balt_time_sum_ms = 0;
 					_balt_sample_count = 0;
@@ -787,7 +820,7 @@ void Ekf2::run()
 				     && (airspeed.true_airspeed_m_s > _arspFusionThreshold.get());
 
 		if (fuse_airspeed) {
-			float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
+			const float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
 			_ekf.setAirspeedData(airspeed.timestamp, airspeed.true_airspeed_m_s, eas2tas);
 		}
 
@@ -831,11 +864,14 @@ void Ekf2::run()
 			ev_data.quat = q;
 
 			// position measurement error from parameters. TODO : use covariances from topic
-			ev_data.posErr = _ev_pos_noise.get();
+			ev_data.posErr = fmaxf(_ev_pos_noise.get(), fmaxf(ev_pos.eph, ev_pos.epv));
 			ev_data.angErr = _ev_ang_noise.get();
 
-			// use timestamp from external computer, clocks are synchronized when using MAVROS
-			_ekf.setExtVisionData(vision_position_updated ? ev_pos.timestamp : ev_att.timestamp, &ev_data);
+			// only set data if all positions and velocities are valid
+			if (ev_pos.xy_valid && ev_pos.z_valid && ev_pos.v_xy_valid && ev_pos.v_z_valid) {
+				// use timestamp from external computer, clocks are synchronized when using MAVROS
+				_ekf.setExtVisionData(vision_position_updated ? ev_pos.timestamp : ev_att.timestamp, &ev_data);
+			}
 		}
 
 		orb_check(vehicle_land_detected_sub, &vehicle_land_detected_updated);
@@ -845,15 +881,38 @@ void Ekf2::run()
 			_ekf.set_in_air_status(!vehicle_land_detected.landed);
 		}
 
+		// use the landing target pose estimate as another source of velocity data
+		orb_check(landing_target_pose_sub, &landing_target_pose_updated);
+
+		if (landing_target_pose_updated) {
+			orb_copy(ORB_ID(landing_target_pose), landing_target_pose_sub, &landing_target_pose);
+
+			// we can only use the landing target if it has a fixed position and  a valid velocity estimate
+			if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
+				// velocity of vehicle relative to target has opposite sign to target relative to vehicle
+				float velocity[2];
+				velocity[0] = -landing_target_pose.vx_rel;
+				velocity[1] = -landing_target_pose.vy_rel;
+				float variance[2];
+				variance[0] = landing_target_pose.cov_vx_rel;
+				variance[1] = landing_target_pose.cov_vy_rel;
+				_ekf.setAuxVelData(landing_target_pose.timestamp, velocity, variance);
+			}
+		}
+
 		// run the EKF update and output
-		if (_ekf.update()) {
+		const bool updated = _ekf.update();
+
+		if (updated) {
 
 			// integrate time to monitor time slippage
 			if (_start_time_us == 0) {
 				_start_time_us = now;
+				_last_time_slip_us = 0;
 
 			} else if (_start_time_us > 0) {
 				_integrated_time_us += sensors.gyro_integral_dt;
+				_last_time_slip_us = (now - _start_time_us) - _integrated_time_us;
 			}
 
 			matrix::Quatf q;
@@ -901,14 +960,19 @@ void Ekf2::run()
 			// Velocity of body origin in local NED frame (m/s)
 			float velocity[3];
 			_ekf.get_velocity(velocity);
-
 			lpos.vx = velocity[0];
 			lpos.vy = velocity[1];
 			lpos.vz = velocity[2];
 
-			float pos_d_deriv;
-			_ekf.get_pos_d_deriv(&pos_d_deriv);
-			lpos.z_deriv = pos_d_deriv; // vertical position time derivative (m/s)
+			// vertical position time derivative (m/s)
+			_ekf.get_pos_d_deriv(&lpos.z_deriv);
+
+			// Acceleration of body origin in local NED frame
+			float vel_deriv[3];
+			_ekf.get_vel_deriv_ned(vel_deriv);
+			lpos.ax = vel_deriv[0];
+			lpos.ay = vel_deriv[1];
+			lpos.az = vel_deriv[2];
 
 			// TODO: better status reporting
 			lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
@@ -917,8 +981,8 @@ void Ekf2::run()
 			lpos.v_z_valid = !_preflt_vert_fail;
 
 			// Position of local NED origin in GPS / WGS84 frame
-			map_projection_reference_s ekf_origin = {};
-			uint64_t origin_time = 0;
+			map_projection_reference_s ekf_origin;
+			uint64_t origin_time;
 
 			// true if position (x,y,z) has a valid WGS-84 global reference (ref_lat, ref_lon, alt)
 			const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin, &lpos.ref_alt);
@@ -939,14 +1003,14 @@ void Ekf2::run()
 
 			float terrain_vpos;
 			_ekf.get_terrain_vert_pos(&terrain_vpos);
-			lpos.dist_bottom = terrain_vpos - position[2]; // Distance to bottom surface (ground) in meters
+			lpos.dist_bottom = terrain_vpos - lpos.z; // Distance to bottom surface (ground) in meters
 
-			// constrain the distance to ground to _params->rng_gnd_clearance
-			if (lpos.dist_bottom < _params->rng_gnd_clearance) {
-				lpos.dist_bottom = _params->rng_gnd_clearance;
+			// constrain the distance to ground to _rng_gnd_clearance
+			if (lpos.dist_bottom < _rng_gnd_clearance.get()) {
+				lpos.dist_bottom = _rng_gnd_clearance.get();
 			}
 
-			lpos.dist_bottom_rate = -velocity[2]; // Distance to bottom surface (ground) change rate
+			lpos.dist_bottom_rate = -lpos.vz; // Distance to bottom surface (ground) change rate
 
 			bool dead_reckoning;
 			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv, &dead_reckoning);
@@ -957,6 +1021,14 @@ void Ekf2::run()
 			_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
 			_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
 			_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
+
+			// get control limit information
+			_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.limit_hagl);
+
+			// convert NaN to zero
+			if (!PX4_ISFINITE(lpos.vxy_max)) {
+				lpos.vxy_max = 0.0f;
+			}
 
 			// publish vehicle local position data
 			_vehicle_local_position_pub.update();
@@ -973,17 +1045,18 @@ void Ekf2::run()
 
 				global_pos.lat_lon_reset_counter = lpos.xy_reset_counter;
 
-				global_pos.alt = -position[2] + lpos.ref_alt; // Altitude AMSL in meters
-				_ekf.get_posD_reset(&global_pos.delta_alt, &global_pos.alt_reset_counter);
+				global_pos.alt = -lpos.z + lpos.ref_alt; // Altitude AMSL in meters
+
 				// global altitude has opposite sign of local down position
-				global_pos.delta_alt *= -1.0f;
+				global_pos.delta_alt = -lpos.delta_z;
 
-				global_pos.vel_n = velocity[0]; // Ground north velocity, m/s
-				global_pos.vel_e = velocity[1]; // Ground east velocity, m/s
-				global_pos.vel_d = velocity[2]; // Ground downside velocity, m/s
-				global_pos.pos_d_deriv = pos_d_deriv; // vertical position time derivative, m/s
+				global_pos.vel_n = lpos.vx; // Ground north velocity, m/s
+				global_pos.vel_e = lpos.vy; // Ground east velocity, m/s
+				global_pos.vel_d = lpos.vz; // Ground downside velocity, m/s
 
-				global_pos.yaw = euler.psi(); // Yaw in radians -PI..+PI.
+				global_pos.pos_d_deriv = lpos.z_deriv; // vertical position time derivative, m/s
+
+				global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
 
 				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv, &global_pos.dead_reckoning);
 				global_pos.evh = lpos.evh;
@@ -1045,43 +1118,40 @@ void Ekf2::run()
 					orb_publish(ORB_ID(sensor_bias), _sensor_bias_pub, &bias);
 				}
 			}
+		}
 
+		// publish estimator status
+		estimator_status_s status;
+		status.timestamp = now;
+		_ekf.get_state_delayed(status.states);
+		_ekf.get_covariances(status.covariances);
+		_ekf.get_gps_check_status(&status.gps_check_fail_flags);
+		_ekf.get_control_mode(&status.control_mode_flags);
+		_ekf.get_filter_fault_status(&status.filter_fault_flags);
+		_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
+						&status.vel_test_ratio, &status.pos_test_ratio,
+						&status.hgt_test_ratio, &status.tas_test_ratio,
+						&status.hagl_test_ratio, &status.beta_test_ratio);
+
+		status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
+		status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
+		_ekf.get_ekf_soln_status(&status.solution_status_flags);
+		_ekf.get_imu_vibe_metrics(status.vibe);
+		status.time_slip = _last_time_slip_us / 1e6f;
+		status.nan_flags = 0.0f; // unused
+		status.health_flags = 0.0f; // unused
+		status.timeout_flags = 0.0f; // unused
+		status.pre_flt_fail = _preflt_fail;
+
+		if (_estimator_status_pub == nullptr) {
+			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
+
+		} else {
+			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
+		}
+
+		if (updated) {
 			{
-				// publish estimator status
-				estimator_status_s status;
-				status.timestamp = now;
-				_ekf.get_state_delayed(status.states);
-				_ekf.get_covariances(status.covariances);
-				_ekf.get_gps_check_status(&status.gps_check_fail_flags);
-				_ekf.get_control_mode(&status.control_mode_flags);
-				_ekf.get_filter_fault_status(&status.filter_fault_flags);
-				_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
-								&status.vel_test_ratio, &status.pos_test_ratio,
-								&status.hgt_test_ratio, &status.tas_test_ratio,
-								&status.hagl_test_ratio);
-
-				status.pos_horiz_accuracy = lpos.eph;
-				status.pos_vert_accuracy = lpos.epv;
-				_ekf.get_ekf_soln_status(&status.solution_status_flags);
-				_ekf.get_imu_vibe_metrics(status.vibe);
-				status.pre_flt_fail = _preflt_fail;
-
-				// monitor time slippage
-				if (_start_time_us != 0 && now > _start_time_us) {
-					status.time_slip = (float)(1e-6 * ((double)(now - _start_time_us) - (double) _integrated_time_us));
-					_last_time_slip_us = (now - _start_time_us) - _integrated_time_us;
-
-				} else {
-					status.time_slip = 0.0f;
-				}
-
-				if (_estimator_status_pub == nullptr) {
-					_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
-
-				} else {
-					orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
-				}
-
 				/* Check and save learned magnetometer bias estimates */
 
 				// Check if conditions are OK to for learning of magnetometer bias values
@@ -1089,6 +1159,7 @@ void Ekf2::run()
 				    (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
 				    (status.filter_fault_flags == 0) && // there are no filter faults
 				    (status.control_mode_flags & (1 << 5))) { // the EKF is operating in the correct mode
+
 					if (_last_magcal_us == 0) {
 						_last_magcal_us = now;
 
@@ -1101,15 +1172,18 @@ void Ekf2::run()
 					// if a filter fault has occurred, assume previous learning was invalid and do not
 					// count it towards total learning time.
 					_total_cal_time_us = 0;
-					memset(_valid_cal_available, false, sizeof(_valid_cal_available));
+
+					for (bool &cal_available : _valid_cal_available) {
+						cal_available = false;
+					}
 				}
 
 				// Start checking mag bias estimates when we have accumulated sufficient calibration time
 				if (_total_cal_time_us > 120 * 1000 * 1000ULL) {
 					// we have sufficient accumulated valid flight time to form a reliable bias estimate
 					// check that the state variance for each axis is within a range indicating filter convergence
-					float max_var_allowed = 100.0f * _mag_bias_saved_variance.get();
-					float min_var_allowed = 0.01f * _mag_bias_saved_variance.get();
+					const float max_var_allowed = 100.0f * _mag_bias_saved_variance.get();
+					const float min_var_allowed = 0.01f * _mag_bias_saved_variance.get();
 
 					// Declare all bias estimates invalid if any variances are out of range
 					bool all_estimates_invalid = false;
@@ -1135,16 +1209,19 @@ void Ekf2::run()
 				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
 				    && (status.filter_fault_flags == 0)
 				    && (sensor_selection.mag_device_id == _mag_bias_id.get())) {
+
 					BlockParamFloat *mag_biases[] = { &_mag_bias_x, &_mag_bias_y, &_mag_bias_z };
 
 					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
 						if (_valid_cal_available[axis_index]) {
+
 							// calculate weighting using ratio of variances and update stored bias values
-							float weighting = _mag_bias_saved_variance.get() / (_mag_bias_saved_variance.get() +
-									  _last_valid_variance[axis_index]);
-							weighting = constrain(weighting, 0.0f, _mag_bias_alpha.get());
-							float mag_bias_saved = mag_biases[axis_index]->get();
+							const float weighting = constrain(_mag_bias_saved_variance.get() / (_mag_bias_saved_variance.get() +
+											  _last_valid_variance[axis_index]), 0.0f, _mag_bias_alpha.get());
+							const float mag_bias_saved = mag_biases[axis_index]->get();
+
 							_last_valid_mag_cal[axis_index] = weighting * _last_valid_mag_cal[axis_index] + mag_bias_saved;
+
 							mag_biases[axis_index]->set(_last_valid_mag_cal[axis_index]);
 							mag_biases[axis_index]->commit_no_notification();
 
@@ -1157,12 +1234,20 @@ void Ekf2::run()
 				}
 
 				{
-					float velNE_wind[2];
-					_ekf.get_wind_velocity(velNE_wind);
+					// Velocity of body origin in local NED frame (m/s)
+					float velocity[3];
+					_ekf.get_velocity(velocity);
+
+					matrix::Quatf q;
+					_ekf.copy_quaternion(q.data());
 
 					// Calculate wind-compensated velocity in body frame
 					Vector3f v_wind_comp(velocity);
 					matrix::Dcmf R_to_body(q.inversed());
+
+					float velNE_wind[2];
+					_ekf.get_wind_velocity(velNE_wind);
+
 					v_wind_comp(0) -= velNE_wind[0];
 					v_wind_comp(1) -= velNE_wind[1];
 					_vel_body_wind = R_to_body * v_wind_comp; // TODO: move this elsewhere
@@ -1189,6 +1274,7 @@ void Ekf2::run()
 				ekf2_innovations_s innovations;
 				innovations.timestamp = now;
 				_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
+				_ekf.get_aux_vel_innov(&innovations.aux_vel_innov[0]);
 				_ekf.get_mag_innov(&innovations.mag_innov[0]);
 				_ekf.get_heading_innov(&innovations.heading_innov);
 				_ekf.get_airspeed_innov(&innovations.airspeed_innov);
@@ -1222,9 +1308,26 @@ void Ekf2::run()
 					_vel_d_innov_lpf = beta * _vel_d_innov_lpf + alpha * constrain(innovations.vel_pos_innov[2],
 							   -_vel_innov_spike_lim, _vel_innov_spike_lim);
 
+					// set the max allowed yaw innovaton depending on whether we are not aiding navigation using
+					// observations in the NE reference frame.
+					filter_control_status_u _ekf_control_mask;
+					_ekf.get_control_mode(&_ekf_control_mask.value);
+					bool doing_ne_aiding = _ekf_control_mask.flags.gps ||  _ekf_control_mask.flags.ev_pos;
+
+					float yaw_test_limit;
+
+					if (doing_ne_aiding) {
+						// use a smaller tolerance when doing NE inertial frame aiding
+						yaw_test_limit = _nav_yaw_innov_test_lim;
+
+					} else {
+						// use a larger tolerance when not doing NE inertial frame aiding
+						yaw_test_limit = _yaw_innov_test_lim;
+					}
+
 					// filter the yaw innovations using a decaying envelope filter to prevent innovation sign changes due to angle wrapping allowinging large innvoations to pass checks after filtering.
 					_yaw_innov_magnitude_lpf = fmaxf(beta * _yaw_innov_magnitude_lpf,
-									 fminf(fabsf(innovations.heading_innov), 2.0f * _yaw_innov_test_lim));
+									 fminf(fabsf(innovations.heading_innov), 2.0f * yaw_test_limit));
 
 					_hgt_innov_lpf = beta * _hgt_innov_lpf + alpha * constrain(innovations.vel_pos_innov[5], -_hgt_innov_spike_lim,
 							 _hgt_innov_spike_lim);
@@ -1234,7 +1337,7 @@ void Ekf2::run()
 									  innovations.vel_pos_innov[1] * innovations.vel_pos_innov[1]);
 					_preflt_horiz_fail = (_vel_ne_innov_lpf.norm() > _vel_innov_test_lim)
 							     || (vel_ne_innov_length > 2.0f * _vel_innov_test_lim)
-							     || (_yaw_innov_magnitude_lpf > _yaw_innov_test_lim);
+							     || (_yaw_innov_magnitude_lpf > yaw_test_limit);
 
 					// check the vertical velocity and position innovations
 					_preflt_vert_fail = (fabsf(_vel_d_innov_lpf) > _vel_innov_test_lim)
@@ -1348,6 +1451,7 @@ void Ekf2::run()
 	orb_unsubscribe(status_sub);
 	orb_unsubscribe(sensor_selection_sub);
 	orb_unsubscribe(sensor_baro_sub);
+	orb_unsubscribe(landing_target_pose_sub);
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		orb_unsubscribe(range_finder_subs[i]);
@@ -1362,7 +1466,7 @@ int Ekf2::getRangeSubIndex(const int *subs)
 		orb_check(subs[i], &updated);
 
 		if (updated) {
-			distance_sensor_s report = {};
+			distance_sensor_s report;
 			orb_copy(ORB_ID(distance_sensor), subs[i], &report);
 
 			// only use the first instace which has the correct orientation
@@ -1425,7 +1529,7 @@ int Ekf2::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("ekf2",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_ESTIMATOR,
-				      5720,
+				      6600,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 

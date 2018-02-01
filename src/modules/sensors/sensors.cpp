@@ -549,18 +549,24 @@ Sensors::adc_poll()
 			}
 
 #ifdef BOARD_USE_ESC_CURRENT_REPORT
-			/* fill the current drawn from the battery with ESC current reports */
-			esc_status_s esc;
-			orb_copy(ORB_ID(esc_status), _esc_status_sub, &esc);
+			bool updated;
 
-			/* sum up the reported current of all available ESCs */
-			float total_current = 0;
+			/* Be sure that the topic is published at least once */
+			if (orb_check(_esc_status_sub, &updated) == 0) {
+				/* fill the current drawn from the battery with ESC current reports */
+				esc_status_s esc;
+				orb_copy(ORB_ID(esc_status), _esc_status_sub, &esc);
 
-			for (int i = 0; i < esc.esc_count; i++) {
-				total_current += esc.esc[i].esc_current;
+				/* sum up the reported current of all available ESCs */
+				float total_current = 0;
+
+				for (int i = 0; i < math::min((unsigned)esc.esc_count, sizeof(esc.esc) / sizeof(esc.esc[0])); i++) {
+					total_current += esc.esc[i].esc_current;
+				}
+
+				bat_current_a[0] = total_current;
 			}
 
-			bat_current_a[0] = total_current;
 #endif
 
 			if (_parameters.battery_source == 0) {

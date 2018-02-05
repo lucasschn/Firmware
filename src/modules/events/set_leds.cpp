@@ -113,7 +113,8 @@ void StatusDisplay::set_leds()
 		_led_control.mode = led_control_s::MODE_ON;
 
 
-	} else if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+	} else if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+			|| nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
 		_led_control.color = led_control_s::COLOR_YELLOW;
 
 	} else if (nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL) {

@@ -42,6 +42,7 @@
 #include <px4_getopt.h>
 #include <px4_module.h>
 #include <px4_log.h>
+#include <drivers/drv_hrt.h>  // hrt_abstime
 #include <drivers/tap_esc/drv_tap_esc.h>  // ESC_UART_BUF
 #include <drivers/tap_esc/tap_esc_common.h>
 
@@ -91,6 +92,15 @@ static int read_bin_version(const char *fw_paths[]);
  *  @return PX4_OK on success, PX4_ERROR on error or -errno (linux man) if available
  */
 static int configure_esc_id(const char *device, int8_t id, uint8_t num_escs);
+
+/**
+ *  Issue the basic config to the ESCs.
+ *  @param device Unix path of UART device where ESCs are connected to
+ *  @param num_escs Number of ESCs that are currently connected to the board
+ *  @param verify_config Whether to verify the configuration after sending
+ *  @return PX4_OK on success, -errno (linux man) on error
+ */
+static int send_basic_config(const char *device, uint8_t num_escs, bool verify_config);
 
 /**
  *  Update the ESCs with a firmware binary, if the binary has a newer version.
@@ -145,7 +155,6 @@ tap_esc_config checkcrc -d /dev/ttyS4 -n 6
 	PRINT_MODULE_USAGE_PARAM_INT('n', 0, 6, 8, "Number of ESCs", false);
 	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Firmware binary file", true);
 
-
 	PRINT_MODULE_USAGE_COMMAND_DESCR("upload", "Upload firmware from binary to ESCs. No version check happens!");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Device used to talk to ESCs", false);
 	PRINT_MODULE_USAGE_PARAM_INT('n', 0, 6, 8, "Number of ESCs", false);
@@ -158,6 +167,11 @@ tap_esc_config checkcrc -d /dev/ttyS4 -n 6
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bin_version", "read ESC's firmware version from ESC bin file");
 	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Firmware binary file", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("send_basic_config", "Send basic config to ESCs. This includes the motor ID for muxxing.");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Device used to talk to ESCs", false);
+	PRINT_MODULE_USAGE_PARAM_INT('n', 0, 6, 8, "Number of ESCs", false);
+	PRINT_MODULE_USAGE_PARAM_FLAG('v',"Verify configuration", true);
 }
 
 static int upload_firmware(const char * fw_paths[], const char * device, uint8_t num_escs)
@@ -362,6 +376,112 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 	return PX4_OK;
 }
 
+int send_basic_config(const char *device, uint8_t num_escs, bool verify_config){
+	int uart_fd;
+
+	int ret = tap_esc_common::initialise_uart(device, uart_fd);
+	if (ret)
+	{
+		PX4_ERR("failed to open UART device %s (error code %d)", device, uart_fd);
+		return ret;
+	}
+
+	// Respect boot time required by the ESC FW
+	hrt_abstime uptime_us = hrt_absolute_time();
+
+	if (uptime_us < MAX_BOOT_TIME_MS * 1000) {
+		usleep((MAX_BOOT_TIME_MS * 1000) - uptime_us);
+	}
+
+	// Prepare basic config packet
+	EscPacket packet = {PACKET_HEAD, sizeof(ConfigInfoBasicRequest),
+			ESCBUS_MSG_ID_CONFIG_BASIC};
+	memset(&packet.d.reqConfigInfoBasic, 0, sizeof(ConfigInfoBasicRequest));
+	packet.d.reqConfigInfoBasic.maxChannelInUse = num_escs;
+
+	// Enable closed-loop control if supported by the board
+	packet.d.reqConfigInfoBasic.controlMode = BOARD_TAP_ESC_MODE;
+
+	// Asign the IDs to the ESCs to match the mux
+	const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
+	const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
+	for (uint8_t phy_chan_index = 0; phy_chan_index < num_escs; phy_chan_index++) {
+		packet.d.reqConfigInfoBasic.channelMapTable[phy_chan_index] =
+				device_mux_map[phy_chan_index] &ESC_CHANNEL_MAP_CHANNEL;
+		packet.d.reqConfigInfoBasic.channelMapTable[phy_chan_index] |=
+				(device_dir_map[phy_chan_index] << 4) &	ESC_CHANNEL_MAP_RUNNING_DIRECTION;
+	}
+
+	// RPM range
+	packet.d.reqConfigInfoBasic.maxChannelValue = RPMMAX;
+	packet.d.reqConfigInfoBasic.minChannelValue = RPMMIN;
+
+	// Issue config
+	ret = tap_esc_common::send_packet(uart_fd, packet, 0);
+	if (ret < 0) {
+		PX4_WARN("Error while sending packet to ESCs (errno %i)", ret);
+		return ret;
+	}
+
+	// Wait for ESCs to accept configuration and store it in their flash memory
+	// (0.02696s measure by Saleae logic Analyzer)
+	usleep(30000);
+
+	// Verify All ESC got the config
+	bool verification_successful = true;
+	if(verify_config){
+		for (uint8_t cid = 0; cid < num_escs; cid++) {
+
+			// Send the InfoRequest querying CONFIG_BASIC
+			EscPacket packet_info = {PACKET_HEAD, sizeof(InfoRequest),
+					ESCBUS_MSG_ID_REQUEST_INFO};
+			InfoRequest &info_req = packet_info.d.reqInfo;
+			info_req.channelID = cid;
+			info_req.requestInfoType = REQUEST_INFO_BASIC;
+
+			ret = tap_esc_common::send_packet(uart_fd, packet_info, cid);
+
+			if (ret < 0) {
+				PX4_WARN("Error while sending packet to ESCs (errno %i)", ret);
+				return ret;
+			}
+
+			// Get the response
+			int retries = 10;
+			bool valid = false;
+
+			while (retries--) {
+				EscPacket packet_received;
+				ESC_UART_BUF uartbuf = {};
+
+				tap_esc_common::read_data_from_uart(uart_fd, &uartbuf);
+				if (tap_esc_common::parse_tap_esc_feedback(&uartbuf, &packet_received) == 0) {
+					valid = (packet_received.msg_id == ESCBUS_MSG_ID_CONFIG_INFO_BASIC
+						 && packet_received.d.rspConfigInfoBasic.channelID == cid
+						 && 0 == memcmp(&packet_received.d.rspConfigInfoBasic.resp,
+							 &packet.d.reqConfigInfoBasic, sizeof(ConfigInfoBasicRequest)));
+					break;
+				} else {
+					// Give it more time to come in
+					usleep(1000);
+				}
+			}
+
+			if (!valid) {
+				PX4_ERR("Failed to verify ESC configuration for channel: %d", cid);
+				verification_successful = false;
+			}
+		}
+
+		if (!verification_successful){
+			return -EIO;
+		}
+	}
+
+	tap_esc_common::deinitialise_uart(uart_fd);
+	return PX4_OK;
+}
+
 int update_fw(const char *fw_paths[], const char *device, uint8_t num_escs) {
 	TAP_ESC_UPLOADER *uploader = new TAP_ESC_UPLOADER(device, num_escs);
 
@@ -420,8 +540,9 @@ int tap_esc_config_main(int argc, char *argv[]) {
 	uint8_t num_escs = 0;
 	int8_t id_config_num = -1;
 	const char *firmware_paths[3] = TAP_ESC_FW_SEARCH_PATHS;
+	bool verify_config = false;
 
-	while ((ch = px4_getopt(argc, argv, "d:n:t:f:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:n:t:f:v", &myoptind, &myoptarg)) != EOF) {
 		if(myoptarg==nullptr)
 		{
 			continue;
@@ -443,6 +564,14 @@ int tap_esc_config_main(int argc, char *argv[]) {
 			firmware_paths[0] = myoptarg;
 			firmware_paths[1] = nullptr;
 			break;
+
+		case 'v':
+			verify_config = true;
+			break;
+
+		default:
+			print_usage("Unrecognized flag or argument");
+			return PX4_ERROR;
 		}
 	}
 
@@ -485,6 +614,9 @@ int tap_esc_config_main(int argc, char *argv[]) {
 
 	} else if (!strcmp(argv[myoptind], "update_fw")) {
 		return update_fw(&firmware_paths[0], device, num_escs);
+
+	} else if (!strcmp(argv[myoptind], "send_basic_config")) {
+		return send_basic_config(device, num_escs, verify_config);
 
 	} else {
 		print_usage("Command not recognised");

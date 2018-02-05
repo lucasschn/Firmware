@@ -115,8 +115,6 @@ public:
 private:
 	static char _device[DEVICE_ARGUMENT_MAX_LENGTH];
 	int _uart_fd;
-	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
-	static const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
 	static const uint8_t device_out_map[TAP_ESC_MAX_MOTOR_NUM];
 
 	bool _is_armed;
@@ -182,8 +180,6 @@ private:
 char TAP_ESC::_device[DEVICE_ARGUMENT_MAX_LENGTH] = {};
 uint8_t TAP_ESC::_channels_count = 0;
 
-const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
-const uint8_t TAP_ESC::device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 const uint8_t TAP_ESC::device_out_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_OUT;
 
 # define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
@@ -311,93 +307,13 @@ TAP_ESC::init()
 		usleep((MAX_BOOT_TIME_MS * 1000) - uptime_us);
 	}
 
-	/* Issue Basic Config */
-
-	EscPacket packet = {PACKET_HEAD, sizeof(ConfigInfoBasicRequest), ESCBUS_MSG_ID_CONFIG_BASIC};
-	ConfigInfoBasicRequest   &config = packet.d.reqConfigInfoBasic;
-	memset(&config, 0, sizeof(ConfigInfoBasicRequest));
-	config.maxChannelInUse = _channels_count;
-	/* Enable closed-loop control if supported by the board */
-	config.controlMode = BOARD_TAP_ESC_MODE;
-
-	/* Asign the id's to the ESCs to match the mux */
-
-	for (uint8_t phy_chan_index = 0; phy_chan_index < _channels_count; phy_chan_index++) {
-		config.channelMapTable[phy_chan_index] = device_mux_map[phy_chan_index] &
-				ESC_CHANNEL_MAP_CHANNEL;
-		config.channelMapTable[phy_chan_index] |= (device_dir_map[phy_chan_index] << 4) &
-				ESC_CHANNEL_MAP_RUNNING_DIRECTION;
-	}
-
-	config.maxChannelValue = RPMMAX;
-	config.minChannelValue = RPMMIN;
-
-	ret = tap_esc_common::send_packet(_uart_fd, packet, 0);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	/* set wait time for tap esc configurate and write flash (0.02696s measure by Saleae logic Analyzer) */
-	usleep(30000);
-
-#if !defined(BOARD_TAP_ESC_NO_VERIFY_CONFIG)
-
-	/* Verify All ESC got the config */
-
-	for (uint8_t cid = 0; cid < _channels_count; cid++) {
-
-		/* Send the InfoRequest querying  CONFIG_BASIC */
-		EscPacket packet_info = {PACKET_HEAD, sizeof(InfoRequest), ESCBUS_MSG_ID_REQUEST_INFO};
-		InfoRequest &info_req = packet_info.d.reqInfo;
-		info_req.channelID = cid;
-		info_req.requestInfoType = REQUEST_INFO_BASIC;
-
-		ret = tap_esc_common::send_packet(_uart_fd, packet_info, cid);
-
-		if (ret < 0) {
-			return ret;
-		}
-
-		/* Get a response */
-
-		int retries = 10;
-		bool valid = false;
-
-		while (retries--) {
-
-			tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
-
-			if (tap_esc_common::parse_tap_esc_feedback(&_uartbuf, &_packet) == 0) {
-				valid = (_packet.msg_id == ESCBUS_MSG_ID_CONFIG_INFO_BASIC
-					 && _packet.d.rspConfigInfoBasic.channelID == cid
-					 && 0 == memcmp(&_packet.d.rspConfigInfoBasic.resp, &config, sizeof(ConfigInfoBasicRequest)));
-				break;
-
-			} else {
-
-				/* Give it time to come in */
-
-				usleep(1000);
-			}
-		}
-
-		if (!valid) {
-			PX4_ERR("Verification of the configuration failed, ESC number: %d", cid);
-			return -EIO;
-		}
-
-	}
-
-#endif
-
 	/* To Unlock the ESC from the Power up state we need to issue 10
 	 * ESCBUS_MSG_ID_RUN request with all the values 0;
 	 */
 
 	EscPacket unlock_packet = {PACKET_HEAD, _channels_count, ESCBUS_MSG_ID_RUN};
 	unlock_packet.len *= sizeof(unlock_packet.d.reqRun.rpm_flags[0]);
-	memset(unlock_packet.d.bytes, 0, sizeof(packet.d.bytes));
+	memset(unlock_packet.d.bytes, 0, sizeof(unlock_packet.d.bytes));
 
 	int unlock_times = 10;
 

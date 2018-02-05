@@ -95,9 +95,6 @@ private:
 	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state
 	enum MAV_MISSION_TYPE _mission_type {MAV_MISSION_TYPE_MISSION};	///< mission type of current transmission (only one at a time possible)
 
-	uint64_t		_time_last_recv{0};
-	uint64_t		_time_last_sent{0};
-
 	uint64_t		_time_last_recv;
 	uint64_t		_time_last_sent;
 	uint64_t		_time_last_reached;			///< last time when the vehicle reached a waypoint
@@ -105,7 +102,7 @@ private:
 	uint32_t		_action_timeout;
 	uint32_t		_retry_timeout;
 
-	unsigned		_filesystem_errcount{0};		///< File system error count
+	bool			_int_mode{false};			///< Use accurate int32 instead of float
 
 	unsigned		_filesystem_errcount;			///< File system error count
 

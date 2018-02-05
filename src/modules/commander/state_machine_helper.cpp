@@ -1093,8 +1093,6 @@ void set_link_loss_nav_state(vehicle_status_s *status,
 	} else if (link_loss_act == link_loss_actions_t::AUTO_RTL
 		   && status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 
-		uint8_t main_state_prev = 0;
-		main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, status_flags, internal_state);
 		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 	} else if (link_loss_act == link_loss_actions_t::AUTO_LAND && status_flags->condition_local_position_valid) {

@@ -122,13 +122,13 @@ then
 		param set MC_TPA_BREAK_D 0.65
 
 		# Battery settings
-		param set BAT_V_EMPTY 3.55
+		param set BAT_V_EMPTY 3.56
 		param set BAT_V_CHARGED 4.15
 		param set BAT_R_INTERNAL 0.02
-		param set BAT_CAPACITY 6800.0
+		param set BAT_CAPACITY 6500.0
 		param set BAT_LOW_THR 0.15
-		param set BAT_CRIT_THR 0.07
-		param set BAT_EMERGEN_THR 0.02
+		param set BAT_CRIT_THR 0.1
+		param set BAT_EMERGEN_THR 0.05
 
 		# RC
 		param set COM_RC_OVERRIDE 1

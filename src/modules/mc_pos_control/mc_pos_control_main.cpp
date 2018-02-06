@@ -808,10 +808,12 @@ MulticopterPositionControl::parameters_update(bool force)
 void
 MulticopterPositionControl::obstacle_avoidance_sonar(float altitude_above_home)
 {
-	const bool obsavoid_on = _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+	const bool obsavoid_on = (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+				 && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL);
 
 	/* don't run obstacle avoidance in altitude mode because there are altitude jumps */
 	if (obsavoid_on && _control_mode.flag_control_velocity_enabled) {
+
 		/* slow down in obstacle avoidance to allow for braking in front of an obstacle */
 		_vel_max_xy = 4.0f;
 
@@ -827,18 +829,27 @@ MulticopterPositionControl::obstacle_avoidance_sonar(float altitude_above_home)
 			_yaw_obstacle_lock = _yaw;
 		}
 
-		if (_obstacle_lock_hysteresis.get_state()) {
-			/* calculate body frame xy velocity vector to check for desired forward movement */
-			math::Vector<3> vel_sp_body = _R.transposed() * _vel_sp;
+		/* get velocity setpoint in heading frame */
+		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
+		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_vel_sp(0), _vel_sp(1),
+						  0.0f));
+
+		/* Adjust velocity setpoint _vel_sp based on:
+		 * Sonar
+		 */
+		if (!_run_pos_control && _obstacle_lock_hysteresis.get_state()) {
 
 			/* stay in obstacle lock when trying to go forwards without yawing 30 degree away from the last obstacle */
-			_obstacle_lock_hysteresis.set_state_and_update(vel_sp_body(0) > FLT_EPSILON &&
+			_obstacle_lock_hysteresis.set_state_and_update(vel_sp_heading(0) > FLT_EPSILON &&
 					fabsf(_yaw - _yaw_obstacle_lock) > math::radians(30.0f));
 
-			/* don't allow forward or sidewards movement to stop in front of an obstacle */
-			vel_sp_body(0) = math::min(vel_sp_body(0), 0.0f);
-			vel_sp_body(1) = 0.0f;
-			_vel_sp = _R * vel_sp_body;
+			/* we don't allow movement forward and sideways in front of an obstacle but we allow backwards movement */
+			vel_sp_heading(0) = math::min(vel_sp_heading(0), 0.0f);
+			vel_sp_heading(1) = 0.0f;
+			matrix::Vector3f vel_sp_tmp = q_yaw.conjugate(vel_sp_heading);
+			_vel_sp(0) = vel_sp_tmp(0);
+			_vel_sp(1) = vel_sp_tmp(1);
+
 		}
 
 	} else {

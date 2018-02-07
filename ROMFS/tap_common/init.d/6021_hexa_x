@@ -311,13 +311,8 @@ then
 	# Related to issue #1470, the ESCs will not respond to the version query
 	# after an update unless the basic configuration is sent. Hence the config
 	# has been moved here to right after the update.
-	if tap_esc_config send_basic_config -d ${ESC_TTY} -n 6 -v
-	then
-	else
-		# Config could not be written or verified. ESCs won't function properly!
-		# NOTE: Strategy?
-		echo "tap_esc_config send_basic_config failed"
-	fi
+	tap_esc_config send_basic_config -d ${ESC_TTY} -n 6
+
 
 	# reboot should theoretically not be required since tap_esc_config runs and
 	# then exits before starting the tap_esc driver. However, currently there are
@@ -335,6 +330,7 @@ fi
 #
 # ESC driver
 #
+# First re-send ESC configuration and verify to make sure everything is setup
 if tap_esc_config send_basic_config -d ${ESC_TTY} -n 6 -v
 then
 	tap_esc start -d ${ESC_TTY} -n 6

@@ -4,6 +4,7 @@ FILE=$1
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 if [ -f "$FILE" ]; then
+	LANG="en_US.UTF-8"
 	${DIR}/fix_code_style.sh --dry-run $FILE | grep --quiet Formatted
 	if [[ $? -eq 0 ]]; then
 		${DIR}/fix_code_style.sh --quiet < $FILE > $FILE.pretty

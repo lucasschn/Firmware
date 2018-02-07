@@ -65,12 +65,12 @@
 /**
  * Minimum value
  */
-#define RC_INPUT_LOWEST_MIN_US	500
+#define RC_INPUT_LOWEST_MIN_US	0
 
 /**
  * Maximum value
  */
-#define RC_INPUT_HIGHEST_MAX_US	2500
+#define RC_INPUT_HIGHEST_MAX_US	5000
 
 /**
  * Maximum deadzone value

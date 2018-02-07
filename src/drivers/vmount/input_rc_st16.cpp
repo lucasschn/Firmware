@@ -66,8 +66,8 @@ bool InputRCSt16::_read_control_data_from_subscription(ControlData &control_data
 
 	float new_aux_values[4];
 
-	new_aux_values[0] = manual_control_setpoint.aux1;
-	new_aux_values[1] = manual_control_setpoint.aux2;
+	new_aux_values[0] = -manual_control_setpoint.aux1;
+	new_aux_values[1] = -manual_control_setpoint.aux2;
 	new_aux_values[2] = manual_control_setpoint.aux3;
 	new_aux_values[3] = manual_control_setpoint.aux4;
 

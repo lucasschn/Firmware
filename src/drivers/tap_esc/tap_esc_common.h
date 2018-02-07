@@ -79,7 +79,7 @@ int enable_flow_control(int uart_file_des, bool enabled);
  *  @param uart_file_des file-descriptor of UART device
  *  @param packet Packet to be sent to ESCs. CRC information will be added.
  *  @param responder ID of the ESC (responder) that should return feedback
- *  @return 0 on success, -1 on error
+ *  @return On success number of bytes written, on error -1
  */
 int send_packet(int uart_file_des, EscPacket &packet, int responder);
 

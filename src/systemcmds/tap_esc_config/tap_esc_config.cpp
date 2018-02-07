@@ -394,9 +394,9 @@ int send_basic_config(const char *device, uint8_t num_escs, bool verify_config){
 	}
 
 	// Prepare basic config packet
-	EscPacket packet = {PACKET_HEAD, sizeof(ConfigInfoBasicRequest),
+	EscPacket packet{};
+	packet = {PACKET_HEAD, sizeof(ConfigInfoBasicRequest),
 			ESCBUS_MSG_ID_CONFIG_BASIC};
-	memset(&packet.d.reqConfigInfoBasic, 0, sizeof(ConfigInfoBasicRequest));
 	packet.d.reqConfigInfoBasic.maxChannelInUse = num_escs;
 
 	// Enable closed-loop control if supported by the board
@@ -406,10 +406,15 @@ int send_basic_config(const char *device, uint8_t num_escs, bool verify_config){
 	const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
 	const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 	for (uint8_t phy_chan_index = 0; phy_chan_index < num_escs; phy_chan_index++) {
+		// channelMapTable is for phyiscal to logical mapping
+		// This is required on Typhoon, H520 and H520c because the ID resistors for
+		// two of the ESCs are swapped
 		packet.d.reqConfigInfoBasic.channelMapTable[phy_chan_index] =
-				device_mux_map[phy_chan_index] &ESC_CHANNEL_MAP_CHANNEL;
+				device_mux_map[phy_chan_index] &ESC_MASK_MAP_CHANNEL;
+
+		// Specify positive rotation direction for each ESC
 		packet.d.reqConfigInfoBasic.channelMapTable[phy_chan_index] |=
-				(device_dir_map[phy_chan_index] << 4) &	ESC_CHANNEL_MAP_RUNNING_DIRECTION;
+				(device_dir_map[phy_chan_index] << 4) &	ESC_MASK_MAP_RUNNING_DIRECTION;
 	}
 
 	// RPM range
@@ -428,8 +433,10 @@ int send_basic_config(const char *device, uint8_t num_escs, bool verify_config){
 	usleep(30000);
 
 	// Verify All ESC got the config
-	bool verification_successful = true;
+	ret = PX4_OK;
 	if(verify_config){
+		bool verification_successful = true;
+		// the cid is referring to the logical channel ID
 		for (uint8_t cid = 0; cid < num_escs; cid++) {
 
 			// Send the InfoRequest querying CONFIG_BASIC
@@ -473,13 +480,15 @@ int send_basic_config(const char *device, uint8_t num_escs, bool verify_config){
 			}
 		}
 
-		if (!verification_successful){
-			return -EIO;
+		if (verification_successful){
+			ret = PX4_OK;
+		}else{
+			ret  = -EIO;
 		}
 	}
 
 	tap_esc_common::deinitialise_uart(uart_fd);
-	return PX4_OK;
+	return ret;
 }
 
 int update_fw(const char *fw_paths[], const char *device, uint8_t num_escs) {

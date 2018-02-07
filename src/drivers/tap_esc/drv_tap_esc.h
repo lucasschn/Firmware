@@ -75,6 +75,7 @@
 
 #ifndef BOARD_MAP_ESC_TO_PX4_DIR
 // 0 is CW, 1 is CCW
+// Indices are the physical (hardware id), not logical, indices
 #define ESC_DIR {0, 1, 0, 1, 0, 1, 0, 1}
 #else
 #define ESC_DIR BOARD_MAP_ESC_TO_PX4_DIR
@@ -143,8 +144,8 @@ typedef  struct {
 	ConfigInfoBasicRequest resp;
 } ConfigInfoBasicResponse;
 
-#define ESC_CHANNEL_MAP_CHANNEL           0x0f
-#define ESC_CHANNEL_MAP_RUNNING_DIRECTION 0xf0
+#define ESC_MASK_MAP_CHANNEL           0x0f
+#define ESC_MASK_MAP_RUNNING_DIRECTION 0xf0
 /****** ConFigInfoBasicResponse ***********/
 
 /****** InfoRequest  ***********/

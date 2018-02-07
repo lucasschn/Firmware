@@ -351,6 +351,7 @@ Navigator::task_main()
 		if (updated) {
 			params_update();
 		}
+
 		/* --- tap specific subscription */
 		orb_check(_vehicle_att_sp_sub, &updated);
 
@@ -363,6 +364,7 @@ Navigator::task_main()
 		if (updated) {
 			vehicle_esc_report_update();
 		}
+
 		/* --- */
 
 		/* vehicle status updated */

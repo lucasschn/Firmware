@@ -2813,7 +2813,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (geofence_result.geofence_violated && internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL) {
 			//disable geofence when in RTL because if you are out of the geofence radius you don't want to get stuck outside
 			no_geofence_during_rtl = true;
-        }
+		}
 
 		if (armed.armed && (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE) && !no_geofence_during_rtl) {
 

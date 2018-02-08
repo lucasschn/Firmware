@@ -67,6 +67,8 @@ after_success:
   - set -ev
   - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
 
+      ./Tools/check_deploy.sh;
+
       mkdir -p s3autopilot;
       ./Tools/generate_yuneec.py build/tap-v2_default/tap-v2_default.px4 s3autopilot/autopilot.yuneec ${AUTOPILOT_AES_KEY};
       fwversion=$(git describe --tags);

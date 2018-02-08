@@ -75,6 +75,7 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_map_pitch = param_find("RC_MAP_PITCH");
 	parameter_handles.rc_map_yaw 	= param_find("RC_MAP_YAW");
 	parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
+	parameter_handles.rc_mode = param_find("RC_MODE");
 	parameter_handles.rc_map_failsafe = param_find("RC_MAP_FAILSAFE");
 
 	/* mandatory mode switches, mapped to channel 5 and 6 per default */
@@ -249,6 +250,10 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	}
 
 	if (param_get(parameter_handles.rc_map_throttle, &(parameters.rc_map_throttle)) != OK) {
+		PX4_WARN("%s", paramerr);
+	}
+
+	if (param_get(parameter_handles.rc_mode, &(parameters.rc_mode)) != OK) {
 		PX4_WARN("%s", paramerr);
 	}
 

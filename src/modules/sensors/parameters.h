@@ -76,6 +76,7 @@ struct Parameters {
 	int32_t rc_map_pitch;
 	int32_t rc_map_yaw;
 	int32_t rc_map_throttle;
+	int32_t rc_mode;
 	int32_t rc_map_failsafe;
 
 	int32_t rc_map_mode_sw;
@@ -172,6 +173,7 @@ struct ParameterHandles {
 	param_t rc_map_pitch;
 	param_t rc_map_yaw;
 	param_t rc_map_throttle;
+	param_t rc_mode;
 	param_t rc_map_failsafe;
 
 	param_t rc_map_mode_sw;

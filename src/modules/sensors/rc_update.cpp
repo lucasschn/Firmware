@@ -91,6 +91,11 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_ROLL] = _parameters.rc_map_roll - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PITCH] = _parameters.rc_map_pitch - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_YAW] = _parameters.rc_map_yaw - 1;
+	math::convertRcMode(_parameters.rc_mode,
+			    _rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_ROLL],
+			    _rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PITCH],
+			    _rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_YAW],
+			    _rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE]);
 
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_MODE] = _parameters.rc_map_mode_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_RETURN] = _parameters.rc_map_return_sw - 1;

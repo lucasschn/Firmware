@@ -1136,6 +1136,24 @@ PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 PARAM_DEFINE_INT32(RC_CHAN_CNT, 0);
 
 /**
+ * RC mode for the stick mapping
+ *
+ * RC mode is the widespread way to which way the joysticks of the remote are mapped.
+ * When setting this parameter it's assumed that the parameters
+ * RC_MAP_ROLL, RC_MAP_PITCH, RC_MAP_YAW, RC_MAP_THROTTLE are configured
+ * for default mode 2 and the mapping can conveniently be switched using this parameter.
+ *
+ * @min 1
+ * @max 4
+ * @value 1 Mode 1
+ * @value 2 Mode 2
+ * @value 3 Mode 3
+ * @value 4 Mode 4
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MODE, 2);
+
+/**
  * Roll control channel mapping.
  *
  * The channel index (starting from 1 for channel 1) indicates

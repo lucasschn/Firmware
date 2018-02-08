@@ -1571,6 +1571,7 @@ int commander_thread_main(int argc, char *argv[])
 	status_flags.condition_local_position_valid = false;
 	status_flags.condition_local_velocity_valid = false;
 	status_flags.condition_local_altitude_valid = false;
+	status_flags.condition_last_local_altitude_valid = false;
 
 	/* Set home and global position to false */
 	status_flags.condition_last_home_position_valid = false;
@@ -3207,6 +3208,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* store last position lock state */
 			status_flags.condition_last_global_position_valid = status_flags.condition_global_position_valid;
+			status_flags.condition_last_local_altitude_valid = status_flags.condition_local_altitude_valid;
 
 			/* play tune on mode change only if armed, blink LED always */
 			if (main_res == TRANSITION_CHANGED || first_rc_eval) {
@@ -3843,6 +3845,8 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 	/* manual setpoint has not updated, do not re-evaluate it */
 	if (!(!status_flags.condition_last_global_position_valid &&
 		status_flags.condition_global_position_valid) &&
+		!(!status_flags.condition_last_local_altitude_valid &&
+		status_flags.condition_local_altitude_valid) &&
 		!(!status_flags.condition_last_home_position_valid && status_flags.condition_home_position_valid)
 		&& (((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man.timestamp)) ||
 		((_last_sp_man.offboard_switch == sp_man.offboard_switch) &&

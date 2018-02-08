@@ -47,11 +47,6 @@ __BEGIN_DECLS
 #define ST24_STX1		0x55
 #define ST24_STX2		0x55
 
-/* override unused channels with virtual channels that get handeled by the commander */
-#define ST16_VIRTUAL_ARM_BUTTON_CHANNEL  (13 -1) // set RC_MAP_ARM_SW = 13 and COM_ARM_SWISBTN = 1
-#define ST16_VIRTUAL_KILL_SWITCH_CHANNEL (14 -1) // set RC_MAP_KILL_SW = 14
-#define ST16_ARM_BUTTON_THROTTLE_VALUE_RAW 660
-
 enum ST24_PACKET_TYPE {
 	ST24_PACKET_TYPE_CHANNELDATA12 = 0,
 	ST24_PACKET_TYPE_CHANNELDATA24,

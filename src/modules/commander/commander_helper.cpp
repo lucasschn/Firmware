@@ -329,7 +329,12 @@ int led_off(int led)
 
 void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint8_t prio)
 {
-	led_control.led_mask = 0xff;
+	rgbled_set(0xff, color, mode, blinks, prio);
+}
+
+void rgbled_set(uint8_t mask, uint8_t color, uint8_t mode, uint8_t blinks, uint8_t prio)
+{
+	led_control.led_mask = mask;
 	led_control.mode = mode;
 	led_control.color = color;
 	led_control.num_blinks = blinks;

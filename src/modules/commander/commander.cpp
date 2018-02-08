@@ -1460,6 +1460,8 @@ int commander_thread_main(int argc, char *argv[])
 	/* failsafe response to loss of navigation accuracy */
 	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
 
+	param_t _param_led_mode = param_find("COM_LED_MODE");
+
 	// These are too verbose, but we will retain them a little longer
 	// until we are sure we really don't need them.
 
@@ -1887,6 +1889,10 @@ int commander_thread_main(int argc, char *argv[])
 	float land_interrupt_delay = 0; /* if stick interrupt for rtl/land is ON, the vehicle will switch back */
 										   /* to rtl/land if sticks are not moved AND time land_interrupt_delay passed */
 
+	// The default is on which is 1.
+	int32_t old_led_mode = 1;
+	int32_t led_mode = 1;
+
 	/* check which state machines for changes, clear "changed" flag */
 	bool main_state_changed = false;
 	bool failsafe_old = false;
@@ -2034,6 +2040,9 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* failsafe response to loss of navigation accuracy */
 			param_get(_param_posctl_nav_loss_act, &posctl_nav_loss_act);
+
+			/* param to switch LED mode */
+			param_get(_param_led_mode, &led_mode);
 
 			param_init_forced = false;
 		}
@@ -3614,6 +3623,24 @@ int commander_thread_main(int argc, char *argv[])
 		if (!armed.armed) {
 			/* Reset the flag if disarmed. */
 			have_taken_off_since_arming = false;
+		}
+
+		// We have a parameter which allows to disable LEDS.
+		if (old_led_mode != led_mode) {
+			if (led_mode == 0) {
+				// We add a priority on top to disable all LEDS, the color doesn't actually matter.
+				rgbled_set(0xff, led_control_s::COLOR_WHITE, led_control_s::MODE_OFF, 0, led_control_s::MAX_PRIORITY);
+			} else if (led_mode == 1) {
+				// We just remove this priority again, the color doesn't actually matter.
+				rgbled_set(0xff, led_control_s::COLOR_WHITE, led_control_s::MODE_DISABLED, 0, led_control_s::MAX_PRIORITY);
+			} else if (led_mode == 2) {
+				// First reset in case everything was off.
+				rgbled_set(0xff, led_control_s::COLOR_WHITE, led_control_s::MODE_DISABLED, 0, led_control_s::MAX_PRIORITY);
+				// We add a priority on top to disable front LEDS, the color doesn't actually matter.
+				// Front are LEDs 3 and 4.
+				rgbled_set(0x0c, led_control_s::COLOR_WHITE, led_control_s::MODE_OFF, 0, led_control_s::MAX_PRIORITY);
+			}
+			old_led_mode = led_mode;
 		}
 
 		/* publish vehicle_status_flags */

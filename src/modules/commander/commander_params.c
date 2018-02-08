@@ -774,3 +774,16 @@ PARAM_DEFINE_FLOAT(COM_LND_INTRUPT, 1.0f);
  * @min 0
  */
 PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);
+
+/**
+ * LED MODE
+ *
+ * Each number stands for a LED mode, such as on or disabled.
+ *
+ * @group Commander
+ *
+ * @value 0 LEDs disabled (e.g. for night photography)
+ * @value 1 LEDs on (as per default)
+ * @value 2 Front LEDs off
+ */
+PARAM_DEFINE_INT32(COM_LED_MODE, 1);

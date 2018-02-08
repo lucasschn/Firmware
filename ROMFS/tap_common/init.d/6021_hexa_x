@@ -247,7 +247,7 @@ then
 	param set RC1_MAX ${CHANNEL_MAX}
 	param set RC1_MIN ${CHANNEL_MIN}
 	param set RC1_REV 1.0
-	param set RC1_TRIM ${CHANNEL_MIN}
+	param set RC1_TRIM ${CHANNEL_MID}
 	param set RC2_MAX ${CHANNEL_MAX}
 	param set RC2_MIN ${CHANNEL_MIN}
 	param set RC2_REV 1.0

@@ -45,4 +45,29 @@ px4_add_module(
 		lib__led
 		lib__tunes
 	)
+
+# include the yuneec ESC binary
+if(config_io_board STREQUAL V18S)
+	message(STATUS "Building and including ${config_io_board}_ESC")
+
+	set(fw_esc_bin "${PX4_SOURCE_DIR}/ROMFS/yuneec_device/${config_io_board}_ESC.bin")
+	set(rename_fw_esc_bin "${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/tap_esc.bin")
+
+	add_custom_command(OUTPUT ${rename_fw_esc_bin}
+		COMMAND mkdir -p ${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/
+		COMMAND cp -f ${fw_esc_bin} ${rename_fw_esc_bin}
+		DEPENDS ${fw_esc_bin}
+		COMMENT "Copying ${config_io_board}_ESC to ROMFS extras/tap_esc.bin"
+		)
+	if(copy_px4io_bin)
+		message(STATUS "copy_px4io_bin depends  ${rename_fw_esc_bin}")
+		add_dependencies(copy_px4io_bin ${rename_fw_esc_bin})
+	else()
+		message(STATUS "copy_px4io_bin depends  ${rename_fw_esc_bin}")
+		add_custom_target(copy_px4io_bin DEPENDS ${rename_fw_esc_bin})
+	endif()
+else()
+	message(STATUS "Can not find IO config!")
+endif()
+
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

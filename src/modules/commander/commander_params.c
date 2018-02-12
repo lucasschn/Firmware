@@ -782,7 +782,7 @@ PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);
  *
  * @group Commander
  *
- * @value 0 LEDs disabled (e.g. for night photography)
+ * @value 0 LEDs off (e.g. for night photography)
  * @value 1 LEDs on (as per default)
  * @value 2 Front LEDs off
  */

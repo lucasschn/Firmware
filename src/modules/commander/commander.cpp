@@ -1889,9 +1889,16 @@ int commander_thread_main(int argc, char *argv[])
 	float land_interrupt_delay = 0; /* if stick interrupt for rtl/land is ON, the vehicle will switch back */
 										   /* to rtl/land if sticks are not moved AND time land_interrupt_delay passed */
 
+	/* Matches param COM_LED_MODE */
+	enum class LED_MODE : int32_t {
+		LedsOff = 0,
+		LedsOn = 1,
+		LedsFrontOff = 2
+	};
+
 	// The default is on which is 1.
-	int32_t old_led_mode = 1;
-	int32_t led_mode = 1;
+	LED_MODE old_led_mode = LED_MODE::LedsOn;
+	LED_MODE led_mode = LED_MODE::LedsOn;
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool main_state_changed = false;
@@ -3627,13 +3634,13 @@ int commander_thread_main(int argc, char *argv[])
 
 		// We have a parameter which allows to disable LEDS.
 		if (old_led_mode != led_mode) {
-			if (led_mode == 0) {
+			if (led_mode == LED_MODE::LedsOff) {
 				// We add a priority on top to disable all LEDS, the color doesn't actually matter.
 				rgbled_set(0xff, led_control_s::COLOR_WHITE, led_control_s::MODE_OFF, 0, led_control_s::MAX_PRIORITY);
-			} else if (led_mode == 1) {
+			} else if (led_mode == LED_MODE::LedsOn) {
 				// We just remove this priority again, the color doesn't actually matter.
 				rgbled_set(0xff, led_control_s::COLOR_WHITE, led_control_s::MODE_DISABLED, 0, led_control_s::MAX_PRIORITY);
-			} else if (led_mode == 2) {
+			} else if (led_mode == LED_MODE::LedsFrontOff) {
 				// First reset in case everything was off.
 				rgbled_set(0xff, led_control_s::COLOR_WHITE, led_control_s::MODE_DISABLED, 0, led_control_s::MAX_PRIORITY);
 				// We add a priority on top to disable front LEDS, the color doesn't actually matter.

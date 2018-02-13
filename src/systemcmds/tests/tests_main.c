@@ -128,6 +128,7 @@ const struct {
 	{"versioning",		test_versioning,	0},
 	{"ctlmath",		test_controlmath, 0},
 	{"smoothz", 	test_smooth_z, 0},
+	{"automation",		test_automation, 0},
 	{NULL,			NULL, 		0}
 };
 

@@ -574,18 +574,23 @@ TAP_ESC::cycle()
 			}
 		}
 
+		// NOTE: HOTFIX! REMOVE ASAP
+		// This is a hotfix for issue #1454 (restoring FTC to original functionality)
+		// We tell the mixer that FTC is running by suddenly reducing the number
+		// of outputs.
 		uint8_t motor_fault_count = 0;
 
-		/* get the fault motor counter */
-		for (unsigned i = 0; i < _channels_count; i++) {
-			const bool bit_set_fault = _esc_feedback.engine_failure_report.motor_state & (1 << i);
+		if (_fault_tolerant_control != nullptr) {
 
-			if (bit_set_fault) {
-				motor_fault_count ++;
+			/* get the fault motor counter */
+			for (unsigned i = 0; i < _channels_count; i++) {
+				if (_esc_feedback.engine_failure_report.motor_state & (1 << i)) {
+					motor_fault_count ++;
+				}
 			}
 		}
 
-		/* get the actual number of motors */
+		/* get the actual (i.e. non-faulty) number of motors */
 		uint8_t num_outputs = _channels_count - motor_fault_count;
 
 		/* can we mix? */

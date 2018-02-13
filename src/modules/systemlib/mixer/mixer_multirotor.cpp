@@ -331,11 +331,20 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 				yaw = 0.0f;
 
 			} else {
-				const bool do_ftc = space < _rotor_count;
-				// don't reduction thrust for yaw control when motors have fault
-				float thrust_compensation = do_ftc ? thrust : thrust - thrust_reduction;
+				// NOTE: HOTFIX! REMOVE ASAP
+				// This is a hotfix for issue #1454 (restoring FTC to original functionality)
+				// Don't reduce thrust for yaw control when fault-tolerant-control is active
+				// We know that FTC is active when the number of inputs got reduced
+				static bool printed_once = false;
+
+				if (space < _rotor_count && printed_once) {
+					PX4_INFO("FTC HAPPENING!");
+					printed_once =  true;
+				}
+
+				float thrust_compenasted = (space < _rotor_count) ? thrust : (thrust - thrust_reduction);
 				yaw = (1.0f - ((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
-					       roll_pitch_scale + thrust_compensation + boost)) / _rotors[i].yaw_scale;
+					       roll_pitch_scale + thrust_compenasted + boost)) / _rotors[i].yaw_scale;
 			}
 		}
 	}

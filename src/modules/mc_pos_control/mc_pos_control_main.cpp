@@ -960,7 +960,8 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 
 		/* get velocity setpoint in heading frame */
 		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
-		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_vel_sp_desired(0), _vel_sp_desired(1), 0.0f));
+		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_vel_sp_desired(0), _vel_sp_desired(1),
+						  0.0f));
 
 		if (!xy_lock && vel_sp_heading(0) < 0.0f && (fabsf(vel_sp_heading(1)) <  0.1f)) {
 
@@ -1036,6 +1037,7 @@ MulticopterPositionControl::poll_subscriptions()
 
 	orb_check(_att_sp_sub, &updated);
 	float yaw_prev_sp = _att_sp.yaw_body;
+
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
 	}
@@ -2258,10 +2260,10 @@ void MulticopterPositionControl::control_auto()
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
 		const bool realsense_avoidance_on = _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON
-				&& _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
+						    && _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
 
 		const bool follow_me_target_on = _pos_sp_triplet.current.yawspeed_valid
-			    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
+						 && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
 
 		if (use_realsense() || follow_me_target_on) {
 
@@ -2283,8 +2285,8 @@ void MulticopterPositionControl::control_auto()
 			// If the yaw offset became too big for the system to track stop
 			// shifting it, only allow if it would make the offset smaller again.
 			if (fabsf(yaw_offs) < yaw_offset_max ||
-					(_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
-					(_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
+			    (_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
+			    (_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
 				_att_sp.yaw_body = yaw_target;
 			}
 
@@ -2977,7 +2979,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	_vel_sp_desired = matrix::Vector3f(_vel_sp(0), _vel_sp(1), _vel_sp(2));
 
 	/* check obstacle avoidance */
-	if(!_in_smooth_takeoff) {
+	if (!_in_smooth_takeoff) {
 		/* tap specific: handle obstacle avoidance */
 		obstacle_avoidance(altitude_above_home);
 

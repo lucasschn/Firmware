@@ -439,6 +439,8 @@ private:
 
 	void constrain_velocity_setpoint();
 
+	bool use_realsense(); // check if realsense is activated
+
 	/**
 	 * limit altitude based on several conditions
 	 */

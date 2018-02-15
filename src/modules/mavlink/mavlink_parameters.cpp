@@ -147,7 +147,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				    strcmp(name, "GF_ACTION") != 0 &&
 				    strcmp(name, "GF_MAX_HOR_DIST") != 0 &&
 				    strcmp(name, "GF_MAX_VER_DIST") != 0 &&
-				    strcmp(name, "MPC_VEL_MANUAL") != 0) {
+				    strcmp(name, "MPC_VEL_MANUAL") != 0 &&
+				    strcmp(name, "COM_LED_MODE") != 0) {
 					return;
 				}
 

@@ -1107,20 +1107,6 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 	}
 
-	if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
-		_flight_tasks.switchTask(FlightTaskIndex::AltitudeSmooth); //smooth altitude
-
-	} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
-		_flight_tasks.switchTask(FlightTaskIndex::PositionSmooth); //smooth position
-
-	} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL) {
-		_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
-
-	} else {
-		// not supported yet.
-		_flight_tasks.switchTask(FlightTaskIndex::None);
-	}
-
 	orb_check(_manual_sub, &updated);
 
 	if (updated) {
@@ -3621,17 +3607,17 @@ MulticopterPositionControl::task_main()
 
 		if (TEST_FLIGHTTASK) {
 			if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
-				_flight_tasks.switchTask(6); //smooth altitude
+				_flight_tasks.switchTask(FlightTaskIndex::AltitudeSmooth); //smooth altitude
 
 			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) {
-				_flight_tasks.switchTask(7); //sooth position
+				_flight_tasks.switchTask(FlightTaskIndex::PositionSmooth); //sooth position
 
 			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL) {
-				_flight_tasks.switchTask(5);
+				_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
 
 			} else {
 				// not supported yet.
-				_flight_tasks.switchTask(-1);
+				_flight_tasks.switchTask(FlightTaskIndex::None);
 			}
 		}
 

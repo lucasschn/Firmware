@@ -49,7 +49,6 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include "PositionControl.hpp"
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_tasks.h>
@@ -87,7 +86,10 @@
 #include <uORB/topics/distance_sensor.h>
 #include <lib/conversion/rotation.h>
 #include <drivers/realsense/realsense.h>
+
+#include "PositionControl.hpp"
 #include "Utility/ControlMath.hpp"
+
 #define TILT_COS_MAX	0.7f
 /* --- */
 

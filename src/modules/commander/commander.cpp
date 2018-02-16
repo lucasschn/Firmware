@@ -3086,11 +3086,14 @@ int commander_thread_main(int argc, char *argv[])
 					able_to_skip_landdetector = false;
 				}
 
+				/* Also skip landdetector if vehicle is crashed */
+				able_to_skip_landdetector = able_to_skip_landdetector || land_detector.crash;
+
 				if (land_detector.landed) {
 					/* we disarm directly */
 					disarm = true;
 
-				} else if(able_to_skip_landdetector) {
+				} else if (able_to_skip_landdetector) {
 
 					/* disarm immediately if arm_switch is on or the user pressed
 					 * the disarm button long enough

@@ -199,14 +199,14 @@ void LandDetector::_update_state()
 	_maybe_landed_hysteresis.set_state_and_update(_get_maybe_landed_state());
 	_ground_contact_hysteresis.set_state_and_update(_get_ground_contact_state());
 
-	if (_freefall_hysteresis.get_state()) {
+	if (_crash_hysteresis.get_state()) {
+		_state = LandDetectionState::CRASH;
+
+	} else if (_freefall_hysteresis.get_state()) {
 		_state = LandDetectionState::FREEFALL;
 
 	} else if (_inverted_hysteresis.get_state()) {
 		_state = LandDetectionState::INVERTED;
-
-	} else if (_crash_hysteresis.get_state()) {
-		_state = LandDetectionState::CRASH;
 
 	} else if (_landed_hysteresis.get_state()) {
 		_state = LandDetectionState::LANDED;

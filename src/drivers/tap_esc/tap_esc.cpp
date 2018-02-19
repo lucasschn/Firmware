@@ -1024,7 +1024,7 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 		error_flag = true;
 	}
 
-	while ((ch = px4_getopt(argc, argv, "d:n:h", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:n:l", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device = myoptarg;
@@ -1038,7 +1038,7 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 			_channels_count = atoi(myoptarg);
 			break;
 
-		case 'h':
+		case 'l':
 			_hitl = true;
 			break;
 		}
@@ -1111,7 +1111,7 @@ tap_esc start -d /dev/ttyS2 -n <1-8>
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Device used to talk to ESCs", true);
 	PRINT_MODULE_USAGE_PARAM_INT('n', 4, 0, 8, "Number of ESCs", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('h',"HITL mode, no motor output and no motor feedback processing", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('l',"HITL (hardware in the loop), no motor outputs and esc feedback are sent", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("checkcrc", "deprecated. Use `tap_esc_config` instead");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("upload", "deprecated. Use `tap_esc_config` instead");

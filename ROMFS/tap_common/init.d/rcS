@@ -281,6 +281,11 @@ fi
 
 
 
+if [ $HITL_ON == yes ]
+then
+	set OUTPUT_MODE hil
+fi
+
 #
 # Set default output if not set
 #
@@ -392,7 +397,6 @@ then
 	sh /etc/init.d/rc.sensors
 	commander start
 else
-	set OUTPUT_MODE hil
 	sensors start -h
 	commander start --hil
 fi

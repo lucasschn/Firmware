@@ -116,6 +116,7 @@ private:
 	static char _device[DEVICE_ARGUMENT_MAX_LENGTH];
 	int _uart_fd;
 	static const uint8_t device_out_map[TAP_ESC_MAX_MOTOR_NUM];
+	static bool _hitl;
 
 	bool _is_armed;
 
@@ -177,6 +178,7 @@ private:
 
 char TAP_ESC::_device[DEVICE_ARGUMENT_MAX_LENGTH] = {};
 uint8_t TAP_ESC::_channels_count = 0;
+bool TAP_ESC::_hitl = false;
 
 const uint8_t TAP_ESC::device_out_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_OUT;
 
@@ -784,8 +786,8 @@ TAP_ESC::cycle()
 			}
 		}
 
-		/* Kill switch is enabled, emergency stop */
-		if (_armed.manual_lockdown) {
+		// Kill switch is enabled, emergency stop. Also in HITL the motors should never turn
+		if (_armed.manual_lockdown || _hitl) {
 			for (unsigned i = 0; i < esc_count; ++i) {
 				motor_out[i] = RPMSTOPPED;
 			}
@@ -821,13 +823,20 @@ TAP_ESC::cycle()
 
 					_esc_feedback.timestamp = hrt_absolute_time();
 
-					orb_publish(ORB_ID(esc_status), _esc_feedback_pub, &_esc_feedback);
+					// Don't publish ESC feedback in HITL mode. Reading and parsing the
+					// feedback is still done (see above) such that the hardware load
+					// is as close as possible to when actually flying without HITL.
+					if (!_hitl) {
+						orb_publish(ORB_ID(esc_status), _esc_feedback_pub, &_esc_feedback);
+					}
 				}
 			}
 		}
 
 		/* and publish for anyone that cares to see */
-		orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
+		if (!_hitl) {
+			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
+		}
 
 	}
 
@@ -1015,7 +1024,7 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 		error_flag = true;
 	}
 
-	while ((ch = px4_getopt(argc, argv, "d:n:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:n:h", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device = myoptarg;
@@ -1027,6 +1036,10 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 
 		case 'n':
 			_channels_count = atoi(myoptarg);
+			break;
+
+		case 'h':
+			_hitl = true;
 			break;
 		}
 	}
@@ -1098,6 +1111,7 @@ tap_esc start -d /dev/ttyS2 -n <1-8>
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Device used to talk to ESCs", true);
 	PRINT_MODULE_USAGE_PARAM_INT('n', 4, 0, 8, "Number of ESCs", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('h',"HITL mode, no motor output and no motor feedback processing", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("checkcrc", "deprecated. Use `tap_esc_config` instead");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("upload", "deprecated. Use `tap_esc_config` instead");

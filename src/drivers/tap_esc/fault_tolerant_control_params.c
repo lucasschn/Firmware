@@ -48,6 +48,7 @@
  * @value 1 Enabled
  *
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(FTC_ENABLE, 1);
 
@@ -61,6 +62,7 @@ PARAM_DEFINE_INT32(FTC_ENABLE, 1);
  * @decimal 3
  * @increment 0.01
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(FTC_GAIN, 0.6f);
 
@@ -75,6 +77,7 @@ PARAM_DEFINE_FLOAT(FTC_GAIN, 0.6f);
  * @decimal 3
  * @increment 0.01
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(PROPELL_REV_COEF, 1.2f);
 
@@ -88,6 +91,7 @@ PARAM_DEFINE_FLOAT(PROPELL_REV_COEF, 1.2f);
  * @decimal 3
  * @increment 0.01
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(FTC_ROLLRATE_P, 0.130f);
 
@@ -100,6 +104,7 @@ PARAM_DEFINE_FLOAT(FTC_ROLLRATE_P, 0.130f);
  * @decimal 3
  * @increment 0.01
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(FTC_ROLLRATE_I, 0.06f);
 
@@ -113,6 +118,7 @@ PARAM_DEFINE_FLOAT(FTC_ROLLRATE_I, 0.06f);
  * @decimal 4
  * @increment 0.0005
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(FTC_ROLLRATE_D, 0.0f);
 
@@ -126,6 +132,7 @@ PARAM_DEFINE_FLOAT(FTC_ROLLRATE_D, 0.0f);
  * @decimal 3
  * @increment 0.01
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(FTC_PITCHRATE_P, 0.130f);
 
@@ -138,6 +145,7 @@ PARAM_DEFINE_FLOAT(FTC_PITCHRATE_P, 0.130f);
  * @decimal 3
  * @increment 0.01
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(FTC_PITCHRATE_I, 0.06f);
 
@@ -151,6 +159,7 @@ PARAM_DEFINE_FLOAT(FTC_PITCHRATE_I, 0.06f);
  * @decimal 4
  * @increment 0.0005
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(FTC_PITCHRATE_D, 0.0f);
 
@@ -164,6 +173,7 @@ PARAM_DEFINE_FLOAT(FTC_PITCHRATE_D, 0.0f);
  * @decimal 2
  * @increment 0.01
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(FTC_YAWRATE_P, 0.165f);
 
@@ -176,6 +186,7 @@ PARAM_DEFINE_FLOAT(FTC_YAWRATE_P, 0.165f);
  * @decimal 2
  * @increment 0.01
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(FTC_YAWRATE_I, 0.1f);
 
@@ -188,5 +199,6 @@ PARAM_DEFINE_FLOAT(FTC_YAWRATE_I, 0.1f);
  * @decimal 2
  * @increment 0.01
  * @group Fault Tolerant Control
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(FTC_YAWRATE_D, 0.0f);

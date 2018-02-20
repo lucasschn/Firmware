@@ -452,9 +452,7 @@ else
 	else
 		mavlink start -r 20000 -d /dev/mavlink -b ${BAUDRATE}
 		mavlink stream -d /dev/mavlink -s SYSTEM_TIME -r 0.5
-		#mavlink stream -d /dev/mavlink -s ATTITUDE_QUATERNION -r 0.5
 		mavlink start -r 800000 -d /dev/ttyACM0 -b 921600 -m config -x
-		#mavlink stream -d /dev/ttyACM0 -s ATTITUDE_QUATERNION -r 5.0
 	fi
 fi
 unset MAV_RATE

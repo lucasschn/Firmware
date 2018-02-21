@@ -228,6 +228,10 @@ private:
 	control::BlockParamFloat _acceleration_z_max_down; /** max acceleration down */
 	control::BlockParamFloat _cruise_speed_90; /**<speed when angle is 90 degrees between prev-current/current-next*/
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
+	control::BlockParamFloat
+	_vel_z_up; /**< Maximum target velocity upwards for manual controlled mode. Target velocity upwards for auto mode. */
+	control::BlockParamFloat
+	_vel_z_down; /**< Maximum target velocity downwards for manual controlled mode. Target velocity downwards for auto mode */
 	control::BlockParamFloat _nav_rad; /**< radius that is used by navigator that defines when to update triplets */
 	control::BlockParamFloat _takeoff_ramp_time; /**< time contant for smooth takeoff ramp */
 	control::BlockParamFloat _jerk_hor_max; /**< maximum jerk in manual controlled mode when braking to zero */
@@ -558,6 +562,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_z_max_down(this, "ACC_DOWN_MAX", true),
 	_cruise_speed_90(this, "CRUISE_90", true),
 	_velocity_hor_manual(this, "VEL_MANUAL", true),
+	_vel_z_up(this, "MPC_Z_VEL_UP", false),
+	_vel_z_down(this, "MPC_Z_VEL_DN", false),
 	_nav_rad(this, "NAV_ACC_RAD", false),
 	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
 	_jerk_hor_max(this, "JERK_MAX", true),
@@ -1782,7 +1788,7 @@ MulticopterPositionControl::control_manual()
 
 	/* prepare cruise speed (m/s) vector to scale the velocity setpoint */
 	float vel_mag = (_velocity_hor_manual.get() < _vel_max_xy) ? _velocity_hor_manual.get() : _vel_max_xy;
-	matrix::Vector3f vel_cruise_scale(vel_mag, vel_mag, (man_vel_sp(2) > 0.0f) ? _params.vel_max_down : _params.vel_max_up);
+	matrix::Vector3f vel_cruise_scale(vel_mag, vel_mag, (man_vel_sp(2) > 0.0f) ? _vel_z_down.get() : _vel_z_up.get());
 	/* Setpoint scaled to cruise speed */
 	man_vel_sp = man_vel_sp.emult(vel_cruise_scale);
 
@@ -2333,7 +2339,7 @@ void MulticopterPositionControl::control_auto()
 				/* final_vel_z is the max velocity which depends on the distance of total_dist_z
 				 * with default params.vel_max_up/down
 				 */
-				float final_vel_z = (flying_upward) ? _params.vel_max_up : _params.vel_max_down;
+				float final_vel_z = (flying_upward) ? _vel_z_up.get() : _vel_z_down.get();
 
 				/* target threshold defines the distance to _curr_pos_sp(2) at which
 				 * the vehicle starts to slow down to approach the target smoothly
@@ -2979,7 +2985,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	    && !_control_mode.flag_control_manual_enabled) {
 		float vel_limit = math::gradual(altitude_above_home,
 						_params.slow_land_alt2, _params.slow_land_alt1,
-						_params.tko_speed, _params.vel_max_up);
+						_params.tko_speed, _vel_z_up.get());
 		_vel_sp(2) = math::max(_vel_sp(2), -vel_limit);
 	}
 

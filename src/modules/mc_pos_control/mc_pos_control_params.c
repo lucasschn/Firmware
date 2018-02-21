@@ -168,7 +168,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
  *
  * @unit m/s
  * @min 0.5
- * @max 8.0
+ * @max 10.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -185,6 +185,40 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
+
+/**
+ * Vehicle vertical ascent velocity.
+ *
+ * Adjusting this parameter changes the velocity in upwards direction for any position controlled mode. However,
+ * the vehicle can never go faster than MPC_Z_VEL_MAX_UP and slower than MPC_LAND_SPEED.
+ *
+ * Yuneec specific: The default value and limits are vehicle specific. The limits agree with the value set
+ * in the start script by MPC_Z_VEL_MAX_UP.
+ *
+ * @unit m/s
+ * @min 1.0
+ * @max 7.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_UP, 4.0f);
+
+/**
+ * Vehicle vertical ascent velocity.
+ *
+ * Adjusting this parameter changes the velocity in downwards direction for any position controlled mode. However,
+ * the vehicle can never go faster than MPC_Z_VEL_MAX_DN and slower than MPC_LAND_SPEED.
+ *
+ * Yuneec specific: The default value and limits are vehicle specific. The limits agree with the value set
+ * in the start script by MPC_Z_VEL_MAX_DN.
+ *
+ * @unit m/s
+ * @min 1.0
+ * @max 4.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_DN, 2.5f);
 
 /**
  * Proportional gain for horizontal position error

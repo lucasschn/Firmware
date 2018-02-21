@@ -1296,6 +1296,7 @@ Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 	// The camera commands are not processed on the autopilot but will be
 	// sent to the mavlink links to other components.
 	switch (vcmd->command) {
+	case NAV_CMD_SET_CAMERA_MODE:
 	case NAV_CMD_IMAGE_START_CAPTURE:
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
 	case NAV_CMD_VIDEO_START_CAPTURE:

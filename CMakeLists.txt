@@ -99,12 +99,9 @@
 #
 #=============================================================================
 
-# check submodules before we do anything
-execute_process(COMMAND Tools/check_submodules.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
 # Warning: Changing this modifies CMake's internal workings
 # and leads to wrong toolchain detection
-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
@@ -112,6 +109,23 @@ set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
+
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake)
+
+#=============================================================================
+# git
+#
+include(common/px4_git)
+
+execute_process(
+	COMMAND git describe --always --tags
+	OUTPUT_VARIABLE git_tag
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	)
+
+px4_add_git_submodule(TARGET git_ecl PATH "src/lib/ecl")
+px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
 
 define_property(GLOBAL PROPERTY PX4_LIBRARIES
                  BRIEF_DOCS "PX4 libs"
@@ -128,7 +142,7 @@ string(REPLACE "_" ";" config_args ${CONFIG})
 list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
-set(target_name "${OS}-${BOARD}-${LABEL}")
+set(target_name "${OS}_${BOARD}_${LABEL}")
 
 file(GLOB_RECURSE configs RELATIVE cmake/configs "cmake/configs/*.cmake")
 set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
@@ -141,7 +155,9 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${OS}/cmake)
+
+include(platforms/${OS}/cmake/px4_impl_os.cmake)
 set(config_module "configs/${CONFIG}")
 include(${config_module})
 
@@ -166,44 +182,20 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebIn
 
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 
-
-#=============================================================================
-# git
-#
-include(common/px4_git)
-
-# version info from git
-execute_process(
-	COMMAND Tools/tag_to_version.py --root ${PX4_SOURCE_DIR}
-	OUTPUT_VARIABLE version
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-	)
-
-execute_process(
-	COMMAND git describe --always --tags
-	OUTPUT_VARIABLE git_tag
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-	)
-
-px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
-px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
-px4_add_git_submodule(TARGET git_ecl PATH "src/lib/ecl")
-px4_add_git_submodule(TARGET git_gazebo PATH "Tools/sitl_gazebo")
-px4_add_git_submodule(TARGET git_gazebo_flow PATH "Tools/sitl_gazebo/external/OpticalFlow")
-px4_add_git_submodule(TARGET git_gazebo_klt PATH "Tools/sitl_gazebo/external/OpticalFlow/external/klt_feature_tracker")
-px4_add_git_submodule(TARGET git_gps_devices PATH "src/drivers/gps/devices")
-px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
-px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
-px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
-px4_add_git_submodule(TARGET git_mavlink2 PATH "mavlink/include/mavlink/v2.0")
-px4_add_git_submodule(TARGET git_nuttx PATH "platforms/nuttx/NuttX/nuttx")
-px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
-
 #=============================================================================
 
 message(STATUS "PX4 VERSION: ${git_tag}")
 message(STATUS "CONFIG: ${target_name}")
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+
+#=============================================================================
+# project definition
+#
+project(px4 CXX C ASM)
+
+set(package-contact "px4users@googlegroups.com")
+
+#=============================================================================
 
 # The URL for the elf file for crash logging
 if (DEFINED ENV{BUILD_URI})
@@ -218,14 +210,19 @@ if( "$ENV{PX4_RESTRICTED_BUILD}" STREQUAL "1")
 	add_definitions(-DBUILD_WITH_RESTRICTED_SYSTEM_ACCESS)
 endif()
 
-# Define GNU standard installation directories
-include(GNUInstallDirs)
-
 # Setup install paths
 if (${OS} STREQUAL "posix")
+
+	# Define GNU standard installation directories
+	include(GNUInstallDirs)
+
 	if (NOT CMAKE_INSTALL_PREFIX)
 		set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install path prefix" FORCE)
 	endif()
+
+	# cmake testing only on posix
+	enable_testing()
+	include(CTest)
 endif()
 
 #=============================================================================
@@ -253,19 +250,12 @@ set(BUILD_SHARED_LIBS OFF)
 #=============================================================================
 # ccache
 #
-option(CCACHE "Use ccache if available" OFF)
+option(CCACHE "Use ccache if available" ON)
 find_program(CCACHE_PROGRAM ccache)
-if (CCACHE AND CCACHE_PROGRAM)
-	message(STATUS "Enabled ccache: ${CCACHE_PROGRAM}")
+if (CCACHE AND CCACHE_PROGRAM AND NOT DEFINED ENV{CCACHE_DISABLE})
 	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+else()
 endif()
-
-#=============================================================================
-# project definition
-#
-project(px4 CXX C ASM)
-
-set(package-contact "px4users@googlegroups.com")
 
 #=============================================================================
 # find programs and packages
@@ -284,12 +274,6 @@ endif()
 
 find_package(PythonInterp REQUIRED)
 px4_find_python_module(jinja2 REQUIRED)
-
-#=============================================================================
-# cmake testing
-#
-enable_testing()
-include(CTest)
 
 #=============================================================================
 # generate compile command database
@@ -372,6 +356,8 @@ px4_generate_airframes_xml(BOARD ${BOARD})
 # DriverFramework
 #
 
+px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
+
 # List the DriverFramework drivers
 if (DEFINED config_df_driver_list)
 	message("DF Drivers: ${config_df_driver_list}")
@@ -415,11 +401,13 @@ endif()
 #=============================================================================
 # subdirectories
 #
+add_subdirectory(src/platforms/common)
+
 foreach(module ${config_module_list})
-		add_subdirectory(src/${module})
+	add_subdirectory(src/${module})
 endforeach()
 
-add_subdirectory(src/firmware/${OS})
+add_subdirectory(platforms/${OS})
 
 #=============================================================================
 # generate custom target to print for all executable and module cmake targets
@@ -433,6 +421,27 @@ if (all_posix_cmake_targets)
 		VERBATIM
 		)
 endif()
+
+
+#=============================================================================
+# uORB graph generation: add a custom target 'uorb_graph'
+#
+set(uorb_graph_config ${BOARD})
+
+set(graph_module_list "")
+foreach(module ${config_module_list})
+	set(graph_module_list "${graph_module_list}" "--src-path" "src/${module}")
+endforeach()
+
+add_custom_command(OUTPUT ${uorb_graph_config}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/uorb_graph/create.py
+		${module_list}
+		--exclude-path src/examples
+		--file ${PX4_SOURCE_DIR}/Tools/uorb_graph/graph_${uorb_graph_config}
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	COMMENT "Generating uORB graph"
+)
+add_custom_target(uorb_graph DEPENDS ${uorb_graph_config})
 
 #=============================================================================
 # packaging

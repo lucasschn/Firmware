@@ -36,6 +36,7 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #ifndef NAVIGATOR_H
@@ -47,6 +48,7 @@
 #include "geofence.h"
 #include "gpsfailure.h"
 #include "land.h"
+#include "precland.h"
 #include "loiter.h"
 #include "mission.h"
 #include "navigator_mode.h"
@@ -65,6 +67,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -82,7 +85,8 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 11
+#define NAVIGATOR_MODE_ARRAY_SIZE 12
+
 
 class Navigator : public control::SuperBlock
 {
@@ -117,6 +121,24 @@ public:
 	void		publish_vehicle_cmd(vehicle_command_s *vcmd);
 
 	/**
+	 * Generate an artificial traffic indication
+	 *
+	 * @param distance Horizontal distance to this vehicle
+	 * @param direction Direction in earth frame from this vehicle in radians
+	 * @param traffic_heading Travel direction of the traffic in earth frame in radians
+	 * @param altitude_diff Altitude difference, positive is up
+	 * @param hor_velocity Horizontal velocity of traffic, in m/s
+	 * @param ver_velocity Vertical velocity of traffic, in m/s
+	 */
+	void		fake_traffic(const char *callsign, float distance, float direction, float traffic_heading, float altitude_diff,
+				     float hor_velocity, float ver_velocity);
+
+	/**
+	 * Check nearby traffic for potential collisions
+	 */
+	void		check_traffic();
+
+	/**
 	 * Setters
 	 */
 	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
@@ -136,6 +158,8 @@ public:
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
+	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+
 	struct realsense_avoidance_setpoint_s *get_realsense_setpoint() { return &_realsense_avoidance_setpoint;}
 	struct manual_control_setpoint_s *get_manual_setpoint() { return &_manual;}
 
@@ -147,9 +171,9 @@ public:
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
-	bool home_position_valid() { return (_home_pos.timestamp > 0); }
+	bool home_alt_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt); }
+	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos); }
 
-	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
 
 	Geofence	&get_geofence() { return _geofence; }
@@ -230,13 +254,30 @@ public:
 
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
-	void		increment_mission_instance_count() { _mission_instance_count++; }
+	void		increment_mission_instance_count() { _mission_result.instance_count++; }
 
 	void 		set_mission_failure(const char *reason);
 
-	bool		is_planned_mission() { return _navigation_mode == &_mission; }
+	// MISSION
+	bool		is_planned_mission() const { return _navigation_mode == &_mission; }
+	bool		on_mission_landing() { return _mission.landing(); }
+	bool		start_mission_landing() { return _mission.land_start(); }
+
+	// RTL
+	bool		mission_landing_required() { return _rtl.mission_landing_required(); }
 
 	bool		abort_landing();
+
+	// Param access
+	float		get_loiter_min_alt() const { return _param_loiter_min_alt.get(); }
+	float		get_takeoff_min_alt() const { return _param_takeoff_min_alt.get(); }
+	float		get_yaw_timeout() const { return _param_yaw_timeout.get(); }
+	float		get_yaw_threshold() const { return _param_yaw_err.get(); }
+
+	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss.get(); }
+	float		get_vtol_reverse_delay() const { return _param_reverse_delay.get(); }
+
+	bool		force_vtol() const { return _vstatus.is_vtol && !_vstatus.is_rotary_wing && _param_force_vtol.get(); }
 
 private:
 
@@ -250,9 +291,9 @@ private:
 	int		_land_detected_sub{-1};		/**< vehicle land detected subscription */
 	int		_local_pos_sub{-1};		/**< local position subscription */
 	int		_offboard_mission_sub{-1};	/**< offboard mission subscription */
-	int		_onboard_mission_sub{-1};	/**< onboard mission subscription */
 	int		_param_update_sub{-1};		/**< param update subscription */
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
+	int		_traffic_sub{-1};		/**< traffic subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
 	/* --- tap specific subscription */
@@ -296,8 +337,6 @@ private:
 	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
 
-	int		_mission_instance_count{-1};	/**< instance count for the current mission */
-
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Geofence	_geofence;			/**< class that handles the geofence */
@@ -313,6 +352,7 @@ private:
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
 	Land		_land;			/**< class for handling land commands */
+	PrecLand	_precland;			/**< class for handling precision land commands */
 	Descend		_descend;			/**< class for handling descend commands */
 	RTL 		_rtl;				/**< class that handles RTL */
 	RCLoss 		_rcLoss;				/**< class that handles RTL according to OBC rules (rc loss mode) */
@@ -323,11 +363,24 @@ private:
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
+	// navigator parameters
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
-
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
 	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
 	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
+	control::BlockParamInt _param_force_vtol;	/**< acceptance radius for multicopter altitude */
+	control::BlockParamInt _param_traffic_avoidance_mode;	/**< avoiding other aircraft is enabled */
+
+	// non-navigator parameters
+	// Mission (MIS_*)
+	control::BlockParamFloat _param_loiter_min_alt;
+	control::BlockParamFloat _param_takeoff_min_alt;
+	control::BlockParamFloat _param_yaw_timeout;
+	control::BlockParamFloat _param_yaw_err;
+
+	// VTOL parameters TODO: get these out of navigator
+	control::BlockParamFloat _param_back_trans_dec_mss;
+	control::BlockParamFloat _param_reverse_delay;
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};

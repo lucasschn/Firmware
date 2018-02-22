@@ -56,21 +56,20 @@ set(msg_files
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
-	filtered_bottom_flow.msg
 	follow_target.msg
 	fw_pos_ctrl_status.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
-	hil_sensor.msg
 	home_position.msg
 	input_rc.msg
+	irlock_report.msg
+	landing_target_innovations.msg
 	landing_target_pose.msg
 	led_control.msg
 	log_message.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
-	mc_att_ctrl_status.msg
 	mission.msg
 	mission_result.msg
 	mount_orientation.msg
@@ -78,7 +77,6 @@ set(msg_files
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	optical_flow.msg
-	output_pwm.msg
 	parameter_update.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
@@ -88,6 +86,7 @@ set(msg_files
 	realsense_avoidance_setpoint.msg
 	realsense_distance_info.msg
 	realsense_distance_360.msg
+	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg
 	safety.msg
@@ -121,7 +120,6 @@ set(msg_files
 	vehicle_command.msg
 	vehicle_command_ack.msg
 	vehicle_control_mode.msg
-	vehicle_force_setpoint.msg
 	vehicle_global_position.msg
 	vehicle_gps_position.msg
 	vehicle_land_detected.msg

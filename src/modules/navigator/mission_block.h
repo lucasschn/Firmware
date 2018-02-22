@@ -42,10 +42,12 @@
 #define NAVIGATOR_MISSION_BLOCK_H
 
 #include "navigator_mode.h"
+#include "navigation.h"
 
-#include <navigator/navigation.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/follow_target.h>
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+#include <drivers/drv_hrt.h>
+#include <systemlib/mavlink_log.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_command.h>
@@ -61,7 +63,7 @@ public:
 	 * Constructor
 	 */
 	MissionBlock(Navigator *navigator, const char *name);
-	~MissionBlock() = default;
+	virtual ~MissionBlock() = default;
 
 	MissionBlock(const MissionBlock &) = delete;
 	MissionBlock &operator=(const MissionBlock &) = delete;
@@ -89,11 +91,6 @@ protected:
 	bool mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp);
 
 	/**
-	 * Set previous position setpoint to current setpoint
-	 */
-	void set_previous_pos_setpoint();
-
-	/**
 	 * Set a loiter mission item, if possible reuse the position setpoint, otherwise take the current position
 	 */
 	void set_loiter_item(struct mission_item_s *item, float min_clearance = -1.0f);
@@ -108,17 +105,10 @@ protected:
 	 */
 	void set_land_item(struct mission_item_s *item, bool at_current_location);
 
-	void set_current_position_item(struct mission_item_s *item);
-
 	/**
 	 * Set idle mission item
 	 */
 	void set_idle_item(struct mission_item_s *item);
-
-	/**
-	 * Set follow_target item
-	 */
-	void set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s &target, float yaw);
 
 	/**
 	 * General function used to adjust the mission item based on vehicle specific limitations
@@ -152,18 +142,7 @@ protected:
 	hrt_abstime _action_start{0};
 	hrt_abstime _time_wp_reached{0};
 
-	actuator_controls_s _actuators{};
 	orb_advert_t    _actuator_pub{nullptr};
-
-	control::BlockParamFloat _param_loiter_min_alt;
-	control::BlockParamFloat _param_yaw_timeout;
-	control::BlockParamFloat _param_yaw_err;
-	control::BlockParamInt _param_vtol_wv_land;
-	control::BlockParamInt _param_vtol_wv_takeoff;
-	control::BlockParamInt _param_vtol_wv_loiter;
-	control::BlockParamInt _param_force_vtol;
-	control::BlockParamFloat _param_back_trans_dec_mss;
-	control::BlockParamFloat _param_reverse_delay;
 };
 
 #endif

@@ -42,7 +42,6 @@
 
 #pragma once
 
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -61,16 +60,15 @@ protected:
 	void _initialize_topics() override;
 	void _update_params() override;
 	void _update_topics() override;
+
 	bool _get_landed_state() override;
-	bool _get_maybe_landed_state() override;
-	bool _get_ground_contact_state() override;
-	bool _get_freefall_state() override;
 	float _get_max_altitude() override;
 
 private:
 
 	/** Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 1500000;
+	static constexpr uint64_t LANDED_TRIGGER_TIME_US = 2000000;
+	static constexpr uint64_t FLYING_TRIGGER_TIME_US = 0;
 
 	struct {
 		param_t maxVelocity;
@@ -86,12 +84,10 @@ private:
 		float maxIntVelocity;
 	} _params{};
 
-	int _armingSub{-1};
 	int _airspeedSub{-1};
 	int _sensor_bias_sub{-1};
 	int _local_pos_sub{-1};
 
-	actuator_armed_s _arming{};
 	airspeed_s _airspeed{};
 	sensor_bias_s _sensors{};
 	vehicle_local_position_s _local_pos{};

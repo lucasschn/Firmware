@@ -73,7 +73,7 @@
 
 extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
 
-typedef enum : uint8_t {
+typedef enum : int32_t {
 	CAMERA_INTERFACE_MODE_NONE = 0,
 	CAMERA_INTERFACE_MODE_GPIO,
 	CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM,
@@ -81,7 +81,7 @@ typedef enum : uint8_t {
 	CAMERA_INTERFACE_MODE_GENERIC_PWM
 } camera_interface_mode_t;
 
-typedef enum : uint8_t {
+typedef enum : int32_t {
 	TRIGGER_MODE_NONE = 0,
 	TRIGGER_MODE_INTERVAL_ON_CMD,
 	TRIGGER_MODE_INTERVAL_ALWAYS_ON,
@@ -273,8 +273,8 @@ CameraTrigger::CameraTrigger() :
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
 	param_get(_p_distance, &_distance);
-	param_get(_p_mode, &_trigger_mode);
-	param_get(_p_interface, &_camera_interface_mode);
+	param_get(_p_mode, (int32_t *)&_trigger_mode);
+	param_get(_p_interface, (int32_t *)&_camera_interface_mode);
 
 	switch (_camera_interface_mode) {
 #ifdef __PX4_NUTTX
@@ -310,7 +310,7 @@ CameraTrigger::CameraTrigger() :
 	     _camera_interface_mode == CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM)) {
 		_activation_time = 40.0f;
 		PX4_WARN("Trigger interval too low for PWM interface, setting to 40 ms");
-		param_set(_p_activation_time, &(_activation_time));
+		param_set_no_notification(_p_activation_time, &(_activation_time));
 	}
 
 	// Advertise critical publishers here, because we cannot advertise in interrupt context
@@ -588,7 +588,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			if (cmd.param1 > 0.0f) {
 				trig->_distance = cmd.param1;
-				param_set(trig->_p_distance, &(trig->_distance));
+				param_set_no_notification(trig->_p_distance, &(trig->_distance));
 
 				trig->_trigger_enabled = true;
 				trig->_trigger_paused = false;
@@ -604,7 +604,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 			if (cmd.param2 > 0.0f) {
 				if (trig->_camera_interface_mode == CAMERA_INTERFACE_MODE_GPIO) {
 					trig->_activation_time = cmd.param2;
-					param_set(trig->_p_activation_time, &(trig->_activation_time));
+					param_set_no_notification(trig->_p_activation_time, &(trig->_activation_time));
 				}
 			}
 
@@ -622,14 +622,14 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			if (cmd.param1 > 0.0f) {
 				trig->_interval = cmd.param1;
-				param_set(trig->_p_interval, &(trig->_interval));
+				param_set_no_notification(trig->_p_interval, &(trig->_interval));
 			}
 
 			// We can only control the shutter integration time of the camera in GPIO mode
 			if (cmd.param2 > 0.0f) {
 				if (trig->_camera_interface_mode == CAMERA_INTERFACE_MODE_GPIO) {
 					trig->_activation_time = cmd.param2;
-					param_set(trig->_p_activation_time, &(trig->_activation_time));
+					param_set_no_notification(trig->_p_activation_time, &(trig->_activation_time));
 				}
 			}
 

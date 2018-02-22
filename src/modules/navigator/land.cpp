@@ -66,7 +66,7 @@ Land::Land(Navigator *navigator, const char *name) :
 
 {
 	/* load initial params */
-	updateParams();
+	updateParams();  // NOTE: Removed upstream, redundant they say (#8391)
 	/* initial reset */
 	on_inactive();
 }

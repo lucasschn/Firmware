@@ -56,41 +56,21 @@
 
 #include "navigator.h"
 
+constexpr float FollowTarget::_follow_position_matricies[4][9];
+
 FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_navigator(navigator),
 	_param_min_alt(this, "NAV_MIN_FT_HT", false),
 	_param_tracking_dist(this, "NAV_FT_DST", false),
 	_param_tracking_side(this, "NAV_FT_FS", false),
-	_param_tracking_resp(this, "NAV_FT_RS", false),
-	_param_yaw_auto_max(this, "MC_YAWRAUTO_MAX", false),
-	_follow_target_state(SET_WAIT_FOR_TARGET_POSITION),
-	_follow_target_position(FOLLOW_FROM_BEHIND),
-	_follow_target_sub(-1),
-	_step_time_in_ms(0.0f),
-	_follow_offset(OFFSET_M),
-	_target_updates(0),
-	_last_update_time(0),
-	_current_target_motion(),
-	_previous_target_motion(),
-	_yaw_rate(0.0F),
-	_responsiveness(0.0F),
-	_yaw_auto_max(0.0F),
-	_yaw_angle(0.0F)
+	_param_tracking_resp(this, "NAV_FT_RS", false)
 {
-	updateParams();
-	_current_target_motion = {};
-	_previous_target_motion =  {};
 	_current_vel.zero();
 	_step_vel.zero();
 	_est_target_vel.zero();
 	_target_distance.zero();
 	_target_position_offset.zero();
 	_target_position_delta.zero();
-}
-
-FollowTarget::~FollowTarget()
-{
 }
 
 void FollowTarget::on_inactive()
@@ -103,8 +83,6 @@ void FollowTarget::on_activation()
 	_follow_offset = _param_tracking_dist.get() < 1.0F ? 1.0F : _param_tracking_dist.get();
 
 	_responsiveness = math::constrain((float) _param_tracking_resp.get(), .1F, 1.0F);
-
-	_yaw_auto_max = math::radians(_param_yaw_auto_max.get());
 
 	_follow_target_position = _param_tracking_side.get();
 
@@ -229,18 +207,14 @@ void FollowTarget::on_active()
 						_current_target_motion.lat,
 						_current_target_motion.lon);
 
-				_yaw_rate = (_yaw_angle - _navigator->get_global_position()->yaw) / (dt_ms / 1000.0F);
-
-				_yaw_rate = _wrap_pi(_yaw_rate);
-
-				_yaw_rate = math::constrain(_yaw_rate, -1.0F * _yaw_auto_max, _yaw_auto_max);
+				_yaw_rate = _wrap_pi((_yaw_angle - _navigator->get_global_position()->yaw) / (dt_ms / 1000.0f));
 
 			} else {
 				_yaw_angle = _yaw_rate = NAN;
 			}
 		}
 
-//		warnx(" _step_vel x %3.6f y %3.6f cur vel %3.6f %3.6f tar vel %3.6f %3.6f dist = %3.6f (%3.6f) mode = %d con ratio = %3.6f yaw rate = %3.6f",
+//		warnx(" _step_vel x %3.6f y %3.6f cur vel %3.6f %3.6f tar vel %3.6f %3.6f dist = %3.6f (%3.6f) mode = %d yaw rate = %3.6f",
 //				(double) _step_vel(0),
 //				(double) _step_vel(1),
 //				(double) _current_vel(0),
@@ -250,7 +224,7 @@ void FollowTarget::on_active()
 //				(double) (_target_distance).length(),
 //				(double) (_target_position_offset + _target_distance).length(),
 //				_follow_target_state,
-//				(double)_avg_cos_ratio, (double) _yaw_rate);
+//				(double) _yaw_rate);
 	}
 
 	if (target_position_valid()) {
@@ -399,4 +373,38 @@ bool FollowTarget::target_position_valid()
 {
 	// need at least 1 continuous data points for position estimate
 	return (_target_updates >= 1);
+}
+
+void
+FollowTarget::set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s &target,
+				     float yaw)
+{
+	if (_navigator->get_land_detected()->landed) {
+		/* landed, don't takeoff, but switch to IDLE mode */
+		item->nav_cmd = NAV_CMD_IDLE;
+
+	} else {
+
+		item->nav_cmd = NAV_CMD_DO_FOLLOW_REPOSITION;
+
+		/* use current target position */
+		item->lat = target.lat;
+		item->lon = target.lon;
+		item->altitude = _navigator->get_home_position()->alt;
+
+		if (min_clearance > 8.0f) {
+			item->altitude += min_clearance;
+
+		} else {
+			item->altitude += 8.0f; // if min clearance is bad set it to 8.0 meters (well above the average height of a person)
+		}
+	}
+
+	item->altitude_is_relative = false;
+	item->yaw = yaw;
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
 }

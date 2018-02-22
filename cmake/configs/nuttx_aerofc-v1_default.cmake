@@ -1,4 +1,3 @@
-include(nuttx/px4_impl_nuttx)
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
@@ -8,19 +7,19 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
-	drivers/stm32
-	drivers/led
-	drivers/px4fmu
-	drivers/boards
-	drivers/tap_esc
-	drivers/mpu9250
-	drivers/ms5611
-	drivers/hmc5883
-	drivers/gps
-	drivers/ist8310
-	drivers/ll40ls
 	drivers/aerofc_adc
+	drivers/boards
+	drivers/device
+	drivers/distance_sensor
+	drivers/gps
+	drivers/led
+	drivers/barometer/ms5611
+	drivers/magnetometer/hmc5883
+	drivers/magnetometer/ist8310
+	drivers/imu/mpu9250
+	drivers/px4fmu
+	drivers/stm32
+	drivers/tap_esc
 	modules/sensors
 
 	#
@@ -70,7 +69,6 @@ set(config_module_list
 	#
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/dataman
 
@@ -78,19 +76,14 @@ set(config_module_list
 	# Libraries
 	#
 	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
+	lib/conversion
+	lib/DriverFramework/framework
 	lib/ecl
+	lib/FlightTasks
 	lib/geo
 	lib/geo_lookup
-	lib/conversion
-	lib/tailsitter_recovery
-	lib/tunes
-	lib/version
-	lib/DriverFramework/framework
+	lib/mathlib
+	lib/mixer
 	lib/rc
-	lib/FlightTasks
-	platforms/nuttx
-	platforms/common
-	platforms/nuttx/px4_layer
+	lib/version
 )

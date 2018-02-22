@@ -39,13 +39,13 @@
 #pragma once
 
 #include <px4_posix.h>
-#include <uORB/topics/hil_sensor.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/irlock_report.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
@@ -60,8 +60,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
-#include <v1.0/mavlink_types.h>
-#include <v1.0/common/mavlink.h>
+#include <v2.0/mavlink_types.h>
+#include <v2.0/common/mavlink.h>
 #include <geo/geo.h>
 namespace simulator
 {
@@ -293,6 +293,8 @@ private:
 		_gps.writeData(&gps_data);
 
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
+
+		_battery_status.timestamp = hrt_absolute_time();
 	}
 	~Simulator()
 	{
@@ -334,6 +336,7 @@ private:
 	orb_advert_t _vision_attitude_pub;
 	orb_advert_t _dist_pub;
 	orb_advert_t _battery_pub;
+	orb_advert_t _irlock_report_pub;
 
 	int				_param_sub;
 
@@ -344,6 +347,7 @@ private:
 
 	// Lib used to do the battery calculations.
 	Battery _battery;
+	battery_status_s _battery_status{};
 
 	// For param MAV_TYPE
 	int32_t _system_type;
@@ -390,7 +394,7 @@ private:
 	void pollForMAVLinkMessages(bool publish, int udp_port);
 
 	void pack_actuator_message(mavlink_hil_actuator_controls_t &actuator_msg, unsigned index);
-	void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
+	void send_mavlink_message(const mavlink_message_t &aMsg);
 	void update_sensors(mavlink_hil_sensor_t *imu);
 	void update_gps(mavlink_hil_gps_t *gps_sim);
 	void parameters_update(bool force);

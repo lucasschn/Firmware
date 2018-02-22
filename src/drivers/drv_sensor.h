@@ -100,7 +100,14 @@
 #define DRV_ACC_DEVTYPE_FXOS8701C	0x52
 #define DRV_MAG_DEVTYPE_FXOS8701C	0x53
 #define DRV_GYR_DEVTYPE_FXAS2100C	0x54
+// NOTE: Unfortunately Yuneec chose 0x55 as the ID and meanwhile upstream has
+// added a driver for the ADIS16448. If we change the ID of MPC2520, we lose all
+// the IMU callibrations. Keeping 0x55 should be fine as long as we don't use
+// both devices at the same time.
 #define DRV_BARO_DEVTYPE_MPC2520	0x55
+#define DRV_ACC_DEVTYPE_ADIS16448	0x55
+#define DRV_MAG_DEVTYPE_ADIS16448	0x56
+#define DRV_GYR_DEVTYPE_ADIS16448	0x57
 
 /*
  * ioctl() definitions
@@ -137,27 +144,9 @@
  */
 #define SENSORIOCSQUEUEDEPTH	_SENSORIOC(2)
 
-/** return the internal queue depth */
-#define SENSORIOCGQUEUEDEPTH	_SENSORIOC(3)
-
 /**
  * Reset the sensor to its default configuration
  */
 #define SENSORIOCRESET		_SENSORIOC(4)
-
-/**
- * Set the sensor orientation
- */
-#define SENSORIOCSROTATION	_SENSORIOC(5)
-
-/**
- * Get the sensor orientation
- */
-#define SENSORIOCGROTATION	_SENSORIOC(6)
-
-/**
- * Test the sensor calibration
- */
-#define SENSORIOCCALTEST	_SENSORIOC(7)
 
 #endif /* _DRV_SENSOR_H */

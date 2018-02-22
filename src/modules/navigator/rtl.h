@@ -42,12 +42,7 @@
 #ifndef NAVIGATOR_RTL_H
 #define NAVIGATOR_RTL_H
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
 
-#include <navigator/navigation.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/geofence_result.h>
 
 #include "navigator_mode.h"
@@ -55,7 +50,7 @@
 
 class Navigator;
 
-class RTL : public MissionBlock
+class RTL final : public MissionBlock
 {
 public:
 	RTL(Navigator *navigator, const char *name);
@@ -64,6 +59,10 @@ public:
 	void on_inactive() override;
 	void on_activation() override;
 	void on_active() override;
+
+	void set_return_alt_min(bool min);
+
+	bool mission_landing_required();
 
 private:
 	/**
@@ -97,11 +96,13 @@ private:
 		RTL_STATE_HOME,
 	} _rtl_state{RTL_STATE_NONE};
 
+	bool _rtl_alt_min{false};
+
 	control::BlockParamFloat _param_return_alt;
-	control::BlockParamFloat _param_min_loiter_alt;
 	control::BlockParamFloat _param_descend_alt;
 	control::BlockParamFloat _param_land_delay;
 	control::BlockParamFloat _param_rtl_min_dist;
+	control::BlockParamInt _param_rtl_land_type;
 	control::BlockParamFloat _param_gf_alt;
 	control::BlockParamInt 	 _param_gf_actions;
 };

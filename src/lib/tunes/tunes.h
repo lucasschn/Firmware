@@ -40,6 +40,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/tune_control.h>
 #include "tune_definition.h"
+#define TUNE_MAX_UPDATE_INTERVAL_US 100000
 
 class Tunes
 {
@@ -88,6 +89,8 @@ public:
 
 	unsigned int get_default_tunes_size() {return _default_tunes_size;}
 
+	unsigned int get_maximum_update_interval() {return (unsigned int)TUNE_MAX_UPDATE_INTERVAL_US;}
+
 private:
 	static const char *_default_tunes[];
 	static const uint8_t _note_tab[];
@@ -96,6 +99,7 @@ private:
 
 	const char *_tune = nullptr; ///< current tune string
 	const char *_next = nullptr; ///< next note in the string
+	const char *_tune_start_ptr = nullptr; ///< pointer to repeat tune
 
 	unsigned _tempo;
 	unsigned _note_length;
@@ -109,6 +113,7 @@ private:
 
 	unsigned _frequency;
 	unsigned _duration;
+	unsigned _silence;
 	bool _using_custom_msg = false;
 
 	/**
@@ -163,8 +168,8 @@ private:
 	unsigned next_dots();
 
 	/**
-	 * set the tune parameters to default
+	 * if repeat false set the tune parameters to default else point to the beginning of the tune
 	 */
-	void config_tone();
+	void config_tone(bool repeat);
 
 };

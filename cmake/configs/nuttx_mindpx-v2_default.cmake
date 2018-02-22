@@ -1,4 +1,3 @@
-include(nuttx/px4_impl_nuttx)
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
@@ -8,50 +7,38 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/barometer
+	drivers/differential_pressure
+	drivers/distance_sensor
+	drivers/magnetometer
+	drivers/telemetry
+
+	drivers/airspeed
+	drivers/batt_smbus
+	drivers/blinkm
+	drivers/boards
+	drivers/camera_trigger
 	drivers/device
+	drivers/gps
+	#drivers/hott
+	drivers/imu/l3gd20
+	drivers/led
+	drivers/imu/lsm303d
+	#drivers/mkblctrl
+	drivers/imu/mpu6000
+	drivers/imu/mpu9250
+	#drivers/oreoled
+	drivers/pwm_input
+	drivers/pwm_out_sim
+	drivers/px4flow
+	drivers/px4fmu
+	drivers/rgbled
+	#drivers/rgbled_pwm
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
-	drivers/led
-	drivers/px4fmu
-	drivers/boards
-	drivers/rgbled
-	#drivers/rgbled_pwm
-	drivers/mpu6000
-	drivers/mpu9250
-	drivers/lsm303d
-	drivers/l3gd20
-	drivers/hmc5883
-	drivers/ms5611
-	drivers/mb12xx
-	drivers/srf02
-	drivers/srf02_i2c
-	#drivers/hc_sr04
-	drivers/sf0x
-	drivers/sf1xx
-	drivers/ll40ls
-	drivers/teraranger
-	drivers/gps
-	drivers/pwm_out_sim
-	#drivers/hott
-	#drivers/hott/hott_telemetry
-	#drivers/hott/hott_sensors
-	drivers/blinkm
-	drivers/airspeed
-	drivers/ets_airspeed
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
-	drivers/sdp3x_airspeed
-	drivers/frsky_telemetry
-	modules/sensors
-	#drivers/mkblctrl
-	drivers/px4flow
-	#drivers/oreoled
 	drivers/vmount
-	drivers/pwm_input
-	drivers/camera_trigger
-	drivers/bst
-	drivers/snapdragon_rc_pwm
+	modules/sensors
 
 	#
 	# System commands
@@ -66,6 +53,7 @@ set(config_module_list
 	systemcmds/hardfault_log
 	systemcmds/reboot
 	systemcmds/topic_listener
+	systemcmds/tune_control
 	systemcmds/top
 	systemcmds/config
 	systemcmds/nshterm
@@ -78,7 +66,7 @@ set(config_module_list
 	#
 	# Tests
 	#
-	drivers/sf0x/sf0x_tests
+	drivers/distance_sensor/sf0x/sf0x_tests
 	drivers/test_ppm
 	modules/commander/commander_tests
 	modules/mc_pos_control/mc_pos_control_tests
@@ -130,7 +118,6 @@ set(config_module_list
 	#
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/dataman
 
@@ -138,32 +125,24 @@ set(config_module_list
 	# Libraries
 	#
 	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/rc
+	lib/conversion
+	lib/DriverFramework/framework
 	lib/ecl
-	lib/external_lgpl
+	lib/FlightTasks
 	lib/geo
 	lib/geo_lookup
-	lib/conversion
-	lib/launchdetection
 	lib/led
+	lib/mathlib
+	lib/mixer
+	lib/rc
 	lib/terrain_estimation
-	lib/runway_takeoff
-	lib/tailsitter_recovery
+	lib/tunes
 	lib/version
-	lib/DriverFramework/framework
-	lib/FlightTasks
-	platforms/nuttx
-
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/common
-	platforms/nuttx/px4_layer
 
 	#
 	# OBC challenge
 	#
-	#modules/bottle_drop
+	#examples/bottle_drop
 
 	#
 	# Rover apps
@@ -179,10 +158,6 @@ set(config_module_list
 	#examples/px4_simple_app
 
 	# Tutorial code from
-	# https://px4.io/dev/daemon
-	#examples/px4_daemon_app
-
-	# Tutorial code from
 	# https://px4.io/dev/debug_values
 	#examples/px4_mavlink_debug
 
@@ -192,7 +167,4 @@ set(config_module_list
 
 	# Hardware test
 	#examples/hwtest
-
-	# EKF
-	#examples/ekf_att_pos_estimator
 )

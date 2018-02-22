@@ -299,6 +299,7 @@ __EXPORT void		param_reset_excludes(const char *excludes[], int num_excludes);
 
 /**
  * Export changed parameters to a file.
+ * Note: this method requires a large amount of stack size!
  *
  * @param fd		File descriptor to export to.
  * @param only_unsaved	Only export changed parameters that have not yet been exported.
@@ -365,6 +366,7 @@ __EXPORT const char	*param_get_default_file(void);
 
 /**
  * Save parameters to the default file.
+ * Note: this method requires a large amount of stack size!
  *
  * This function saves all parameters with non-default values.
  *
@@ -454,5 +456,38 @@ struct param_info_s {
 };
 
 __END_DECLS
+
+
+
+#ifdef	__cplusplus
+#if 0 // set to 1 to debug param type mismatches
+#include <cstdio>
+#define CHECK_PARAM_TYPE(param, type) \
+	if (param_type(param) != type) { \
+		/* use printf() to avoid having to use more includes */ \
+		printf("wrong type passed to param_get() for param %s\n", param_name(param)); \
+	}
+#else
+#define CHECK_PARAM_TYPE(param, type)
+#endif
+
+// param is a C-interface. This means there is no overloading, and thus no type-safety for param_get().
+// So for C++ code we redefine param_get() to inlined overloaded versions, which gives us type-safety
+// w/o having to use a different interface
+static inline int param_get_cplusplus(param_t param, float *val)
+{
+	CHECK_PARAM_TYPE(param, PARAM_TYPE_FLOAT);
+	return param_get(param, val);
+}
+static inline int param_get_cplusplus(param_t param, int32_t *val)
+{
+	CHECK_PARAM_TYPE(param, PARAM_TYPE_INT32);
+	return param_get(param, val);
+}
+#undef CHECK_PARAM_TYPE
+
+#define param_get(param, val) param_get_cplusplus(param, val)
+
+#endif /* __cplusplus */
 
 #endif

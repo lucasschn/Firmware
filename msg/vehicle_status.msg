@@ -33,9 +33,10 @@ uint8 NAVIGATION_STATE_RATTITUDE = 16		# Rattitude (aka "flip") mode
 uint8 NAVIGATION_STATE_AUTO_TAKEOFF = 17	# Takeoff
 uint8 NAVIGATION_STATE_AUTO_LAND = 18		# Land
 uint8 NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19	# Auto Follow
-uint8 NAVIGATION_STATE_SMART = 20		# Smart mode
-uint8 NAVIGATION_STATE_SPORT = 21		# Sport mode
-uint8 NAVIGATION_STATE_MAX = 22
+uint8 NAVIGATION_STATE_AUTO_PRECLAND = 20	# Precision land with landing target
+uint8 NAVIGATION_STATE_SMART = 21		# Smart mode
+uint8 NAVIGATION_STATE_SPORT = 22		# Sport mode
+uint8 NAVIGATION_STATE_MAX = 23
 
 uint8 RC_IN_MODE_DEFAULT = 0
 uint8 RC_IN_MODE_OFF = 1
@@ -65,7 +66,6 @@ uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual co
 bool data_link_lost				# datalink to GCS lost
 uint8 data_link_lost_counter			# counts unique data link lost events
 bool engine_failure				# Set to true if an engine failure is detected
-bool engine_failure_cmd				# Set to true if an engine failure mode is commanded
 bool mission_failure				# Set to true if mission could not continue/finish
 
 # see SYS_STATUS mavlink message for the following

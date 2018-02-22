@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+px4_add_git_submodule(TARGET git_uavcan PATH "../uavcan/libuavcan")
+
 set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
 set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
 
@@ -51,7 +53,7 @@ add_definitions(
 set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/modules/uavcan/libuavcan)
 
 add_subdirectory(${LIBUAVCAN_DIR} uavcannode_libuavcan)
-add_dependencies(uavcan platforms__nuttx)
+add_dependencies(uavcan prebuild_targets)
 
 include_directories(${LIBUAVCAN_DIR}/libuavcan/include)
 include_directories(${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated)
@@ -77,8 +79,12 @@ px4_add_module(
 		uavcannode_params.c
 
 	DEPENDS
-		platforms__common
+		git_uavcan
+
+		# within libuavcan
+		libuavcan_dsdlc
 		uavcan
+		uavcan_stm32_driver
 	)
 
 target_link_libraries(modules__uavcannode PUBLIC uavcan uavcan_stm32_driver)

@@ -31,8 +31,7 @@ class ParameterGroup(object):
         object. Note that returned object is not a copy. Modifications affect
         state of the parser.
         """
-        return sorted(self.params,
-                key=lambda x: x.GetFieldValue("code"))
+        return sorted(self.params, key=lambda param: param.name)
 
 class Parameter(object):
     """
@@ -129,10 +128,7 @@ class Parameter(object):
         """
         Return list of existing value codes in convenient order
         """
-        keys = self.values.keys()
-        #keys = sorted(keys)
-        #keys = sorted(keys, key=lambda x: self.priority.get(x, 0), reverse=True)
-        return keys
+        return sorted(self.values.keys(), key=float)
 
     def GetEnumValue(self, code):
         """

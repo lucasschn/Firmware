@@ -33,21 +33,14 @@
 
 
 /**
- * @file fw_pos_control_l1_main.c
+ * @file fw_pos_control_l1_main.hpp
  * Implementation of a generic position controller based on the L1 norm. Outputs a bank / roll
  * angle, equivalent to a lateral motion (for copters and rovers).
  *
- * Original publication for horizontal control class:
- *    S. Park, J. Deyst, and J. P. How, "A New Nonlinear Guidance Logic for Trajectory Tracking,"
- *    Proceedings of the AIAA Guidance, Navigation and Control
- *    Conference, Aug 2004. AIAA-2004-4900.
+ * The implementation for the controllers is in the ECL library. This class only
+ * interfaces to the library.
  *
- * Original implementation for total energy control class:
- *    Paul Riseborough and Andrew Tridgell, 2013 (code in lib/external_lgpl)
- *
- * More details and acknowledgements in the referenced library headers.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Andreas Antener <andreas@uaventure.com>
  */
@@ -55,22 +48,24 @@
 #ifndef FIXEDWINGPOSITIONCONTROL_HPP_
 #define FIXEDWINGPOSITIONCONTROL_HPP_
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include "Landingslope.hpp"
+#include "launchdetection/LaunchDetector.h"
+#include "runway_takeoff/RunwayTakeoff.h"
 
 #include <cfloat>
 
-#include "Landingslope.hpp"
-
+#include <controllib/block/BlockParam.hpp>
+#include <controllib/blocks.hpp>
 #include <drivers/drv_hrt.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
-#include <external_lgpl/tecs/tecs.h>
+#include <ecl/tecs/tecs.h>
 #include <geo/geo.h>
-#include <launchdetection/LaunchDetector.h>
 #include <mathlib/mathlib.h>
-#include <runway_takeoff/RunwayTakeoff.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_module.h>
+#include <px4_posix.h>
+#include <px4_tasks.h>
 #include <systemlib/perf_counter.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
@@ -78,6 +73,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -86,6 +82,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
@@ -107,6 +104,8 @@ static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
 	0.85f; ///< a throttle / pitch input above this value leads to the system switching to climbout mode
 static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
 
+static constexpr float MSL_PRESSURE_MILLIBAR = 1013.25f; ///< standard atmospheric pressure in millibar
+
 using math::constrain;
 using math::max;
 using math::min;
@@ -123,35 +122,37 @@ using uORB::Subscription;
 using namespace launchdetection;
 using namespace runwaytakeoff;
 
-class FixedwingPositionControl
+class FixedwingPositionControl final : public control::SuperBlock, public ModuleBase<FixedwingPositionControl>
 {
 public:
 	FixedwingPositionControl();
-	~FixedwingPositionControl();
+	~FixedwingPositionControl() override;
 	FixedwingPositionControl(const FixedwingPositionControl &) = delete;
 	FixedwingPositionControl operator=(const FixedwingPositionControl &other) = delete;
 
-	/**
-	 * Start the sensors task.
-	 *
-	 * @return	OK on success.
-	 */
-	static int	start();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/**
-	 * Task status
-	 *
-	 * @return	true if the mainloop is running
-	 */
-	bool		task_running() { return _task_running; }
+	/** @see ModuleBase */
+	static FixedwingPositionControl *instantiate(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 private:
 	orb_advert_t	_mavlink_log_pub{nullptr};
 
-	bool		_task_should_exit{false};		///< if true, sensor task should exit */
-	bool		_task_running{false};			///< if true, task is running in its mainloop */
-
 	int		_global_pos_sub{-1};
+	int		_local_pos_sub{-1};
 	int		_pos_sp_triplet_sub{-1};
 	int		_control_mode_sub{-1};			///< control mode subscription */
 	int		_vehicle_attitude_sub{-1};		///< vehicle attitude subscription */
@@ -160,6 +161,7 @@ private:
 	int		_vehicle_land_detected_sub{-1};		///< vehicle land detected subscription */
 	int		_params_sub{-1};			///< notification of parameter updates */
 	int		_manual_control_sub{-1};		///< notification of manual control updates */
+	int		_sensor_baro_sub{-1};
 
 	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint */
 	orb_advert_t	_tecs_status_pub{nullptr};		///< TECS status publication */
@@ -175,6 +177,7 @@ private:
 	vehicle_command_s		_vehicle_command {};		///< vehicle commands */
 	vehicle_control_mode_s		_control_mode {};		///< control mode */
 	vehicle_global_position_s	_global_pos {};			///< global vehicle position */
+	vehicle_local_position_s	_local_pos {};			///< vehicle local position */
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
 	vehicle_status_s		_vehicle_status {};		///< vehicle status */
 
@@ -297,6 +300,7 @@ private:
 		float throttle_idle;
 		float throttle_cruise;
 		float throttle_slew_max;
+		float throttle_alt_scale;
 
 		float man_roll_max_rad;
 		float man_pitch_max_rad;
@@ -355,6 +359,7 @@ private:
 		param_t throttle_idle;
 		param_t throttle_cruise;
 		param_t throttle_slew_max;
+		param_t throttle_alt_scale;
 
 		param_t man_roll_max_deg;
 		param_t man_pitch_max_deg;
@@ -471,10 +476,5 @@ private:
 					uint8_t mode = tecs_status_s::TECS_MODE_NORMAL);
 
 };
-
-namespace l1_control
-{
-extern FixedwingPositionControl *g_control;
-} // namespace l1_control
 
 #endif // FIXEDWINGPOSITIONCONTROL_HPP_

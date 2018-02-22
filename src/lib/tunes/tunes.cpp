@@ -61,18 +61,25 @@ Tunes::Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_n
 	_default_mode(default_mode),
 	_default_octave(default_octave)
 {
-	config_tone();
+	config_tone(false);
 }
 
 Tunes::Tunes(): Tunes(120, 4, 4, NoteMode::NORMAL)
 {
 }
 
-void Tunes::config_tone()
+void Tunes::config_tone(bool repeat_flag)
 {
 	// reset pointer
-	_tune = nullptr;
-	_next = nullptr;
+	if (!repeat_flag)	{
+		_tune = nullptr;
+		_next = nullptr;
+
+	} else {
+		_tune = _tune_start_ptr;
+		_next = _tune;
+	}
+
 	// reset music parameter
 	_tempo = _default_tempo;
 	_note_length = _default_note_length;
@@ -86,27 +93,37 @@ int Tunes::set_control(const tune_control_s &tune_control)
 
 	if (tune_control.tune_id < _default_tunes_size) {
 		switch (tune_control.tune_id) {
-		case static_cast<int>(TuneID::CUSTOM):
+		case static_cast<int>(TuneID::CUSTOM:
 			_frequency = (unsigned)tune_control.frequency;
 			_duration = (unsigned)tune_control.duration;
+			_silence = (unsigned)tune_control.silence;
 			_using_custom_msg = true;
 			break;
 
-		// tunes that have a high priority
 		case static_cast<int>(TuneID::STARTUP):
-		case static_cast<int>(TuneID::ERROR_TUNE):
+		case static_cast<int>(TuneID::ERROR):
 		case static_cast<int>(TuneID::NOTIFY_POSITIVE):
 		case static_cast<int>(TuneID::NOTIFY_NEUTRAL):
 		case static_cast<int>(TuneID::NOTIFY_NEGATIVE):
 			reset_playing_tune = true;
-			config_tone();
+			config_tone(false);
 
 		/* FALLTHROUGH */
+		case static_cast<int>(TuneID::ARMING_WARNING):
+		case static_cast<int>(TuneID::BATTERY_WARNING_SLOW):
+		case static_cast<int>(TuneID::BATTERY_WARNING_FAST):
+		case static_cast<int>(TuneID::GPS_WARNING):
+		case static_cast<int>(TuneID::PARACHUTE_RELEASE):
+		case static_cast<int>(TuneID::EKF_WARNING):
+		case static_cast<int>(TuneID::BARO_WARNING):
+		case static_cast<int>(TuneID::SINGLE_BEEP):
+		case static_cast<int>(TuneID::HOME_SET):
 		default:
 
 			// TODO: come up with a better strategy
 			if (_tune == nullptr || reset_playing_tune || tune_control.tune_override) {
 				_tune = _default_tunes[tune_control.tune_id];
+				_tune_start_ptr = _default_tunes[tune_control.tune_id];
 				_next = _tune;
 			}
 
@@ -126,6 +143,7 @@ void Tunes::set_string(const char *string)
 	// set tune string the first time
 	if (_tune == nullptr) {
 		_tune = string;
+		_tune_start_ptr = string;
 		_next = _tune;
 	}
 }
@@ -137,7 +155,7 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &sile
 		_using_custom_msg = false;
 		frequency = _frequency;
 		duration = _duration;
-		silence = 0;
+		silence = _silence;
 		return TUNE_STOP;
 	}
 
@@ -155,6 +173,7 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &sile
 		int c = next_char();
 
 		if (c == 0) {
+			silence = 0;
 			goto tune_end;
 		}
 
@@ -316,12 +335,12 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &sile
 tune_error:
 	// syslog(LOG_ERR, "tune error\n");
 	_repeat = false;		// don't loop on error
-	config_tone();
+	config_tone(_repeat);
 	return TUNE_ERROR;
 	// stop (and potentially restart) the tune
 tune_end:
 	// restore intial parameter
-	config_tone();
+	config_tone(_repeat);
 
 	if (_repeat) {
 		return TUNE_CONTINUE;

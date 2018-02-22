@@ -45,7 +45,10 @@
 #include "LandDetector.h"
 
 #include <systemlib/param/param.h>
-#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
@@ -54,7 +57,6 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
 
 namespace land_detector
 {
@@ -134,7 +136,6 @@ private:
 	int _vehicleLocalPositionSub;
 	int _vehicleLocalPositionSetpointSub;
 	int _actuatorsSub;
-	int _armingSub;
 	int _attitudeSub;
 	int _sensor_bias_sub;
 	int _vehicle_control_mode_sub;
@@ -144,7 +145,6 @@ private:
 	struct vehicle_local_position_s				_vehicleLocalPosition;
 	struct vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint;
 	struct actuator_controls_s					_actuators;
-	struct actuator_armed_s						_arming;
 	struct vehicle_attitude_s					_vehicleAttitude;
 	struct sensor_bias_s					_sensors;
 	struct vehicle_control_mode_s				_control_mode;

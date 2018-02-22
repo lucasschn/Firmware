@@ -1,4 +1,3 @@
-include(qurt/px4_impl_qurt)
 
 set(CONFIG_SHMEM "1")
 
@@ -59,7 +58,6 @@ set(config_module_list
 	#
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
 
@@ -67,30 +65,20 @@ set(config_module_list
 	# Libraries
 	#
 	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
+	lib/conversion
+	lib/DriverFramework/framework
+	lib/ecl
+	lib/FlightTasks
 	lib/geo
 	lib/geo_lookup
-	lib/conversion
-	lib/ecl
 	lib/led
+	lib/mathlib
+	lib/mixer
 	lib/terrain_estimation
-	lib/runway_takeoff
-	lib/tailsitter_recovery
 	lib/version
-	lib/DriverFramework/framework
-	lib/FlightTasks
-
-	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
 
 	#
 	# sources for muorb over fastrpc
 	#
 	modules/muorb/adsp
 	)
-

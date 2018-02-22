@@ -1,7 +1,6 @@
 # This file is shared between posix_rpi_native.cmake
 # and posix_rpi_cross.cmake.
 
-include(posix/px4_impl_posix)
 
 # This definition allows to differentiate if this just the usual POSIX build
 # or if it is for the RPi.
@@ -16,20 +15,22 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/airspeed
-	drivers/ets_airspeed
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
-	drivers/sdp3x_airspeed
+	#drivers/barometer
+	drivers/batt_smbus
+	drivers/device
+	drivers/differential_pressure
+	drivers/distance_sensor
+	#drivers/telemetry
 
 	modules/sensors
-	platforms/posix/drivers/df_mpu9250_wrapper
-	platforms/posix/drivers/df_lsm9ds1_wrapper
-	platforms/posix/drivers/df_ms5611_wrapper
+
 	platforms/posix/drivers/df_hmc5883_wrapper
-	platforms/posix/drivers/df_trone_wrapper
 	platforms/posix/drivers/df_isl29501_wrapper
+	platforms/posix/drivers/df_lsm9ds1_wrapper
+	platforms/posix/drivers/df_mpu9250_wrapper
+	platforms/posix/drivers/df_ms5611_wrapper
+	platforms/posix/drivers/df_trone_wrapper
 
 	#
 	# System commands
@@ -41,6 +42,7 @@ set(config_module_list
 	systemcmds/esc_calib
 	systemcmds/reboot
 	systemcmds/topic_listener
+	systemcmds/tune_control
 	systemcmds/perf
 
 	#
@@ -70,7 +72,6 @@ set(config_module_list
 	modules/commander
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/dataman
 	modules/land_detector
@@ -94,28 +95,18 @@ set(config_module_list
 	# Libraries
 	#
 	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/geo
-	lib/ecl
-	lib/geo_lookup
-	lib/launchdetection
-	lib/led
-	lib/external_lgpl
 	lib/conversion
-	lib/terrain_estimation
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-	lib/version
 	lib/DriverFramework/framework
+	lib/ecl
 	lib/FlightTasks
-
-	#
-	# POSIX
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
+	lib/geo
+	lib/geo_lookup
+	lib/led
+	lib/mathlib
+	lib/mixer
+	lib/terrain_estimation
+	lib/tunes
+	lib/version
 )
 
 #

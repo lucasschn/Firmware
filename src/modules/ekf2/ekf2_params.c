@@ -137,6 +137,18 @@ PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 100);
 PARAM_DEFINE_FLOAT(EKF2_EV_DELAY, 175);
 
 /**
+ * Auxillary Velocity Estimate (e.g from a landing target) delay relative to IMU measurements
+ *
+ * @group EKF2
+ * @min 0
+ * @max 300
+ * @unit ms
+ * @reboot_required true
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_AVEL_DELAY, 5);
+
+/**
  * Integer bitmask controlling GPS checks.
  *
  * Set bits to 1 to enable checks. Checks enabled by the following bit positions
@@ -394,6 +406,18 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 5.0e-2f);
 PARAM_DEFINE_FLOAT(EKF2_EAS_NOISE, 1.4f);
 
 /**
+ * Gate size for synthetic sideslip fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_BETA_GATE, 5.0f);
+
+/**
  * Noise for synthetic sideslip fusion.
  *
  * @group EKF2
@@ -416,6 +440,8 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
 /**
  * Gate size for magnetic heading fusion
  *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
  * @group EKF2
  * @min 1.0
  * @unit SD
@@ -425,6 +451,8 @@ PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 2.6f);
 
 /**
  * Gate size for magnetometer XYZ component fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
  *
  * @group EKF2
  * @min 1.0
@@ -491,7 +519,9 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_ACCLIM, 0.5f);
 PARAM_DEFINE_FLOAT(EKF2_MAG_YAWLIM, 0.25f);
 
 /**
- * Gate size for barometric height fusion
+ * Gate size for barometric and GPS height fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
  *
  * @group EKF2
  * @min 1.0
@@ -503,6 +533,8 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
 /**
  * Gate size for GPS horizontal position fusion
  *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
  * @group EKF2
  * @min 1.0
  * @unit SD
@@ -513,6 +545,8 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 5.0f);
 /**
  * Gate size for GPS velocity fusion
  *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
  * @group EKF2
  * @min 1.0
  * @unit SD
@@ -522,6 +556,8 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
 
 /**
  * Gate size for TAS fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
  *
  * @group EKF2
  * @min 1.0
@@ -540,16 +576,18 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * 3 : Set to true to enable vision position fusion
  * 4 : Set to true to enable vision yaw fusion
  * 5 : Set to true to enable multi-rotor drag specific force fusion
+ * 6 : set to true if the EV observations are in a non NED reference frame and need to be rotated before being used
  *
  * @group EKF2
  * @min 0
- * @max 63
+ * @max 127
  * @bit 0 use GPS
  * @bit 1 use optical flow
  * @bit 2 inhibit IMU bias estimation
  * @bit 3 vision position fusion
  * @bit 4 vision yaw fusion
  * @bit 5 multi-rotor drag fusion
+ * @bit 6 rotate external vision
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
@@ -593,6 +631,8 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_SFE, 0.05f);
 /**
  * Gate size for range finder fusion
  *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
  * @group EKF2
  * @min 1.0
  * @unit SD
@@ -633,6 +673,8 @@ PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.05f);
 
 /**
  * Gate size for vision estimate fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
  *
  * @group EKF2
  * @min 1.0
@@ -676,6 +718,8 @@ PARAM_DEFINE_INT32(EKF2_OF_QMIN, 1);
 /**
  * Gate size for optical flow fusion
  *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
  * @group EKF2
  * @min 1.0
  * @unit SD
@@ -684,7 +728,8 @@ PARAM_DEFINE_INT32(EKF2_OF_QMIN, 1);
 PARAM_DEFINE_FLOAT(EKF2_OF_GATE, 3.0f);
 
 /**
- * Optical Flow data will not fused if the magnitude of the flow rate > EKF2_OF_RMAX
+ * Optical Flow data will not fused if the magnitude of the flow rate > EKF2_OF_RMAX.
+ * Control loops will be instructed to limit ground speed such that the flow rate produced by movement over ground is less than 50% of EKF2_OF_RMAX.
  *
  * @group EKF2
  * @min 1.0
@@ -850,7 +895,9 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 
 /**
 * Airspeed fusion threshold. A value of zero will deactivate airspeed fusion. Any other positive
-* value will determine the minimum airspeed which will still be fused.
+* value will determine the minimum airspeed which will still be fused. Set to about 90% of the vehicles stall speed.
+* Both airspeed fusion and sideslip fusion must be active for the EKF to continue navigating after loss of GPS.
+* Use EKF2_FUSE_BETA to activate sideslip fusion.
 *
 * @group EKF2
 * @min 0.0
@@ -863,6 +910,8 @@ PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
 * Boolean determining if synthetic sideslip measurements should fused.
 *
 * A value of 1 indicates that fusion is active
+* Both  sideslip fusion and airspeed fusion must be active for the EKF to continue navigating after loss of GPS.
+* Use EKF2_ARSP_THR to activate airspeed fusion.
 *
 * @group EKF2
 * @boolean

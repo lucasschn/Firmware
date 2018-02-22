@@ -46,8 +46,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <systemlib/mixer/mixer.h>
-#include <systemlib/mixer/mixer_multirotor.generated.h>
+#include <lib/mixer/mixer.h>
+#include <lib/mixer/mixer_multirotor_normalized.generated.h>
 #include <systemlib/param/param.h>
 
 #ifdef __cplusplus
@@ -148,7 +148,7 @@ void parameters_init()
 void parameters_update()
 {
 	PX4_WARN("uart_esc_main parameters_update");
-	int v_int;
+	int32_t v_int;
 
 	if (param_get(_parameter_handles.model, &v_int) == 0) {
 		_parameters.model = v_int;

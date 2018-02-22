@@ -591,10 +591,16 @@ void Logger::add_default_topics()
 	add_topic("ekf2_innovations", 200);
 	add_topic("esc_status", 250);
 	add_topic("estimator_status", 200);
+	add_topic("home_position");
 	add_topic("input_rc", 200);
+	add_topic("landing_target_pose");
 	add_topic("manual_control_setpoint", 200);
+	add_topic("mission");
+	add_topic("mission_result");
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
+	add_topic("rate_ctrl_status", 30);
+	add_topic("safety");
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
@@ -610,6 +616,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
+	add_topic("vehicle_status_flags");
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);
@@ -625,6 +632,8 @@ void Logger::add_high_rate_topics()
 	add_topic("actuator_controls_0");
 	add_topic("actuator_outputs");
 	add_topic("manual_control_setpoint");
+	add_topic("rate_ctrl_status");
+	add_topic("sensor_combined");
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
@@ -661,6 +670,14 @@ void Logger::add_thermal_calibration_topics()
 	add_topic("sensor_accel", 100);
 	add_topic("sensor_baro", 100);
 	add_topic("sensor_gyro", 100);
+}
+
+void Logger::add_sensor_comparison_topics()
+{
+	add_topic("sensor_accel", 100);
+	add_topic("sensor_baro", 100);
+	add_topic("sensor_gyro", 100);
+	add_topic("sensor_mag", 100);
 }
 
 void Logger::add_system_identification_topics()
@@ -782,7 +799,7 @@ void Logger::run()
 		SDLogProfileMask sdlog_profile = SDLogProfileMask::DEFAULT;
 
 		if (_sdlog_profile_handle != PARAM_INVALID) {
-			param_get(_sdlog_profile_handle, &sdlog_profile);
+			param_get(_sdlog_profile_handle, (int32_t*)&sdlog_profile);
 		}
 		if ((int32_t)sdlog_profile == 0) {
 			PX4_WARN("No logging profile selected. Using default set");
@@ -814,6 +831,11 @@ void Logger::run()
 		if (sdlog_profile & SDLogProfileMask::DEBUG_TOPICS) {
 			add_debug_topics();
 		}
+
+		if (sdlog_profile & SDLogProfileMask::SENSOR_COMPARISON) {
+			add_sensor_comparison_topics();
+		}
+
 	}
 
 	int vehicle_command_sub = -1;
@@ -995,9 +1017,10 @@ void Logger::run()
 			bool data_written = false;
 
 			/* Check if parameters have changed */
-			// this needs to change to a timestamped record to record a history of parameter changes
-			if (parameter_update_sub.update()) {
-				write_changed_parameters();
+			if (!_should_stop_file_log) { // do not record param changes after disarming
+				if (parameter_update_sub.update()) {
+					write_changed_parameters();
+				}
 			}
 
 			/* wait for lock on log buffer */
@@ -1787,7 +1810,7 @@ void Logger::write_version()
 	param_t write_uuid_param = param_find("SDLOG_UUID");
 
 	if (write_uuid_param != PARAM_INVALID) {
-		uint32_t write_uuid;
+		int32_t write_uuid;
 		param_get(write_uuid_param, &write_uuid);
 
 		if (write_uuid == 1) {
@@ -2055,7 +2078,7 @@ int Logger::check_free_space()
 			break;
 		}
 
-		PX4_WARN("removing log directory %s to get more space (left=%u MiB)", directory_to_delete,
+		PX4_INFO("removing log directory %s to get more space (left=%u MiB)", directory_to_delete,
 			 (unsigned int)(statfs_buf.f_bavail / 1024U * statfs_buf.f_bsize / 1024U));
 
 		if (remove_directory(directory_to_delete)) {

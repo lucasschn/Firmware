@@ -74,7 +74,7 @@
 #include <drivers/drv_mixer.h>
 
 #include <systemlib/systemlib.h>
-#include <systemlib/mixer/mixer.h>
+#include <lib/mixer/mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
@@ -247,7 +247,7 @@ PWMSim::init()
 	_task = px4_task_spawn_cmd("pwm_out_sim",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_DEFAULT,
-				   1200,
+				   1300,
 				   (px4_main_t)&PWMSim::task_main_trampoline,
 				   nullptr);
 
@@ -899,10 +899,6 @@ hil_new_mode(PortMode new_mode)
 		servo_mode = PWMSim::MODE_16PWM;
 		break;
 	}
-
-//	/* adjust GPIO config for serial mode(s) */
-//	if (gpio_bits != 0)
-//		g_pwm_sim->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
 
 	/* (re)set the PWM output mode */
 	g_pwm_sim->set_mode(servo_mode);

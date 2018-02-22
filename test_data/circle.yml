@@ -23,8 +23,11 @@ dependencies:
 
     # Install pip if you don't already have it and use it to install the required packages:
     - sudo easy_install pip
-    - sudo -H pip install pyserial empy pandas jinja2
+    - sudo -H pip install pyserial empy toml pandas jinja2
 
 test:
   override:
-    - make quick_check
+    #- NO_NINJA_BUILD=1 make -j2 quick_check
+    - make posix_sitl_default
+    - make px4fmu-v4pro_default
+    - make tests

@@ -1,4 +1,3 @@
-include(qurt/px4_impl_qurt)
 
 if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
 	message(FATAL_ERROR "Enviroment variable HEXAGON_SDK_ROOT must be set")
@@ -54,33 +53,23 @@ set(config_module_list
 	#
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
 
 	#
 	# Libraries
 	#
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/geo
-	lib/geo_lookup
-	lib/conversion
-	lib/led
-	lib/terrain_estimation
-	lib/runway_takeoff
-	lib/tailsitter_recovery
 	lib/controllib
-	lib/version
+	lib/conversion
 	lib/DriverFramework/framework
 	lib/FlightTasks
-
-	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
+	lib/geo
+	lib/geo_lookup
+	lib/led
+	lib/mathlib
+	lib/mixer
+	lib/terrain_estimation
+	lib/version
 
 	#
 	# sources for muorb over fastrpc

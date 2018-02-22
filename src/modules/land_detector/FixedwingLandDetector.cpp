@@ -57,12 +57,13 @@ FixedwingLandDetector::FixedwingLandDetector()
 	_paramHandle.maxIntVelocity = param_find("LNDFW_VELI_MAX");
 
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
-	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);
+	_landed_hysteresis.set_hysteresis_time_from(false, LANDED_TRIGGER_TIME_US);
+
+	_landed_hysteresis.set_hysteresis_time_from(true, FLYING_TRIGGER_TIME_US);
 }
 
 void FixedwingLandDetector::_initialize_topics()
 {
-	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
@@ -70,7 +71,6 @@ void FixedwingLandDetector::_initialize_topics()
 
 void FixedwingLandDetector::_update_topics()
 {
-	_orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
 	_orb_update(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
 	_orb_update(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
@@ -88,26 +88,8 @@ float FixedwingLandDetector::_get_max_altitude()
 {
 	// TODO
 	// This means no altitude limit as the limit
-	// is always current position plus 1000 meters
-	return roundf(-_local_pos.z + 1000);
-}
-
-bool FixedwingLandDetector::_get_freefall_state()
-{
-	// TODO
-	return false;
-}
-
-bool FixedwingLandDetector::_get_ground_contact_state()
-{
-	// TODO
-	return false;
-}
-
-bool FixedwingLandDetector::_get_maybe_landed_state()
-{
-	// TODO
-	return false;
+	// is always current position plus 10000 meters
+	return roundf(-_local_pos.z + 10000);
 }
 
 bool FixedwingLandDetector::_get_landed_state()

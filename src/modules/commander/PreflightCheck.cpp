@@ -76,17 +76,12 @@
 
 using namespace DriverFramework;
 
-namespace Commander
+namespace Preflight
 {
 
 static int check_calibration(DevHandle &h, const char *param_template, int &devid)
 {
-	bool calibration_found;
-
-	/* new style: ask device for calibration state */
-	int ret = h.ioctl(SENSORIOCCALTEST, 0);
-
-	calibration_found = (ret == OK);
+	bool calibration_found = false;
 
 	devid = h.ioctl(DEVIOCGDEVICEID, 0);
 
@@ -104,7 +99,7 @@ static int check_calibration(DevHandle &h, const char *param_template, int &devi
 		}
 
 		/* if param get succeeds */
-		int calibration_devid;
+		int32_t calibration_devid;
 
 		if (!param_get(parm, &(calibration_devid))) {
 
@@ -454,42 +449,6 @@ out:
 	return success;
 }
 
-static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail, bool &lock_detected)
-{
-	bool success = true;
-	lock_detected = false;
-	int gpsSub = orb_subscribe(ORB_ID(vehicle_gps_position));
-
-	//Wait up to 2000ms to allow the driver to detect a GNSS receiver module
-	px4_pollfd_struct_t fds[1];
-	fds[0].fd = gpsSub;
-	fds[0].events = POLLIN;
-
-	if (px4_poll(fds, 1, 2000) <= 0) {
-		success = false;
-
-	} else {
-		struct vehicle_gps_position_s gps;
-
-		if ((OK != orb_copy(ORB_ID(vehicle_gps_position), gpsSub, &gps)) ||
-		    (hrt_elapsed_time(&gps.timestamp) > 1000000)) {
-			success = false;
-		} else if (gps.fix_type >= 3) {
-			lock_detected = true;
-		}
-	}
-
-	//Report failure to detect module
-	if (!success) {
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS RECEIVER MISSING.");
-		}
-	}
-
-	orb_unsubscribe(gpsSub);
-	return success;
-}
-
 static bool check_home_valid()
 {
 	// Check if topic is advertised, bail out if not
@@ -611,7 +570,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 			// The EKF is not using GPS
 			if (report_fail) {
 				if (ekf_gps_check_fail) {
-					// Poor GPS quality is the likely cause
+					// Poor GPS qulaity is the likely cause
 					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
 				} else {
 					// Likely cause unknown
@@ -794,7 +753,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 
 	/* ---- IMU CONSISTENCY ---- */
 	if (checkSensors) {
-		if (!imuConsistencyCheck(mavlink_log_pub, reportFailures)) {
+		if (!imuConsistencyCheck(mavlink_log_pub, (reportFailures && !failed))) {
 			failed = true;
 		}
 	}
@@ -816,14 +775,6 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		}
 	}
 
-	/* ---- Global Navigation Satellite System receiver ---- */
-	if (checkGNSS) {
-		bool lock_detected = false;
-		if (!gnssCheck(mavlink_log_pub, reportFailures, lock_detected)) {
-			failed = true;
-		}
-	}
-
 	/* ---- Navigation EKF ---- */
 	// only check EKF2 data if EKF2 is selected as the estimator and GNSS checking is enabled
 	int32_t estimator_type;
@@ -832,7 +783,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkSensors, bool check
 		// don't report ekf failures for the first 10 seconds to allow time for the filter to start
 		bool report_ekf_fail = (time_since_boot > 10 * 1000000);
 
-		if (!ekf2Check(mavlink_log_pub, true, report_ekf_fail, checkGNSS)) {
+		if (!ekf2Check(mavlink_log_pub, true, reportFailures && report_ekf_fail && !failed, checkGNSS)) {
 			failed = true;
 		}
 	}

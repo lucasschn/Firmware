@@ -129,7 +129,6 @@ int buzzer_init()
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
 	tune_durations[TONE_ARMING_WARNING_TUNE] = 3000000;
 	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
-
 	return PX4_OK;
 }
 
@@ -141,7 +140,7 @@ void buzzer_deinit()
 void set_tune_override(int tune)
 {
 	tune_control.tune_id = tune;
-	tune_control.strength = 40;
+	tune_control.strength = 40;  // NOTE: Not in upstream, remove?
 	tune_control.tune_override = 1;
 	tune_control.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
@@ -156,7 +155,7 @@ void set_tune(int tune)
 		/* allow interrupting current non-repeating tune by the same tune */
 		if (tune != tune_current || new_tune_duration != 0) {
 			tune_control.tune_id = tune;
-			tune_control.strength = 40;
+			tune_control.strength = 40;  // NOTE: Not in upstream, remove?
 			tune_control.tune_override = 0;
 			tune_control.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);

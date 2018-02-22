@@ -1,4 +1,3 @@
-include(nuttx/px4_impl_nuttx)
 
 add_definitions(
 	-DFLASH_BASED_PARAMS
@@ -18,6 +17,8 @@ add_definitions(
 	)
 
 # Bring in common uavcan hardware identity definitions
+include(common/px4_git)
+px4_add_git_submodule(TARGET git_uavcan_board_ident PATH "cmake/configs/uavcan_board_ident")
 include(configs/uavcan_board_ident/esc35-v1)
 add_definitions(
 	-DHW_UAVCAN_NAME=${uavcanblid_name}
@@ -26,7 +27,7 @@ add_definitions(
 )
 
 px4_nuttx_make_uavcan_bootloadable(BOARD ${BOARD}
-	BIN ${CMAKE_CURRENT_BINARY_DIR}/src/firmware/nuttx/esc35-v1.bin
+	BIN ${PX4_BINARY_DIR}/platforms/nuttx/esc35-v1.bin
 	HWNAME ${uavcanblid_name}
 	HW_MAJOR ${uavcanblid_hw_version_major}
 	HW_MINOR ${uavcanblid_hw_version_minor}
@@ -70,7 +71,4 @@ set(config_module_list
 	modules/systemlib
 	modules/systemlib/param
 	modules/uORB
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 )

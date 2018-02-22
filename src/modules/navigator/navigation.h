@@ -71,8 +71,12 @@ enum NAV_CMD {
 	NAV_CMD_DELAY = 93,
 	NAV_CMD_DO_JUMP = 177,
 	NAV_CMD_DO_CHANGE_SPEED = 178,
+	NAV_CMD_DO_SET_HOME = 179,
 	NAV_CMD_DO_SET_SERVO = 183,
 	NAV_CMD_DO_LAND_START = 189,
+	NAV_CMD_DO_SET_ROI_LOCATION = 195,
+	NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET = 196,
+	NAV_CMD_DO_SET_ROI_NONE = 197,
 	NAV_CMD_DO_SET_ROI = 201,
 	NAV_CMD_DO_DIGICAM_CONTROL = 203,
 	NAV_CMD_DO_MOUNT_CONFIGURE = 204,
@@ -134,6 +138,7 @@ struct mission_item_s {
 	union {
 		uint16_t do_jump_current_count;		/**< count how many times the jump has been done	*/
 		uint16_t vertex_count;			/**< Polygon vertex count (geofence)	*/
+		uint16_t land_precision;		/**< Defines if landing should be precise: 0 = normal landing, 1 = opportunistic precision landing, 2 = required precision landing (with search)	*/
 	};
 	struct {
 		uint16_t frame : 4,					/**< mission frame */
@@ -142,8 +147,7 @@ struct mission_item_s {
 			 force_heading : 1,				/**< heading needs to be reached */
 			 altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
 			 autocontinue : 1,				/**< true if next waypoint should follow after this one */
-			 disable_mc_yaw : 1,				/**< weathervane mode */
-			 vtol_back_transition : 1,		/**< part of the vtol back transition sequence */
+			 vtol_back_transition : 1;		/**< part of the vtol back transition sequence */
 			 deploy_gear: 1,
 			 force_velocity: 1;				/**< velocity needs to be reached */
 	};

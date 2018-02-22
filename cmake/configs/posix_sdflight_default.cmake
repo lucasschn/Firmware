@@ -1,4 +1,6 @@
-include(posix/px4_impl_posix)
+include(common/px4_git)
+px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
+
 
 # Get $QC_SOC_TARGET from environment if existing.
 if (DEFINED ENV{QC_SOC_TARGET})
@@ -14,7 +16,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexago
 # Disable the creation of the parameters.xml file by scanning individual
 # source files, and scan all source files.  This will create a parameters.xml
 # file that contains all possible parameters, even if the associated module
-# is not used.  This is necessary for parameter synchronization between the 
+# is not used.  This is necessary for parameter synchronization between the
 # ARM and DSP processors.
 set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 
@@ -42,6 +44,7 @@ set(config_module_list
 	systemcmds/mixer
 	systemcmds/ver
 	systemcmds/topic_listener
+	systemcmds/tune_control
 
 	modules/mavlink
 
@@ -55,7 +58,6 @@ set(config_module_list
 
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/muorb/krait
 	modules/sensors
@@ -67,21 +69,16 @@ set(config_module_list
 	modules/navigator
 
 	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
 	lib/conversion
+	lib/DriverFramework/framework
 	lib/ecl
+	lib/FlightTasks
 	lib/geo
 	lib/geo_lookup
 	lib/led
+	lib/mathlib
+	lib/mixer
 	lib/terrain_estimation
-	lib/runway_takeoff
-	lib/tailsitter_recovery
+	lib/tunes
 	lib/version
-	lib/DriverFramework/framework
-	lib/FlightTasks
-
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
-	)
+)

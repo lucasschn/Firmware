@@ -16,9 +16,9 @@ class MarkdownTablesOutput():
                 scope_set.add(param.GetFieldValue("scope"))
             if len(scope_set)==1:
                 result+='\nThe module where these parameters are defined is: *%s*.\n\n' %  list(scope_set)[0]
+            
 
-
-            result += '<table style="width: 100%; table-layout:fixed; font-size:1.5rem;">\n'
+            result += '<table style="width: 100%; table-layout:fixed; font-size:1.5rem; overflow: auto; display:block;">\n'
             result += ' <colgroup><col style="width: 23%"><col style="width: 46%"><col style="width: 11%"><col style="width: 11%"><col style="width: 9%"></colgroup>\n'
             result += ' <thead>\n'
             result += '   <tr><th>Name</th><th>Description</th><th>Min > Max (Incr.)</th><th>Default</th><th>Units</th></tr>\n'
@@ -76,7 +76,7 @@ class MarkdownTablesOutput():
                 # Format codes and their descriptions for display.
                 if enum_codes:
                     enum_output+='<strong>Values:</strong><ul>'
-                    enum_codes=sorted(enum_codes,key=int)
+                    enum_codes=sorted(enum_codes,key=float)
                     for item in enum_codes:
                         enum_output+='\n<li><strong>%s:</strong> %s</li> \n' % (item, param.GetEnumValue(item))
                     enum_output+='</ul>\n'

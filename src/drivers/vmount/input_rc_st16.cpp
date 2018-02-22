@@ -49,7 +49,7 @@ namespace vmount
 
 
 InputRCSt16::InputRCSt16()
-	: InputRC(0, 0, 0)
+	: InputRC(false, 0, 0, 0)
 {
 }
 

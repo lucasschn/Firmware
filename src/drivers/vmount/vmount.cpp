@@ -329,7 +329,7 @@ static int vmount_thread_main(int argc, char *argv[])
 					break;
 
 				case 4: // Auto with RC ST16
-					thread_data.input_objs[0] = new InputMavlinkCmdMount();
+					thread_data.input_objs[0] = new InputMavlinkCmdMount(false);
 					thread_data.input_objs[1] = new InputMavlinkROI();
 
 					// RC is on purpose last here so that if there are any mavlink

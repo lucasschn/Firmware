@@ -355,7 +355,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Continue rotation for %s %u s",
 			     detect_orientation_str(orientation), worker_data->calibration_interval_perside_seconds);
 
-	uint32_t cal_method = 0;
+	int32_t cal_method = 0;
 	(void)param_get(param_find("CAL_MAG_METHOD"), &cal_method);
 
 	uint64_t calibration_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
@@ -625,7 +625,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 	if (result == calibrate_return_ok) {
 		int cancel_sub  = calibrate_cancel_subscribe();
 
-		uint32_t cal_method = 0;
+		int32_t cal_method = 0;
 		(void)param_get(param_find("CAL_MAG_METHOD"), &cal_method);
 
 		if (cal_method == 0) {

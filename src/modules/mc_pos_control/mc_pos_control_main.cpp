@@ -1531,24 +1531,35 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 	 */
 
 	/* get normalized stick input vector */
-	matrix::Vector2f stick_xy_norm = (stick_xy.length() > 0.0f) ? stick_xy.normalized() : stick_xy;
-	matrix::Vector2f stick_xy_prev_norm = (_stick_input_xy_prev.length() > 0.0f) ? _stick_input_xy_prev.normalized() :
-					      _stick_input_xy_prev;
+	Vector2f stick_xy_norm = (stick_xy.length() > 0.0f) ? stick_xy.normalized() : stick_xy;
+	Vector2f stick_xy_prev_norm = (_stick_input_xy_prev.length() > 0.0f) ? _stick_input_xy_prev.normalized() :
+				      _stick_input_xy_prev;
 
-	/* check if stick direction and current velocity are within 60angle */
+	/* stick and previous stick are within 60 degrees aligned */
 	const bool is_aligned = (stick_xy_norm * stick_xy_prev_norm) > 0.5f;
+
+	/* velocity and stick target are within 135 degrees aligned */
+	Vector2f vel_xy_norm = (Vector2f(_vel(0), _vel(1)).length() > 0.0f) ? Vector2f(_vel(0),
+			       _vel(1)).normalized() : Vector2f(_vel(0), _vel(1));
+	const bool is_vel_aligned = Vector2f(stick_xy_norm(0), stick_xy_norm(1)) * vel_xy_norm > -0.707f;
+	const float vel_mag = Vector2f(_vel(0), _vel(1)).length();
 
 	/* check if zero input stick */
 	const bool is_prev_zero = (fabsf(_stick_input_xy_prev.length()) <= FLT_EPSILON);
 	const bool is_current_zero = (fabsf(stick_xy.length()) <= FLT_EPSILON);
 
-	/* check acceleration */
-	const bool do_acceleration = is_prev_zero || (is_aligned &&
+	/* yaw change is demanded if input is larger than 5% */
+	bool yawspeed_demand =  fabsf(_manual.r) > 0.05f;
+
+	/* Do direction change if not aligned in stick OR in velocity but stick input larger than 0.7 threshold and velocity is larger than 1.5m/s. */
+	const bool do_direction_change = (!is_aligned || (!is_vel_aligned && stick_xy.length() > 0.7f && vel_mag > 1.5f))
+					 && !yawspeed_demand;
+
+	/* Do acceleration if: previous setpoint was zero || yaw changes was requested || wants to accelerate in the direction of the vehicle*/
+	const bool do_acceleration = is_prev_zero || (!do_direction_change &&
 				     ((stick_xy.length() > _stick_input_xy_prev.length()) || (fabsf(stick_xy.length() - 1.0f) < FLT_EPSILON)));
 
-	const bool do_deceleration = (is_aligned && (stick_xy.length() <= _stick_input_xy_prev.length()));
-
-	const bool do_direction_change = !is_aligned;
+	const bool do_deceleration = (!do_direction_change && (stick_xy.length() <= _stick_input_xy_prev.length()));
 
 	manual_stick_input intention;
 
@@ -1572,7 +1583,6 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 		/* catchall: acceleration */
 		intention = acceleration;
 	}
-
 
 	/*
 	 * update user intention
@@ -1601,7 +1611,6 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 		/* reset slew rate */
 		_vel_sp_prev(0) = _vel(0);
 		_vel_sp_prev(1) = _vel(1);
-
 	}
 
 	switch (_user_intention_xy) {
@@ -1617,26 +1626,22 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 
 	case direction_change: {
 			/* only exit direction change if brake or aligned */
-			matrix::Vector2f vel_xy(_vel(0), _vel(1));
-			matrix::Vector2f vel_xy_norm = (vel_xy.length() > 0.0f) ? vel_xy.normalized() : vel_xy;
-			bool stick_vel_aligned = (vel_xy_norm * stick_xy_norm > 0.0f);
 
 			/* update manual direction change hysteresis */
-			_manual_direction_change_hysteresis.set_state_and_update(!stick_vel_aligned);
-
+			_manual_direction_change_hysteresis.set_state_and_update(!is_vel_aligned);
 
 			/* exit direction change if one of the condition is met */
 			if (intention == brake) {
 				_user_intention_xy = intention;
 
-			} else if (stick_vel_aligned) {
+			} else if (is_vel_aligned) {
 				_user_intention_xy = acceleration;
 
 			} else if (_manual_direction_change_hysteresis.get_state()) {
 
 				/* TODO: find conditions which are always continuous
 				 * only if stick input is large*/
-				if (stick_xy.length() > 0.6f) {
+				if (stick_xy.length() > 0.7f) {
 					_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 				}
 			}
@@ -1650,6 +1655,7 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 			if (_user_intention_xy == direction_change) {
 				_vel_sp_prev(0) = _vel(0);
 				_vel_sp_prev(1) = _vel(1);
+				_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 			}
 
 			break;
@@ -1661,6 +1667,7 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 			if (_user_intention_xy == direction_change) {
 				_vel_sp_prev(0) = _vel(0);
 				_vel_sp_prev(1) = _vel(1);
+				_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 			}
 
 			break;
@@ -1689,8 +1696,11 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 	case direction_change: {
 
 			/* limit acceleration linearly on stick input*/
-			_acceleration_state_dependent_xy = (_acceleration_hor.get() - _deceleration_hor_slow.get()) * stick_xy.length() +
-							   _deceleration_hor_slow.get();
+			if (_acceleration_state_dependent_xy < _acceleration_hor.get()) {
+				_acceleration_state_dependent_xy = (_acceleration_hor.get() - _deceleration_hor_slow.get()) * stick_xy.length() +
+								   _deceleration_hor_slow.get();
+			}
+
 			break;
 		}
 

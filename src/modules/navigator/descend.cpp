@@ -74,7 +74,6 @@ Descend::on_activation()
 {
 	/* set current mission item to Descend */
 	set_descend_item(&_mission_item);
-	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();

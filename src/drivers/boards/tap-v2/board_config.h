@@ -303,6 +303,9 @@ extern  bool esc_disabled_for_console;
 
 #define BOARD_SUPPORTS_FTC // Board supports fault tolerant control. Set param FTC_ENABLE to 1 to enable it.
 
+// In HITL, we can use the usual voltage measurement.
+#define BOARD_HAS_VOLTAGE_IN_HITL
+
 __BEGIN_DECLS
 
 /****************************************************************************************************

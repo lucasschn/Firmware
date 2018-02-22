@@ -425,10 +425,14 @@ Sensors::parameter_update_poll(bool forced)
 void
 Sensors::adc_poll()
 {
+#ifndef BOARD_HAS_VOLTAGE_IN_HITL
+
 	/* only read if not in HIL mode */
 	if (_hil_enabled) {
 		return;
 	}
+
+#endif
 
 	hrt_abstime t = hrt_absolute_time();
 
@@ -597,11 +601,20 @@ Sensors::adc_poll()
 void
 Sensors::run()
 {
+
+#ifndef BOARD_HAS_VOLTAGE_IN_HITL
+
 	if (!_hil_enabled) {
+#endif
+
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_BEBOP)
 		adc_init();
 #endif
+
+#ifndef BOARD_HAS_VOLTAGE_IN_HITL
 	}
+
+#endif
 
 	struct sensor_combined_s raw = {};
 

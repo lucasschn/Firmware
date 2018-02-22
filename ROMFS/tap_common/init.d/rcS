@@ -397,7 +397,7 @@ then
 	sh /etc/init.d/rc.sensors
 	commander start
 else
-	sensors start -h
+	sh /etc/init.d/rc.sensors_hil
 	commander start --hil
 fi
 

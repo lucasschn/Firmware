@@ -1970,6 +1970,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		}
 	}
 
+#ifndef BOARD_HAS_VOLTAGE_IN_HITL
 	/* battery status */
 	{
 		struct battery_status_s hil_battery_status = {};
@@ -1987,6 +1988,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 			orb_publish(ORB_ID(battery_status), _battery_pub, &hil_battery_status);
 		}
 	}
+#endif
 
 	/* increment counters */
 	_hil_frames++;

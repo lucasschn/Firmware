@@ -53,7 +53,8 @@ public:
 
 	void on_activation() override;
 	void on_active() override;
-	
+	void on_inactive() override;
+
 private:
 	/**
 	 * Set the autoland item

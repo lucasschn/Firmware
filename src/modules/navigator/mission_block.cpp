@@ -752,6 +752,24 @@ MissionBlock::set_descend_item(struct mission_item_s *item)
 }
 /* --- */
 
+// NOTE: set_current_position_item has been removed upstream but it looks
+// like we still need it in land.cpp
+void
+MissionBlock::set_current_position_item(struct mission_item_s *item)
+{
+	item->nav_cmd = NAV_CMD_WAYPOINT;
+	item->lat = _navigator->get_global_position()->lat;
+	item->lon = _navigator->get_global_position()->lon;
+	item->altitude_is_relative = false;
+	item->altitude = _navigator->get_global_position()->alt;
+	item->yaw = NAN;
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->autocontinue = true;
+	item->origin = ORIGIN_ONBOARD;
+}
+
 void
 MissionBlock::set_idle_item(struct mission_item_s *item)
 {

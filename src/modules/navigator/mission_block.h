@@ -105,6 +105,10 @@ protected:
 	 */
 	void set_land_item(struct mission_item_s *item, bool at_current_location);
 
+	// NOTE: set_current_position_item has been removed upstream but it looks
+	// like we still need it in land.cpp
+	void set_current_position_item(struct mission_item_s *item);
+
 	/**
 	 * Set idle mission item
 	 */

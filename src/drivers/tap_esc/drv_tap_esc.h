@@ -40,8 +40,6 @@
 /* At the moment the only known use is with a current sensor */
 #define ESC_HAVE_CURRENT_SENSOR
 
-#define NOTE_STRENGTH	40
-
 #define TAP_ESC_MAX_PACKET_LEN 20
 #define TAP_ESC_MAX_MOTOR_NUM 8
 

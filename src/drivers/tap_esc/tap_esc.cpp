@@ -885,7 +885,7 @@ TAP_ESC::cycle()
 		if (parse_ret_val >= 0 && frequency > 0) {
 			esc_tune_packet.frequency = frequency;
 			esc_tune_packet.duration_ms = (uint16_t)(duration / 1000); // convert to ms
-			esc_tune_packet.strength = (_hitl ? 5 : _tune.strength); // in HITL we are quieter
+			esc_tune_packet.strength = (_hitl ? tune_control_s::STRENGTH_HITL : _tune.strength);
 			// set next tone call time
 			_next_tone = now + silence + duration;
 

@@ -1,10 +1,13 @@
-include(nuttx/px4_impl_nuttx)
 px4_nuttx_configure(HWCLASS m7 CONFIG nsh ROMFS y ROMFSROOT tap_common)
 
 set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/barometer
+	drivers/distance_sensor
+	drivers/magnetometer
+
 	drivers/device
 	drivers/stm32
 	drivers/stm32/adc
@@ -14,12 +17,8 @@ set(config_module_list
 	drivers/boards
 	drivers/rgbled_pwm
 	drivers/tap_esc
-	drivers/mpu6000
-	drivers/ms5611
+	drivers/imu/mpu6000
 	drivers/mpc2520
-	drivers/hmc5883
-	drivers/ist8310
-	drivers/hc_sr04
 	drivers/gps
 	drivers/airspeed
 	drivers/realsense
@@ -34,7 +33,6 @@ set(config_module_list
 	#
 	systemcmds/bl_update
 	systemcmds/led_control
-	systemcmds/mixer
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
@@ -85,7 +83,6 @@ set(config_module_list
 	#
 	modules/systemlib/param
 	modules/systemlib
-	modules/systemlib/mixer
 	modules/uORB
 	modules/dataman
 
@@ -94,24 +91,16 @@ set(config_module_list
 	#
 	lib/controllib
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/ecl
 	lib/geo
 	lib/geo_lookup
 	lib/conversion
-	lib/launchdetection
 	lib/led
+	lib/mixer
 	lib/terrain_estimation
-	lib/runway_takeoff
-	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
 	lib/rc
 	lib/tunes
 	lib/FlightTasks
-	platforms/nuttx
-
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/common
-	platforms/nuttx/px4_layer
 )

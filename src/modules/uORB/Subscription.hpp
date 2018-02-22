@@ -86,8 +86,6 @@ public:
 
 	const orb_metadata *getMeta() const { return _meta; }
 
-	unsigned getInstance() const { return _instance; }
-
 protected:
 	const struct orb_metadata *_meta;
 	int _handle;

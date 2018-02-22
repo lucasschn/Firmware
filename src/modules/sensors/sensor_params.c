@@ -64,32 +64,6 @@ PARAM_DEFINE_INT32(CAL_AIR_CMODEL, 0);
  *
  * See the CAL_AIR_CMODEL explanation on how this parameter should be set.
  *
-<<<<<<< HEAD
- * @min 34
- * @max 63
- * @value 34 Two side calibration
- * @value 38 Three side calibration
- * @value 63 Six side calibration
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
-
-/**
- * Mag calibration method
- *
- * @value 0 Rotate around vehicle axes
- * @value 1 Rotate around vehicle arms
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_MAG_METHOD, 0);
-
-/**
- * Primary baro ID
-=======
- * @min 0.01
- * @max 2.00
- * @unit meter
->>>>>>> a35abf2453e884987246e4e8d7565a94eddad705
  *
  * @group Sensor Calibration
  */

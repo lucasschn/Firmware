@@ -164,10 +164,10 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
 /**
  * Maximum vertical ascent velocity
  *
- * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (ALTCTRL, POSCTRL).
+ * Maximum vertical velocity upwards for any position controlled mode.
  *
  * @unit m/s
- * @min 0.5
+ * @min 1.0
  * @max 10.0
  * @decimal 1
  * @group Multicopter Position Control
@@ -177,11 +177,11 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.0f);
 /**
  * Maximum vertical descent velocity
  *
- * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (ALTCTRL, POSCTRL).
+ * Maximum vertical velocity downwards for any position controlled mode.
  *
  * @unit m/s
  * @min 1.0
- * @max 4.0
+ * @max	6.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -215,7 +215,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_UP, 4.0f);
  *
  * @unit m/s
  * @min 1.0
- * @max 4.0
+ * @max 6.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -304,8 +304,8 @@ PARAM_DEFINE_FLOAT(MPC_CRUISE_90, 3.0f);
  * the horizontal speed will be capped to MPC_XY_VEL_MAX.
  *
  * @unit m/s
- * @min 3.0
- * @max 20.0
+ * @min 1.0
+ * @max 14.0
  * @increment 1
  * @decimal 2
  * @group Multicopter Position Control

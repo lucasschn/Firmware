@@ -71,10 +71,6 @@ Land::Land(Navigator *navigator, const char *name) :
 	on_inactive();
 }
 
-Land::~Land()
-{
-}
-
 void
 Land::on_inactive()
 {

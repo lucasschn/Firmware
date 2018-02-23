@@ -2169,12 +2169,15 @@ Commander::run()
 					if (!nav_test_failed) {
 						if (!nav_test_passed) {
 							// record the last time horizontal speed was below the threshold of 5 m/s
+							// TODO(Yuneec): time_last_spd_low does not exist upstream,
+							// should we add it there as well?
 							if (!sufficient_speed) {
 								time_last_spd_low = hrt_absolute_time();
 							}
 
 							// pass if sufficient time or speed
-							if (sufficient_time || sufficient_speed) {
+							// Yuneec-specific: or if the speed threshold has been exceeded for more than 3 sec
+							if (sufficient_time || sufficient_speed || ((hrt_absolute_time() - time_last_spd_low) > 3*1000*1000)) {
 								nav_test_passed = true;
 							}
 

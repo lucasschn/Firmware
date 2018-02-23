@@ -3405,9 +3405,6 @@ Commander::run()
 			old_led_mode = led_mode;
 		}
 
-		/* publish vehicle_status_flags */
-		publish_status_flags(vehicle_status_flags_pub);
-
 		/* publish internal state for logging purposes */
 		if (commander_state_pub != nullptr) {
 			orb_publish(ORB_ID(commander_state), commander_state_pub, &internal_state);

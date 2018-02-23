@@ -48,11 +48,8 @@ using namespace status;
 
 void StatusDisplay::set_leds()
 {
-	bool gps_lock_valid = (_vehicle_status_flags.conditions & vehicle_status_flags_s::CONDITION_GLOBAL_POSITION_VALID_MASK)
-			      == vehicle_status_flags_s::CONDITION_GLOBAL_POSITION_VALID_MASK;
-	bool home_position_valid = (_vehicle_status_flags.conditions &
-				    vehicle_status_flags_s::CONDITION_HOME_POSITION_VALID_MASK) ==
-				   vehicle_status_flags_s::CONDITION_HOME_POSITION_VALID_MASK;
+	bool gps_lock_valid = _vehicle_status_flags.condition_global_position_valid;
+	bool home_position_valid = _vehicle_status_flags.condition_home_position_valid;
 	int nav_state = _vehicle_status.nav_state;
 	bool restore_position_lights = _old_nav_state == vehicle_status_s::NAVIGATION_STATE_SMART
 				       && nav_state != vehicle_status_s::NAVIGATION_STATE_SMART;

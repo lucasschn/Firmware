@@ -48,6 +48,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/led_control.h>
+#include <uORB/topics/smart_heading.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
@@ -84,6 +85,7 @@ protected:
 	struct vehicle_status_s _vehicle_status = {};
 	struct vehicle_status_flags_s _vehicle_status_flags = {};
 	struct vehicle_attitude_s _vehicle_attitude = {};
+	struct smart_heading_s _smart_heading = {};
 
 	struct led_control_s _led_control = {};
 

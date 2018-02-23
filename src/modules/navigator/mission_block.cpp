@@ -721,20 +721,10 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	item->deploy_gear = true;
 }
 
-/* --- tap specific land-item */
+// Yuneec specific land-item
 void
 MissionBlock::set_descend_item(struct mission_item_s *item)
 {
-
-	/* VTOL transition to RW before landing */
-	if (_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing &&
-	    _param_force_vtol.get() == 1) {
-		struct vehicle_command_s cmd = {};
-		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		cmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		_navigator->publish_vehicle_cmd(&cmd);
-	}
-
 	/* set the descend item */
 	item->nav_cmd = NAV_CMD_LAND;
 	//lat/lon are not being used as descend implies no valid position
@@ -752,8 +742,8 @@ MissionBlock::set_descend_item(struct mission_item_s *item)
 }
 /* --- */
 
-// NOTE: set_current_position_item has been removed upstream but it looks
-// like we still need it in land.cpp
+// NOTE(Yuneec): set_current_position_item has been removed upstream but it
+// looks like we still need it in land.cpp
 void
 MissionBlock::set_current_position_item(struct mission_item_s *item)
 {

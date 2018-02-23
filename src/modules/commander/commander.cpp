@@ -1854,7 +1854,7 @@ Commander::run()
 			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
 
 			/* param to switch LED mode */
-			param_get(_param_led_mode, &led_mode);
+			param_get(_param_led_mode, (int32_t*)&led_mode);
 
 			param_init_forced = false;
 		}

@@ -93,7 +93,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 
 	if (tune_control.tune_id < _default_tunes_size) {
 		switch (tune_control.tune_id) {
-		case static_cast<int>(TuneID::CUSTOM:
+		case static_cast<int>(TuneID::CUSTOM):
 			_frequency = (unsigned)tune_control.frequency;
 			_duration = (unsigned)tune_control.duration;
 			_silence = (unsigned)tune_control.silence;
@@ -101,7 +101,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 			break;
 
 		case static_cast<int>(TuneID::STARTUP):
-		case static_cast<int>(TuneID::ERROR):
+		case static_cast<int>(TuneID::ERROR_TUNE):
 		case static_cast<int>(TuneID::NOTIFY_POSITIVE):
 		case static_cast<int>(TuneID::NOTIFY_NEUTRAL):
 		case static_cast<int>(TuneID::NOTIFY_NEGATIVE):

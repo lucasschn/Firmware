@@ -61,7 +61,7 @@ RTL::RTL(Navigator *navigator, const char *name) :
 	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
 	_param_land_delay(this, "RTL_LAND_DELAY", false),
 	_param_rtl_min_dist(this, "RTL_MIN_DIST", false),
-	_param_rtl_land_type(this, "RTL_LAND_TYPE", false)
+	_param_rtl_land_type(this, "RTL_LAND_TYPE", false),
 	_param_gf_alt(this, "GF_MAX_VER_DIST", false),
 	_param_gf_actions(this, "GF_ACTION", false)
 {

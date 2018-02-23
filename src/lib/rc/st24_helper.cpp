@@ -80,7 +80,7 @@ void St24Helper::cycle(bool rc_lost, bool armed)
 
 		// Bind the aircraft only if it is upsidedown and it does not have a valid RC binding
 		if (!_was_inverted && vehicle_landed_state.inverted && rc_lost &&
-		    !(v_flags.conditions & vehicle_status_flags_s::CONDITION_CALIBRATION_ENABLE_MASK)) {
+		    !(v_flags.condition_calibration_enabled)) {
 			bind();
 		}
 

@@ -98,6 +98,9 @@ private:
 	int _old_battery_status_warning = -1;
 	orb_advert_t _led_control_pub = nullptr;
 	const events::SubscriberHandler &_subscriber_handler;
+
+	// Yuneec specific:
+	int _old_sector = -100; ///< divide the circle in 6 sector, used to keep track of the old position used in SMART mode
 };
 
 } /* status */

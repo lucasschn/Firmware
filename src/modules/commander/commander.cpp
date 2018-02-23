@@ -105,6 +105,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/position_setpoint_triplet.h>  // TODO(Yuneec): This has been removed upstream
 #include <uORB/topics/power_button_state.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
@@ -1556,6 +1557,13 @@ Commander::run()
 	struct subsystem_info_s info;
 	memset(&info, 0, sizeof(info));
 
+	/* Subscribe to position setpoint triplet */
+	// TODO(Yuneec): Upstream removed pos_sp_triplet_sub and pos_sp_triplet from the
+	// commander completely! We should check how we can remove it too.
+	int pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	struct position_setpoint_triplet_s pos_sp_triplet;
+	memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
+
 	/* Subscribe to system power */
 	int system_power_sub = orb_subscribe(ORB_ID(system_power));
 	struct system_power_s system_power;
@@ -2457,6 +2465,15 @@ Commander::run()
 			}
 
 			status_changed = true;
+		}
+
+		/* update position setpoint triplet */
+		// TODO(Yuneec): Upstream removed pos_sp_triplet_sub and pos_sp_triplet from the
+		// commander completely! We should check how we can remove it too.
+		orb_check(pos_sp_triplet_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(position_setpoint_triplet), pos_sp_triplet_sub, &pos_sp_triplet);
 		}
 
 		/* If in INIT state, try to proceed to STANDBY state */

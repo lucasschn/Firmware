@@ -8,6 +8,14 @@
 #define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))
 #define BOARD_HAS_MTD_PARTITION_OVERRIDE {"/fs/mtd_caldata"}
 
+#define BOARD_HAS_POWER_CONTROL	1
+
+/*power on/off*/
+#define MS_PWR_BUTTON_DOWN 1500
+#define KEY_AD_GPIO    (GPIO_INPUT|GPIO_PULLUP|GPIO_EXTI|GPIO_PORTC|GPIO_PIN4)
+#define POWER_ON_GPIO  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
+#define POWER_OFF_GPIO (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN5)
+
 #include <drivers/boards/px4fmu-v5/board_config.h>
 
 /* Define Battery 1 Voltage Divider
@@ -62,3 +70,25 @@
 #define HW_INFO_INIT {'V','4','x','x',0}
 //      HW_INFO_INIT_REV       2
 //      HW_INFO_INIT_VER           3
+
+/************************************************************************************
+ * Name: board_pwr_init()
+ *
+ * Description:
+ *   Called to configure power control for the tap-v2 board.
+ *
+ * Input Parameters:
+ *   stage- 0 for boot, 1 for board init
+ *
+ ************************************************************************************/
+
+void board_pwr_init(int stage);
+
+/****************************************************************************
+ * Name: board_pwr_button_down
+ *
+ * Description:
+ *   Called to Read the logical state of the power button
+ ****************************************************************************/
+
+bool board_pwr_button_down(void);

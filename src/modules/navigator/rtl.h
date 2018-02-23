@@ -99,6 +99,7 @@ private:
 	bool _rtl_alt_min{false};
 
 	control::BlockParamFloat _param_return_alt;
+	control::BlockParamFloat _param_min_loiter_alt;  // NOTE: Yuneec specific, has been deleted upstream
 	control::BlockParamFloat _param_descend_alt;
 	control::BlockParamFloat _param_land_delay;
 	control::BlockParamFloat _param_rtl_min_dist;

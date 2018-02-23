@@ -77,6 +77,9 @@ private:
 
 	/*
 	 * Get rtl altitude
+	 * NOTE: Yuneec specific function. A function with the same name existed on
+	 * Upstream before (now deleted), but we made modifications to it. See
+	 * https://github.com/PX4/Firmware/commit/84f07c64b0745da86418083252dd1ec732e3e4df
 	 */
 	float 		get_rtl_altitude();
 

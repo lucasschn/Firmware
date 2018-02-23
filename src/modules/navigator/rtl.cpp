@@ -112,6 +112,7 @@ RTL::on_activation()
 	} else if (mission_landing_required() && _navigator->on_mission_landing()) {
 		// RTL straight to RETURN state, but mission will takeover for landing
 		_rtl_state = RTL_STATE_RETURN;
+
 	} else {
 		_rtl_state = RTL_STATE_BRAKE;
 	}
@@ -214,14 +215,14 @@ RTL::set_rtl_item()
 			_mission_item.force_velocity = false;
 
 			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above home)",
-						     (int)ceilf(climb_alt), (int)ceilf(climb_alt - _navigator->get_home_position()->alt));
+						     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _navigator->get_home_position()->alt));
 			break;
 		}
 
 	case RTL_STATE_PRE_RETURN: {
 
-			_mission_item.lat = gpos.->lat;
-			_mission_item.lon = gpos.->lon;
+			_mission_item.lat = gpos.lat;
+			_mission_item.lon = gpos.lon;
 
 			if (home_close) {
 				_mission_item.yaw = _navigator->get_home_position()->yaw;
@@ -229,7 +230,7 @@ RTL::set_rtl_item()
 			} else {
 				// use current heading to home
 				_mission_item.yaw = get_bearing_to_next_waypoint(
-							    gpos.lat, gpos.->lon,
+							    gpos.lat, gpos.lon,
 							    home.lat, home.lon);
 
 			}

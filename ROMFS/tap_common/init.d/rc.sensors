@@ -18,7 +18,7 @@ hmc5883 -C -T -X -R 6 start
 # note: once the new hardware is ready, it will be changed back.
 if ver hwcmp TAP_V4
 then
-	ist8310 -C -b 1 start
+	ist8310 -C -R 4 start
 else
 	ist8310 -C start
 fi
@@ -37,7 +37,7 @@ set IMU_ROTATION 8
 
 if ver hwcmp TAP_V4
 then
-	set IMU_ROTATION 10
+	set IMU_ROTATION 2
 fi
 
 if ver hwcmp TAP_V2 TAP_V3 TAP_V4

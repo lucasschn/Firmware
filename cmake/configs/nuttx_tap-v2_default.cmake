@@ -15,7 +15,7 @@ set(config_module_list
 	drivers/tap_esc
 	drivers/imu/mpu6000
 	drivers/barometer/ms5611
-	drivers/mpc2520
+	drivers/barometer/mpc2520
 	drivers/magnetometer/hmc5883
 	drivers/magnetometer/ist8310
 	drivers/distance_sensor/hc_sr04

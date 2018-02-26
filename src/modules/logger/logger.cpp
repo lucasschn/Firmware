@@ -582,7 +582,7 @@ void Logger::add_default_topics()
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_outputs", 100);
 	add_topic("airspeed", 200);
-	add_topic("att_pos_mocap", 50);
+	// add_topic("att_pos_mocap", 50);   // NOTE(YUNEEC): Saving memory
 	add_topic("battery_status", 50);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
@@ -591,16 +591,16 @@ void Logger::add_default_topics()
 	add_topic("ekf2_innovations", 200);
 	add_topic("esc_status", 250);
 	add_topic("estimator_status", 200);
-	add_topic("home_position");
+	// add_topic("home_position");  // NOTE(YUNEEC): Saving memory
 	add_topic("input_rc", 200);
-	add_topic("landing_target_pose");
+	// add_topic("landing_target_pose");  // NOTE(YUNEEC): Saving memory
 	add_topic("manual_control_setpoint", 200);
-	add_topic("mission");
-	add_topic("mission_result");
+	// add_topic("mission");  // NOTE(YUNEEC): Saving memory
+	// add_topic("mission_result");  // NOTE(YUNEEC): Saving memory
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
-	add_topic("rate_ctrl_status", 30);
-	add_topic("safety");  // NOTE(YUNEEC): Consider removing this and more topics that we don't need
+	// add_topic("rate_ctrl_status", 30);  // NOTE(YUNEEC): Saving memory
+	// add_topic("safety");  // NOTE(YUNEEC): Saving memory
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
@@ -619,7 +619,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_status_flags");
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
-	add_topic("vtol_vehicle_status", 200);
+	add_topic("vtol_vehicle_status", 200);  // NOTE(YUNEEC): Saving memory
 	add_topic("wind_estimate", 200);
 	add_topic("realsense_avoidance_setpoint", 20);
 	add_topic("realsense_distance_360", 20);
@@ -632,7 +632,7 @@ void Logger::add_high_rate_topics()
 	add_topic("actuator_controls_0");
 	add_topic("actuator_outputs");
 	add_topic("manual_control_setpoint");
-	add_topic("rate_ctrl_status");
+	// add_topic("rate_ctrl_status");  // NOTE(YUNEEC): Saving memory
 	add_topic("sensor_combined");
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");

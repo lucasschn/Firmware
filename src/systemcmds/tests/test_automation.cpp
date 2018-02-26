@@ -1,6 +1,5 @@
 
 #include <vector>
-#include <string>
 
 #include <unit_test.h>
 
@@ -22,15 +21,16 @@ extern transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_lo
 class uORB_topic
 {
 public:
-	uORB_topic() {}
+	uORB_topic(const struct orb_metadata *topic_meta, void *topic_status):
+		meta(topic_meta), subscribe(-1), status(topic_status), is_updated(false) {}
 	virtual ~uORB_topic() {}
 
 public:
-	std::string name;
+	const char *name;
 	const struct orb_metadata *meta;
-	int *subscribe;
+	int subscribe;
 	void *status;
-	bool *is_updated;
+	bool is_updated;
 
 	virtual void dump() = 0;
 };
@@ -38,64 +38,51 @@ public:
 static std::vector<uORB_topic *> uORB_topic_list;
 
 #define DECLARE_UORB_SUB(TOPIC) \
-	static int TOPIC##_sub = -1; \
 	static TOPIC##_s TOPIC##_status; \
-	static bool is_##TOPIC##_updated = false;
+	class TOPIC##_uORB_topic : public uORB_topic { \
+	public: \
+		TOPIC##_uORB_topic(const struct orb_metadata *topic_meta, void *topic_status): \
+			uORB_topic(topic_meta, topic_status) { \
+			name = #TOPIC; \
+		} \
+		virtual void dump();\
+	}; \
+	static TOPIC##_uORB_topic TOPIC##_uORB_topic_obj(ORB_ID(TOPIC), &TOPIC##_status);
 
 #define APPEND_UORB_SUB(TOPIC) \
-	{ \
-		uORB_topic *topic = new TOPIC##_uORB_topic; \
-		topic->name = #TOPIC; \
-		topic->meta = ORB_ID(TOPIC); \
-		topic->subscribe = &TOPIC##_sub; \
-		topic->status = &TOPIC##_status; \
-		topic->is_updated = &is_##TOPIC##_updated; \
-		uORB_topic_list.push_back(topic); \
-	}
+	uORB_topic_list.push_back(&TOPIC##_uORB_topic_obj);
 
 //declare subscribed topics
 DECLARE_UORB_SUB(vehicle_local_position)
-class vehicle_local_position_uORB_topic : public uORB_topic
+void vehicle_local_position_uORB_topic::dump()
 {
-public:
-	void dump()
-	{
-		PX4_DEBUG("x = %f, y = %f, z = %f",
-			  vehicle_local_position_status.x,
-			  vehicle_local_position_status.y,
-			  vehicle_local_position_status.z);
-		PX4_DEBUG("vx = %f, vy = %f, vz = %f",
-			  vehicle_local_position_status.vx,
-			  vehicle_local_position_status.vy,
-			  vehicle_local_position_status.vz);
-	}
-};
+	PX4_DEBUG("x = %f, y = %f, z = %f",
+		  vehicle_local_position_status.x,
+		  vehicle_local_position_status.y,
+		  vehicle_local_position_status.z);
+	PX4_DEBUG("vx = %f, vy = %f, vz = %f",
+		  vehicle_local_position_status.vx,
+		  vehicle_local_position_status.vy,
+		  vehicle_local_position_status.vz);
+}
 
 DECLARE_UORB_SUB(vehicle_global_position)
-class vehicle_global_position_uORB_topic : public uORB_topic
+void vehicle_global_position_uORB_topic::dump()
 {
-public:
-	void dump()
-	{
-		PX4_DEBUG("lat = %f, lon = %f, alt =%f, eph = %f, epv = %f, timestamp = %llu",
-			  vehicle_global_position_status.lat,
-			  vehicle_global_position_status.lon,
-			  vehicle_global_position_status.alt,
-			  vehicle_global_position_status.eph,
-			  vehicle_global_position_status.epv,
-			  vehicle_global_position_status.timestamp);
-	}
-};
+	PX4_DEBUG("lat = %f, lon = %f, alt =%f, eph = %f, epv = %f, timestamp = %llu",
+		  vehicle_global_position_status.lat,
+		  vehicle_global_position_status.lon,
+		  vehicle_global_position_status.alt,
+		  vehicle_global_position_status.eph,
+		  vehicle_global_position_status.epv,
+		  vehicle_global_position_status.timestamp);
+}
 
 DECLARE_UORB_SUB(vehicle_land_detected)
-class vehicle_land_detected_uORB_topic : public uORB_topic
+void vehicle_land_detected_uORB_topic::dump()
 {
-public:
-	void dump()
-	{
-		PX4_DEBUG("land detected = %d", vehicle_land_detected_status.landed);
-	}
-};
+	PX4_DEBUG("land detected = %d", vehicle_land_detected_status.landed);
+}
 
 //task control
 static bool task_should_exit = false;
@@ -142,17 +129,16 @@ private:
 static void updateTopicTask(int argc, char *argv[])
 {
 	while (!task_should_exit) {
-		std::vector<uORB_topic *>::iterator it;
 
-		for (it = uORB_topic_list.begin(); it != uORB_topic_list.end(); it++) {
+		for (auto it : uORB_topic_list) {
 			bool updated;
-			orb_check(*((*it)->subscribe), &updated);
+			orb_check(it->subscribe, &updated);
 
 			if (updated) {
-				PX4_DEBUG("Topic updated: %s", (*it)->name.c_str());
-				orb_copy((*it)->meta, *((*it)->subscribe), (*it)->status);
-				*((*it)->is_updated) = true;
-				(*it)->dump();
+				PX4_DEBUG("Topic updated: %s", it->name);
+				orb_copy(it->meta, it->subscribe, it->status);
+				it->is_updated = true;
+				it->dump();
 			}
 		}
 
@@ -166,13 +152,11 @@ AutomationTest::AutomationTest()
 	APPEND_UORB_SUB(vehicle_global_position);
 	APPEND_UORB_SUB(vehicle_land_detected);
 
-	std::vector<uORB_topic *>::iterator it;
+	for (auto it : uORB_topic_list) {
+		PX4_DEBUG("Subscribe %s", it->name);
 
-	for (it = uORB_topic_list.begin(); it != uORB_topic_list.end(); it++) {
-		PX4_DEBUG("Subscribe %s", (*it)->name.c_str());
-
-		if (*((*it)->subscribe) < 0) {
-			*((*it)->subscribe) = orb_subscribe((*it)->meta);
+		if (it->subscribe < 0) {
+			it->subscribe = orb_subscribe(it->meta);
 		}
 	}
 
@@ -213,19 +197,16 @@ AutomationTest::~AutomationTest()
 		manual_control_setpoint_pub = nullptr;
 	}
 
-	std::vector<uORB_topic *>::iterator it;
+	for (auto it : uORB_topic_list) {
+		PX4_DEBUG("Unsubscribe %s", it->name);
 
-	for (it = uORB_topic_list.begin(); it != uORB_topic_list.end();) {
-		PX4_DEBUG("Unsubscribe %s", (*it)->name.c_str());
-
-		if (*((*it)->subscribe) >= 0) {
-			orb_unsubscribe(*((*it)->subscribe));
-			*((*it)->subscribe) = -1;
+		if (it->subscribe >= 0) {
+			orb_unsubscribe(it->subscribe);
+			it->subscribe = -1;
 		}
-
-		delete (*it);
-		uORB_topic_list.erase(it);
 	}
+
+	uORB_topic_list.clear();
 }
 
 bool AutomationTest::enableFailSafe(bool enabled)
@@ -424,7 +405,7 @@ bool AutomationTest::_rtlForFailSafe(int waitTimeOutInSecond)
 
 bool AutomationTest::_isGPSAvaiable()
 {
-	return is_vehicle_global_position_updated;
+	return vehicle_global_position_uORB_topic_obj.is_updated;
 }
 
 bool AutomationTest::_manualControl(float x, float y, float z, float r, int waitTimeOutInSecond)

@@ -1,4 +1,3 @@
-
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT tap_common)
 
 set(target_definitions MEMORY_CONSTRAINED_SYSTEM)
@@ -25,7 +24,7 @@ set(config_module_list
 	drivers/vmount
 	modules/sensors
 	drivers/gimbal_protocol_splitter
-	drivers/ist8310
+	drivers/magnetometer/ist8310
 	drivers/mavlink_dup
 
 	#

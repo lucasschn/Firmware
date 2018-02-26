@@ -4,10 +4,6 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/barometer
-	drivers/distance_sensor
-	drivers/magnetometer
-
 	drivers/device
 	drivers/stm32
 	drivers/stm32/adc
@@ -18,7 +14,11 @@ set(config_module_list
 	drivers/rgbled_pwm
 	drivers/tap_esc
 	drivers/imu/mpu6000
+	drivers/barometer/ms5611
 	drivers/mpc2520
+	drivers/magnetometer/hmc5883
+	drivers/magnetometer/ist8310
+	drivers/distance_sensor/hc_sr04
 	drivers/gps
 	drivers/airspeed
 	drivers/realsense

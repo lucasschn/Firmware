@@ -33,6 +33,7 @@ set(config_module_list
 	#
 	systemcmds/bl_update
 	systemcmds/led_control
+	systemcmds/mixer
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm

@@ -123,8 +123,6 @@ public:
 	virtual ~HC_SR04();
 
 	virtual int 		init();
-
-	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
 	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
@@ -277,7 +275,7 @@ private:
 extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[]);
 
 HC_SR04::HC_SR04(uint8_t rotation, bool enable_median_filter, bool enable_obsavoid_switch) :
-	CDev("HC_SR04", SR04_DEVICE_PATH, 0),
+	CDev("HC_SR04", SR04_DEVICE_PATH),
 	_min_distance(SR04_MIN_DISTANCE),
 	_max_distance(SR04_MAX_DISTANCE),
 	_mf_cycle_counter(0),

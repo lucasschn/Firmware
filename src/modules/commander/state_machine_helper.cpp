@@ -420,6 +420,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	transition_result_t ret = TRANSITION_DENIED;
 
 	/* transition may be denied even if the same state is requested because conditions may have changed */
+
 	switch (new_main_state) {
 	case commander_state_s::MAIN_STATE_MANUAL:
 	case commander_state_s::MAIN_STATE_STAB:
@@ -451,8 +452,10 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 	case commander_state_s::MAIN_STATE_AUTO_LOITER:
 
-		/* need global position estimate */
-		if (status_flags->condition_global_position_valid) {
+		/* need global position estimate and home position because
+		 * relative altitude update is not supported in flight.*/
+		if (status_flags->condition_global_position_valid &&
+				status_flags->condition_home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -472,7 +475,8 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 
-		/* need global position, home position, and a valid mission */
+		/* need global position, home position, and a valid mission
+		 * because relative altitude update is not supported in flight.*/
 		if (status_flags->condition_global_position_valid &&
 		    status_flags->condition_auto_mission_available) {
 
@@ -493,8 +497,9 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 	case commander_state_s::MAIN_STATE_AUTO_LAND:
 
-		/* need local position */
-		if (status_flags->condition_local_position_valid) {
+		/* need local position and home position because
+		 * relative altitude update is not supported in flight.*/
+		if (status_flags->condition_local_position_valid && status_flags->condition_home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 

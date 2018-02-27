@@ -168,7 +168,7 @@ static void realsense_stop(void);
 }
 
 REALSENSE::REALSENSE(const char *port):
-	CDev("REALSENSE", REALSENSE_DEVICE_PATH, 0),
+	CDev("REALSENSE", REALSENSE_DEVICE_PATH),
 	_realsense_is_present(false),
 	_initialized(false),
 	_taskShouldExit(false),

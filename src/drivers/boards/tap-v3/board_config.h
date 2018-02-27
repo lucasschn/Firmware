@@ -26,11 +26,13 @@
 #define POWER_ON_GPIO  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
 #define POWER_OFF_GPIO (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN5)
 
+#include <drivers/boards/px4fmu-v5/board_config.h>
+
 /* Define Battery 1 Voltage Divider and A per V
  */
+#undef BOARD_BATTERY1_V_DIV
 #define BOARD_BATTERY1_V_DIV (9.0f)
 
-#include <drivers/boards/px4fmu-v5/board_config.h>
 
 #undef BOARD_NAME
 #define	BOARD_NAME "TAP_V3"
@@ -50,6 +52,7 @@
 #define BOARD_USE_ESC_CURRENT_REPORT // each ESC reports its current estimate
 #define BOARD_SUPPORTS_FTC // Board supports fault tolerant control. Set param FTC_ENABLE to 1 to enable it.
 
+#undef PX4_I2C_BUS_ONBOARD
 #define PX4_I2C_BUS_ONBOARD 4 // wrong workaround to get the baro working
 
 #define BOARD_MAX_LEDS 6 // Define the number of led this board has

@@ -51,7 +51,7 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/realsense_avoidance_setpoint.h>
 #include <uORB/topics/realsense_distance_info.h>
-#include <uORB/topics/realsense_distance_360.h>
+#include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -82,6 +82,8 @@
 #define DISTANCE_SENSOR_INSTANCES 2
 
 #define TIME_WAIT_SHUTDOWN_US 60000000 // 1min
+
+#define MAX_DIST 2000 //20 m
 
 class REALSENSE: public device::CDev
 {
@@ -134,7 +136,7 @@ private:
 	orb_advert_t _optical_flow_pub;
 	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _realsense_distance_info_pub;
-	orb_advert_t _realsense_distance_360_pub;
+	orb_advert_t _obstacle_distance_pub;
 	static void _cycle_trampoline(void *arg);
 	void _init_realsense();  							 // init - initialise the sensor
 	void update();     					 // update - check input and send out data
@@ -197,7 +199,7 @@ REALSENSE::REALSENSE(const char *port):
 	_optical_flow_pub(nullptr),
 	_distance_sensor_pub(nullptr),
 	_realsense_distance_info_pub(nullptr),
-	_realsense_distance_360_pub(nullptr)
+	_obstacle_distance_pub(nullptr)
 {
 	/* store port name */
 	strncpy(_device_realsense, port, sizeof(_device_realsense));
@@ -714,15 +716,25 @@ REALSENSE::_read_obstacle_avoidance_data()
 					ObstacleDistance360 packet_distance_360;
 					memcpy((char *)&packet_distance_360, _YP_PACKET_DATA(_rxpacket_realsense), PACKET_LENGTH_REALSENSE_DISTANCE_360);
 
-					struct realsense_distance_360_s realsense_distance_360;
-					memcpy(realsense_distance_360.distances, packet_distance_360.distances, sizeof(packet_distance_360.distances));
-					realsense_distance_360.timestamp = hrt_absolute_time();
+					struct obstacle_distance_s obstacle_distance;
+					obstacle_distance.timestamp = hrt_absolute_time();
+					obstacle_distance.increment = 5;
+					obstacle_distance.min_distance = 20;
+					obstacle_distance.max_distance = MAX_DIST;
 
-					if (_realsense_distance_360_pub == nullptr) {
-						_realsense_distance_360_pub = orb_advertise(ORB_ID(realsense_distance_360), &realsense_distance_360);
+					for (int k = 0; k < ObstacleDistance360::nAzimuthBlocks; ++k) {
+						obstacle_distance.distances[k] = packet_distance_360.distances[k] / 10; // covert from 1u=10cm to 1u=1cm
+
+						if (packet_distance_360.distances[k] == 0) {
+							obstacle_distance.distances[k] = MAX_DIST + 1;
+						}
+					}
+
+					if (_obstacle_distance_pub == nullptr) {
+						_obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &obstacle_distance);
 
 					} else {
-						orb_publish(ORB_ID(realsense_distance_360), _realsense_distance_360_pub, &realsense_distance_360);
+						orb_publish(ORB_ID(obstacle_distance), _obstacle_distance_pub, &obstacle_distance);
 					}
 
 					break;

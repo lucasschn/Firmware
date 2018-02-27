@@ -339,7 +339,10 @@ RTL::set_rtl_item()
 
 			// Loiter to deploy landing gear if up
 			if ((int)_navigator->get_attitude_sp()->landing_gear == (int)vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN) {
-				_mission_item.time_inside = 0.0f;
+				// NOTE(Yuneec): If landing gear is down, we don't want to loiter at all.
+				// However, loitering for 0 seconds means loitering indefinitely
+				// in upstream. Hence we set the time very close to zero:
+				_mission_item.time_inside = 2 * FLT_EPSILON;
 
 			} else {
 				_mission_item.time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();

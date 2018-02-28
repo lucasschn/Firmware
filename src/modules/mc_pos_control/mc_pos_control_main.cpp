@@ -450,7 +450,7 @@ private:
 
 	void constrain_velocity_setpoint();
 
-	bool use_realsense(); // check if realsense is activated
+	bool use_obstacle_avoidance(); // check if realsense is activated
 
 	/**
 	 * limit altitude based on several conditions
@@ -997,37 +997,9 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 		_obstacle_lock_hysteresis.set_state_and_update(false);
 	}
 
-	const float diff_xy = matrix::Vector2f((_pos_sp_prev(0) - _pos_sp(0)), (_pos_sp_prev(1) - _pos_sp(1))).length();
-	const bool xy_lock = diff_xy < SIGMA_NORM;
-	const float diff_z = fabsf(_pos_sp_prev(2) - _pos_sp(2));
-	const bool z_lock = diff_z < SIGMA_NORM;
+	if (use_obstacle_avoidance()) {
 
-	// we are in realsense obstacle avoidance state
-	if (use_realsense()) {
-
-		/* get velocity setpoint in heading frame */
-		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
-		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_vel_sp_desired(0), _vel_sp_desired(1),
-						  0.0f));
-
-		if (!xy_lock && vel_sp_heading(0) < 0.0f && (fabsf(vel_sp_heading(1)) <  0.1f)) {
-
-			/* we adjust the y desired velocity setpoint such that 180 turns are possible. */
-
-			vel_sp_heading(1) = fabsf(vel_sp_heading(0)) * 0.1f + 0.001f;
-
-		} else if (xy_lock && !z_lock) {
-
-			/* we adjust the desired velocity setpoint such that the vehicle can fly upwards
-			 * and downwards if only z-direction maneuvers are requested. This is rather a hack to
-			 * fix realsense output for straight up and down maneuvers. */
-
-			vel_sp_heading(0) = 0.001f + 0.1f * fabsf(_vel_sp_desired(2));
-		}
-
-		_vel_sp_desired = q_yaw.conjugate(vel_sp_heading);
-		_vel_sp_desired(2) = _vel_sp(2);
-
+		/* to be replaced by the new avoidance interface */
 		_vel_sp(0) = _realsense_avoidance_setpoint.vx;
 		_vel_sp(1) = _realsense_avoidance_setpoint.vy;
 		_vel_sp(2) = _realsense_avoidance_setpoint.vz;
@@ -1089,7 +1061,7 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
 	}
 
-	if (use_realsense()) {
+	if (use_obstacle_avoidance()) {
 		_att_sp.yaw_body = yaw_prev_sp;
 	}
 
@@ -1454,17 +1426,12 @@ MulticopterPositionControl::constrain_velocity_setpoint()
 }
 
 bool
-MulticopterPositionControl::use_realsense()
+MulticopterPositionControl::use_obstacle_avoidance()
 {
 
-	/* Don't use realsense if we are above home within acceptance radius */
-	const float dist_to_home_xy =  matrix::Vector2f(_home_pos.x - _pos(0), _home_pos.y - _pos(1)).length();
-	const bool close_to_home = dist_to_home_xy < _nav_rad.get();
-
-	return (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
-	       && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL)
-	       && (_realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING)
-	       && !close_to_home;
+	/* external obstacle avoidance is sending data */
+	return hrt_elapsed_time((hrt_abstime *)&_realsense_avoidance_setpoint.timestamp) <
+	       DISTANCE_STREAM_TIMEOUT_US;
 }
 
 float
@@ -2311,7 +2278,7 @@ void MulticopterPositionControl::control_auto()
 		const bool follow_me_target_on = _pos_sp_triplet.current.yawspeed_valid
 						 && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
 
-		if (use_realsense() || follow_me_target_on) {
+		if (use_obstacle_avoidance() || follow_me_target_on) {
 
 			// default is triplet yaw-speed
 			float yaw_speed = _pos_sp_triplet.current.yawspeed;
@@ -2341,9 +2308,9 @@ void MulticopterPositionControl::control_auto()
 		}
 
 		/* only follow previous-current-line for specific triplet type */
-		if (!use_realsense() && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
-					 _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
-					 _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET)) {
+		if (!use_obstacle_avoidance() && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
+						  _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
+						  _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET)) {
 
 			float yaw_diff = _wrap_pi(_att_sp.yaw_body - _yaw);
 
@@ -2475,7 +2442,7 @@ void MulticopterPositionControl::control_auto()
 				/* current velocity along track */
 				float vel_sp_along_track_prev = matrix::Vector2f(&_vel_sp(0)) * unit_prev_to_current;
 
-				if (use_realsense()) {
+				if (use_obstacle_avoidance()) {
 					vel_sp_along_track_prev = matrix::Vector2f(&_vel_sp_desired(0)) * unit_prev_to_current;
 				}
 
@@ -3063,7 +3030,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	/* Previous position setpoint is used for creating position locks.*/
 	_pos_sp_prev = _pos_sp;
 
-	if (use_realsense()) {
+	if (use_obstacle_avoidance()) {
 		/* Slewrate is also active for angle mode. If realsense is on, the previous
 		 * velocity setpoint will be set to desired setpoint to ensure that setpoint
 		 * increases linearly with acceleration.
@@ -3877,7 +3844,7 @@ MulticopterPositionControl::task_main()
 					generate_attitude_setpoint();
 
 				} else {
-					if (!use_realsense()) {
+					if (!use_obstacle_avoidance()) {
 						_reset_yaw_sp = true;
 						_att_sp.yaw_sp_move_rate = 0.0f;
 					}

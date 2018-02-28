@@ -902,7 +902,7 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 			yaw_deg = (yaw_deg > FLT_EPSILON && yaw_deg < 180.0f) ? yaw_deg : (180.0f + (180.0f + yaw_deg));
 
 			/* if increment not set, put it to the minimum value to represent obstacles 360 degrees around the MAV */
-			_obstacle_distance.increment = (_obstacle_distance.increment == 0) ? 5 : _obstacle_distance.increment;
+			_obstacle_distance.increment = (_obstacle_distance.increment == 0) ? obstacle_distance_s::MINIMUM_INCREMENT : _obstacle_distance.increment;
 
 			/* array resolution defined by the increment, index 0 is always global north */
 			const int index = (int)floorf(yaw_deg / (float)_obstacle_distance.increment);

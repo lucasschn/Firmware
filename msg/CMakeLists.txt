@@ -85,7 +85,6 @@ set(msg_files
 	qshell_req.msg
 	realsense_avoidance_setpoint.msg
 	realsense_distance_info.msg
-	realsense_distance_360.msg
 	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg

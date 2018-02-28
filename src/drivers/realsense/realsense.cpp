@@ -725,6 +725,7 @@ REALSENSE::_read_obstacle_avoidance_data()
 					for (int k = 0; k < ObstacleDistance360::nAzimuthBlocks; ++k) {
 						obstacle_distance.distances[k] = packet_distance_360.distances[k] / 10; // covert from 1u=10cm to 1u=1cm
 
+						/* change convention for no obstacle in front of the sensor */
 						if (packet_distance_360.distances[k] == 0) {
 							obstacle_distance.distances[k] = MAX_DIST + 1;
 						}

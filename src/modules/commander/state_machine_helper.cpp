@@ -497,9 +497,9 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 	case commander_state_s::MAIN_STATE_AUTO_LAND:
 
-		/* need local position and home position because
+		/* need home position because
 		 * relative altitude update is not supported in flight.*/
-		if (status_flags->condition_local_position_valid && status_flags->condition_home_position_valid) {
+		if (status_flags->condition_home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 

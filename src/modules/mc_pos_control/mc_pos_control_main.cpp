@@ -885,6 +885,9 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 	const bool stop_in_front = (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
 				   && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) && (!_flight_tasks.isAnyTaskActive());
 
+	/* don't run obstacle avoidance in altitude mode because there are altitude jumps */
+	if (stop_in_front && _control_mode.flag_control_velocity_enabled) {
+
 		const bool obstacle_distance_valid = hrt_elapsed_time((hrt_abstime *)&_obstacle_distance.timestamp) <
 						     DISTANCE_STREAM_TIMEOUT_US;
 
@@ -934,9 +937,6 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 
 		/* anything under the brake distance is considered an obstalce */
 		const bool obstacle_ahead = minimum_distance < brake_distance && altitude_above_home > 1.5f;
-
-	/* don't run obstacle avoidance in altitude mode because there are altitude jumps */
-	if (stop_in_front && _control_mode.flag_control_velocity_enabled) {
 
 		if (obstacle_ahead) {
 			/* vehicle just detected an obstacle */

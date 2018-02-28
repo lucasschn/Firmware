@@ -27,6 +27,7 @@ set(config_module_list
 	drivers/camera_trigger
 	drivers/gimbal_protocol_splitter
 	drivers/mavlink_dup
+	drivers/pwm_out_sim
 
 	#
 	# System commands

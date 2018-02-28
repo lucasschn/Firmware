@@ -2891,22 +2891,24 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	/* get position controller setpoints from the active flight task, this will be through uORB from Trajectory module to position controller module in the future */
 	/* TODO: as soon as legacy stuff gets ported setting velocity and position setpoint at the same time (feed-forward) will be supported through addition of setpoints */
 	if (_flight_tasks.update()) {
+		vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
+
 		/* apply position and velocity setpoint from task */
-		_pos_sp = math::Vector<3>(&_flight_tasks().x);
-		_vel_sp = math::Vector<3>(&_flight_tasks().vx);
+		_pos_sp = math::Vector<3>(&setpoint.x);
+		_vel_sp = math::Vector<3>(&setpoint.vx);
 
 		_run_pos_control = true;
 		_run_alt_control = true;
 
-		if (PX4_ISFINITE(_flight_tasks().yaw)) {
-			_att_sp.yaw_body = _flight_tasks().yaw;
+		if (PX4_ISFINITE(setpoint.yaw)) {
+			_att_sp.yaw_body = setpoint.yaw;
 
 		} else {
 			_att_sp.yaw_body = _yaw; // TODO: Need general way to disable yaw control.
 		}
 
-		if (PX4_ISFINITE(_flight_tasks().yawspeed)) {
-			_att_sp.yaw_sp_move_rate = _flight_tasks().yawspeed;
+		if (PX4_ISFINITE(setpoint.yawspeed)) {
+			_att_sp.yaw_sp_move_rate = setpoint.yawspeed;
 
 		} else {
 			_att_sp.yaw_sp_move_rate = 0; // TODO: Need general way to disable yaw control

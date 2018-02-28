@@ -54,6 +54,7 @@
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/home_position.h>
 
 #include <lib/FlightTasks/FlightTasks.hpp>
 
@@ -84,6 +85,8 @@
 #define TIME_WAIT_SHUTDOWN_US 60000000 // 1min
 
 #define MAX_DIST 2000 //20 m
+
+#define SIGMA_NORM			0.001f
 
 class REALSENSE: public device::CDev
 {
@@ -120,15 +123,19 @@ private:
 	int 	_distance_sensor_subs[DISTANCE_SENSOR_INSTANCES];
 	int 	_manual_sub;
 	int 	_vehicle_status_sub;
+	int 	_home_pos_sub;
 	float _current_distance;
 	struct vehicle_local_position_s _local_pos;
+	struct vehicle_local_position_s _local_pos_prev;
 	struct realsense_avoidance_setpoint_s _avoidance_input;
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
 	struct vehicle_status_s _vehicle_status;
+	struct home_position_s _home_pos;
 	struct work_s	_work;
 	ringbuffer::RingBuffer	*_rb_gyro;
 	int _uart_fd = -1;
+	float _yaw;
 
 	FlightTasks _flight_tasks;
 
@@ -188,12 +195,14 @@ REALSENSE::REALSENSE(const char *port):
 	_vehicle_status_sub(-1),
 	_current_distance(0.0f),
 	_local_pos{},
+	_local_pos_prev{},
 	_avoidance_input{},
 	_attitude {},
 	_manual{},
 	_vehicle_status{},
 	_work{},
 	_rb_gyro(nullptr),
+	_yaw(0.0f),
 	_flight_tasks(),
 	_realsense_avoidance_setpoint_pub(nullptr),
 	_optical_flow_pub(nullptr),
@@ -205,6 +214,7 @@ REALSENSE::REALSENSE(const char *port):
 	strncpy(_device_realsense, port, sizeof(_device_realsense));
 	/* enforce null termination */
 	_device_realsense[sizeof(_device_realsense) - 1] = '\0';
+
 }
 
 REALSENSE::~REALSENSE()
@@ -280,6 +290,7 @@ REALSENSE::poll_subscriptions()				 // update all msg
 	orb_check(_vehicle_local_position_sub, &updated);
 
 	if (updated) {
+		_local_pos_prev = _local_pos;
 		orb_copy(ORB_ID(vehicle_local_position), _vehicle_local_position_sub, &_local_pos);
 	}
 
@@ -309,6 +320,13 @@ REALSENSE::poll_subscriptions()				 // update all msg
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_attitude);
+
+		/* get current rotation matrix and euler angles from control state quaternions */
+		math::Quaternion q_att(_attitude.q[0], _attitude.q[1], _attitude.q[2], _attitude.q[3]);
+		math::Matrix<3, 3> R = q_att.to_dcm();
+		math::Vector<3> euler_angles;
+		euler_angles = R.to_euler();
+		_yaw = euler_angles(2);
 	}
 
 	for (unsigned i = 0; i < DISTANCE_SENSOR_INSTANCES; i++) {
@@ -372,6 +390,37 @@ REALSENSE::_send_obstacle_avoidance_data()
 	if (!PX4_ISFINITE(_avoidance_input.vx) || !PX4_ISFINITE(_avoidance_input.vy) || !PX4_ISFINITE(_avoidance_input.vz)) {
 		return;
 	}
+
+	const float avoidance_input_z = _avoidance_input.vz;
+	const float diff_xy = matrix::Vector2f((_local_pos_prev.x - _local_pos.x), (_local_pos_prev.y - _local_pos.y)).length();
+	const bool xy_lock = diff_xy < SIGMA_NORM;
+	const float diff_z = fabsf(_local_pos_prev.z - _local_pos.z);
+	const bool z_lock = diff_z < SIGMA_NORM;
+
+	/* get velocity setpoint in heading frame */
+	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
+	matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_avoidance_input.vx, _avoidance_input.vy,
+					  0.0f));
+
+	if (!xy_lock && vel_sp_heading(0) < 0.0f && (fabsf(vel_sp_heading(1)) <  0.1f)) {
+
+		/* we adjust the y desired velocity setpoint such that 180 turns are possible. */
+
+		vel_sp_heading(1) = fabsf(vel_sp_heading(0)) * 0.1f + 0.001f;
+
+	} else if (xy_lock && !z_lock) {
+
+		/* we adjust the desired velocity setpoint such that the vehicle can fly upwards
+		 * and downwards if only z-direction maneuvers are requested. This is rather a hack to
+		 * fix realsense output for straight up and down maneuvers. */
+
+		vel_sp_heading(0) = 0.001f + 0.1f * fabsf(_avoidance_input.vz);
+	}
+
+	matrix::Vector3f vel_sp_local = q_yaw.conjugate(vel_sp_heading);
+	_avoidance_input.vx = vel_sp_local(0);
+	_avoidance_input.vy = vel_sp_local(1);
+	_avoidance_input.vz = avoidance_input_z;
 
 	tx.desiredSpeed.x   = _avoidance_input.vy; // E
 	tx.desiredSpeed.y   = _avoidance_input.vx; // N
@@ -597,11 +646,26 @@ REALSENSE::_read_obstacle_avoidance_data()
 					_realsense_output_flags = (uint8_t)packet_data_output.flags;
 					realsense_avoidance_setpoint.timestamp = hrt_absolute_time();
 
-					if (_realsense_avoidance_setpoint_pub == nullptr) {
-						_realsense_avoidance_setpoint_pub = orb_advertise(ORB_ID(realsense_avoidance_setpoint), &realsense_avoidance_setpoint);
+					/* Don't use realsense if we are above home within acceptance radius */
+					float nav_rad = 0;
+					param_get(param_find("NAV_ACC_RAD"), &nav_rad);
 
-					} else {
-						orb_publish(ORB_ID(realsense_avoidance_setpoint), _realsense_avoidance_setpoint_pub, &realsense_avoidance_setpoint);
+					const float dist_to_home_xy =  matrix::Vector2f(_home_pos.x - _local_pos.x, _home_pos.y - _local_pos.y).length();
+					const bool close_to_home = dist_to_home_xy < nav_rad;
+
+					const bool use_realsense = (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
+								   && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL)
+								   && (_realsense_output_flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING)
+								   && !close_to_home;
+
+					if (use_realsense) {
+						if (_realsense_avoidance_setpoint_pub == nullptr) {
+							_realsense_avoidance_setpoint_pub = orb_advertise(ORB_ID(realsense_avoidance_setpoint), &realsense_avoidance_setpoint);
+
+						} else {
+							orb_publish(ORB_ID(realsense_avoidance_setpoint), _realsense_avoidance_setpoint_pub, &realsense_avoidance_setpoint);
+						}
+
 					}
 
 					break;

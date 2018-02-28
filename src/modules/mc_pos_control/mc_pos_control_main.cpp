@@ -885,55 +885,55 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 	const bool stop_in_front = (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
 				   && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) && (!_flight_tasks.isAnyTaskActive());
 
-	const bool obstacle_distance_valid = hrt_elapsed_time((hrt_abstime *)&_obstacle_distance.timestamp) <
-					     DISTANCE_STREAM_TIMEOUT_US;
+		const bool obstacle_distance_valid = hrt_elapsed_time((hrt_abstime *)&_obstacle_distance.timestamp) <
+						     DISTANCE_STREAM_TIMEOUT_US;
 
-	/* default set obstacle_distance distance large */
-	_min_obstacle_distance = (float)UINT16_MAX;
+		/* default set obstacle_distance distance large */
+		_min_obstacle_distance = (float)UINT16_MAX;
 
-	/* if obstacle_distance is published, we always want to calculate the minimum distance to obstacle */
-	if (obstacle_distance_valid) {
+		/* if obstacle_distance is published, we always want to calculate the minimum distance to obstacle */
+		if (obstacle_distance_valid) {
 
-		/* find front direction in the array of obsacle positions*/
-		float yaw_deg = math::degrees(_local_pos.yaw);
-		yaw_deg = (yaw_deg > FLT_EPSILON && yaw_deg < 180.0f) ? yaw_deg : (180.0f + (180.0f + yaw_deg));
+			/* find front direction in the array of obsacle positions*/
+			float yaw_deg = math::degrees(_local_pos.yaw);
+			yaw_deg = (yaw_deg > FLT_EPSILON && yaw_deg < 180.0f) ? yaw_deg : (180.0f + (180.0f + yaw_deg));
 
-		/* if increment not set, put it to the minimum value to represent obstacles 360 degrees around the MAV */
-		_obstacle_distance.increment = (_obstacle_distance.increment == 0) ? 5 : _obstacle_distance.increment;
+			/* if increment not set, put it to the minimum value to represent obstacles 360 degrees around the MAV */
+			_obstacle_distance.increment = (_obstacle_distance.increment == 0) ? 5 : _obstacle_distance.increment;
 
-		/* array resolution defined by the increment, index 0 is always global north */
-		const int index = (int)floorf(yaw_deg / (float)_obstacle_distance.increment);
+			/* array resolution defined by the increment, index 0 is always global north */
+			const int index = (int)floorf(yaw_deg / (float)_obstacle_distance.increment);
 
-		const int distances_array_length = sizeof(_obstacle_distance.distances) / sizeof(uint16_t);
+			const int distances_array_length = sizeof(_obstacle_distance.distances) / sizeof(uint16_t);
 
-		/* consider only 30 degrees in front of the MAV */
-		for (int i = -3; i < 3; ++i) {
-			/* exclude measurements greater than max_distance+1 because it means there is no obstacle ahead */
-			int shifted_index = index + i;
+			/* consider only 30 degrees in front of the MAV */
+			for (int i = -3; i < 3; ++i) {
+				/* exclude measurements greater than max_distance+1 because it means there is no obstacle ahead */
+				int shifted_index = index + i;
 
-			if (shifted_index < 0) {
-				shifted_index = distances_array_length + shifted_index;
+				if (shifted_index < 0) {
+					shifted_index = distances_array_length + shifted_index;
 
-			} else if (shifted_index >= distances_array_length) {
-				shifted_index = shifted_index % distances_array_length;
-			}
+				} else if (shifted_index >= distances_array_length) {
+					shifted_index = shifted_index % distances_array_length;
+				}
 
-			if (_obstacle_distance.distances[shifted_index] < (_obstacle_distance.max_distance + 1)) {
-				_min_obstacle_distance = math::min(_min_obstacle_distance,
-								   (float)_obstacle_distance.distances[shifted_index] * 0.01f);
+				if (_obstacle_distance.distances[shifted_index] < (_obstacle_distance.max_distance + 1)) {
+					_min_obstacle_distance = math::min(_min_obstacle_distance,
+									   (float)_obstacle_distance.distances[shifted_index] * 0.01f);
+				}
 			}
 		}
-	}
 
-	/* keep a minimum braking distance of start_braking_distance, otherwise give the vehicle at least 1s time to brake*/
-	const float safety_margin = 1.0f;
-	const float brake_distance = math::max(_start_braking_distance.get(), _vel_max_xy + safety_margin);
+		/* keep a minimum braking distance of start_braking_distance, otherwise give the vehicle at least 1s time to brake*/
+		const float safety_margin = 1.0f;
+		const float brake_distance = math::max(_start_braking_distance.get(), _vel_max_xy + safety_margin);
 
-	/* tap specific: fuse obstacle_distance from RealSense and sonar */
-	float minimum_distance = fuse_obstacle_distance_sonar(altitude_above_home, safety_margin, brake_distance);
+		/* tap specific: fuse obstacle_distance from RealSense and sonar */
+		float minimum_distance = fuse_obstacle_distance_sonar(altitude_above_home, safety_margin, brake_distance);
 
-	/* anything under the brake distance is considered an obstalce */
-	const bool obstacle_ahead = minimum_distance < brake_distance && altitude_above_home > 1.5f;
+		/* anything under the brake distance is considered an obstalce */
+		const bool obstacle_ahead = minimum_distance < brake_distance && altitude_above_home > 1.5f;
 
 	/* don't run obstacle avoidance in altitude mode because there are altitude jumps */
 	if (stop_in_front && _control_mode.flag_control_velocity_enabled) {

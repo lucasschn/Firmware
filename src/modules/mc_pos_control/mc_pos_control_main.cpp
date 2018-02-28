@@ -361,7 +361,7 @@ private:
 	float _z_derivative; /**< velocity in z that agrees with position rate */
 
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
-	float _min_obstacle_distance{(float)UINT16_MAX};
+	float _min_obstacle_distance{(float)UINT16_MAX}; /**< minimum distance to a obstacle in meters */
 
 	float _min_hagl_limit; /**< minimum continuous height above ground (m) */
 
@@ -846,6 +846,7 @@ MulticopterPositionControl::fuse_obstacle_distance_sonar(float altitude_above_ho
 		const float brake_distance)
 {
 
+	/* by default we use only obstacle_distance data */
 	float minimum_distance_fused = _min_obstacle_distance;
 
 	/* obstacle_distance (RealSense): anything under the brake distance is considered an obstalce */
@@ -859,7 +860,6 @@ MulticopterPositionControl::fuse_obstacle_distance_sonar(float altitude_above_ho
 	const bool obstacle_ahead_sonar = _sonar_measurament.current_distance < _sonar_measurament.max_distance;
 
 	if (obstacle_ahead || (valid_sonar_measurament && obstacle_ahead_sonar)) {
-		/* by default we use only obstacle_distance data */
 
 		if (!obstacle_ahead) {
 			/* sonar only detected obstacle */
@@ -891,7 +891,7 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 		const bool obstacle_distance_valid = hrt_elapsed_time((hrt_abstime *)&_obstacle_distance.timestamp) <
 						     DISTANCE_STREAM_TIMEOUT_US;
 
-		/* default set obstacle_distance distance large */
+		/* default set obstacle_distance distance unknown */
 		_min_obstacle_distance = (float)UINT16_MAX;
 
 		/* if obstacle_distance is published, we always want to calculate the minimum distance to obstacle */
@@ -922,6 +922,7 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 				}
 
 				if (_obstacle_distance.distances[shifted_index] < (_obstacle_distance.max_distance + 1)) {
+					/* covert from centimeters to meters */
 					_min_obstacle_distance = math::min(_min_obstacle_distance,
 									   (float)_obstacle_distance.distances[shifted_index] * 0.01f);
 				}

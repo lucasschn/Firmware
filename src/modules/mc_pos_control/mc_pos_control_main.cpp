@@ -891,14 +891,14 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 	/* default set obstacle_distance distance large */
 	_min_obstacle_distance = (float)UINT16_MAX;
 
-	// if obstacle_distance is published, we always want to calculate the minimum distance to obstacle
+	/* if obstacle_distance is published, we always want to calculate the minimum distance to obstacle */
 	if (obstacle_distance_valid) {
 
 		/* find front direction in the array of obsacle positions*/
 		float yaw_deg = math::degrees(_local_pos.yaw);
 		yaw_deg = (yaw_deg > FLT_EPSILON && yaw_deg < 180.0f) ? yaw_deg : (180.0f + (180.0f + yaw_deg));
 
-		/*if increment not set, put it to the minimum value to represent obstacles 360 degrees around the MAV */
+		/* if increment not set, put it to the minimum value to represent obstacles 360 degrees around the MAV */
 		_obstacle_distance.increment = (_obstacle_distance.increment == 0) ? 5 : _obstacle_distance.increment;
 
 		/* array resolution defined by the increment, index 0 is always global north */
@@ -907,7 +907,7 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 		const int distances_array_length = sizeof(_obstacle_distance.distances) / sizeof(uint16_t);
 
 		/* consider only 30 degrees in front of the MAV */
-		for (int i = -3; i < 4; ++i) {
+		for (int i = -3; i < 3; ++i) {
 			/* exclude measurements greater than max_distance+1 because it means there is no obstacle ahead */
 			int shifted_index = index + i;
 
@@ -929,7 +929,7 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 	const float safety_margin = 1.0f;
 	const float brake_distance = math::max(_start_braking_distance.get(), _vel_max_xy + safety_margin);
 
-	/*tap specific: fuse obstacle_distance from RealSense and sonar   */
+	/* tap specific: fuse obstacle_distance from RealSense and sonar */
 	float minimum_distance = fuse_obstacle_distance_sonar(altitude_above_home, safety_margin, brake_distance);
 
 	/* anything under the brake distance is considered an obstalce */
@@ -949,7 +949,7 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_vel_sp_desired(0), _vel_sp_desired(1),
 						  0.0f));
 
-		/* Adjust velocity setpoint _vel_sp based on obstacle_distance */
+		/* adjust velocity setpoint _vel_sp based on obstacle_distance */
 		if (_obstacle_lock_hysteresis.get_state()) {
 
 			/* stay in obstacle lock when trying to go forwards without yawing 30 degree away from the last obstacle */
@@ -968,7 +968,7 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 				/* vehicle wants to fly towards obstacle */
 
 				if (minimum_distance <= safety_margin) {
-					/* Vehicle is already saftety_margin close to obstacle. Don't move forward */
+					/* vehicle is already saftety_margin close to obstacle. Don't move forward */
 
 					_vel_sp(0) = 0.0f;
 					_vel_sp(1) = 0.0f;

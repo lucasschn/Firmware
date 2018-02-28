@@ -98,11 +98,13 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	estimateRemaining(_voltage_filtered_v, _current_filtered_a, throttle_normalized, armed);
 	determineWarning(connected);
 	computeScale();
+	computeRemainingTime();
 
 	if (_voltage_filtered_v > 2.1f) {
 		battery_status->voltage_v = voltage_v;
 		battery_status->voltage_filtered_v = _voltage_filtered_v;
 		battery_status->scale = _scale;
+		battery_status->time_remaining_s = _time_remaining_s;
 		battery_status->current_a = current_a;
 		battery_status->current_filtered_a = _current_filtered_a;
 		battery_status->discharged_mah = _discharged_mah;
@@ -241,5 +243,19 @@ Battery::computeScale()
 
 	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) { // Shouldn't ever be more than the power at full battery
 		_scale = 1.f;
+	}
+}
+
+void
+Battery::computeRemainingTime()
+{
+	/* We can only estimate time when we know capacity and current */
+	if (_capacity.get() > 0.f) {
+		const float remaining_capacity_mah = _remaining * _capacity.get();
+		const float current_ma = _current_filtered_a * 1e3f;
+		_time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;
+
+	} else {
+		_time_remaining_s = -1;
 	}
 }

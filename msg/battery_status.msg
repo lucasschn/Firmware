@@ -5,6 +5,7 @@ float32 current_filtered_a	# Battery current in amperes, filtered, 0 if unknown
 float32 discharged_mah		# Discharged amount in mAh, -1 if unknown
 float32 remaining		# From 1 to 0, -1 if unknown
 float32 scale		# Power scaling factor, >= 1, or -1 if unknown
+uint32 time_remaining_s	# remaining battery usage time under current load
 int32 cell_count		# Number of cells
 bool connected			# Whether or not a battery is connected, based on a voltage threshold
 bool system_source		# Whether or not a this battery is the active power source for VDD_5V_IN

@@ -182,7 +182,7 @@ if param compare SYS_AUTOSTART 0
 then
 	if ver hwcmp TAP_V4
 	then
-		param set SYS_AUTOSTART 4001
+		param set SYS_AUTOSTART 4100
 	else
 		param set SYS_AUTOSTART 6021
 	fi
@@ -213,6 +213,16 @@ then
 	fi
 fi
 
+#
+# This is to migrate everyone from 4001 to param 4100.
+#
+if param compare SYS_AUTOSTART 4001
+then
+	if ver hwcmp TAP_V4
+	then
+		param set SYS_AUTOSTART 4100
+	fi
+fi
 #
 # Set AUTOCNF flag to use it in AUTOSTART scripts
 #

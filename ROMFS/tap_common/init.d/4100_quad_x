@@ -1,15 +1,9 @@
 #!nsh
 #
-# @name Generic Quadrotor X config
+# @name Generic TAP-V4 config
 #
 # @type Quadrotor x
 # @class Copter
-#
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-#
-# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
@@ -19,34 +13,32 @@ then
 	param set MAV_TYPE 2
 
 	#
-	# Control parameters setting for tap-v3-1
+	# Control parameters setting for TAP-V4
 	#
 
 	# pitch angle & rate setting
-
-	param set MC_PITCHRATE_P 0.13
-	param set MC_PITCHRATE_I 0.1
-	param set MC_PITCHRATE_D 0.0003
+	param set MC_PITCHRATE_P 0.09
+	param set MC_PITCHRATE_I 0.08
+	param set MC_PITCHRATE_D 0.0005
 	param set MC_PITCHRATE_MAX 360.0
 	param set MC_PITCH_P 9.0
 
 	# roll angle & rate setting
-	param set MC_ROLLRATE_P 0.13
-	param set MC_ROLLRATE_I 0.1
-	param set MC_ROLLRATE_D 0.0003
+	param set MC_ROLLRATE_P 0.065
+	param set MC_ROLLRATE_I 0.08
+	param set MC_ROLLRATE_D 0.0005
 	param set MC_ROLLRATE_MAX 360.0
 	param set MC_ROLL_P 9.0
 
 	# yaw angle & rate setting
-	param set MC_YAWRATE_P 0.12
-	param set MC_YAWRATE_I 0.08
+	param set MC_YAWRATE_P 0.13
+	param set MC_YAWRATE_I 0.11
 	param set MC_YAWRATE_MAX 100.0
 	param set MC_YAWRAUTO_MAX 80.0
 	param set MC_YAW_P 2.5
 
 	# hover thrust
-	# without camera 0.37
-	param set MPC_THR_HOVER 0.68
+	param set MPC_THR_HOVER 0.525
 
 	# Position control parameters
 	param set MPC_XY_P 2.0
@@ -57,7 +49,6 @@ then
 	param set MPC_Z_P 3.0
 	param set MPC_Z_VEL_D 0.0
 	param set MPC_Z_VEL_I 0.1
-
 
 	# Manual stick input parameters
 	param set RC_FLT_SMP_RATE 33.0
@@ -129,7 +120,7 @@ then
 
 	# Vehicle model settings
 	#
-	param set LNDMC_ALT_MAX 500.0
+	param set LNDMC_ALT_MAX 120.0
 
 	#
 	# Maximum tilt angle
@@ -246,7 +237,7 @@ then
 	param set RC_MAP_AUX4 10
 
 	# gimbal driver configuration
-	param set MNT_MODE_IN 4
+	param set MNT_MODE_IN 5
 	param set MNT_MODE_OUT 2
 	param set MNT_MAN_CONTROL 1
 	param set MNT_MAN_ROLL 0
@@ -273,20 +264,22 @@ then
 
 	# Check for an ESC update
 	# if there is one, flash each ESC
+	if tap_esc_config update_fw -d ${ESC_TTY} -n 4
+	then
+		reboot
+	fi
 	# tap_esc_config checkcrc -d ${ESC_TTY} -n 4
-
 
 	# Reboot to be on the safe side that the ESC update
 	# did not consume RAM we are missing to fly
 	# reboot
 fi
 
-tap_esc start -d ${ESC_TTY} -n 4
 
 #
 # Play startup tune
 #
-#tune_control play -m "MNT255L32O2<CDEFGAB>CDEFGAB>CD" -s 30 &
+# tune_control play -m "MNT255L32O2<CDEFGAB>CDEFGAB>CD" -s 30 &
 
 set OUTPUT_MODE tap_esc
 

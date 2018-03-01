@@ -27,12 +27,20 @@ list(APPEND romfs_dependencies
 	${romfs_temp_dir}/init.d/rcS
 	${romfs_temp_dir}/init.d/rc.autostart
 	)
-	
+
 # copy px4io binary if configured
 if (config_io_board)
 	list(APPEND romfs_dependencies
 		copy_px4io_bin
 		${fw_io_bin}
+		)
+endif()
+
+# Copy Yuneec tap_esc firmware binary if configured
+if (config_tap_esc_fw)
+	list(APPEND romfs_dependencies
+		copy_tap_esc_fw
+		${fw_esc_bin}
 		)
 endif()
 

@@ -47,27 +47,23 @@ px4_add_module(
 	)
 
 # include the yuneec ESC binary
-if(config_io_board STREQUAL V18S)
-	message(STATUS "Building and including ${config_io_board}_ESC")
+if(DEFINED config_tap_esc_fw)
+	set(fw_file_name "${config_tap_esc_fw}_ESC.bin")
+	message(STATUS "ESC firmware: ${fw_file_name}")
 
-	set(fw_esc_bin "${PX4_SOURCE_DIR}/ROMFS/yuneec_device/${config_io_board}_ESC.bin")
-	set(rename_fw_esc_bin "${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/tap_esc.bin")
+	set(fw_esc_bin "${PX4_SOURCE_DIR}/ROMFS/yuneec/esc/${fw_file_name}")
+	set(renamed_fw_esc_bin "${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/tap_esc.bin")
 
-	add_custom_command(OUTPUT ${rename_fw_esc_bin}
+	add_custom_command(OUTPUT ${renamed_fw_esc_bin}
 		COMMAND mkdir -p ${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/
-		COMMAND cp -f ${fw_esc_bin} ${rename_fw_esc_bin}
+		COMMAND cp -f ${fw_esc_bin} ${renamed_fw_esc_bin}
 		DEPENDS ${fw_esc_bin}
-		COMMENT "Copying ${config_io_board}_ESC to ROMFS extras/tap_esc.bin"
-		)
-	if(copy_px4io_bin)
-		message(STATUS "copy_px4io_bin depends  ${rename_fw_esc_bin}")
-		add_dependencies(copy_px4io_bin ${rename_fw_esc_bin})
-	else()
-		message(STATUS "copy_px4io_bin depends  ${rename_fw_esc_bin}")
-		add_custom_target(copy_px4io_bin DEPENDS ${rename_fw_esc_bin})
-	endif()
+		COMMENT "Copying ${fw_esc_bin} to ${renamed_fw_esc_bin}"
+	)
+	add_custom_target(copy_tap_esc_fw DEPENDS ${renamed_fw_esc_bin})
+
 else()
-	message(STATUS "Can not find IO config!")
+	message(WARNING "ESC firmware: Not defined in target cmake. Cannot copy binaries!")
 endif()
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

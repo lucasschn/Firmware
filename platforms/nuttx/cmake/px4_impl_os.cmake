@@ -292,7 +292,7 @@ endfunction()
 function(px4_nuttx_configure)
 	px4_parse_function_args(
 			NAME px4_nuttx_configure
-			ONE_VALUE HWCLASS CONFIG ROMFS ROMFSROOT IO
+			ONE_VALUE HWCLASS CONFIG ROMFS ROMFSROOT IO TAP_ESC
 			REQUIRED HWCLASS
 			ARGN ${ARGN})
 
@@ -320,6 +320,11 @@ function(px4_nuttx_configure)
 	# IO board placed in ROMFS
 	if(config_romfs_root)
 		set(config_io_board ${IO} PARENT_SCOPE)
+	endif()
+
+	# YUNEEC tap_esc firmware placed in ROMFS
+	if(config_romfs_root)
+		set(config_tap_esc_fw ${TAP_ESC} PARENT_SCOPE)
 	endif()
 endfunction()
 

@@ -262,17 +262,29 @@ then
 
 	param save
 
-	# Check for an ESC update
-	# if there is one, flash each ESC
+	#
+	# If necessary and possible, update ESC firmware before starting the ESC driver
+	#
 	if tap_esc_config update_fw -d ${ESC_TTY} -n 4
 	then
+		# Related to issue #1470, the ESCs will not respond to the version query
+		# after an update unless the basic configuration is sent. Hence the config
+		# has been moved here to right after the update.
+		tap_esc_config send_basic_config -d ${ESC_TTY} -n 4
+
+
+		# reboot should theoretically not be required since tap_esc_config runs and
+		# then exits before starting the tap_esc driver. However, currently there are
+		# two problems when omitting the reboot:
+		# 1. When the ESCs are upgraded, tap_esc will be started after the fw has been
+		#    flashed. For some reason the LEDs then blink purple instead of the normal
+		#    pattern.
+		# 2. There is less free memory after an ESC fw upgrade, even though
+		#    tap_esc_config exited. This could indicate a memory leak in the uploader.
+		#
+		echo "ESC firmware updated - rebooting system"
 		reboot
 	fi
-	# tap_esc_config checkcrc -d ${ESC_TTY} -n 4
-
-	# Reboot to be on the safe side that the ESC update
-	# did not consume RAM we are missing to fly
-	# reboot
 fi
 
 

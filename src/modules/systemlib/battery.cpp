@@ -40,6 +40,7 @@
  */
 
 #include "battery.h"
+#include <float.h>
 #include <mathlib/mathlib.h>
 
 Battery::Battery() :
@@ -250,7 +251,7 @@ void
 Battery::computeRemainingTime()
 {
 	/* We can only estimate time when we know capacity and current */
-	if (_capacity.get() > 0.f) {
+	if (_capacity.get() > 0.f && _current_filtered_a > FLT_EPSILON) {
 		const float remaining_capacity_mah = _remaining * _capacity.get();
 		const float current_ma = _current_filtered_a * 1e3f;
 		_time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;

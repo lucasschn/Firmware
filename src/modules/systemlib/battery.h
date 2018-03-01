@@ -121,7 +121,7 @@ private:
 	float _remaining_voltage;		///< normalized battery charge level remaining based on voltage
 	float _remaining;			///< normalized battery charge level, selected based on config param
 	float _scale;
-	unsigned int _time_remaining_s = -1;
+	int _time_remaining_s = -1;
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
 };

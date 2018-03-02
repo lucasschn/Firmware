@@ -38,10 +38,10 @@ matrix:
       services:
         - docker
       env: BUILD_TARGET=clang-tidy
-    - os: osx
-      sudo: true
-      osx_image: xcode9.2
-      env: BUILD_TARGET=tests
+    # - os: osx
+    #   sudo: true
+    #   osx_image: xcode9.2
+    #   env: BUILD_TARGET=tests
 
 cache:
   ccache: true
@@ -59,7 +59,7 @@ script:
     elif [[ "${BUILD_TARGET}" = "check_format" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'make check_format';
     elif [[ "${BUILD_TARGET}" = "tests_linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      ./Tools/docker_run.sh 'make tests';
+     ./Tools/docker_run.sh 'make tests';
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     elif [ "${BUILD_TARGET}" = "clang-tidy" ]; then

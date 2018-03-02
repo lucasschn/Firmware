@@ -242,7 +242,6 @@ private:
 	orb_advert_t _land_detector_pub;
 	orb_advert_t _time_offset_pub;
 	orb_advert_t _follow_target_pub;
-	orb_advert_t _led_control_pub;
 	orb_advert_t _transponder_report_pub;
 	orb_advert_t _collision_report_pub;
 	orb_advert_t _debug_key_value_pub;

@@ -84,6 +84,30 @@ then
 	param set MC_TPA_BREAK_I 0.6
 	param set MC_TPA_BREAK_D 0.65
 
+	# ekf2
+	# these parameters are for first tests
+	param set EKF2_AID_MASK 1
+	param set EKF2_IMU_POS_X 0.06
+	param set EKF2_IMU_POS_Y 0.0
+	param set EKF2_IMU_POS_Z -0.02
+	param set EKF2_GPS_POS_X 0.06
+	param set EKF2_GPS_POS_Y 0.0
+	param set EKF2_GPS_POS_Z -0.02
+	param set EKF2_MIN_OBS_DT 50
+	param set EKF2_MAG_DELAY 0
+	param set EKF2_BARO_DELAY 0
+	param set EKF2_GPS_DELAY 100
+	param set EKF2_OF_DELAY 5
+	param set SYS_MC_EST_GROUP 2
+	param set EKF2_BCOEF_X 0.0
+	param set EKF2_BCOEF_Y 0.0
+	param set EKF2_PCOEF_XP 0.0
+	param set EKF2_PCOEF_XN 0.0
+	param set EKF2_PCOEF_Y 0.0
+	param set EKF2_PCOEF_Z 0.0
+	# temp for replay wind and baro compensation tuning
+	param set SDLOG_MODE 1
+
 	# Battery settings
 	param set BAT_V_EMPTY 3.47
 	param set BAT_V_CHARGED 4.3

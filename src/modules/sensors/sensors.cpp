@@ -625,7 +625,8 @@ Sensors::run()
 
 	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
 
-_esc_status_sub = orb_subscribe(ORB_ID(esc_status));
+	_esc_status_sub = orb_subscribe(ORB_ID(esc_status));
+
 	/* get a set of initial values */
 	_voted_sensors_update.sensors_poll(raw);
 

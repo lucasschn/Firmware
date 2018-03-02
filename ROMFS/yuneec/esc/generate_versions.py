@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-binaries = ['H520_ESC.bin', 'OB_ESC.bin', 'V18S_ESC.bin']
+binaries = ['H520_ESC.bin', 'V18S_ESC.bin']
 output_file = 'versions.md'
 
 def read_version(file_path):

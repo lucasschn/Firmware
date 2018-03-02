@@ -9,8 +9,11 @@ git:
 # white list
 branches:
   only:
-  - tap-v3
+  - develop
   - /^v[0-9].*$/
+
+env:
+  - BRANCH=develop
 
 matrix:
   fast_finish: true
@@ -112,19 +115,19 @@ after_success:
         upload_to_s3 s3autopilot/timestamp        autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/timestamp text/plain;
         upload_to_s3 s3autopilot/changelog        autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/changelog text/plain;
       else
-        upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tap-v3/$release_type/latest/autopilot.yuneec application/octet-stream;
-        upload_to_s3 s3autopilot/version          autopilot/tap-v3/$release_type/latest/version text/plain;
-        upload_to_s3 s3autopilot/hash             autopilot/tap-v3/$release_type/latest/hash text/plain;
-        upload_to_s3 s3autopilot/git              autopilot/tap-v3/$release_type/latest/git text/plain;
-        upload_to_s3 s3autopilot/timestamp        autopilot/tap-v3/$release_type/latest/timestamp text/plain;
-        upload_to_s3 s3autopilot/changelog        autopilot/tap-v3/$release_type/latest/changelog text/plain;
+        upload_to_s3 s3autopilot/autopilot.yuneec autopilot/$BRANCH/$release_type/latest/autopilot.yuneec application/octet-stream;
+        upload_to_s3 s3autopilot/version          autopilot/$BRANCH/$release_type/latest/version text/plain;
+        upload_to_s3 s3autopilot/hash             autopilot/$BRANCH/$release_type/latest/hash text/plain;
+        upload_to_s3 s3autopilot/git              autopilot/$BRANCH/$release_type/latest/git text/plain;
+        upload_to_s3 s3autopilot/timestamp        autopilot/$BRANCH/$release_type/latest/timestamp text/plain;
+        upload_to_s3 s3autopilot/changelog        autopilot/$BRANCH/$release_type/latest/changelog text/plain;
 
-        upload_to_s3 s3autopilot/autopilot.yuneec autopilot/tap-v3/$release_type/${fwversion}/autopilot.yuneec application/octet-stream;
-        upload_to_s3 s3autopilot/version          autopilot/tap-v3/$release_type/${fwversion}/version text/plain;
-        upload_to_s3 s3autopilot/hash             autopilot/tap-v3/$release_type/${fwversion}/hash text/plain;
-        upload_to_s3 s3autopilot/git              autopilot/tap-v3/$release_type/${fwversion}/git text/plain;
-        upload_to_s3 s3autopilot/timestamp        autopilot/tap-v3/$release_type/${fwversion}/timestamp text/plain;
-        upload_to_s3 s3autopilot/changelog        autopilot/tap-v3/$release_type/${fwversion}/changelog text/plain;
+        upload_to_s3 s3autopilot/autopilot.yuneec autopilot/$BRANCH/$release_type/${fwversion}/autopilot.yuneec application/octet-stream;
+        upload_to_s3 s3autopilot/version          autopilot/$BRANCH/$release_type/${fwversion}/version text/plain;
+        upload_to_s3 s3autopilot/hash             autopilot/$BRANCH/$release_type/${fwversion}/hash text/plain;
+        upload_to_s3 s3autopilot/git              autopilot/$BRANCH/$release_type/${fwversion}/git text/plain;
+        upload_to_s3 s3autopilot/timestamp        autopilot/$BRANCH/$release_type/${fwversion}/timestamp text/plain;
+        upload_to_s3 s3autopilot/changelog        autopilot/$BRANCH/$release_type/${fwversion}/changelog text/plain;
       fi;
     fi;
 

@@ -61,7 +61,7 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 #include <v2.0/mavlink_types.h>
-#include <v2.0/common/mavlink.h>
+#include <v2.0/yuneec/mavlink.h>
 #include <geo/geo.h>
 namespace simulator
 {

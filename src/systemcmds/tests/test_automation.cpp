@@ -8,13 +8,14 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/battery_status.h>
 
 #include <commander/state_machine_helper.h>
 
 #include <platforms/px4_tasks.h>
 
-//#undef PX4_DEBUG
-//#define PX4_DEBUG PX4_INFO
+#undef PX4_DEBUG
+#define PX4_DEBUG PX4_INFO
 
 extern transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, const char *armedBy);
 
@@ -92,18 +93,24 @@ static int daemon_task = -1;
 static orb_advert_t vehicle_command_pub = nullptr;
 static orb_advert_t mavlink_log_pub = nullptr;
 static orb_advert_t manual_control_setpoint_pub = nullptr;
+static orb_advert_t battery_status_pub = nullptr;
 
 static const int mavlink_system_id = 1;
 static const int mavlink_component_id = 1;
+
+typedef enum {
+	AUTOMATION_AUTO_LAND = 0,
+	AUTOMATION_AUTO_RTL  = 1
+} automation_land_t ;
 
 class AutomationTest : public UnitTest
 {
 public:
 	AutomationTest();
-	~AutomationTest();
+	virtual ~AutomationTest();
 	virtual bool run_tests();
 
-private:
+protected:
 	bool enableFailSafe(bool);
 
 	//internal functions
@@ -112,9 +119,10 @@ private:
 	bool _takeOff(float, int);
 	bool _land(int);
 	bool _manualControl(float, float, float, float, int);
-	bool _checkLandedStatus();
+	bool _checkLandedStatus(int, automation_land_t);
 	bool _rtlForFailSafe(int);
 	bool _isGPSAvaiable();
+	void _saveLandingPosition();
 
 	//tests
 	bool takeOffTest();
@@ -122,8 +130,9 @@ private:
 	bool manualTest();
 	bool failSafeTest();
 
-private:
-	vehicle_local_position_s _takeoff_vehicle_local_position_status;
+protected:
+	vehicle_local_position_s _takeoff_vehicle_local_position_status; //local position when take off
+	vehicle_local_position_s _landing_vehicle_local_position_status; //local position when start landing
 };
 
 static void updateTopicTask(int argc, char *argv[])
@@ -197,6 +206,11 @@ AutomationTest::~AutomationTest()
 		manual_control_setpoint_pub = nullptr;
 	}
 
+	if (battery_status_pub != nullptr) {
+		orb_unadvertise(battery_status_pub);
+		battery_status_pub = nullptr;
+	}
+
 	for (auto it : uORB_topic_list) {
 		PX4_DEBUG("Unsubscribe %s", it->name);
 
@@ -218,6 +232,9 @@ bool AutomationTest::enableFailSafe(bool enabled)
 
 	int navigator_rclost_action = enabled ? 2 : 0;
 	ut_assert_true(param_set(param_find("NAV_RCL_ACT"), &navigator_rclost_action) == OK);
+
+	float minimal_battery_percentage = 50.f;
+	ut_assert_true(param_set(param_find("SIM_BAT_MIN_PCT"), &minimal_battery_percentage) == OK);
 
 	return true;
 }
@@ -310,8 +327,23 @@ bool AutomationTest::_takeOff(float altitude, int waitTimeOutInSecond)
 	return true;
 }
 
-bool AutomationTest::_checkLandedStatus()
+bool AutomationTest::_checkLandedStatus(int waitTimeOutInSecond, automation_land_t land_type)
 {
+	int runningSeconds;
+
+	for (runningSeconds = 0 ; runningSeconds < waitTimeOutInSecond; runningSeconds++) {
+		if (vehicle_land_detected_status.landed) {
+			break;
+		}
+
+		sleep(1);
+	}
+
+	//Assert not time out
+	ut_assert_true(runningSeconds < waitTimeOutInSecond);
+
+	const float max_local_position_diff = (land_type == AUTOMATION_AUTO_RTL) ? 0.06 : 0.15;
+
 	PX4_DEBUG("vehicle_local_position_status.z = %f", vehicle_local_position_status.z);
 
 	//Assert landed is detected
@@ -320,11 +352,26 @@ bool AutomationTest::_checkLandedStatus()
 	//Assert the altitude is less than 0.5m after landing
 	ut_assert_true(vehicle_local_position_status.z > -0.5);
 
+	PX4_INFO("land_type = %d", land_type);
+	const vehicle_local_position_s &expected_landing_local_position = (land_type == AUTOMATION_AUTO_RTL) ?
+			_takeoff_vehicle_local_position_status : _landing_vehicle_local_position_status;
+
+	PX4_DEBUG("Vehicle local position difference from expected landing location: x = %f, y = %f, z = %f",
+		  std::fabs(expected_landing_local_position.x - vehicle_local_position_status.x),
+		  std::fabs(expected_landing_local_position.y - vehicle_local_position_status.y),
+		  std::fabs(expected_landing_local_position.z - vehicle_local_position_status.z));
+	ut_assert_true((std::fabs(expected_landing_local_position.x - vehicle_local_position_status.x) <
+			max_local_position_diff));
+	ut_assert_true((std::fabs(expected_landing_local_position.y - vehicle_local_position_status.y) <
+			max_local_position_diff));
+
 	return true;
 }
 
 bool AutomationTest::_land(int waitTimeOutInSecond)
 {
+	_saveLandingPosition();
+
 	struct vehicle_command_s cmd = {
 		.timestamp = hrt_absolute_time(),
 		.param5 = NAN,
@@ -346,20 +393,7 @@ bool AutomationTest::_land(int waitTimeOutInSecond)
 		orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, &cmd);
 	}
 
-	int runningSeconds;
-
-	for (runningSeconds = 0 ; runningSeconds < waitTimeOutInSecond; runningSeconds++) {
-		if (vehicle_land_detected_status.landed) {
-			break;
-		}
-
-		sleep(1);
-	}
-
-	//Assert not time out
-	ut_assert_true(runningSeconds < waitTimeOutInSecond);
-
-	_checkLandedStatus();
+	ut_assert_true(_checkLandedStatus(waitTimeOutInSecond, AUTOMATION_AUTO_LAND));
 
 	//Sometimes it is disarmed automatically already,
 	//so it cannot assert true here
@@ -370,33 +404,9 @@ bool AutomationTest::_land(int waitTimeOutInSecond)
 
 bool AutomationTest::_rtlForFailSafe(int waitTimeOutInSecond)
 {
-	const float max_local_position_diff = 0.06;
-
 	ut_assert_true(enableFailSafe(true));
 
-	int runningSeconds;
-
-	for (runningSeconds = 0 ; runningSeconds < waitTimeOutInSecond; runningSeconds++) {
-		if (vehicle_land_detected_status.landed) {
-			break;
-		}
-
-		sleep(1);
-	}
-
-	//Assert not time out
-	ut_assert_true(runningSeconds < waitTimeOutInSecond);
-
-	_checkLandedStatus();
-
-	PX4_DEBUG("Vehicle local position difference from take off: x = %f, y = %f, z = %f",
-		  std::fabs(_takeoff_vehicle_local_position_status.x - vehicle_local_position_status.x),
-		  std::fabs(_takeoff_vehicle_local_position_status.y - vehicle_local_position_status.y),
-		  std::fabs(_takeoff_vehicle_local_position_status.z - vehicle_local_position_status.z));
-	ut_assert_true((std::fabs(_takeoff_vehicle_local_position_status.x - vehicle_local_position_status.x) <
-			max_local_position_diff));
-	ut_assert_true((std::fabs(_takeoff_vehicle_local_position_status.y - vehicle_local_position_status.y) <
-			max_local_position_diff));
+	ut_assert_true(_checkLandedStatus(waitTimeOutInSecond, AUTOMATION_AUTO_RTL));
 
 	_disarm();
 
@@ -406,6 +416,11 @@ bool AutomationTest::_rtlForFailSafe(int waitTimeOutInSecond)
 bool AutomationTest::_isGPSAvaiable()
 {
 	return vehicle_global_position_uORB_topic_obj.is_updated;
+}
+
+void AutomationTest::_saveLandingPosition()
+{
+	memcpy(&_landing_vehicle_local_position_status, &vehicle_local_position_status, sizeof(vehicle_local_position_s));
 }
 
 bool AutomationTest::_manualControl(float x, float y, float z, float r, int waitTimeOutInSecond)
@@ -477,7 +492,7 @@ bool AutomationTest::failSafeTest()
 	//Move drone to east in y direction
 	_manualControl(0, 0.5, 0.5, 0, 5);
 
-	ut_assert_true(_rtlForFailSafe(60));
+	ut_assert_true(_rtlForFailSafe(120));
 
 	//Disable fail safe for other tests
 	ut_assert_true(enableFailSafe(false));
@@ -495,4 +510,93 @@ bool AutomationTest::run_tests()
 	return (_tests_failed == 0);
 }
 
+class BatteryTest : public AutomationTest
+{
+public:
+	BatteryTest() {};
+	virtual ~BatteryTest() {};
+	virtual bool run_tests();
+
+private:
+	//internal functions
+	bool _batteryWarning(int, int);
+
+	//tests
+	bool batteryTest();
+
+};
+
+bool BatteryTest::_batteryWarning(int warningLevel, int waitTimeOutInSecond)
+{
+	ut_assert_true(warningLevel == battery_status_s::BATTERY_WARNING_CRITICAL ||
+		       warningLevel == battery_status_s::BATTERY_WARNING_EMERGENCY);
+
+	//Limit battery voltage to fly normally
+	float minimal_battery_percentage = 50.0f;
+	ut_assert_true(param_set(param_find("SIM_BAT_MIN_PCT"), &minimal_battery_percentage) == OK);
+
+	ut_assert_true(_takeOff(5, 10));
+
+	//Move drone to north in x direction
+	_manualControl(0.5, 0, 0.5, 0, 5);
+
+	//Move drone to east in y direction
+	_manualControl(0, 0.5, 0.5, 0, 5);
+
+	//Stop
+	_manualControl(0, 0, 0.5, 0, 2);
+
+	sleep(10);
+	_saveLandingPosition();
+
+	//Simulate battery level
+	minimal_battery_percentage = (warningLevel == battery_status_s::BATTERY_WARNING_CRITICAL) ? 94.0f : 97.0f;
+	ut_assert_true(param_set(param_find("SIM_BAT_MIN_PCT"), &minimal_battery_percentage) == OK);
+
+	//Auto RTL for critical battery level and auto land for emergency battery level
+	ut_assert_true(_checkLandedStatus(waitTimeOutInSecond,
+					  warningLevel == battery_status_s::BATTERY_WARNING_CRITICAL ? AUTOMATION_AUTO_RTL : AUTOMATION_AUTO_LAND));
+
+	_disarm();
+
+	//Low battery and cannot arm
+	ut_assert_false(_arm());
+
+	return true;
+}
+
+bool BatteryTest::batteryTest()
+{
+	ut_assert_true(argc == 2);
+
+	uint8_t batteryLevel = battery_status_s::BATTERY_WARNING_NONE;
+
+	if (!strcmp(argv[1], "critical")) {
+		batteryLevel = battery_status_s::BATTERY_WARNING_CRITICAL;
+
+	} else if (!strcmp(argv[1], "emergency")) {
+		batteryLevel = battery_status_s::BATTERY_WARNING_EMERGENCY;
+	}
+
+	ut_assert_true(batteryLevel != battery_status_s::BATTERY_WARNING_NONE);
+
+	//Land at current position when battery low
+	int low_battery_action = 3;
+	ut_assert_true(param_set(param_find("COM_LOW_BAT_ACT"), &low_battery_action) == OK);
+
+	//Emergency battery level test
+	ut_assert_true(_batteryWarning(batteryLevel, 120));
+
+	return true;
+}
+
+bool BatteryTest::run_tests()
+{
+	ut_assert_true(enableFailSafe(false));
+	ut_run_test(batteryTest);
+
+	return (_tests_failed == 0);
+}
+
 ut_declare_test_c(test_automation, AutomationTest)
+ut_declare_test_c(test_battery, BatteryTest)

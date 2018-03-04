@@ -43,6 +43,8 @@
 		int test_function(int argc, char *argv[])		\
 		{												\
 			test_class* test = new test_class();		\
+			test->argc = argc;							\
+			test->argv = argv;							\
 			bool success = test->run_tests();			\
 			test->print_results();						\
 			delete test;						\
@@ -57,6 +59,9 @@ public:
 
 	UnitTest() = default;
 	virtual ~UnitTest() = default;
+
+	int argc;
+	char **argv;
 
 	/// @brief Override to run your unit tests. Unit tests should be called using ut_run_test macro.
 	/// @return true: all unit tests succeeded, false: one or more unit tests failed

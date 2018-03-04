@@ -129,6 +129,7 @@ const struct {
 	{"ctlmath",		test_controlmath, 0},
 	{"smoothz", 	test_smooth_z, 0},
 	{"automation",		test_automation, 0},
+	{"battery",		test_battery, 0},
 	{NULL,			NULL, 		0}
 };
 

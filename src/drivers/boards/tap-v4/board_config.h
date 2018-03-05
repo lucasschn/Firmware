@@ -42,6 +42,7 @@
 
 // undefine the serial port of the RC not used on OB rc input over mavlink
 #undef RC_SERIAL_PORT
+#define RC_SERIAL_PORT "/dev/ttyS5"
 
 #define BOARD_TAP_ESC_NO_VERIFY_CONFIG
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc

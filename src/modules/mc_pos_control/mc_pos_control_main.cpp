@@ -2272,9 +2272,6 @@ void MulticopterPositionControl::control_auto()
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
-		const bool realsense_avoidance_on = _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON
-						    && _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
-
 		const bool follow_me_target_on = _pos_sp_triplet.current.yawspeed_valid
 						 && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
 
@@ -2283,7 +2280,7 @@ void MulticopterPositionControl::control_auto()
 			// default is triplet yaw-speed
 			float yaw_speed = _pos_sp_triplet.current.yawspeed;
 
-			if (realsense_avoidance_on) {
+			if (use_obstacle_avoidance()) {
 				yaw_speed = _realsense_avoidance_setpoint.yawspeed;
 			}
 
@@ -3358,11 +3355,8 @@ MulticopterPositionControl::generate_attitude_setpoint()
 
 		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
 
-		// check if avoidance is on and the vehicle is not hovering
-		const bool realsense_avoidance_on = _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON
-						    && _realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
-
-		if (realsense_avoidance_on) {
+		/* check if avoidance is on */
+		if (use_obstacle_avoidance()) {
 			_att_sp.yaw_sp_move_rate = _realsense_avoidance_setpoint.yawspeed;
 		}
 

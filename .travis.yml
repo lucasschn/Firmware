@@ -38,17 +38,17 @@ matrix:
       services:
         - docker
       env: BUILD_TARGET=clang-tidy
-    # - os: osx
-    #   sudo: true
-    #   osx_image: xcode9.2
-    #   env: BUILD_TARGET=tests
+    - os: osx
+      sudo: true
+      osx_image: xcode9.2
+      env: BUILD_TARGET=tests
 
 cache:
   ccache: true
 
 before_install:
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then sudo apt-get install genromfs && pip install empy jinja2; fi
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew tap PX4/px4; brew update; brew upgrade; brew install px4-dev; brew tap osrf/simulation; brew install gazebo7 opencv; brew install s3cmd && sudo -H easy_install pip && sudo -H pip install empy jinja2; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew tap PX4/px4; brew update; brew upgrade; brew install px4-dev; brew tap osrf/simulation; brew install gazebo7 opencv; brew install s3cmd && sudo -H easy_install pip && sudo -H pip install empy jinja2 toml numpy; fi
   - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then pip install --user s3cmd pycrypto pyserial; fi
 
 script:
@@ -59,7 +59,7 @@ script:
     elif [[ "${BUILD_TARGET}" = "check_format" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'make check_format';
     elif [[ "${BUILD_TARGET}" = "tests_linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-     ./Tools/docker_run.sh 'make tests';
+      ./Tools/docker_run.sh 'make tests';
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     elif [ "${BUILD_TARGET}" = "clang-tidy" ]; then

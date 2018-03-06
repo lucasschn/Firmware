@@ -200,6 +200,7 @@ REALSENSE::REALSENSE(const char *port):
 	_attitude {},
 	_manual{},
 	_vehicle_status{},
+	_home_pos{},
 	_work{},
 	_rb_gyro(nullptr),
 	_yaw(0.0f),
@@ -353,6 +354,12 @@ REALSENSE::poll_subscriptions()				 // update all msg
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	}
+
+	orb_check(_home_pos_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
 	}
 
 }
@@ -647,7 +654,7 @@ REALSENSE::_read_obstacle_avoidance_data()
 					realsense_avoidance_setpoint.timestamp = hrt_absolute_time();
 
 					/* Don't use realsense if we are above home within acceptance radius */
-					float nav_rad = 0;
+					float nav_rad = 0.0f;
 					param_get(param_find("NAV_ACC_RAD"), &nav_rad);
 
 					const float dist_to_home_xy =  matrix::Vector2f(_home_pos.x - _local_pos.x, _home_pos.y - _local_pos.y).length();
@@ -655,7 +662,6 @@ REALSENSE::_read_obstacle_avoidance_data()
 
 					const bool use_realsense = (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
 								   && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL)
-								   && (_realsense_output_flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING)
 								   && !close_to_home;
 
 					if (use_realsense) {
@@ -829,6 +835,7 @@ REALSENSE::_init_realsense() 							 // init - initialise the sensor
 
 		_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 		_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+		_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
 		_initialized = true;
 	}

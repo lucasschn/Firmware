@@ -37,6 +37,10 @@ then
 	param set MC_YAWRAUTO_MAX 80.0
 	param set MC_YAW_P 2.8
 
+	# filtering
+	param set MC_DTERM_CUTOFF 100
+	param set IMU_GYRO_CUTOFF 150
+
 	# hover thrust
 	param set MPC_THR_HOVER 0.525
 

@@ -855,6 +855,8 @@ def main():
                     except Exception:
 
                         if not up.send_reboot():
+                            # close the port
+                            up.close()
                             break
 
                         # wait for the reboot, without we might run into Serial I/O Error 5

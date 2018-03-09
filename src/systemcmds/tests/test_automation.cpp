@@ -36,8 +36,6 @@ public:
 	virtual void dump() = 0;
 };
 
-static std::vector<uORB_topic *> uORB_topic_list;
-
 #define DECLARE_UORB_SUB(TOPIC) \
 	static TOPIC##_s TOPIC##_status; \
 	class TOPIC##_uORB_topic : public uORB_topic { \
@@ -85,23 +83,33 @@ void vehicle_land_detected_uORB_topic::dump()
 	PX4_DEBUG("land detected = %d", vehicle_land_detected_status.landed);
 }
 
-//task control
-static bool task_should_exit = false;
-static int daemon_task = -1;
+DECLARE_UORB_SUB(commander_state)
+void commander_state_uORB_topic::dump()
+{
+	PX4_DEBUG("main_state = %d", commander_state_status.main_state);
+}
 
-//advertised topics
-static orb_advert_t vehicle_command_pub = nullptr;
-static orb_advert_t mavlink_log_pub = nullptr;
-static orb_advert_t manual_control_setpoint_pub = nullptr;
-static orb_advert_t battery_status_pub = nullptr;
+DECLARE_UORB_SUB(vehicle_status)
+void vehicle_status_uORB_topic::dump()
+{
+	PX4_DEBUG("nav_state = %d", vehicle_status_status.nav_state);
+}
 
-static const int mavlink_system_id = 1;
-static const int mavlink_component_id = 1;
+#define PUBLISH_TOPIC(topic, data) \
+	if (topic##_pub == nullptr) { \
+		topic##_pub = orb_advertise(ORB_ID(topic), &data); \
+	} else { \
+		orb_publish(ORB_ID(topic), topic##_pub, &data); \
+	}
 
-typedef enum {
-	AUTOMATION_AUTO_LAND = 0,
-	AUTOMATION_AUTO_RTL  = 1
-} automation_land_t ;
+#define WAIT_FOR_CONDITION(condition, timeout) \
+	for (int i = 0; i < timeout; i++) { \
+		if (condition) { \
+			break; \
+		} \
+		sleep(1); \
+		ut_assert_true(i<timeout); \
+	}
 
 class AutomationTest : public UnitTest
 {
@@ -110,36 +118,68 @@ public:
 	virtual ~AutomationTest();
 	virtual bool run_tests();
 
-protected:
-	bool enableFailSafe(bool);
+	bool task_should_exit;
 
+	friend int updateTopicTask(int argc, char *argv[]);
+	friend int manualControlTask(int argc, char *argv[]);
+
+	typedef enum {
+		AUTOMATION_AUTO_LAND = 0,
+		AUTOMATION_AUTO_RTL  = 1
+	} automation_land_t ;
+protected:
 	//internal functions
 	bool _arm();
 	bool _disarm();
 	bool _takeOff(float, int);
 	bool _land(int);
-	bool _manualControl(float, float, float, float, int);
-	bool _checkLandedStatus(int, automation_land_t);
-	bool _rtlForFailSafe(int);
-	bool _isGPSAvaiable();
+	void _sendManualControl();
+	void _setManualControl(float, float, float, float);
+	void _setManualControlAndWait(float, float, float, float, int);
+	bool _assertLandedStatus(int, automation_land_t);
+	bool _assertState(int, int); //Assert main state and navigate state
+	bool _rtlForRCLost(int);
+	bool _isGPSAvailable();
 	void _saveLandingPosition();
 
 	//tests
 	bool takeOffTest();
 	bool landTest();
 	bool manualTest();
-	bool failSafeTest();
+	bool rcLostTest();
 
 protected:
 	vehicle_local_position_s _takeoff_vehicle_local_position_status; //local position when take off
 	vehicle_local_position_s _landing_vehicle_local_position_status; //local position when start landing
+	manual_control_setpoint_s _manual_control_setpoint_data; //manual control setpoint data
+
+private:
+	//advertised topics
+	orb_advert_t vehicle_command_pub = nullptr;
+	orb_advert_t mavlink_log_pub = nullptr;
+	orb_advert_t manual_control_setpoint_pub = nullptr;
+	orb_advert_t battery_status_pub = nullptr;
+
+	const uint8_t mavlink_system_id = 1;
+	const uint8_t mavlink_component_id = 1;
+
+	int update_topic_task;
+	int manual_control_task;
+	pthread_mutex_t	manual_control_mutex;
+	bool publish_manual_control;
+
+	std::vector<uORB_topic *> uORB_topic_list;
 };
 
-static void updateTopicTask(int argc, char *argv[])
-{
-	while (!task_should_exit) {
+//Only one instance is created for each test session. We use this instance
+//to access test memembers, instead of using static variables.
+static AutomationTest *automationTest = nullptr;
 
-		for (auto it : uORB_topic_list) {
+int updateTopicTask(int argc, char *argv[])
+{
+	while (!automationTest->task_should_exit) {
+
+		for (auto it : automationTest->uORB_topic_list) {
 			bool updated;
 			orb_check(it->subscribe, &updated);
 
@@ -153,13 +193,34 @@ static void updateTopicTask(int argc, char *argv[])
 
 		sleep(1);
 	}
+
+	return 0;
+}
+
+//The task is reponsible for sending out manual control message at background.
+//Add a dedicate task is to avoid loops in other logic.
+int manualControlTask(int argc, char *argv[])
+{
+	while (!automationTest->task_should_exit) {
+		if (automationTest->publish_manual_control) {
+			automationTest->_sendManualControl();
+		}
+
+		usleep(100000);
+	}
+
+	return 0;
 }
 
 AutomationTest::AutomationTest()
 {
+	automationTest = this;
+
 	APPEND_UORB_SUB(vehicle_local_position);
 	APPEND_UORB_SUB(vehicle_global_position);
 	APPEND_UORB_SUB(vehicle_land_detected);
+	APPEND_UORB_SUB(commander_state);
+	APPEND_UORB_SUB(vehicle_status);
 
 	for (auto it : uORB_topic_list) {
 		PX4_DEBUG("Subscribe %s", it->name);
@@ -169,26 +230,42 @@ AutomationTest::AutomationTest()
 		}
 	}
 
-	if (daemon_task < 0) {
-		task_should_exit = false;
-		daemon_task = px4_task_spawn_cmd("automation",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_DEFAULT + 40,
-						 2048,
-						 (px4_main_t)&updateTopicTask,
-						 nullptr);
-	}
+	//Set initial RC state
+	_setManualControl(0, 0, 0.5, 0);
 
+	//Reset parameters which could be updated in previous test
+	float minimal_battery_percentage = 50.f;
+	param_set(param_find("SIM_BAT_MIN_PCT"), &minimal_battery_percentage);
+
+	int navigator_datalinklost_action =  0;
+	param_set(param_find("NAV_DLL_ACT"), &navigator_datalinklost_action);
+
+	task_should_exit = false;
+	update_topic_task = px4_task_spawn_cmd("update topic task",
+					       SCHED_DEFAULT,
+					       SCHED_PRIORITY_DEFAULT + 40,
+					       2048,
+					       (px4_main_t)&updateTopicTask,
+					       nullptr);
+
+	//By default, manul control message is published
+	publish_manual_control = true;
+	pthread_mutex_init(&manual_control_mutex, nullptr);
+	manual_control_task = px4_task_spawn_cmd("manual control task",
+			      SCHED_DEFAULT,
+			      SCHED_PRIORITY_DEFAULT + 40,
+			      2048,
+			      (px4_main_t)&manualControlTask,
+			      nullptr);
 }
 
 AutomationTest::~AutomationTest()
 {
 	task_should_exit = true;
 
-	if (daemon_task > -1) {
-		px4_task_delete(daemon_task);
-		daemon_task = -1;
-	}
+	px4_task_delete(update_topic_task);
+	px4_task_delete(manual_control_task);
+	pthread_mutex_destroy(&manual_control_mutex);
 
 	//unadvertise topics
 	if (vehicle_command_pub != nullptr) {
@@ -223,22 +300,6 @@ AutomationTest::~AutomationTest()
 	uORB_topic_list.clear();
 }
 
-bool AutomationTest::enableFailSafe(bool enabled)
-{
-	//Disable datalink lost and rc lost action to avoid RTL,
-	//since the automation test is done without RC or datalink.
-	int navigator_datalinklost_action = enabled ? 2 : 0;
-	ut_assert_true(param_set(param_find("NAV_DLL_ACT"), &navigator_datalinklost_action) == OK);
-
-	int navigator_rclost_action = enabled ? 2 : 0;
-	ut_assert_true(param_set(param_find("NAV_RCL_ACT"), &navigator_rclost_action) == OK);
-
-	float minimal_battery_percentage = 50.f;
-	ut_assert_true(param_set(param_find("SIM_BAT_MIN_PCT"), &minimal_battery_percentage) == OK);
-
-	return true;
-}
-
 bool AutomationTest::_arm()
 {
 	return (TRANSITION_CHANGED == arm_disarm(true, &mavlink_log_pub, "Automation"));
@@ -260,21 +321,15 @@ bool AutomationTest::_takeOff(float altitude, int waitTimeOutInSecond)
 	ut_assert_true(altitude > 0);
 	ut_assert_true(param_set(param_find("MIS_TAKEOFF_ALT"), &mis_takeoff_alt) == OK);
 
-	//wait for GPS
-	for (int i = 0; i < max_wait_gps_seconds; i++) {
-		if (_isGPSAvaiable()) {
-			//Wait a while for status stable after GPS available
-			sleep(5);
-			break;
-		}
+	WAIT_FOR_CONDITION(_isGPSAvailable(), max_wait_gps_seconds);
 
-		sleep(1);
-	}
+	//Wait a while for status stable after GPS available
+	sleep(5);
 
 	//Save local position status when taking off
 	memcpy(&_takeoff_vehicle_local_position_status, &vehicle_local_position_status, sizeof(vehicle_local_position_s));
 
-	ut_assert_true(_isGPSAvaiable());
+	ut_assert_true(_isGPSAvailable());
 	ut_assert_true(_arm());
 
 	struct vehicle_command_s cmd = {
@@ -291,28 +346,18 @@ bool AutomationTest::_takeOff(float altitude, int waitTimeOutInSecond)
 		.target_component = mavlink_component_id
 	};
 
-	if (vehicle_command_pub == nullptr) {
-		vehicle_command_pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, &cmd);
-	}
+	PUBLISH_TOPIC(vehicle_command, cmd);
 
 	ut_assert_true(param_get(param_find("MIS_TAKEOFF_ALT"), &mis_takeoff_alt) == OK);
 	PX4_DEBUG("mis_takeoff_alt = %f", mis_takeoff_alt);
 
-	int runningSeconds;
+	//Wait for state change
+	sleep(1);
+	ut_assert_true(_assertState(commander_state_s::MAIN_STATE_AUTO_TAKEOFF,
+				    vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
 
-	for (runningSeconds = 0 ; runningSeconds < waitTimeOutInSecond; runningSeconds++) {
-		if (std::fabs(mis_takeoff_alt + vehicle_local_position_status.z) < min_altitude_delta) {
-			break;
-		}
-
-		sleep(1);
-	}
-
-	//Assert not time out
-	ut_assert_true(runningSeconds < waitTimeOutInSecond);
+	WAIT_FOR_CONDITION((std::fabs(mis_takeoff_alt + vehicle_local_position_status.z) < min_altitude_delta),
+			   waitTimeOutInSecond);
 
 	//Assert vertical speed is zero. Sleep a while to let it stable.
 	sleep(15);
@@ -320,29 +365,21 @@ bool AutomationTest::_takeOff(float altitude, int waitTimeOutInSecond)
 
 	//Assert that current position is same as takeoff altitude.
 	//The local_pos.z direction is downward, so the difference = mis_takeoff_alt - ( - local_pos.z)
+	PX4_DEBUG("Take off altitude difference = %f", mis_takeoff_alt + vehicle_local_position_status.z);
 	ut_assert_true((std::fabs(mis_takeoff_alt + vehicle_local_position_status.z) < min_altitude_delta));
 
-	PX4_DEBUG("diff = %f", mis_takeoff_alt + vehicle_local_position_status.z);
+	//Assert drone is in loiter state
+	ut_assert_true(_assertState(commander_state_s::MAIN_STATE_AUTO_LOITER,
+				    vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER));
 
 	return true;
 }
 
-bool AutomationTest::_checkLandedStatus(int waitTimeOutInSecond, automation_land_t land_type)
+bool AutomationTest::_assertLandedStatus(int waitTimeOutInSecond, automation_land_t land_type)
 {
-	int runningSeconds;
+	const float max_local_position_diff = 0.2;
 
-	for (runningSeconds = 0 ; runningSeconds < waitTimeOutInSecond; runningSeconds++) {
-		if (vehicle_land_detected_status.landed) {
-			break;
-		}
-
-		sleep(1);
-	}
-
-	//Assert not time out
-	ut_assert_true(runningSeconds < waitTimeOutInSecond);
-
-	const float max_local_position_diff = (land_type == AUTOMATION_AUTO_RTL) ? 0.06 : 0.15;
+	WAIT_FOR_CONDITION(vehicle_land_detected_status.landed, waitTimeOutInSecond);
 
 	PX4_DEBUG("vehicle_local_position_status.z = %f", vehicle_local_position_status.z);
 
@@ -352,7 +389,7 @@ bool AutomationTest::_checkLandedStatus(int waitTimeOutInSecond, automation_land
 	//Assert the altitude is less than 0.5m after landing
 	ut_assert_true(vehicle_local_position_status.z > -0.5);
 
-	PX4_INFO("land_type = %d", land_type);
+	PX4_DEBUG("land_type = %d", land_type);
 	const vehicle_local_position_s &expected_landing_local_position = (land_type == AUTOMATION_AUTO_RTL) ?
 			_takeoff_vehicle_local_position_status : _landing_vehicle_local_position_status;
 
@@ -364,6 +401,14 @@ bool AutomationTest::_checkLandedStatus(int waitTimeOutInSecond, automation_land
 			max_local_position_diff));
 	ut_assert_true((std::fabs(expected_landing_local_position.y - vehicle_local_position_status.y) <
 			max_local_position_diff));
+
+	return true;
+}
+
+bool AutomationTest::_assertState(int main_state, int nav_state)
+{
+	ut_assert_true(commander_state_status.main_state == main_state);
+	ut_assert_true(vehicle_status_status.nav_state == nav_state);
 
 	return true;
 }
@@ -386,14 +431,13 @@ bool AutomationTest::_land(int waitTimeOutInSecond)
 		.target_component = mavlink_component_id
 	};
 
-	if (vehicle_command_pub == nullptr) {
-		vehicle_command_pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+	PUBLISH_TOPIC(vehicle_command, cmd);
 
-	} else {
-		orb_publish(ORB_ID(vehicle_command), vehicle_command_pub, &cmd);
-	}
+	sleep(2);
+	ut_assert_true(_assertState(commander_state_s::MAIN_STATE_AUTO_LAND,
+				    vehicle_status_s::NAVIGATION_STATE_AUTO_LAND));
 
-	ut_assert_true(_checkLandedStatus(waitTimeOutInSecond, AUTOMATION_AUTO_LAND));
+	ut_assert_true(_assertLandedStatus(waitTimeOutInSecond, AUTOMATION_AUTO_LAND));
 
 	//Sometimes it is disarmed automatically already,
 	//so it cannot assert true here
@@ -402,18 +446,44 @@ bool AutomationTest::_land(int waitTimeOutInSecond)
 	return true;
 }
 
-bool AutomationTest::_rtlForFailSafe(int waitTimeOutInSecond)
+bool AutomationTest::_rtlForRCLost(int waitTimeOutInSecond)
 {
-	ut_assert_true(enableFailSafe(true));
+	int main_state = commander_state_status.main_state;
+	int nav_state = vehicle_status_status.nav_state;
 
-	ut_assert_true(_checkLandedStatus(waitTimeOutInSecond, AUTOMATION_AUTO_RTL));
+	PX4_INFO("%s: RC lost", __FUNCTION__);
+	publish_manual_control = false;
+	sleep(5);
+
+	//Assert drone is still in original main state, and in auto RTL navigate state
+	ut_assert_true(_assertState(main_state, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL));
+
+	PX4_INFO("%s: RC regain", __FUNCTION__);
+	publish_manual_control = true;
+	sleep(5);
+
+	//Assert the drone is changed to original state after RC resume
+	ut_assert_true(_assertState(main_state, nav_state));
+
+	PX4_INFO("%s: RC lost", __FUNCTION__);
+	publish_manual_control = false;
+	sleep(2);
+
+	//Assert drone is still in original main state, and in auto RTL navigate state
+	ut_assert_true(_assertState(main_state, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL));
+
+	//Assert drone landed at take off position
+	ut_assert_true(_assertLandedStatus(waitTimeOutInSecond, AUTOMATION_AUTO_RTL));
 
 	_disarm();
+
+	PX4_INFO("%s: RC regain", __FUNCTION__);
+	publish_manual_control = true;
 
 	return true;
 }
 
-bool AutomationTest::_isGPSAvaiable()
+bool AutomationTest::_isGPSAvailable()
 {
 	return vehicle_global_position_uORB_topic_obj.is_updated;
 }
@@ -423,35 +493,39 @@ void AutomationTest::_saveLandingPosition()
 	memcpy(&_landing_vehicle_local_position_status, &vehicle_local_position_status, sizeof(vehicle_local_position_s));
 }
 
-bool AutomationTest::_manualControl(float x, float y, float z, float r, int waitTimeOutInSecond)
+void AutomationTest::_setManualControl(float x, float y, float z, float r)
 {
-	struct manual_control_setpoint_s manual = {};
+	pthread_mutex_lock(&manual_control_mutex);
 
-	for (int i = 0; i < waitTimeOutInSecond; i++) {
-		manual.timestamp = hrt_absolute_time();
-		manual.x = x;
-		manual.y = y;
-		manual.z = z;
-		manual.r = r;
+	_manual_control_setpoint_data.x = x;
+	_manual_control_setpoint_data.y = y;
+	_manual_control_setpoint_data.z = z;
+	_manual_control_setpoint_data.r = r;
+	_manual_control_setpoint_data.mode_slot = manual_control_setpoint_s::MODE_SLOT_3; //position control
 
-		if (manual_control_setpoint_pub == nullptr) {
-			manual_control_setpoint_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
+	pthread_mutex_unlock(&manual_control_mutex);
+}
 
-		} else {
-			orb_publish(ORB_ID(manual_control_setpoint), manual_control_setpoint_pub, &manual);
-		}
+void AutomationTest::_setManualControlAndWait(float x, float y, float z, float r, int interval)
+{
+	_setManualControl(x, y, z, r);
+	sleep(interval);
+}
 
-		sleep(1);
-	}
+void AutomationTest::_sendManualControl()
+{
+	pthread_mutex_lock(&manual_control_mutex);
 
-	return true;
+	_manual_control_setpoint_data.timestamp = hrt_absolute_time();
+	PUBLISH_TOPIC(manual_control_setpoint, _manual_control_setpoint_data);
+
+	pthread_mutex_unlock(&manual_control_mutex);
 }
 
 bool AutomationTest::takeOffTest()
 {
 	//Takeoff to specified altitude, wait for some time till it climb up,
 	//and then land.
-
 	ut_assert_true(_takeOff(2.5, 10));
 	ut_assert_true(_land(10));
 
@@ -466,46 +540,47 @@ bool AutomationTest::manualTest()
 	ut_assert_true(_takeOff(2.5, 10));
 
 	//Move drone up in z direction
-	_manualControl(0, 0, 1, 0, 10);
+	_setManualControlAndWait(0, 0, 1, 0, 10);
 
 	//Move drone to north in x direction
-	_manualControl(0.5, 0, 0.5, 0, 10);
+	_setManualControlAndWait(0.5, 0, 0.5, 0, 10);
 
 	//Move drone to east in y direction
-	_manualControl(0, 0.5, 0.5, 0, 10);
+	_setManualControlAndWait(0, 0.5, 0.5, 0, 10);
 
 	//stop
-	_manualControl(0, 0, 0.5, 0, 2);
+	_setManualControlAndWait(0, 0, 0.5, 0, 2);
 
 	ut_assert_true(_land(60));
 
 	return true;
 }
 
-bool AutomationTest::failSafeTest()
+bool AutomationTest::rcLostTest()
 {
+	//Test in auto loiter state
+	ut_assert_true(_takeOff(20, 60));
+	ut_assert_true(_rtlForRCLost(120));
+
+	//Test in position control state
 	ut_assert_true(_takeOff(5, 10));
 
 	//Move drone to north in x direction
-	_manualControl(0.5, 0, 0.5, 0, 5);
+	_setManualControlAndWait(0.5, 0, 0.5, 0, 5);
 
 	//Move drone to east in y direction
-	_manualControl(0, 0.5, 0.5, 0, 5);
+	_setManualControlAndWait(0, 0.5, 0.5, 0, 5);
 
-	ut_assert_true(_rtlForFailSafe(120));
-
-	//Disable fail safe for other tests
-	ut_assert_true(enableFailSafe(false));
+	ut_assert_true(_rtlForRCLost(120));
 
 	return true;
 }
 
 bool AutomationTest::run_tests()
 {
-	ut_assert_true(enableFailSafe(false));
 	ut_run_test(takeOffTest);
 	ut_run_test(manualTest);
-	ut_run_test(failSafeTest);
+	ut_run_test(rcLostTest);
 
 	return (_tests_failed == 0);
 }
@@ -523,11 +598,12 @@ private:
 
 	//tests
 	bool batteryTest();
-
 };
 
 bool BatteryTest::_batteryWarning(int warningLevel, int waitTimeOutInSecond)
 {
+	const int wait_for_battery_drain_timeout = 30;
+
 	ut_assert_true(warningLevel == battery_status_s::BATTERY_WARNING_CRITICAL ||
 		       warningLevel == battery_status_s::BATTERY_WARNING_EMERGENCY);
 
@@ -538,13 +614,13 @@ bool BatteryTest::_batteryWarning(int warningLevel, int waitTimeOutInSecond)
 	ut_assert_true(_takeOff(5, 10));
 
 	//Move drone to north in x direction
-	_manualControl(0.5, 0, 0.5, 0, 5);
+	_setManualControlAndWait(0.5, 0, 0.5, 0, 5);
 
 	//Move drone to east in y direction
-	_manualControl(0, 0.5, 0.5, 0, 5);
+	_setManualControlAndWait(0, 0.5, 0.5, 0, 5);
 
 	//Stop
-	_manualControl(0, 0, 0.5, 0, 2);
+	_setManualControlAndWait(0, 0, 0.5, 0, 2);
 
 	sleep(10);
 	_saveLandingPosition();
@@ -553,9 +629,24 @@ bool BatteryTest::_batteryWarning(int warningLevel, int waitTimeOutInSecond)
 	minimal_battery_percentage = (warningLevel == battery_status_s::BATTERY_WARNING_CRITICAL) ? 94.0f : 97.0f;
 	ut_assert_true(param_set(param_find("SIM_BAT_MIN_PCT"), &minimal_battery_percentage) == OK);
 
+	if (warningLevel == battery_status_s::BATTERY_WARNING_CRITICAL) {
+		WAIT_FOR_CONDITION(commander_state_status.main_state == commander_state_s::MAIN_STATE_AUTO_RTL,
+				   wait_for_battery_drain_timeout);
+
+		//Assert drone is in auto RTL main state and auto RTL nagivate state
+		ut_assert_true(_assertState(commander_state_s::MAIN_STATE_AUTO_RTL, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL));
+
+	} else {
+		WAIT_FOR_CONDITION(commander_state_status.main_state == commander_state_s::MAIN_STATE_AUTO_LAND,
+				   wait_for_battery_drain_timeout);
+
+		//Assert drone is in auto RTL main state and auto land nagivate state
+		ut_assert_true(_assertState(commander_state_s::MAIN_STATE_AUTO_LAND, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND));
+	}
+
 	//Auto RTL for critical battery level and auto land for emergency battery level
-	ut_assert_true(_checkLandedStatus(waitTimeOutInSecond,
-					  warningLevel == battery_status_s::BATTERY_WARNING_CRITICAL ? AUTOMATION_AUTO_RTL : AUTOMATION_AUTO_LAND));
+	ut_assert_true(_assertLandedStatus(waitTimeOutInSecond,
+					   warningLevel == battery_status_s::BATTERY_WARNING_CRITICAL ? AUTOMATION_AUTO_RTL : AUTOMATION_AUTO_LAND));
 
 	_disarm();
 
@@ -592,7 +683,6 @@ bool BatteryTest::batteryTest()
 
 bool BatteryTest::run_tests()
 {
-	ut_assert_true(enableFailSafe(false));
 	ut_run_test(batteryTest);
 
 	return (_tests_failed == 0);

@@ -328,6 +328,8 @@ private:
 	BlockParamFloat _K_pstatic_coef_y;	///< static pressure position error coefficient along the Y body axis
 	BlockParamFloat _K_pstatic_coef_z;	///< static pressure position error coefficient along the Z body axis
 
+	BlockParamInt _indoor_mode;		///< Disable GPS for flying indoors and avoiding auto modes
+
 	BlockParamInt _airspeed_disabled;	///< airspeed mode parameter
 
 };
@@ -442,6 +444,7 @@ Ekf2::Ekf2():
 	_K_pstatic_coef_xn(this, "PCOEF_XN"),
 	_K_pstatic_coef_y(this, "PCOEF_Y"),
 	_K_pstatic_coef_z(this, "PCOEF_Z"),
+	_indoor_mode(this, "INDOOR_MODE"),
 	// non EKF2 parameters
 	_airspeed_disabled(this, "FW_ARSP_MODE", false)
 {
@@ -554,10 +557,12 @@ void Ekf2::run()
 			orb_copy(ORB_ID(vehicle_status), status_sub, &vehicle_status);
 		}
 
-		orb_check(gps_sub, &gps_updated);
+		if (_indoor_mode.get() == 0) {
+			orb_check(gps_sub, &gps_updated);
 
-		if (gps_updated) {
-			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
+			if (gps_updated) {
+				orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
+			}
 		}
 
 		// Do not attempt to use airspeed if use has been disabled by the user.

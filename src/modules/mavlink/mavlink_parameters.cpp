@@ -143,15 +143,16 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 #ifdef BUILD_WITH_RESTRICTED_SYSTEM_ACCESS
 
 				// only allow setting the following params
-				if (strcmp(name, "RTL_RETURN_ALT") != 0 &&
+				if (strcmp(name, "COM_LED_MODE") != 0 &&
+				    strcmp(name, "EKF2_INDOOR_MODE") != 0 &&
 				    strcmp(name, "GF_ACTION") != 0 &&
 				    strcmp(name, "GF_MAX_HOR_DIST") != 0 &&
 				    strcmp(name, "GF_MAX_VER_DIST") != 0 &&
 				    strcmp(name, "MPC_VEL_MANUAL") != 0 &&
-				    strcmp(name, "MPC_VEL_MAN_UP") != 0 &&
 				    strcmp(name, "MPC_VEL_MAN_DN") != 0 &&
-				    strcmp(name, "COM_LED_MODE") != 0 &&
-				    strcmp(name, "SYS_HITL") != 0) {
+				    strcmp(name, "MPC_VEL_MAN_UP") != 0 &&
+				    strcmp(name, "RTL_RETURN_ALT") != 0 &&
+				    strcmp(name, "SYS_HITL") != 0) {) {
 					return;
 				}
 

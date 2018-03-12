@@ -136,6 +136,7 @@ private:
 	ringbuffer::RingBuffer	*_rb_gyro;
 	int _uart_fd = -1;
 	float _yaw;
+	float _nav_rad;
 
 	FlightTasks _flight_tasks;
 
@@ -204,6 +205,7 @@ REALSENSE::REALSENSE(const char *port):
 	_work{},
 	_rb_gyro(nullptr),
 	_yaw(0.0f),
+	_nav_rad(0.0f),
 	_flight_tasks(),
 	_realsense_avoidance_setpoint_pub(nullptr),
 	_optical_flow_pub(nullptr),
@@ -215,6 +217,7 @@ REALSENSE::REALSENSE(const char *port):
 	strncpy(_device_realsense, port, sizeof(_device_realsense));
 	/* enforce null termination */
 	_device_realsense[sizeof(_device_realsense) - 1] = '\0';
+	param_get(param_find("NAV_ACC_RAD"), &_nav_rad);
 
 }
 
@@ -654,11 +657,8 @@ REALSENSE::_read_obstacle_avoidance_data()
 					realsense_avoidance_setpoint.timestamp = hrt_absolute_time();
 
 					/* Don't use realsense if we are above home within acceptance radius */
-					float nav_rad = 0.0f;
-					param_get(param_find("NAV_ACC_RAD"), &nav_rad);
-
 					const float dist_to_home_xy =  matrix::Vector2f(_home_pos.x - _local_pos.x, _home_pos.y - _local_pos.y).length();
-					const bool close_to_home = dist_to_home_xy < nav_rad;
+					const bool close_to_home = dist_to_home_xy < _nav_rad;
 
 					const bool use_realsense = (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
 								   && (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)

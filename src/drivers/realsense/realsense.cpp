@@ -350,7 +350,7 @@ REALSENSE::poll_subscriptions()				 // update all msg
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 	}
 
-	orb_check(_vehicle_attitude_sub, &updated);
+	orb_check(_vehicle_status_sub, &updated);
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
@@ -661,7 +661,7 @@ REALSENSE::_read_obstacle_avoidance_data()
 					const bool close_to_home = dist_to_home_xy < nav_rad;
 
 					const bool use_realsense = (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
-								   && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL)
+								   && (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)
 								   && !close_to_home;
 
 					if (use_realsense) {

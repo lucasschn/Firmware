@@ -112,7 +112,6 @@ private:
 	bool 	_taskShouldExit;
 	bool 	_taskIsRunning;
 	char 	_device_realsense[20];
-	uint8_t _realsense_output_flags;
 	uint16_t  _read_write_count;
 	uint64_t 	_init_time;
 	int		_measure_ticks;
@@ -183,7 +182,6 @@ REALSENSE::REALSENSE(const char *port):
 	_initialized(false),
 	_taskShouldExit(false),
 	_taskIsRunning(false),
-	_realsense_output_flags(0),
 	_read_write_count(0),
 	_init_time(0),
 	_measure_ticks(0),
@@ -653,7 +651,6 @@ REALSENSE::_read_obstacle_avoidance_data()
 					realsense_avoidance_setpoint.vz = -packet_data_output.obstacleAvoidanceSpeed.z; //realsense U  -> UAV D
 					realsense_avoidance_setpoint.yawspeed = math::constrain(packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F, M_PI_F);
 					realsense_avoidance_setpoint.flags = packet_data_output.flags;
-					_realsense_output_flags = (uint8_t)packet_data_output.flags;
 					realsense_avoidance_setpoint.timestamp = hrt_absolute_time();
 
 					/* Don't use realsense if we are above home within acceptance radius */

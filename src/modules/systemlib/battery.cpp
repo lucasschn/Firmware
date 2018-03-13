@@ -254,7 +254,11 @@ Battery::computeRemainingTime()
 	if (_capacity.get() > 0.f && _current_filtered_a > FLT_EPSILON) {
 		const float remaining_capacity_mah = _remaining * _capacity.get();
 		const float current_ma = _current_filtered_a * 1e3f;
-		_time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;
+		const float time_remaining_now = remaining_capacity_mah / current_ma * 3600.f;
+
+		/* filter the remaining time estimate because even the filtered current changes too fast */
+		const float weight_t = 1e-4f;
+		_time_remaining_s = (1 - weight_t) * _time_remaining_s + weight_t *time_remaining_now;
 
 	} else {
 		_time_remaining_s = -1;

@@ -257,7 +257,8 @@ Battery::computeRemainingTime()
 		const float time_remaining_now = remaining_capacity_mah / current_ma * 3600.f;
 
 		/* filter the remaining time estimate because even the filtered current changes too fast */
-		const float weight_t = 1e-4f;
+		float weight_t = 1e-4f * (1 + (fabsf(time_remaining_now - _time_remaining_s) / 200));
+		weight_t = math::constrain(weight_t, 0.0f, 1e-3f);
 		_time_remaining_s = (1 - weight_t) * _time_remaining_s + weight_t *time_remaining_now;
 
 	} else {

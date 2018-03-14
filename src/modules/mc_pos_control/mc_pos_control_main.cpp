@@ -58,6 +58,7 @@
 
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/obstacle_avoidance.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -148,8 +149,6 @@ private:
 	struct distance_sensor_s _sonar_measurament; /**<sonar neasurament message>*/
 	systemlib::Hysteresis _obstacle_lock_hysteresis;
 	float _yaw_obstacle_lock; /**< the yaw angle at which the vehicle exits obstacle avoidance */
-	int 	_realsense_avoidance_setpoint_sub;				/**< realsense velocity setpoint data for Sense&Avoid*/
-	struct realsense_avoidance_setpoint_s _realsense_avoidance_setpoint; /** < realsense velocity setpoint message >*/
 	struct realsense_avoidance_setpoint_s _realsense_avoidance_input; /** < realsense velocity input message >*/
 	orb_advert_t _realsense_input_pub; 		/**< velocity input to realsense */
 	float fuse_obstacle_distance_sonar(float altitude_above_home, const float safety_margin,
@@ -199,6 +198,7 @@ private:
 	int		_local_pos_sub;			/**< vehicle local position */
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_home_pos_sub; 			/**< home position */
+	int 	_obstacle_avoidance_sub;
 	int 	_obstacle_distance_sub;
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
@@ -216,6 +216,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct home_position_s				_home_pos; 				/**< home position */
+	struct obstacle_avoidance_s 		_obstacle_avoidance;
 	struct obstacle_distance_s 			_obstacle_distance;
 
 	control::BlockParamFloat _manual_thr_min; /**< minimal throttle output when flying in manual mode */
@@ -457,7 +458,7 @@ private:
 
 	void constrain_velocity_setpoint();
 
-	bool use_obstacle_avoidance(); // check if realsense is activated
+	bool use_obstacle_avoidance();
 
 	/**
 	 * limit altitude based on several conditions
@@ -518,8 +519,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_sonar_measurament{},
 	_obstacle_lock_hysteresis(false),
 	_yaw_obstacle_lock(0.0f),
-	_realsense_avoidance_setpoint_sub(-1),
-	_realsense_avoidance_setpoint{},
 	_realsense_avoidance_input{},
 	_realsense_input_pub(nullptr),
 	_smart_heading_pub(nullptr),
@@ -537,6 +536,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_home_pos_sub(-1),
+	_obstacle_avoidance_sub(-1),
 	_obstacle_distance_sub(-1),
 
 	/* publications */
@@ -553,6 +553,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_pos_sp_triplet{},
 	_local_pos_sp{},
 	_home_pos{},
+	_obstacle_avoidance{},
 	_obstacle_distance{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
@@ -1010,10 +1011,12 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 
 	if (use_obstacle_avoidance()) {
 
-		/* to be replaced by the new avoidance interface */
-		_vel_sp(0) = _realsense_avoidance_setpoint.vx;
-		_vel_sp(1) = _realsense_avoidance_setpoint.vy;
-		_vel_sp(2) = _realsense_avoidance_setpoint.vz;
+		if (_obstacle_avoidance.point_valid[0] == true && PX4_ISFINITE(_obstacle_avoidance.point_1[3])
+			&& PX4_ISFINITE(_obstacle_avoidance.point_1[4]) && PX4_ISFINITE(_obstacle_avoidance.point_1[5])) {
+			_vel_sp(0) = _obstacle_avoidance.point_1[3];
+			_vel_sp(1) = _obstacle_avoidance.point_1[4];
+			_vel_sp(2) = _obstacle_avoidance.point_1[5];
+		}
 
 	}
 
@@ -1197,6 +1200,12 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
 	}
 
+	orb_check(_obstacle_avoidance_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(obstacle_avoidance), _obstacle_avoidance_sub, &_obstacle_avoidance);
+	}
+
 	orb_check(_obstacle_distance_sub, &updated);
 
 	if (updated) {
@@ -1207,12 +1216,6 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(distance_sensor), _sonar_sub, &_sonar_measurament);
-	}
-
-	orb_check(_realsense_avoidance_setpoint_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(realsense_avoidance_setpoint), _realsense_avoidance_setpoint_sub, &_realsense_avoidance_setpoint);
 	}
 
 }
@@ -1441,7 +1444,7 @@ MulticopterPositionControl::use_obstacle_avoidance()
 {
 
 	/* external obstacle avoidance is sending data */
-	return hrt_elapsed_time((hrt_abstime *)&_realsense_avoidance_setpoint.timestamp) <
+	return hrt_elapsed_time((hrt_abstime *)&_obstacle_avoidance.timestamp) <
 	       DISTANCE_STREAM_TIMEOUT_US;
 }
 
@@ -2311,7 +2314,7 @@ void MulticopterPositionControl::control_auto()
 			float yaw_speed = _pos_sp_triplet.current.yawspeed;
 
 			if (use_obstacle_avoidance()) {
-				yaw_speed = _realsense_avoidance_setpoint.yawspeed;
+				yaw_speed = _obstacle_avoidance.point_1[10];
 			}
 
 			/* we want to know the real constraint, and global overrides manual */
@@ -3385,7 +3388,7 @@ MulticopterPositionControl::generate_attitude_setpoint()
 
 		/* check if avoidance is on */
 		if (use_obstacle_avoidance()) {
-			_att_sp.yaw_sp_move_rate = _realsense_avoidance_setpoint.yawspeed;
+			_att_sp.yaw_sp_move_rate = _obstacle_avoidance.point_1[10];
 		}
 
 		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);
@@ -3539,13 +3542,13 @@ MulticopterPositionControl::task_main()
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
+	_obstacle_avoidance_sub = orb_subscribe(ORB_ID(obstacle_avoidance));
 	_obstacle_distance_sub = orb_subscribe(ORB_ID(obstacle_distance));
 
 	/* --- tap specific subscription initializations */
 	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_sonar_sub = orb_subscribe(ORB_ID(distance_sensor));
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_realsense_avoidance_setpoint_sub = orb_subscribe(ORB_ID(realsense_avoidance_setpoint));
 
 	/* initialize values of critical structs until first regular update */
 	_arming.armed = false;
@@ -3620,10 +3623,8 @@ MulticopterPositionControl::task_main()
 		 * to 4 m/s
 		 */
 
-		if ((_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
-		    && (((_realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING)
-			 && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL))
-			|| (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL))) {
+		if ((_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
+		    && (use_obstacle_avoidance() || (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL))) {
 
 			_vel_max_xy = 4.0f;
 		}

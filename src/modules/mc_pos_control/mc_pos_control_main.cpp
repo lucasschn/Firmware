@@ -882,7 +882,7 @@ void
 MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 {
 	/*tap specific to enable avoidance through ST16*/
-	const bool stop_in_front = (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
+	const bool stop_in_front = (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
 				   && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) && (!_flight_tasks.isAnyTaskActive());
 
 	/* don't run obstacle avoidance in altitude mode because there are altitude jumps */
@@ -3122,7 +3122,7 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 
 	float altitude_above_home = -(_pos(2) - _home_pos.z);
 
-	if ((altitude_above_home < 2.3f) && (_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
+	if ((altitude_above_home < 2.3f) && (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
 	    && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL)) {
 		tilt_max = math::radians(20.0f);
 	}
@@ -3592,7 +3592,7 @@ MulticopterPositionControl::task_main()
 		 * to 4 m/s
 		 */
 
-		if ((_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
+		if ((_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
 		    && (((_realsense_avoidance_setpoint.flags == ObstacleAvoidanceOutputFlags::CAMERA_RUNNING)
 			 && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL))
 			|| (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL))) {

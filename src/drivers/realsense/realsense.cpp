@@ -51,6 +51,7 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/realsense_avoidance_setpoint.h>
 #include <uORB/topics/realsense_distance_info.h>
+#include <uORB/topics/obstacle_avoidance.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
@@ -139,7 +140,7 @@ private:
 
 	FlightTasks _flight_tasks;
 
-	orb_advert_t _realsense_avoidance_setpoint_pub;
+	orb_advert_t _obstacle_avoidance_pub;
 	orb_advert_t _optical_flow_pub;
 	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _realsense_distance_info_pub;
@@ -205,7 +206,7 @@ REALSENSE::REALSENSE(const char *port):
 	_yaw(0.0f),
 	_nav_rad(0.0f),
 	_flight_tasks(),
-	_realsense_avoidance_setpoint_pub(nullptr),
+	_obstacle_avoidance_pub(nullptr),
 	_optical_flow_pub(nullptr),
 	_distance_sensor_pub(nullptr),
 	_realsense_distance_info_pub(nullptr),
@@ -644,14 +645,32 @@ REALSENSE::_read_obstacle_avoidance_data()
 					ObstacleAvoidanceOutput packet_data_output;
 					memcpy((char *)&packet_data_output, _YP_PACKET_DATA(_rxpacket_realsense), PACKET_LENGTH_REALSENSE_OBSTACLE_DATA_OUTPUT);
 
-					struct realsense_avoidance_setpoint_s realsense_avoidance_setpoint;
+					struct obstacle_avoidance_s obstacle_avoidance = {};
 
-					realsense_avoidance_setpoint.vx = packet_data_output.obstacleAvoidanceSpeed.y;	 //realsense E  -> UAV N
-					realsense_avoidance_setpoint.vy = packet_data_output.obstacleAvoidanceSpeed.x;  //realsense N  -> UAV E
-					realsense_avoidance_setpoint.vz = -packet_data_output.obstacleAvoidanceSpeed.z; //realsense U  -> UAV D
-					realsense_avoidance_setpoint.yawspeed = math::constrain(packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F, M_PI_F);
-					realsense_avoidance_setpoint.flags = packet_data_output.flags;
-					realsense_avoidance_setpoint.timestamp = hrt_absolute_time();
+					obstacle_avoidance.timestamp = hrt_absolute_time();
+
+					obstacle_avoidance.point_1[0] = NAN; // position sp
+					obstacle_avoidance.point_1[1] = NAN;
+					obstacle_avoidance.point_1[2] = NAN;
+					obstacle_avoidance.point_1[3] = packet_data_output.obstacleAvoidanceSpeed.y;	 //realsense E  -> UAV N
+					obstacle_avoidance.point_1[4] = packet_data_output.obstacleAvoidanceSpeed.x;  //realsense N  -> UAV E
+					obstacle_avoidance.point_1[5] = -packet_data_output.obstacleAvoidanceSpeed.z; //realsense U  -> UAV D
+					obstacle_avoidance.point_1[6] = NAN; // acceleration sp
+					obstacle_avoidance.point_1[7] = NAN;
+					obstacle_avoidance.point_1[8] = NAN;
+					obstacle_avoidance.point_1[9] = NAN; // yaw
+					obstacle_avoidance.point_1[10] = math::constrain(packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F, M_PI_F); //yawspeed
+
+					obstacle_avoidance.point_valid[0] = 1;
+					obstacle_avoidance.point_valid[1] = 0;
+					obstacle_avoidance.point_valid[2] = 0;
+					obstacle_avoidance.point_valid[3] = 0;
+					obstacle_avoidance.point_valid[4] = 0;
+
+					obstacle_avoidance.field_of_view[0] = 180;
+					obstacle_avoidance.field_of_view[1] = 0;
+					obstacle_avoidance.field_of_view[2] = -1;
+					obstacle_avoidance.field_of_view[3] = 15;
 
 					/* Don't use realsense if we are above home within acceptance radius */
 					const float dist_to_home_xy =  matrix::Vector2f(_home_pos.x - _local_pos.x, _home_pos.y - _local_pos.y).length();
@@ -662,11 +681,11 @@ REALSENSE::_read_obstacle_avoidance_data()
 								   && !close_to_home;
 
 					if (use_realsense) {
-						if (_realsense_avoidance_setpoint_pub == nullptr) {
-							_realsense_avoidance_setpoint_pub = orb_advertise(ORB_ID(realsense_avoidance_setpoint), &realsense_avoidance_setpoint);
+						if (_obstacle_avoidance_pub == nullptr) {
+							_obstacle_avoidance_pub = orb_advertise(ORB_ID(obstacle_avoidance), &obstacle_avoidance);
 
 						} else {
-							orb_publish(ORB_ID(realsense_avoidance_setpoint), _realsense_avoidance_setpoint_pub, &realsense_avoidance_setpoint);
+							orb_publish(ORB_ID(obstacle_avoidance), _obstacle_avoidance_pub, &obstacle_avoidance);
 						}
 
 					}

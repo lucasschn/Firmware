@@ -232,9 +232,9 @@ Navigator::vehicle_esc_report_update()
 /* --- */
 
 void
-Navigator::realsense_setpoint_update()
+Navigator::obstacle_avoidance_update()
 {
-	orb_copy(ORB_ID(realsense_avoidance_setpoint), _realsense_avoidance_setpoint_sub, &_realsense_avoidance_setpoint);
+	orb_copy(ORB_ID(obstacle_avoidance), _obstacle_avoidance_sub, &_obstacle_avoidance);
 }
 
 void
@@ -280,7 +280,7 @@ Navigator::task_main()
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
-	_realsense_avoidance_setpoint_sub = orb_subscribe(ORB_ID(realsense_avoidance_setpoint));
+	_obstacle_avoidance_sub = orb_subscribe(ORB_ID(obstacle_avoidance));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -302,7 +302,7 @@ Navigator::task_main()
 	sensor_combined_update();
 	home_position_update(true);
 	fw_pos_ctrl_status_update(true);
-	realsense_setpoint_update();
+	obstacle_avoidance_update();
 	manual_update();
 	params_update();
 
@@ -420,11 +420,11 @@ Navigator::task_main()
 			home_position_update();
 		}
 
-		/* realsense update */
-		orb_check(_realsense_avoidance_setpoint_sub, &updated);
+		/* obstacle avoidance update */
+		orb_check(_obstacle_avoidance_sub, &updated);
 
 		if (updated) {
-			realsense_setpoint_update();
+			obstacle_avoidance_update();
 		}
 
 		orb_check(_manual_sub, &updated);
@@ -854,7 +854,7 @@ Navigator::task_main()
 	orb_unsubscribe(_vstatus_sub);
 	orb_unsubscribe(_land_detected_sub);
 	orb_unsubscribe(_home_pos_sub);
-	orb_unsubscribe(_realsense_avoidance_setpoint_sub);
+	orb_unsubscribe(_obstacle_avoidance_sub);
 	orb_unsubscribe(_manual_sub);
 	orb_unsubscribe(_offboard_mission_sub);
 	orb_unsubscribe(_param_update_sub);

@@ -562,7 +562,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_z_max_up(this, "ACC_UP_MAX", true),
 	_acceleration_z_max_down(this, "ACC_DOWN_MAX", true),
 	_cruise_speed_90(this, "CRUISE_90", true),
-	_speed_z_auto(this, "MPC_Z_AUTO"),
+	_speed_z_auto(this, "MPC_Z_AUTO", false),
 	_velocity_hor_manual(this, "VEL_MANUAL", true),
 	_vel_z_up(this, "MPC_Z_VEL_MAN_UP", false),
 	_vel_z_down(this, "MPC_Z_VEL_MAN_DN", false),

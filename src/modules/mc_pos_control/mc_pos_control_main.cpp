@@ -1012,7 +1012,7 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 	if (use_obstacle_avoidance()) {
 
 		if (_obstacle_avoidance.point_valid[0] == true && PX4_ISFINITE(_obstacle_avoidance.point_1[3])
-			&& PX4_ISFINITE(_obstacle_avoidance.point_1[4]) && PX4_ISFINITE(_obstacle_avoidance.point_1[5])) {
+		    && PX4_ISFINITE(_obstacle_avoidance.point_1[4]) && PX4_ISFINITE(_obstacle_avoidance.point_1[5])) {
 			_vel_sp(0) = _obstacle_avoidance.point_1[3];
 			_vel_sp(1) = _obstacle_avoidance.point_1[4];
 			_vel_sp(2) = _obstacle_avoidance.point_1[5];

@@ -659,7 +659,8 @@ REALSENSE::_read_obstacle_avoidance_data()
 					obstacle_avoidance.point_1[7] = NAN;
 					obstacle_avoidance.point_1[8] = NAN;
 					obstacle_avoidance.point_1[9] = NAN; // yaw
-					obstacle_avoidance.point_1[10] = math::constrain(packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F, M_PI_F); //yawspeed
+					obstacle_avoidance.point_1[10] = math::constrain(packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F,
+									 M_PI_F); //yawspeed
 
 					obstacle_avoidance.point_valid[0] = 1;
 					obstacle_avoidance.point_valid[1] = 0;

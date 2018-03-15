@@ -1,6 +1,4 @@
 
-#include <vector>
-
 #include <unit_test.h>
 
 #include <uORB/topics/vehicle_command.h>
@@ -12,6 +10,7 @@
 
 #include <commander/state_machine_helper.h>
 
+#include <containers/List.hpp>
 #include <platforms/px4_tasks.h>
 
 #undef PX4_DEBUG
@@ -19,7 +18,7 @@
 
 extern transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, const char *armedBy);
 
-class uORB_topic
+class uORB_topic : public ListNode<uORB_topic *>
 {
 public:
 	uORB_topic(const struct orb_metadata *topic_meta, void *topic_status):
@@ -49,7 +48,7 @@ public:
 	static TOPIC##_uORB_topic TOPIC##_uORB_topic_obj(ORB_ID(TOPIC), &TOPIC##_status);
 
 #define APPEND_UORB_SUB(TOPIC) \
-	uORB_topic_list.push_back(&TOPIC##_uORB_topic_obj);
+	uORB_topic_list.add(&TOPIC##_uORB_topic_obj);
 
 //declare subscribed topics
 DECLARE_UORB_SUB(vehicle_local_position)
@@ -168,7 +167,7 @@ private:
 	pthread_mutex_t	manual_control_mutex;
 	bool publish_manual_control;
 
-	std::vector<uORB_topic *> uORB_topic_list;
+	List<uORB_topic *> uORB_topic_list;
 };
 
 //Only one instance is created for each test session. We use this instance
@@ -179,7 +178,7 @@ int updateTopicTask(int argc, char *argv[])
 {
 	while (!automationTest->task_should_exit) {
 
-		for (auto it : automationTest->uORB_topic_list) {
+		for (uORB_topic *it = automationTest->uORB_topic_list.getHead(); it; it = it->getSibling()) {
 			bool updated;
 			orb_check(it->subscribe, &updated);
 
@@ -222,7 +221,7 @@ AutomationTest::AutomationTest()
 	APPEND_UORB_SUB(commander_state);
 	APPEND_UORB_SUB(vehicle_status);
 
-	for (auto it : uORB_topic_list) {
+	for (uORB_topic *it = automationTest->uORB_topic_list.getHead(); it; it = it->getSibling()) {
 		PX4_DEBUG("Subscribe %s", it->name);
 
 		if (it->subscribe < 0) {
@@ -288,7 +287,7 @@ AutomationTest::~AutomationTest()
 		battery_status_pub = nullptr;
 	}
 
-	for (auto it : uORB_topic_list) {
+	for (uORB_topic *it = automationTest->uORB_topic_list.getHead(); it; it = it->getSibling()) {
 		PX4_DEBUG("Unsubscribe %s", it->name);
 
 		if (it->subscribe >= 0) {
@@ -296,8 +295,6 @@ AutomationTest::~AutomationTest()
 			it->subscribe = -1;
 		}
 	}
-
-	uORB_topic_list.clear();
 }
 
 bool AutomationTest::_arm()

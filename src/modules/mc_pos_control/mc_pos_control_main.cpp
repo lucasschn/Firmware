@@ -227,6 +227,7 @@ private:
 	control::BlockParamFloat _acceleration_z_max_up; /** max acceleration up */
 	control::BlockParamFloat _acceleration_z_max_down; /** max acceleration down */
 	control::BlockParamFloat _cruise_speed_90; /**<speed when angle is 90 degrees between prev-current/current-next*/
+	control::BlockParamFloat _speed_z_auto; /**< speed in the vertical direction for any auto related manuever */
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 	control::BlockParamFloat
 	_vel_z_up; /**< Maximum target velocity upwards for manual controlled mode. Target velocity upwards for auto mode. */
@@ -561,6 +562,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_z_max_up(this, "ACC_UP_MAX", true),
 	_acceleration_z_max_down(this, "ACC_DOWN_MAX", true),
 	_cruise_speed_90(this, "CRUISE_90", true),
+	_speed_z_auto(this, "MPC_Z_AUTO"),
 	_velocity_hor_manual(this, "VEL_MANUAL", true),
 	_vel_z_up(this, "MPC_Z_VEL_MAN_UP", false),
 	_vel_z_down(this, "MPC_Z_VEL_MAN_DN", false),
@@ -2336,10 +2338,8 @@ void MulticopterPositionControl::control_auto()
 				/* check sign */
 				bool flying_upward = _curr_pos_sp(2) < _pos(2);
 
-				/* final_vel_z is the max velocity which depends on the distance of total_dist_z
-				 * with default params.vel_max_up/down
-				 */
-				float final_vel_z = (flying_upward) ? _vel_z_up.get() : _vel_z_down.get();
+				/* final_vel_z is the max velocity which depends on the distance of total_dist_z */
+				float final_vel_z = _speed_z_auto.get();
 
 				/* target threshold defines the distance to _curr_pos_sp(2) at which
 				 * the vehicle starts to slow down to approach the target smoothly

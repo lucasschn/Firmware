@@ -280,6 +280,21 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
+ * Vertical speed for any auto mode
+ *
+ * Normal vertical speed in AUTO modes (includes
+ * also RTL / hold / etc.)
+ *
+ * @unit m/s
+ * @min 1.0
+ * @max 5.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_AUTO, 4.0f);
+
+/**
  * Maximum horizontal speed in auto at 90 degrees corners.
  *
  * Cruise speed when angle prev-current/current-next setpoint

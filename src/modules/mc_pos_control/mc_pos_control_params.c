@@ -202,7 +202,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAN_UP, 4.0f);
+PARAM_DEFINE_FLOAT(MPC_VEL_MAN_UP, 4.0f);
 
 /**
  * Vehicle vertical descent velocity.
@@ -219,7 +219,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAN_UP, 4.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAN_DN, 2.5f);
+PARAM_DEFINE_FLOAT(MPC_VEL_MAN_DN, 2.5f);
 
 /**
  * Proportional gain for horizontal position error

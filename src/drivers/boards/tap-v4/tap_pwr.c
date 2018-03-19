@@ -186,7 +186,7 @@ int board_shutdown()
 
 	stm32_pwr_enablebkp(true);
 	/* XXX wow, this is evil - write a magic number into backup register zero */
-	*(uint32_t *)STM32_RTC_BKR(0) = 0xdeaddead;
+	*(uint32_t *)STM32_RTC_BK0R = 0xdeaddead;
 	stm32_pwr_enablebkp(false);
 
 	/* We do not turn off the power. But instead,

@@ -102,7 +102,7 @@ private:
 	void estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed);
 	void determineWarning(bool connected);
 	void computeScale();
-	void computeRemainingTime();
+	void computeRemainingTime(float current_a);
 
 	control::BlockParamFloat _v_empty;
 	control::BlockParamFloat _v_charged;
@@ -121,7 +121,8 @@ private:
 	float _remaining_voltage;		///< normalized battery charge level remaining based on voltage
 	float _remaining;			///< normalized battery charge level, selected based on config param
 	float _scale;
-	int _time_remaining_s = -1;
+	float _current_filtered_strong_a = -1.f;
+	float _time_remaining_s = -1.f;
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
 };

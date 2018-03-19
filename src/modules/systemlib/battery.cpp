@@ -99,7 +99,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	estimateRemaining(_voltage_filtered_v, _current_filtered_a, throttle_normalized, armed);
 	determineWarning(connected);
 	computeScale();
-	computeRemainingTime();
+	computeRemainingTime(current_a);
 
 	if (_voltage_filtered_v > 2.1f) {
 		battery_status->voltage_v = voltage_v;
@@ -248,20 +248,29 @@ Battery::computeScale()
 }
 
 void
-Battery::computeRemainingTime()
+Battery::computeRemainingTime(float current_a)
 {
-	/* We can only estimate time when we know capacity and current */
-	if (_capacity.get() > 0.f && _current_filtered_a > FLT_EPSILON) {
-		const float remaining_capacity_mah = _remaining * _capacity.get();
-		const float current_ma = _current_filtered_a * 1e3f;
-		const float time_remaining_now = remaining_capacity_mah / current_ma * 3600.f;
+	/* Only estimate remaining time with useful in flight current measurements */
+	if (_current_filtered_a > 1.f) {
+		/* Initialize strongly filtered current to an estimated average consumption */
+		if (_current_filtered_strong_a < 0.f) {
+			/* TODO: better initial value based on "hover current" from last flight */
+			_current_filtered_strong_a = 15.f;
+		}
 
-		/* filter the remaining time estimate because even the filtered current changes too fast */
-		float weight_t = 1e-4f * (1 + (fabsf(time_remaining_now - _time_remaining_s) / 200));
-		weight_t = math::constrain(weight_t, 0.0f, 1e-3f);
-		_time_remaining_s = (1 - weight_t) * _time_remaining_s + weight_t *time_remaining_now;
+		/* Filter current very strong, we basically want the average consumption */
+		float weight_ct = 5e-5f;
+		_current_filtered_strong_a = (1 - weight_ct) * _current_filtered_strong_a + weight_ct * current_a;
+
+		/* Remaining time estimation only possible with capacity */
+		if (_capacity.get() > 0.f) {
+			const float remaining_capacity_mah = _remaining * _capacity.get();
+			const float current_ma = _current_filtered_strong_a * 1e3f;
+			_time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;
+		}
 
 	} else {
-		_time_remaining_s = -1;
+		_current_filtered_strong_a = -1.f;
+		_time_remaining_s = -1.f;
 	}
 }

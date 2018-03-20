@@ -55,6 +55,9 @@ const char *decode_states[] = {"UNSYNCED",
 			       "GOT_DATA"
 			      };
 
+/* current M4 raw output channel mapping version to check compatibility */
+#define ST16_M4_RAW_CHANNEL_MAPPING_VER		0xF
+
 /* override unused channels with virtual channels that get handeled by the commander */
 #define ST16_CHANNEL_ARM_BUTTON   (8  -1) // set RC_MAP_ARM_SW = 8 and COM_ARM_SWISBTN = 1
 #define ST16_CHANNEL_GEAR_SWITCH  (9  -1) // set RC_MAP_GEAR_SW = 9
@@ -186,7 +189,7 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 			case ST24_PACKET_TYPE_CHANNELDATA24: {
 					ChannelData24 *d = (ChannelData24 *)&_rxpacket.st24_data;
 
-					/* Scale from 0..255 to 100%. */
+					/* Scale RSSI from 0..255 to 100%. */
 					*rssi = d->rssi * (100.0f / 255.0f);
 					*lost_count = d->lost_count;
 
@@ -211,6 +214,15 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 						channels[chan_index] = ((uint16_t)d->channel[i + 2]);
 						channels[chan_index] |= (((uint16_t)(0x0F & d->channel[i + 1])) << 8);
 						chan_index++;
+					}
+
+					/* check for the M4 raw output channel mapping version embedded in channel 9
+					 * to make sure the mapping is compatible */
+					int mapping_version = (channels[9 - 1] >> 8) & 0xF;
+
+					if (mapping_version != ST16_M4_RAW_CHANNEL_MAPPING_VER) {
+						/* produce RC loss if the versions do not match */
+						*lost_count = 100;
 					}
 
 					/* decode all digital states from switches and buttons */
@@ -254,7 +266,7 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 					}
 
 					/* add virtual channels for converting bits to fake analog channels */
-					*channel_count += 2;
+					*channel_count += 2; // there are two more than 12
 
 					channels[ST16_CHANNEL_ARM_BUTTON] = button2[button2Index::arm_button] ? ST24_TARGET_MAX : ST24_TARGET_MIN;
 					channels[ST16_CHANNEL_GEAR_SWITCH] = button2[button2Index::gear_switch] ? ST24_TARGET_MAX : ST24_TARGET_MIN;

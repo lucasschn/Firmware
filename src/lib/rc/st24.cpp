@@ -46,6 +46,7 @@
 #include "common_rc.h"
 #include "string.h"
 #include <drivers/drv_hrt.h>
+#include <systemlib/mavlink_log.h>
 
 const char *decode_states[] = {"UNSYNCED",
 			       "GOT_STX1",
@@ -79,6 +80,9 @@ const char *decode_states[] = {"UNSYNCED",
 
 static enum ST24_DECODE_STATE _decode_state = ST24_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
+
+orb_advert_t _mavlink_log_pub = nullptr; /**< mavlink message publication topic to send out error messages */
+hrt_abstime _last_error_time = 0; /**< timestamp of the last error to reduce the error rate */
 
 /* kill switch hotkey */
 static bool _arm_button_pressed_last = false; /* if the button was pressed last time to detect a transition */
@@ -223,6 +227,13 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 					if (mapping_version != ST16_M4_RAW_CHANNEL_MAPPING_VER) {
 						/* produce RC loss if the versions do not match */
 						*lost_count = 100;
+						/* inform user every 15 seconds */
+						hrt_abstime now = hrt_absolute_time();
+
+						if (hrt_absolute_time() - _last_error_time > 15000000) {
+							mavlink_log_critical(&_mavlink_log_pub, "Incompatible remote version, please update!");
+							_last_error_time = now;
+						}
 					}
 
 					/* decode all digital states from switches and buttons */

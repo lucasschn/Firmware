@@ -425,6 +425,10 @@ Navigator::task_main()
 
 		if (updated) {
 			obstacle_avoidance_update();
+
+		} else {
+			/* if the obstacle avoidance output is not updated, set the waypoint as invalid */
+			_obstacle_avoidance.point_valid[0] = false;
 		}
 
 		orb_check(_manual_sub, &updated);

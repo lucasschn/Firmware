@@ -57,7 +57,7 @@ const char *decode_states[] = {"UNSYNCED",
 			      };
 
 /* current M4 raw output channel mapping version to check compatibility */
-#define ST16_M4_RAW_CHANNEL_MAPPING_VER		0xF
+#define ST16_M4_RAW_CHANNEL_MAPPING_VER		0xA
 
 /* override unused channels with virtual channels that get handeled by the commander */
 #define ST16_CHANNEL_ARM_BUTTON   (8  -1) // set RC_MAP_ARM_SW = 8 and COM_ARM_SWISBTN = 1

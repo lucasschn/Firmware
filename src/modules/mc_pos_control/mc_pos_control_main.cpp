@@ -149,8 +149,6 @@ private:
 	struct distance_sensor_s _sonar_measurament; /**<sonar neasurament message>*/
 	systemlib::Hysteresis _obstacle_lock_hysteresis;
 	float _yaw_obstacle_lock; /**< the yaw angle at which the vehicle exits obstacle avoidance */
-	struct realsense_avoidance_setpoint_s _realsense_avoidance_input; /** < realsense velocity input message >*/
-	orb_advert_t _realsense_input_pub; 		/**< velocity input to realsense */
 	float fuse_obstacle_distance_sonar(float altitude_above_home, const float safety_margin,
 					   const float brake_distance); /**< function to fuse distance data from RealSense and Sonar >*/
 
@@ -203,6 +201,7 @@ private:
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
+	orb_advert_t 	_avoidance_input_pub; 	/**< obstacle avoidance input publication */
 
 	orb_id_t _attitude_setpoint_id;
 
@@ -218,6 +217,7 @@ private:
 	struct home_position_s				_home_pos; 				/**< home position */
 	struct obstacle_avoidance_s 		_obstacle_avoidance;
 	struct obstacle_distance_s 			_obstacle_distance;
+	struct obstacle_avoidance_s 		_avoidance_input; /**< obstacle avoidance waypoint input */
 
 	control::BlockParamFloat _manual_thr_min; /**< minimal throttle output when flying in manual mode */
 	control::BlockParamFloat _manual_thr_max; /**< maximal throttle output when flying in manual mode */
@@ -491,6 +491,16 @@ private:
 
 	void obstacle_avoidance(float altitude_above_home);
 
+	void fill_pos_avoid_input(float (&input)[11], float x, float y, float z, int point_numb, bool valid);
+
+	void fill_vel_avoid_input(float (&input)[11], float x, float y, float z, int point_numb, bool valid);
+
+	void fill_acc_avoid_input(float (&input)[11], float x, float y, float z, int point_numb, bool valid);
+
+	void fill_yaw_avoid_input(float (&input)[11], float yaw, float yaw_speed);
+
+	void reset_avoidance_input();
+
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
@@ -519,8 +529,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_sonar_measurament{},
 	_obstacle_lock_hysteresis(false),
 	_yaw_obstacle_lock(0.0f),
-	_realsense_avoidance_input{},
-	_realsense_input_pub(nullptr),
 	_smart_heading_pub(nullptr),
 	_RC_MAP_AUX5(this, "RC_MAP_AUX5", false),
 	/* --- */
@@ -542,6 +550,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	/* publications */
 	_att_sp_pub(nullptr),
 	_local_pos_sp_pub(nullptr),
+	_avoidance_input_pub(nullptr),
 	_attitude_setpoint_id(nullptr),
 	_vehicle_status{},
 	_vehicle_land_detected{},
@@ -555,6 +564,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_home_pos{},
 	_obstacle_avoidance{},
 	_obstacle_distance{},
+	_avoidance_input{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_xy_vel_man_expo(this, "XY_MAN_EXPO"),
@@ -3823,12 +3833,26 @@ MulticopterPositionControl::task_main()
 				_local_pos_sp.vz = _vel_sp(2);
 
 				/* publish desired velocity to realsense */
-				_realsense_avoidance_input.timestamp = hrt_absolute_time();
-				_realsense_avoidance_input.vx = _vel_sp_desired(0);
-				_realsense_avoidance_input.vy = _vel_sp_desired(1);
-				_realsense_avoidance_input.vz = _vel_sp_desired(2);
-				_realsense_avoidance_input.yawspeed =
-					_min_obstacle_distance; // a hack to log minimum distance seen by realsense: this can be done because yawspeed is not used as input
+				if (_pos_sp_triplet.current.valid) {
+					_avoidance_input.timestamp = hrt_absolute_time();
+					fill_pos_avoid_input(_avoidance_input.point_1, _pos(0), _pos(1), _pos(2), 1, true);
+					fill_yaw_avoid_input(_avoidance_input.point_1, _yaw, NAN);
+					fill_vel_avoid_input(_avoidance_input.point_1, _vel_sp_desired(0), _vel_sp_desired(1), _vel_sp_desired(1), 1, true);
+
+					fill_pos_avoid_input(_avoidance_input.point_2, _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
+							     _pos_sp_triplet.current.z, 2, _pos_sp_triplet.current.valid);
+					fill_yaw_avoid_input(_avoidance_input.point_2, _pos_sp_triplet.current.yaw, NAN);
+
+					fill_pos_avoid_input(_avoidance_input.point_3, _pos_sp_triplet.next.x, _pos_sp_triplet.next.y, _pos_sp_triplet.next.z,
+							     3, _pos_sp_triplet.next.valid);
+					fill_yaw_avoid_input(_avoidance_input.point_3, _pos_sp_triplet.next.yaw, NAN);
+
+				} else {
+					_avoidance_input.timestamp = hrt_absolute_time();
+					fill_pos_avoid_input(_avoidance_input.point_1, _pos(0), _pos(1), _pos(2), 1, true);
+					fill_yaw_avoid_input(_avoidance_input.point_1, _yaw, NAN);
+					fill_vel_avoid_input(_avoidance_input.point_1, _vel_sp_desired(0), _vel_sp_desired(1), _vel_sp_desired(2), 1, true);
+				}
 
 				/* publish local position setpoint */
 				if (_local_pos_sp_pub != nullptr) {
@@ -3839,12 +3863,14 @@ MulticopterPositionControl::task_main()
 				}
 
 				/* publish realsense input */
-				if (_realsense_input_pub != nullptr) {
-					orb_publish(ORB_ID(realsense_avoidance_setpoint_input), _realsense_input_pub, &_realsense_avoidance_input);
+				if (_avoidance_input_pub != nullptr) {
+					orb_publish(ORB_ID(obstacle_avoidance_input), _avoidance_input_pub, &_avoidance_input);
 
 				} else {
-					_realsense_input_pub = orb_advertise(ORB_ID(realsense_avoidance_setpoint_input), &_realsense_avoidance_input);
+					_avoidance_input_pub = orb_advertise(ORB_ID(obstacle_avoidance_input), &_avoidance_input);
 				}
+
+				reset_avoidance_input();
 
 			} else {
 				/* position controller disabled, reset setpoints */
@@ -3920,6 +3946,61 @@ MulticopterPositionControl::task_main()
 	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
 
 	_control_task = -1;
+}
+
+void
+MulticopterPositionControl::fill_pos_avoid_input(float (&input)[11], float x, float y, float z, int point_numb,
+		bool valid)
+{
+	input[0] = x;
+	input[1] = y;
+	input[2] = z;
+	_avoidance_input.point_valid[point_numb - 1] = valid;
+}
+
+void MulticopterPositionControl::fill_vel_avoid_input(float (&input)[11], float x, float y, float z, int point_numb,
+		bool valid)
+{
+	input[3] = x;
+	input[4] = y;
+	input[5] = z;
+	_avoidance_input.point_valid[point_numb] = valid;
+}
+
+void MulticopterPositionControl::fill_acc_avoid_input(float (&input)[11], float x, float y, float z, int point_numb,
+		bool valid)
+{
+	input[6] = x;
+	input[7] = y;
+	input[8] = z;
+	_avoidance_input.point_valid[point_numb] = valid;
+}
+
+void MulticopterPositionControl::fill_yaw_avoid_input(float (&input)[11], float yaw, float yaw_speed)
+{
+
+	input[9] = yaw;
+	input[10] = yaw_speed;
+}
+
+void
+MulticopterPositionControl::reset_avoidance_input()
+{
+	const int point_size = 11;
+
+	for (int i = 0; i < point_size; ++i) {
+		_avoidance_input.point_1[i] = NAN;
+		_avoidance_input.point_2[i] = NAN;
+		_avoidance_input.point_3[i] = NAN;
+		_avoidance_input.point_4[i] = NAN;
+		_avoidance_input.point_5[i] = NAN;
+	}
+
+	const int number_points = 5;
+
+	for (int i = 0; i < number_points; ++i) {
+		_avoidance_input.point_valid[i] = 0;
+	}
 }
 
 void

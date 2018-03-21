@@ -3623,7 +3623,7 @@ MulticopterPositionControl::task_main()
 		 * to 4 m/s
 		 */
 
-		if ((_manual.obsavoid_switch != manual_control_setpoint_s::SWITCH_POS_OFF)
+		if ((_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
 		    && (use_obstacle_avoidance() || (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL))) {
 
 			_vel_max_xy = 4.0f;

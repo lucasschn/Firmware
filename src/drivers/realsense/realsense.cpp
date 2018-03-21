@@ -49,6 +49,7 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/obstacle_avoidance.h>
 #include <uORB/topics/realsense_avoidance_setpoint.h>
 #include <uORB/topics/realsense_distance_info.h>
 #include <uORB/topics/obstacle_avoidance.h>
@@ -127,7 +128,7 @@ private:
 	float _current_distance;
 	struct vehicle_local_position_s _local_pos;
 	struct vehicle_local_position_s _local_pos_prev;
-	struct realsense_avoidance_setpoint_s _avoidance_input;
+	struct obstacle_avoidance_s _avoidance_input;
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
 	struct vehicle_status_s _vehicle_status;
@@ -300,7 +301,7 @@ REALSENSE::poll_subscriptions()				 // update all msg
 	orb_check(_avoidance_input_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(realsense_avoidance_setpoint_input), _avoidance_input_sub, &_avoidance_input);
+		orb_copy(ORB_ID(obstacle_avoidance_input), _avoidance_input_sub, &_avoidance_input);
 	}
 
 	orb_check(_sensor_combined_sub, &updated);
@@ -396,11 +397,13 @@ REALSENSE::_send_obstacle_avoidance_data()
 	ObstacleAvoidanceInput tx = {};
 
 	// desired velocity - ENU
-	if (!PX4_ISFINITE(_avoidance_input.vx) || !PX4_ISFINITE(_avoidance_input.vy) || !PX4_ISFINITE(_avoidance_input.vz)) {
+	if (!PX4_ISFINITE(_avoidance_input.point_1[3]) || !PX4_ISFINITE(_avoidance_input.point_1[4])
+	    || !PX4_ISFINITE(_avoidance_input.point_1[5]) ||
+	    _avoidance_input.point_valid[0] == false) {
 		return;
 	}
 
-	const float avoidance_input_z = _avoidance_input.vz;
+	const float avoidance_input_z = _avoidance_input.point_1[5];
 	const float diff_xy = matrix::Vector2f((_local_pos_prev.x - _local_pos.x), (_local_pos_prev.y - _local_pos.y)).length();
 	const bool xy_lock = diff_xy < SIGMA_NORM;
 	const float diff_z = fabsf(_local_pos_prev.z - _local_pos.z);
@@ -408,7 +411,8 @@ REALSENSE::_send_obstacle_avoidance_data()
 
 	/* get velocity setpoint in heading frame */
 	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
-	matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_avoidance_input.vx, _avoidance_input.vy,
+	matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_avoidance_input.point_1[3],
+					  _avoidance_input.point_1[4],
 					  0.0f));
 
 	if (!xy_lock && vel_sp_heading(0) < 0.0f && (fabsf(vel_sp_heading(1)) <  0.1f)) {
@@ -423,17 +427,17 @@ REALSENSE::_send_obstacle_avoidance_data()
 		 * and downwards if only z-direction maneuvers are requested. This is rather a hack to
 		 * fix realsense output for straight up and down maneuvers. */
 
-		vel_sp_heading(0) = 0.001f + 0.1f * fabsf(_avoidance_input.vz);
+		vel_sp_heading(0) = 0.001f + 0.1f * fabsf(_avoidance_input.point_1[5]);
 	}
 
 	matrix::Vector3f vel_sp_local = q_yaw.conjugate(vel_sp_heading);
-	_avoidance_input.vx = vel_sp_local(0);
-	_avoidance_input.vy = vel_sp_local(1);
-	_avoidance_input.vz = avoidance_input_z;
+	_avoidance_input.point_1[3] = vel_sp_local(0);
+	_avoidance_input.point_1[4] = vel_sp_local(1);
+	_avoidance_input.point_1[5] = avoidance_input_z;
 
-	tx.desiredSpeed.x   = _avoidance_input.vy; // E
-	tx.desiredSpeed.y   = _avoidance_input.vx; // N
-	tx.desiredSpeed.z   = -_avoidance_input.vz; // U
+	tx.desiredSpeed.x   = _avoidance_input.point_1[4]; // E
+	tx.desiredSpeed.y   = _avoidance_input.point_1[3]; // N
+	tx.desiredSpeed.z   = -_avoidance_input.point_1[5]; // U
 
 	// current attitude - NED the  just one of the four elements is be check is enough
 	if (!PX4_ISFINITE(_attitude.q[0])) {
@@ -841,7 +845,7 @@ REALSENSE::_init_realsense() 							 // init - initialise the sensor
 {
 	if (!_initialized) {
 		_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-		_avoidance_input_sub = orb_subscribe(ORB_ID(realsense_avoidance_setpoint_input));
+		_avoidance_input_sub = orb_subscribe(ORB_ID(obstacle_avoidance_input));
 		_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 		_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 

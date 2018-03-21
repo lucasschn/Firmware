@@ -1,15 +1,15 @@
-# Output of a external avoidance. Obstacle avoidance message with trajectory points, PCA and FOV. See also Mavlink OBSTACLE_AVOIDANCE msg
+# Output of a external avoidance. Obstacle avoidance message with trajectory points and FOV. See also Mavlink OBSTACLE_AVOIDANCE msg
 
 uint8 MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS = 0
 uint8 MAV_TRAJECTORY_REPRESENTATION_BEZIER = 1
 
 uint8 type # Type from MAV_TRAJECTORY_REPRESENTATION enum.
 
-float32[11] point_1    # Depending on the type (see MAV_TRAJECTORY_REPRESENTATION)
-float32[11] point_2    # Depending on the type (see MAV_TRAJECTORY_REPRESENTATION)
-float32[11] point_3    # Depending on the type (see MAV_TRAJECTORY_REPRESENTATION)
-float32[11] point_4    # Depending on the type (see MAV_TRAJECTORY_REPRESENTATION)
-float32[11] point_5    # Depending on the type (see MAV_TRAJECTORY_REPRESENTATION)
+float32[11] point_1    # Depending on the type (see MAV_TRAJECTORY_REPRESENTATION), index 0-2 position sp, index 3-5 velocity sp, index 6-8 acceleration sp, index 9 yaw, index 10 yaw speed
+float32[11] point_2    # Depending on the type (see MAV_TRAJECTORY_REPRESENTATION), index 0-2 position sp, index 3-5 velocity sp, index 6-8 acceleration sp, index 9 yaw, index 10 yaw speed
+float32[11] point_3    # Depending on the type (see MAV_TRAJECTORY_REPRESENTATION), index 0-2 position sp, index 3-5 velocity sp, index 6-8 acceleration sp, index 9 yaw, index 10 yaw speed
+float32[11] point_4    # Depending on the type (see MAV_TRAJECTORY_REPRESENTATION), index 0-2 position sp, index 3-5 velocity sp, index 6-8 acceleration sp, index 9 yaw, index 10 yaw speed
+float32[11] point_5    # Depending on the type (see MAV_TRAJECTORY_REPRESENTATION), index 0-2 position sp, index 3-5 velocity sp, index 6-8 acceleration sp, index 9 yaw, index 10 yaw speed
 
 bool[5] point_valid   # States if respective point is valid
 

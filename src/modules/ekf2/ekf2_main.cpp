@@ -557,12 +557,20 @@ void Ekf2::run()
 			orb_copy(ORB_ID(vehicle_status), status_sub, &vehicle_status);
 		}
 
-		if (_indoor_mode.get() == 0) {
-			orb_check(gps_sub, &gps_updated);
+		// Allow GPS use to be toggled by changing the aiding mask, but do not save the parameter
+		bool using_gps = (_params->fusion_mode & MASK_USE_GPS);
+		if (using_gps && (_indoor_mode.get() == 1)) {
+			_params->fusion_mode -= MASK_USE_GPS;
+			PX4_INFO("EKF fusion mode set to %i\n",_params->fusion_mode);
+		} else if (!using_gps && (_indoor_mode.get() == 0)) {
+			_params->fusion_mode += MASK_USE_GPS;
+			PX4_INFO("EKF fusion mode set to %i\n",_params->fusion_mode);
+		}
 
-			if (gps_updated) {
-				orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
-			}
+		orb_check(gps_sub, &gps_updated);
+
+		if (gps_updated) {
+			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
 		}
 
 		// Do not attempt to use airspeed if use has been disabled by the user.

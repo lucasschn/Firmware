@@ -668,7 +668,7 @@ REALSENSE::_read_obstacle_avoidance_data()
 					obstacle_avoidance.point_valid[3] = 0;
 					obstacle_avoidance.point_valid[4] = 0;
 
-					obstacle_avoidance.field_of_view[0] = 180;
+					obstacle_avoidance.field_of_view[0] = 0;
 					obstacle_avoidance.field_of_view[1] = 0;
 					obstacle_avoidance.field_of_view[2] = -1;
 					obstacle_avoidance.field_of_view[3] = 15;

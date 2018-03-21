@@ -82,7 +82,6 @@
 
 /* --- tap specific headers */
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/realsense_avoidance_setpoint.h>
 #include <uORB/topics/smart_heading.h>
 #include <uORB/topics/distance_sensor.h>
 #include <lib/conversion/rotation.h>

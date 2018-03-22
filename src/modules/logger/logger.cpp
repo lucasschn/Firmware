@@ -622,8 +622,8 @@ void Logger::add_default_topics()
 	add_topic("vtol_vehicle_status", 200);  // NOTE(YUNEEC): Saving memory
 	add_topic("wind_estimate", 200);
 	add_topic("obstacle_avoidance", 20);
+	add_topic("obstacle_avoidance_input", 20);
 	add_topic("obstacle_distance", 20);
-	add_topic("realsense_avoidance_setpoint_input", 20);
 }
 
 void Logger::add_high_rate_topics()

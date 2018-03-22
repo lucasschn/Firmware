@@ -35,7 +35,6 @@
 /**
  * @file tap-v2_pwr.c
  *
- * Board-specific SPI functions.
  */
 
 /************************************************************************************
@@ -51,12 +50,6 @@
 
 #include <arch/board/board.h>
 #include <nuttx/arch.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/led_control.h>
-#include <uORB/topics/tune_control.h>
-
-#include <px4_workqueue.h>
 
 #include "up_arch.h"
 #include "board_config.h"

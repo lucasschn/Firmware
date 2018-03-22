@@ -335,7 +335,7 @@ fi
 #
 # Play startup tune
 #
-# tune_control play -m "MNT255L32O2<CDEFGAB>CDEFGAB>CD" -s 30 &
+tune_control play -t 1 -s 30 &
 
 set OUTPUT_MODE tap_esc
 

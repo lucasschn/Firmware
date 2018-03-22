@@ -49,8 +49,6 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/obstacle_avoidance.h>
-#include <uORB/topics/realsense_avoidance_setpoint.h>
 #include <uORB/topics/realsense_distance_info.h>
 #include <uORB/topics/obstacle_avoidance.h>
 #include <uORB/topics/obstacle_distance.h>

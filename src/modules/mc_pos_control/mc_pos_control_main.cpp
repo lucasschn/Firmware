@@ -490,11 +490,11 @@ private:
 
 	void obstacle_avoidance(float altitude_above_home);
 
-	void fill_pos_avoid_input(float (&input)[11], float x, float y, float z, int point_numb, bool valid);
+	void fill_pos_avoid_input(float (&input)[11], const float x, const float y, const float z, int point_numb);
 
-	void fill_vel_avoid_input(float (&input)[11], float x, float y, float z, int point_numb, bool valid);
+	void fill_vel_avoid_input(float (&input)[11], const float x, const float y, const float z, int point_numb);
 
-	void fill_acc_avoid_input(float (&input)[11], float x, float y, float z, int point_numb, bool valid);
+	void fill_acc_avoid_input(float (&input)[11], const float x, const float y, const float z, int point_numb);
 
 	void fill_yaw_avoid_input(float (&input)[11], float yaw, float yaw_speed);
 
@@ -3834,23 +3834,28 @@ MulticopterPositionControl::task_main()
 				/* publish desired velocity to realsense */
 				if (_pos_sp_triplet.current.valid) {
 					_avoidance_input.timestamp = hrt_absolute_time();
-					fill_pos_avoid_input(_avoidance_input.point_1, _pos(0), _pos(1), _pos(2), 1, true);
+					/* point_1 containes the current position with the desired velocity */
+					fill_pos_avoid_input(_avoidance_input.point_1, _pos(0), _pos(1), _pos(2), 1);
 					fill_yaw_avoid_input(_avoidance_input.point_1, _yaw, NAN);
-					fill_vel_avoid_input(_avoidance_input.point_1, _vel_sp_desired(0), _vel_sp_desired(1), _vel_sp_desired(1), 1, true);
+					fill_vel_avoid_input(_avoidance_input.point_1, _vel_sp_desired(0), _vel_sp_desired(1), _vel_sp_desired(1), 1);
 
-					fill_pos_avoid_input(_avoidance_input.point_2, _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
-							     _pos_sp_triplet.current.z, 2, _pos_sp_triplet.current.valid);
-					fill_yaw_avoid_input(_avoidance_input.point_2, _pos_sp_triplet.current.yaw, NAN);
+					if (_pos_sp_triplet.current.valid) {
+						fill_pos_avoid_input(_avoidance_input.point_2, _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
+								     _pos_sp_triplet.current.z, 2);
+						fill_yaw_avoid_input(_avoidance_input.point_2, _pos_sp_triplet.current.yaw, NAN);
+					}
 
-					fill_pos_avoid_input(_avoidance_input.point_3, _pos_sp_triplet.next.x, _pos_sp_triplet.next.y, _pos_sp_triplet.next.z,
-							     3, _pos_sp_triplet.next.valid);
-					fill_yaw_avoid_input(_avoidance_input.point_3, _pos_sp_triplet.next.yaw, NAN);
+					if (_pos_sp_triplet.next.valid) {
+						fill_pos_avoid_input(_avoidance_input.point_3, _pos_sp_triplet.next.x, _pos_sp_triplet.next.y, _pos_sp_triplet.next.z,
+								     3);
+						fill_yaw_avoid_input(_avoidance_input.point_3, _pos_sp_triplet.next.yaw, NAN);
+					}
 
 				} else {
 					_avoidance_input.timestamp = hrt_absolute_time();
-					fill_pos_avoid_input(_avoidance_input.point_1, _pos(0), _pos(1), _pos(2), 1, true);
-					fill_yaw_avoid_input(_avoidance_input.point_1, _yaw, NAN);
-					fill_vel_avoid_input(_avoidance_input.point_1, _vel_sp_desired(0), _vel_sp_desired(1), _vel_sp_desired(2), 1, true);
+					fill_pos_avoid_input(_avoidance_input.point_1, _pos(0), _pos(1), _pos(2), 1);
+					fill_yaw_avoid_input(_avoidance_input.point_1, _yaw, _min_obstacle_distance);
+					fill_vel_avoid_input(_avoidance_input.point_1, _vel_sp_desired(0), _vel_sp_desired(1), _vel_sp_desired(2), 1);
 				}
 
 				/* publish local position setpoint */
@@ -3948,34 +3953,34 @@ MulticopterPositionControl::task_main()
 }
 
 void
-MulticopterPositionControl::fill_pos_avoid_input(float (&input)[11], float x, float y, float z, int point_numb,
-		bool valid)
+MulticopterPositionControl::fill_pos_avoid_input(float (&input)[11], const float x, const float y, float z,
+		const int point_numb)
 {
 	input[0] = x;
 	input[1] = y;
 	input[2] = z;
-	_avoidance_input.point_valid[point_numb - 1] = valid;
+	_avoidance_input.point_valid[point_numb - 1] = true;
 }
 
-void MulticopterPositionControl::fill_vel_avoid_input(float (&input)[11], float x, float y, float z, int point_numb,
-		bool valid)
+void MulticopterPositionControl::fill_vel_avoid_input(float (&input)[11], const float x, const float y, const float z,
+		int point_numb)
 {
 	input[3] = x;
 	input[4] = y;
 	input[5] = z;
-	_avoidance_input.point_valid[point_numb] = valid;
+	_avoidance_input.point_valid[point_numb] = true;
 }
 
-void MulticopterPositionControl::fill_acc_avoid_input(float (&input)[11], float x, float y, float z, int point_numb,
-		bool valid)
+void MulticopterPositionControl::fill_acc_avoid_input(float (&input)[11], const float x, const float y, const float z,
+		int point_numb)
 {
 	input[6] = x;
 	input[7] = y;
 	input[8] = z;
-	_avoidance_input.point_valid[point_numb] = valid;
+	_avoidance_input.point_valid[point_numb] = true;
 }
 
-void MulticopterPositionControl::fill_yaw_avoid_input(float (&input)[11], float yaw, float yaw_speed)
+void MulticopterPositionControl::fill_yaw_avoid_input(float (&input)[11], const float yaw, const float yaw_speed)
 {
 
 	input[9] = yaw;

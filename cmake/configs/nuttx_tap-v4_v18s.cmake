@@ -4,5 +4,5 @@ px4_nuttx_configure(HWCLASS m7 CONFIG nsh ROMFS y ROMFSROOT tap_common TAP_ESC V
 # created to enable specific module to be included or excluded from the build
 
 list(REMOVE_ITEM config_module_list
-	driver/realsense
+	drivers/realsense
 	)

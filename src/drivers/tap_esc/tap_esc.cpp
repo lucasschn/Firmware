@@ -490,9 +490,17 @@ int TAP_ESC::esc_failure_check(uint8_t channel_id)
 			// set this motor mask and has failure
 			_esc_feedback.engine_failure_report.motor_state |= 1 << channel_id;
 
-			// print error information for user when the motor has failure
-			mavlink_log_critical(&_mavlink_log_pub, "MOTOR %d ERROR IS %d,ENTER FAULT TOLERANT CONTROL",
-					     channel_id, _esc_feedback.esc[channel_id].esc_state);
+			if (_is_armed) {
+				// print error information for user when the motor has failure
+				if (_fault_tolerant_control != nullptr) {
+					mavlink_log_critical(&_mavlink_log_pub, "MOTOR %d ERROR IS %d,ENTER FAULT TOLERANT CONTROL",
+							     channel_id, _esc_feedback.esc[channel_id].esc_state);
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "MOTOR %d ERROR IS %d",
+							     channel_id, _esc_feedback.esc[channel_id].esc_state);
+				}
+			}
 
 			return channel_id;
 		}
@@ -783,6 +791,12 @@ TAP_ESC::cycle()
 						_stall_by_lost_prop = -1;
 					}
 				}
+			}
+
+
+		} else {
+			for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
+				esc_failure_check(channel_id);
 			}
 		}
 

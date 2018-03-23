@@ -490,16 +490,11 @@ int TAP_ESC::esc_failure_check(uint8_t channel_id)
 			// set this motor mask and has failure
 			_esc_feedback.engine_failure_report.motor_state |= 1 << channel_id;
 
-			if (_is_armed) {
-				// print error information for user when the motor has failure
-				if (_fault_tolerant_control != nullptr) {
-					mavlink_log_critical(&_mavlink_log_pub, "MOTOR %d ERROR IS %d,ENTER FAULT TOLERANT CONTROL",
-							     channel_id, _esc_feedback.esc[channel_id].esc_state);
-
-				} else {
-					mavlink_log_critical(&_mavlink_log_pub, "MOTOR %d ERROR IS %d",
-							     channel_id, _esc_feedback.esc[channel_id].esc_state);
-				}
+			// print error information for user when the motor has failure
+			// Check for armed state to prevent flooding mavlink log
+			if (!_is_armed) {
+				mavlink_log_critical(&_mavlink_log_pub, "MOTOR %d ERROR IS %d",
+						     channel_id, _esc_feedback.esc[channel_id].esc_state);
 			}
 
 			return channel_id;
@@ -795,6 +790,7 @@ TAP_ESC::cycle()
 
 
 		} else {
+			// Even without FTC we want to check for motor failures and report them
 			for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
 				esc_failure_check(channel_id);
 			}

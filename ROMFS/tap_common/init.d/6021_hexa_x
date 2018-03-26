@@ -102,6 +102,7 @@ then
 		param set MPC_Z_VEL_MAX_UP 7.0
 		param set MPC_Z_VEL_MAX_DN 6.0
 		param set MPC_LAND_SPEED 0.8
+		param set MPC_VEL_MANUAL 10.0
 
 		# Position control acceleraton
 		param set MPC_ACC_HOR_MAX 10.0

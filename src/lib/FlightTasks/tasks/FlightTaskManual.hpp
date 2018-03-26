@@ -46,7 +46,7 @@
 class FlightTaskManual : public FlightTask
 {
 public:
-	FlightTaskManual(control::SuperBlock *parent, const char *name);
+	FlightTaskManual() = default;
 
 	virtual ~FlightTaskManual() = default;
 
@@ -63,13 +63,19 @@ protected:
 	matrix::Vector<float, 4> _sticks_expo; /**< modified manual sticks using expo function*/
 	control::BlockParamFloat _stick_dz; /**< 0-deadzone around the center for the sticks */
 
+	float stickDeadzone() const { return _stick_dz.get(); }
 private:
+
+	bool _evaluateSticks(); /**< checks and sets stick inputs */
 
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
 
-	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction */
-	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in z direction */
-	control::BlockParamFloat _yaw_expo; /**< ratio of exponential curve for stick input for yaw rotation */
-
-	bool _evaluateSticks(); /**< checks and sets stick inputs */
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
+					(ParamFloat<px4::params::MPC_HOLD_DZ>) _stick_dz, /**< 0-deadzone around the center for the sticks */
+					(ParamFloat<px4::params::MPC_XY_MAN_EXPO>)
+					_xy_vel_man_expo, /**< ratio of exponential curve for stick input in xy direction */
+					(ParamFloat<px4::params::MPC_Z_MAN_EXPO>)
+					_z_vel_man_expo, /**< ratio of exponential curve for stick input in z direction */
+					(ParamFloat<px4::params::MPC_YAW_EXPO>)_yaw_expo  /**< ratio of exponential curve for stick input in yaw for modes except acro */
+				       )
 };

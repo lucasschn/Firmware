@@ -41,15 +41,6 @@
 
 using namespace matrix;
 
-FlightTaskManualStabilized::FlightTaskManualStabilized(control::SuperBlock *parent, const char *name) :
-	FlightTaskManual(parent, name),
-	_yaw_rate_scaling(parent, "MPC_MAN_Y_MAX", false),
-	_tilt_max_man(parent, "MPC_MAN_TILT_MAX", false),
-	_throttle_min(parent, "MPC_THR_MIN", false),
-	_throttle_max(parent, "MPC_THR_MAX", false),
-	_throttle_hover(parent, "MPC_THR_HOVER", false)
-{}
-
 bool FlightTaskManualStabilized::activate()
 {
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());

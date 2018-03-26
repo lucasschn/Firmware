@@ -647,6 +647,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		ModuleParams::updateParams();
 		SuperBlock::updateParams();
 
+		_flight_tasks.handleParameterUpdate();
+
 		/* initialize vectors from params and enforce constraints */
 
 		_pos_p(0) = _xy_p.get();

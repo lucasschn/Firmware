@@ -243,6 +243,11 @@ private:
 	int			_fw_fd;
 	const char *_device;
 	uint8_t 	_esc_counter;
+	struct {
+		param_t esc_firmware_version;
+		param_t esc_bootloader_version;
+		param_t esc_hardware_version;
+	}  _params_handles;
 
 	/* _device_mux_map[sel]:Asign the id's to the ESC to match the mux */
 	static const uint8_t 	_device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
@@ -256,7 +261,7 @@ private:
 	uint8_t 	crc_packet(EscUploaderMessage &p);
 	int 		send_packet(EscUploaderMessage &packet, int responder);
 	int			sync(uint8_t esc_id);
-	int			get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t &val);
+	int	        get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t &val);
 	int			erase(uint8_t esc_id);
 	int			program(uint8_t esc_id, size_t fw_size);
 	int			verify_crc(uint8_t esc_id, size_t fw_size_local);

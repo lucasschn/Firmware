@@ -253,24 +253,24 @@ Battery::computeRemainingTime(float current_a)
 	/* Only estimate remaining time with useful in flight current measurements */
 	if (_current_filtered_a > 1.f) {
 		/* Initialize strongly filtered current to an estimated average consumption */
-		if (_current_filtered_strong_a < 0.f) {
+		if (_current_filtered_a_for_time < 0.f) {
 			/* TODO: better initial value based on "hover current" from last flight */
-			_current_filtered_strong_a = 15.f;
+			_current_filtered_a_for_time = 15.f;
 		}
 
 		/* Filter current very strong, we basically want the average consumption */
-		float weight_ct = 5e-5f;
-		_current_filtered_strong_a = (1 - weight_ct) * _current_filtered_strong_a + weight_ct * current_a;
+		const float weight_ct = 5e-5f;
+		_current_filtered_a_for_time = (1 - weight_ct) * _current_filtered_a_for_time + weight_ct * current_a;
 
 		/* Remaining time estimation only possible with capacity */
 		if (_capacity.get() > 0.f) {
 			const float remaining_capacity_mah = _remaining * _capacity.get();
-			const float current_ma = _current_filtered_strong_a * 1e3f;
+			const float current_ma = _current_filtered_a_for_time * 1e3f;
 			_time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;
 		}
 
 	} else {
-		_current_filtered_strong_a = -1.f;
+		_current_filtered_a_for_time = -1.f;
 		_time_remaining_s = -1.f;
 	}
 }

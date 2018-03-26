@@ -61,6 +61,7 @@ public:
 
 	int		upload(const char *filenames[]);
 	int 	checkcrc(const char *filenames[]);
+	int 	checkversion(const char *filenames[]);
 
 	/*
 	 * read version of ESC firmware from tap_esc.bin file
@@ -123,7 +124,8 @@ private:
 		PROTO_DEVICE_BOARD_REV	= 3,		/**< board revision */
 		PROTO_DEVICE_FW_SIZE	= 4,		/**< size of flashable area */
 		PROTO_DEVICE_VEC_AREA	= 5,		/**< contents of reserved vectors 7-10 */
-		PROTO_DEVICE_FW_REV	= 6,		/**< firmware revision */
+		PROTO_DEVICE_FW_REV	    = 6,		/**< firmware revision */
+		PROTO_DEVICE_VERSION	= 7,		/**< esc firmware,bootloader,hardware revision */
 
 		PROG_MULTI_MAX		= 128,		/**< protocol max is 255, must be multiple of 4 */
 
@@ -192,6 +194,14 @@ private:
 		uint32_t boardRev;
 	} EscbusHardwareRevisionPacket;
 
+	/**< the real packet definition for deviceInfo is PROTO_DEVICE_VERSION */
+	typedef struct {
+		uint8_t  myID;
+		uint32_t FwRev;
+		uint32_t HwRev;
+		uint32_t blRev;
+	} EscbusDeviceInfoPacket;
+
 	/**< the real packet definition for deviceInfo is PROTO_DEVICE_FW_SIZE */
 	typedef struct {
 		uint8_t myID;
@@ -231,6 +241,7 @@ private:
 			EscbusFirmwareSizePacket		firmware_size_packet;
 			EscbusFirmwareRevisionPacket	firmware_revis_packet;
 			EscbusProtocolInvalidPacket		protocal_invalid_packet;
+			EscbusDeviceInfoPacket          esc_version_packet;
 			uint8_t data[ESCBUS_DATA_CRC_LEN];	/**< length of data field is 255 and plus one byte for CRC */
 		} d;
 		uint8_t crc_data;
@@ -262,6 +273,7 @@ private:
 	int 		send_packet(EscUploaderMessage &packet, int responder);
 	int			sync(uint8_t esc_id);
 	int	        get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t &val);
+	int         get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t (&val)[3]);
 	int			erase(uint8_t esc_id);
 	int			program(uint8_t esc_id, size_t fw_size);
 	int			verify_crc(uint8_t esc_id, size_t fw_size_local);

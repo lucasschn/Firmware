@@ -289,6 +289,69 @@ TAP_ESC_UPLOADER::upload(const char *filenames[])
 }
 
 int
+TAP_ESC_UPLOADER::checkversion(const char *filenames[])
+{
+	/*
+	  check tap_esc flash CRC against CRC of a file
+	 */
+	int32_t fw_size;
+	int ret = -1;
+
+	fw_size = initialise_firmware_file(filenames, _fw_fd);
+
+	if (fw_size < 0) {
+		PX4_LOG("initialise firmware file failed");
+		return fw_size;
+	}
+
+	ret = tap_esc_common::initialise_uart(_device, _esc_fd);
+
+	if (ret < 0) {
+		PX4_LOG("initialise uart failed %s");
+		return ret;
+	}
+
+	/* checkcrc esc_id(0,1,2,3,4,5), checkcrc begin esc id0 */
+	for (unsigned esc_id = 0; esc_id < _esc_counter; esc_id++) {
+		uint32_t temp_revision[3] = {};
+		_params_handles.esc_firmware_version = param_find("ESC_FIRM_VER");
+		_params_handles.esc_bootloader_version = param_find("ESC_BOOT_VER");
+		_params_handles.esc_hardware_version = param_find("ESC_HARD_VER");
+
+		/* get device esc revision */
+		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_VERSION, temp_revision);
+
+		if (ret == OK) {
+			param_set(_params_handles.esc_firmware_version, &temp_revision[0]);
+			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found firmware revision: %4.4f", esc_id,
+						     (double)temp_revision[0] / 100);
+
+		} else {
+			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found firmware revision failed");
+		}
+
+		if (ret == OK) {
+			param_set(_params_handles.esc_hardware_version, &temp_revision[1]);
+			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found board revision: %02x", esc_id, temp_revision[1]);
+
+		}  else {
+			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found board revision failed");
+		}
+
+		if (ret == OK) {
+			param_set(_params_handles.esc_bootloader_version, &temp_revision[2]);
+			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found bootloader revision: %4.4f", esc_id,
+						     (double)temp_revision[2] / 100);
+
+		} else {
+			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found bootloader revision failed", esc_id);
+		}
+	}
+
+	return ret;
+}
+
+int
 TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 {
 	/*
@@ -659,6 +722,61 @@ TAP_ESC_UPLOADER::sync(uint8_t esc_id)
 }
 
 int
+TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t (&val)[3])
+{
+	int ret;
+
+	/*prepare information request packet */
+	EscUploaderMessage device_info_packet = {PACKET_HEAD, sizeof(EscbusGetDevicePacket), msg_id};
+	device_info_packet.d.device_info_packet.myID = esc_id;
+	device_info_packet.d.device_info_packet.deviceInfo = msg_arg;
+	send_packet(device_info_packet, esc_id);
+
+	/* read and parse device information feedback packet, blocking 50ms */
+	ret = read_and_parse_data();
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	/* check device information feedback is ok or fail */
+	switch (msg_arg) {
+	case PROTO_DEVICE_VERSION:
+		if (_uploader_packet.msg_id == PROTO_OK) {
+			if (_uploader_packet.d.esc_version_packet.myID != esc_id) {
+				PX4_LOG("get device firmware revision id don't match, myID: 0x%02x, esc_id: 0x%02x",
+					_uploader_packet.d.esc_version_packet.myID, esc_id);
+				return -EIO;
+			}
+
+			val[0] = _uploader_packet.d.esc_version_packet.FwRev;
+			val[1] = _uploader_packet.d.esc_version_packet.HwRev;
+			val[2] = _uploader_packet.d.esc_version_packet.blRev;
+
+		} else if (_uploader_packet.msg_id == PROTO_FAILED) {
+			PX4_LOG("get device firmware revision failed, myID: 0x%02x,esc_id: 0x%02x, FwRev: 0x%02x",
+				_uploader_packet.d.esc_version_packet.myID, esc_id,
+				_uploader_packet.d.esc_version_packet.FwRev);
+			return -EIO;
+
+		} else if (_uploader_packet.msg_id == PROTO_INVALID) {
+			PX4_LOG("get device firmware revision invalid, myID: 0x%02x,esc_id: 0x%02x, FwRev: 0x%02x",
+				_uploader_packet.d.esc_version_packet.myID, esc_id,
+				_uploader_packet.d.esc_version_packet.FwRev);
+			return -EIO;
+
+		}
+
+		break;
+
+	default:
+		break;
+	}
+
+	return OK;
+}
+
+int
 TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t &val)
 {
 	int ret;
@@ -799,6 +917,32 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 		break;
 
 	case PROTO_DEVICE_FW_REV:
+		if (_uploader_packet.msg_id == PROTO_OK) {
+			if (_uploader_packet.d.firmware_revis_packet.myID != esc_id) {
+				PX4_LOG("get device firmware revision id don't match, myID: 0x%02x, esc_id: 0x%02x",
+					_uploader_packet.d.firmware_revis_packet.myID, esc_id);
+				return -EIO;
+			}
+
+			val = _uploader_packet.d.firmware_revis_packet.FwRev;
+
+		} else if (_uploader_packet.msg_id == PROTO_FAILED) {
+			PX4_LOG("get device firmware revision failed, myID: 0x%02x,esc_id: 0x%02x, FwRev: 0x%02x",
+				_uploader_packet.d.firmware_revis_packet.myID, esc_id,
+				_uploader_packet.d.firmware_revis_packet.FwRev);
+			return -EIO;
+
+		} else if (_uploader_packet.msg_id == PROTO_INVALID) {
+			PX4_LOG("get device firmware revision invalid, myID: 0x%02x,esc_id: 0x%02x, FwRev: 0x%02x",
+				_uploader_packet.d.firmware_revis_packet.myID, esc_id,
+				_uploader_packet.d.firmware_revis_packet.FwRev);
+			return -EIO;
+
+		}
+
+		break;
+
+	case PROTO_DEVICE_VERSION:
 		if (_uploader_packet.msg_id == PROTO_OK) {
 			if (_uploader_packet.d.firmware_revis_packet.myID != esc_id) {
 				PX4_LOG("get device firmware revision id don't match, myID: 0x%02x, esc_id: 0x%02x",

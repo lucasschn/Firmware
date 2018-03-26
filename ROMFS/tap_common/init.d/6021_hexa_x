@@ -342,7 +342,7 @@ then
 	reboot
 fi
 
-tap_esc_config checkcrc -d ${ESC_TTY} -n 6
+tap_esc_config checkversion -d ${ESC_TTY} -n 6
 
 #
 # ESC driver

@@ -559,12 +559,14 @@ void Ekf2::run()
 
 		// Allow GPS use to be toggled by changing the aiding mask, but do not save the parameter
 		bool using_gps = (_params->fusion_mode & MASK_USE_GPS);
+
 		if (using_gps && (_indoor_mode.get() == 1)) {
 			_params->fusion_mode -= MASK_USE_GPS;
-			PX4_INFO("EKF fusion mode set to %i\n",_params->fusion_mode);
+			PX4_INFO("EKF fusion mode set to %i\n", _params->fusion_mode);
+
 		} else if (!using_gps && (_indoor_mode.get() == 0)) {
 			_params->fusion_mode += MASK_USE_GPS;
-			PX4_INFO("EKF fusion mode set to %i\n",_params->fusion_mode);
+			PX4_INFO("EKF fusion mode set to %i\n", _params->fusion_mode);
 		}
 
 		orb_check(gps_sub, &gps_updated);

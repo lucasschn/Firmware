@@ -345,7 +345,7 @@ fi
 #
 # Log ESC Firmware, Bootloader and Hardware version
 #
-tap_esc_config check_version -d ${ESC_TTY} -n 6
+tap_esc_config log_versions -d ${ESC_TTY} -n 6
 
 #
 # ESC driver

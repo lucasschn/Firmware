@@ -289,7 +289,7 @@ TAP_ESC_UPLOADER::upload(const char *filenames[])
 }
 
 int
-TAP_ESC_UPLOADER::check_version(const char *filenames[])
+TAP_ESC_UPLOADER::log_versions(const char *filenames[])
 {
 	/*
 	  check tap_esc flash CRC against CRC of a file

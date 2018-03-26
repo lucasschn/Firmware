@@ -76,13 +76,13 @@ static int upload_firmware(const char *fw_paths[], const char *device, uint8_t n
 static int check_crc(const char *fw_paths[], const char *device, uint8_t num_escs);
 
 /**
- *  Check CRC of ESC's currently loaded firmware. If one or more are faulty, firmware will be re-uploaded
+ *  Log the versions of ESC Bootloader, Firmware and Hardware to dedicated params
  *  @param fw_paths Firmware paths to search for the binary file. Must be terminated with a nullptr entry.
  *  @param device Unix path of UART device where ESCs are connected to
  *  @param num_escs Number of ESCs that are currently connected to the board
  *  @return PX4_OK on success, PX4_ERROR on error or -errno (linux man) if available
  */
-static int check_version(const char *fw_paths[], const char *device, uint8_t num_escs);
+static int log_versions(const char *fw_paths[], const char *device, uint8_t num_escs);
 
 
 /**
@@ -256,7 +256,7 @@ static int check_crc(const char * fw_paths[], const char * device, uint8_t num_e
 	return ret;
 }
 
-static int check_version(const char * fw_paths[], const char * device, uint8_t num_escs)
+static int log_versions(const char * fw_paths[], const char * device, uint8_t num_escs)
 {
 	TAP_ESC_UPLOADER *uploader = nullptr;
 	uploader = new TAP_ESC_UPLOADER(device, num_escs);
@@ -267,7 +267,7 @@ static int check_version(const char * fw_paths[], const char * device, uint8_t n
 		return PX4_ERROR;
 	}
 
-	int ret = uploader->check_version(&fw_paths[0]);
+	int ret = uploader->log_versions(&fw_paths[0]);
 	delete uploader;
 
 	if (ret != OK) {
@@ -639,8 +639,8 @@ int tap_esc_config_main(int argc, char *argv[]) {
 	if (!strcmp(argv[myoptind], "checkcrc")) {
 		return check_crc(&firmware_paths[0], device, num_escs);
 
-	} else if(!strcmp(argv[myoptind], "check_version")) {
-		return check_version(&firmware_paths[0], device, num_escs);
+	} else if(!strcmp(argv[myoptind], "log_versions")) {
+		return log_versions(&firmware_paths[0], device, num_escs);
 	} else if (!strcmp(argv[myoptind], "identify")) {
 		if (id_config_num>=num_escs)
 		{

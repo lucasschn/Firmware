@@ -885,17 +885,19 @@ TAP_ESC::cycle()
 	}
 
 	unsigned frequency = 0, duration = 0, silence = 0;
+	uint8_t strength = 0;
 	EscbusTunePacket esc_tune_packet;
 
 	if ((now >= _next_tone) && _play_tone) {
 		_play_tone = false;
-		int parse_ret_val = _tunes.get_next_tune(frequency, duration, silence);
+		int parse_ret_val = _tunes.get_next_tune(frequency, duration, silence, strength);
 
+		// Is there right now a tone that needs to be played?
 		// the return value is 0 if one tone need to be played and 1 if the sequence needs to continue
-		if (parse_ret_val >= 0 && frequency > 0) {
+		if (parse_ret_val >= 0 && frequency > 0 && duration > 0 && strength > 0) {
 			esc_tune_packet.frequency = frequency;
 			esc_tune_packet.duration_ms = (uint16_t)(duration / 1000); // convert to ms
-			esc_tune_packet.strength = (_hitl ? tune_control_s::STRENGTH_HITL : _tune.strength);
+			esc_tune_packet.strength = (_hitl ? tune_control_s::STRENGTH_HITL : strength);
 			// set next tone call time
 			_next_tone = now + silence + duration;
 
@@ -906,6 +908,11 @@ TAP_ESC::cycle()
 			if (!_is_armed || _armed.manual_lockdown) {
 				send_tune_packet(esc_tune_packet);
 			}
+		}
+
+		// Does a tone follow after this one?
+		if (parse_ret_val > 0) {
+			_play_tone = true;
 		}
 	}
 }

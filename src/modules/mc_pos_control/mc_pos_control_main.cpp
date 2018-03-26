@@ -562,7 +562,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_z_max_up(this, "ACC_UP_MAX", true),
 	_acceleration_z_max_down(this, "ACC_DOWN_MAX", true),
 	_cruise_speed_90(this, "CRUISE_90", true),
-	_speed_z_auto(this, "MPC_Z_AUTO", false),
+	_speed_z_auto(this, "MPC_VEL_Z_AUTO", false),
 	_velocity_hor_manual(this, "VEL_MANUAL", true),
 	_vel_z_up(this, "MPC_VEL_MAN_UP", false),
 	_vel_z_down(this, "MPC_VEL_MAN_DN", false),
@@ -3005,7 +3005,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	 * for now we use the altitude above home and assume that we want to land at same height as we took off */
 	float vel_limit = math::gradual(altitude_above_home,
 					_params.slow_land_alt2, _params.slow_land_alt1,
-					_params.land_speed, _params.vel_max_down);
+					_params.land_speed, _vel_z_down.get());
 
 	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
 

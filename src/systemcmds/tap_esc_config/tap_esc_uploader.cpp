@@ -314,15 +314,12 @@ TAP_ESC_UPLOADER::check_version(const char *filenames[])
 	/* checkcrc esc_id(0,1,2,3,4,5), checkcrc begin esc id0 */
 	for (unsigned esc_id = 0; esc_id < _esc_counter; esc_id++) {
 		uint32_t temp_revision[3] = {};
-		_params_handles.esc_firmware_version = param_find("ESC_FIRM_VER");
-		_params_handles.esc_bootloader_version = param_find("ESC_BOOT_VER");
-		_params_handles.esc_hardware_version = param_find("ESC_HARD_VER");
 
 		/* get device esc revision */
 		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_VERSION, temp_revision);
 
 		if (ret == OK) {
-			param_set(_params_handles.esc_firmware_version, &temp_revision[0]);
+			param_set(param_find("ESC_FIRM_VER"), &temp_revision[0]);
 			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found firmware revision: %4.4f", esc_id,
 						     (double)temp_revision[0] / 100);
 
@@ -331,7 +328,7 @@ TAP_ESC_UPLOADER::check_version(const char *filenames[])
 		}
 
 		if (ret == OK) {
-			param_set(_params_handles.esc_hardware_version, &temp_revision[1]);
+			param_set(param_find("ESC_HARD_VER"), &temp_revision[1]);
 			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found board revision: %02x", esc_id, temp_revision[1]);
 
 		}  else {
@@ -339,7 +336,7 @@ TAP_ESC_UPLOADER::check_version(const char *filenames[])
 		}
 
 		if (ret == OK) {
-			param_set(_params_handles.esc_bootloader_version, &temp_revision[2]);
+			param_set(param_find("ESC_BOOT_VER"), &temp_revision[2]);
 			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found bootloader revision: %4.4f", esc_id,
 						     (double)temp_revision[2] / 100);
 
@@ -397,15 +394,12 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 		}
 
 		uint32_t temp_revision;
-		_params_handles.esc_firmware_version = param_find("ESC_FIRM_VER");
-		_params_handles.esc_bootloader_version = param_find("ESC_BOOT_VER");
-		_params_handles.esc_hardware_version = param_find("ESC_HARD_VER");
 
 		/* get device bootloader revision */
 		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_BL_REV, temp_revision);
 
 		if (ret == OK) {
-			param_set(_params_handles.esc_bootloader_version, &temp_revision);
+			param_set(param_find("ESC_BOOT_VER"), &temp_revision);
 			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found bootloader revision: %4.4f", esc_id,
 						     (double)temp_revision / 100);
 
@@ -417,7 +411,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_FW_REV, temp_revision);
 
 		if (ret == OK) {
-			param_set(_params_handles.esc_firmware_version, &temp_revision);
+			param_set(param_find("ESC_FIRM_VER"), &temp_revision);
 			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found firmware revision: %4.4f", esc_id,
 						     (double)temp_revision / 100);
 
@@ -429,7 +423,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_BOARD_REV, temp_revision);
 
 		if (ret == OK) {
-			param_set(_params_handles.esc_hardware_version, &temp_revision);
+			param_set(param_find("ESC_HARD_VER"), &temp_revision);
 			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found board revision: %02x", esc_id, temp_revision);
 
 		}  else {

@@ -254,11 +254,6 @@ private:
 	int			_fw_fd;
 	const char *_device;
 	uint8_t 	_esc_counter;
-	struct {
-		param_t esc_firmware_version;
-		param_t esc_bootloader_version;
-		param_t esc_hardware_version;
-	}  _params_handles;
 
 	/* _device_mux_map[sel]:Asign the id's to the ESC to match the mux */
 	static const uint8_t 	_device_mux_map[TAP_ESC_MAX_MOTOR_NUM];

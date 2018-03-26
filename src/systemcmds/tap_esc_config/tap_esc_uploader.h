@@ -61,7 +61,7 @@ public:
 
 	int		upload(const char *filenames[]);
 	int 	checkcrc(const char *filenames[]);
-	int 	checkversion(const char *filenames[]);
+	int 	check_version(const char *filenames[]);
 
 	/*
 	 * read version of ESC firmware from tap_esc.bin file
@@ -124,7 +124,7 @@ private:
 		PROTO_DEVICE_BOARD_REV	= 3,		/**< board revision */
 		PROTO_DEVICE_FW_SIZE	= 4,		/**< size of flashable area */
 		PROTO_DEVICE_VEC_AREA	= 5,		/**< contents of reserved vectors 7-10 */
-		PROTO_DEVICE_FW_REV	    = 6,		/**< firmware revision */
+		PROTO_DEVICE_FW_REV	= 6,		/**< firmware revision */
 		PROTO_DEVICE_VERSION	= 7,		/**< esc firmware,bootloader,hardware revision */
 
 		PROG_MULTI_MAX		= 128,		/**< protocol max is 255, must be multiple of 4 */
@@ -272,8 +272,8 @@ private:
 	uint8_t 	crc_packet(EscUploaderMessage &p);
 	int 		send_packet(EscUploaderMessage &packet, int responder);
 	int			sync(uint8_t esc_id);
-	int	        get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t &val);
-	int         get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t (&val)[3]);
+	int			get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t &val);
+	int			get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t (&val)[3]);
 	int			erase(uint8_t esc_id);
 	int			program(uint8_t esc_id, size_t fw_size);
 	int			verify_crc(uint8_t esc_id, size_t fw_size_local);

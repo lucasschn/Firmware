@@ -267,7 +267,7 @@ static int check_version(const char * fw_paths[], const char * device, uint8_t n
 		return PX4_ERROR;
 	}
 
-	int ret = uploader->checkversion(&fw_paths[0]);
+	int ret = uploader->check_version(&fw_paths[0]);
 	delete uploader;
 
 	if (ret != OK) {
@@ -639,7 +639,7 @@ int tap_esc_config_main(int argc, char *argv[]) {
 	if (!strcmp(argv[myoptind], "checkcrc")) {
 		return check_crc(&firmware_paths[0], device, num_escs);
 
-	} else if(!strcmp(argv[myoptind], "checkversion")) {
+	} else if(!strcmp(argv[myoptind], "check_version")) {
 		return check_version(&firmware_paths[0], device, num_escs);
 	} else if (!strcmp(argv[myoptind], "identify")) {
 		if (id_config_num>=num_escs)

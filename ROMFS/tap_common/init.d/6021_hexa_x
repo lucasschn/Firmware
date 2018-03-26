@@ -342,7 +342,10 @@ then
 	reboot
 fi
 
-tap_esc_config checkversion -d ${ESC_TTY} -n 6
+#
+# Log ESC Firmware, Bootloader and Hardware version
+#
+tap_esc_config check_version -d ${ESC_TTY} -n 6
 
 #
 # ESC driver

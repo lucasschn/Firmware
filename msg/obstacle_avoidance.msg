@@ -1,5 +1,13 @@
 # Input and Output of a external avoidance. Obstacle avoidance message with trajectory points and FOV. See also Mavlink OBSTACLE_AVOIDANCE msg
 
+uint8 POINT_1 = 0
+uint8 POINT_2 = 1
+uint8 POINT_3 = 2
+uint8 POINT_4 = 3
+uint8 POINT_5 = 4
+
+uint8 YAW = 9
+uint8 YAW_SPEED = 10
 
 uint8 MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS = 0
 uint8 MAV_TRAJECTORY_REPRESENTATION_BEZIER = 1

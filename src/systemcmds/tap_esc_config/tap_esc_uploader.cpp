@@ -298,39 +298,49 @@ TAP_ESC_UPLOADER::log_versions()
 		return ret;
 	}
 
-	/* Get firmware versions of all ESCs */
-	for (unsigned esc_id = 0; esc_id < _esc_counter; esc_id++) {
-		uint32_t temp_revision[3] = {};
+	// get information from first ESC
+	uint32_t temp_revision[3] = {};
+	ret = get_device_info(0, PROTO_GET_DEVICE, PROTO_DEVICE_VERSION, temp_revision);
 
+	if (ret != OK) {
+		PX4_LOG("Failed to get ESC 0 device info");
+		return ret;
+	}
+
+	uint16_t fw_ver = temp_revision[0];
+	uint16_t hw_ver = temp_revision[1];
+	uint16_t bl_ver = temp_revision[2];
+
+	/* Get firmware versions of the remainig ESCs and compare with the first one*/
+	bool esc_versions_matching = true;
+
+	for (unsigned esc_id = 1; esc_id < _esc_counter; esc_id++) {
 		/* get device esc revision */
 		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_VERSION, temp_revision);
 
-		if (ret == OK) {
-			param_set(param_find("ESC_FIRM_VER"), &temp_revision[0]);
-			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found firmware revision: %4.4f", esc_id,
-						     (double)temp_revision[0] / 100);
-
-		} else {
-			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found firmware revision failed");
+		if (ret != OK) {
+			PX4_LOG("Failed to get ESC %u device info", esc_id);
+			return ret;
 		}
 
-		if (ret == OK) {
-			param_set(param_find("ESC_HARD_VER"), &temp_revision[1]);
-			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found board revision: %02x", esc_id, temp_revision[1]);
-
-		}  else {
-			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found board revision failed");
-		}
-
-		if (ret == OK) {
-			param_set(param_find("ESC_BOOT_VER"), &temp_revision[2]);
-			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found bootloader revision: %4.4f", esc_id,
-						     (double)temp_revision[2] / 100);
-
-		} else {
-			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found bootloader revision failed", esc_id);
+		if (fw_ver != temp_revision[0] ||
+		    hw_ver != temp_revision[1] ||
+		    bl_ver != temp_revision[2]) {
+			esc_versions_matching = false;
+			break;
 		}
 	}
+
+	if (!esc_versions_matching) {
+		// ESC versions not matching
+		fw_ver = 0; // 0 means unknown
+		hw_ver = 0; // 0 means unknown
+		bl_ver = 0; // 0 means unknown
+	}
+
+	param_set(param_find("ESC_FIRM_VER"), &fw_ver);
+	param_set(param_find("ESC_HARD_VER"), &hw_ver);
+	param_set(param_find("ESC_BOOT_VER"), &bl_ver);
 
 	return ret;
 }

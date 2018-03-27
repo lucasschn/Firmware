@@ -289,29 +289,16 @@ TAP_ESC_UPLOADER::upload(const char *filenames[])
 }
 
 int
-TAP_ESC_UPLOADER::log_versions(const char *filenames[])
+TAP_ESC_UPLOADER::log_versions()
 {
-	/*
-	  check tap_esc flash CRC against CRC of a file
-	 */
-	int32_t fw_size;
-	int ret = -1;
-
-	fw_size = initialise_firmware_file(filenames, _fw_fd);
-
-	if (fw_size < 0) {
-		PX4_LOG("initialise firmware file failed");
-		return fw_size;
-	}
-
-	ret = tap_esc_common::initialise_uart(_device, _esc_fd);
+	int ret = tap_esc_common::initialise_uart(_device, _esc_fd);
 
 	if (ret < 0) {
 		PX4_LOG("initialise uart failed %s");
 		return ret;
 	}
 
-	/* checkcrc esc_id(0,1,2,3,4,5), checkcrc begin esc id0 */
+	/* Get firmware versions of all ESCs */
 	for (unsigned esc_id = 0; esc_id < _esc_counter; esc_id++) {
 		uint32_t temp_revision[3] = {};
 

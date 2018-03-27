@@ -61,7 +61,7 @@ public:
 
 	int		upload(const char *filenames[]);
 	int 	checkcrc(const char *filenames[]);
-	int 	log_versions(const char *filenames[]);
+	int 	log_versions();
 
 	/*
 	 * read version of ESC firmware from tap_esc.bin file

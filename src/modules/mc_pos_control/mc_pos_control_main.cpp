@@ -2319,7 +2319,7 @@ void MulticopterPositionControl::control_auto()
 			float yaw_speed = _pos_sp_triplet.current.yawspeed;
 
 			if (use_obstacle_avoidance()) {
-				yaw_speed = _obstacle_avoidance.point_1[10];
+				yaw_speed = _obstacle_avoidance.point_1[obstacle_avoidance_s::YAW_SPEED];
 			}
 
 			/* we want to know the real constraint, and global overrides manual */
@@ -3393,7 +3393,7 @@ MulticopterPositionControl::generate_attitude_setpoint()
 
 		/* check if avoidance is on */
 		if (use_obstacle_avoidance()) {
-			_att_sp.yaw_sp_move_rate = _obstacle_avoidance.point_1[10];
+			_att_sp.yaw_sp_move_rate = _obstacle_avoidance.point_1[obstacle_avoidance_s::YAW_SPEED];
 		}
 
 		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);

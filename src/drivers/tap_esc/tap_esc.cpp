@@ -65,7 +65,6 @@
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include "tap_esc_common.h"
 #include "fault_tolerant_control/fault_tolerant_control.h"
-#define NAN_VALUE	(0.0f/0.0f)
 
 #include "drv_tap_esc.h"
 
@@ -949,7 +948,7 @@ int TAP_ESC::control_callback(uint8_t control_group, uint8_t control_index, floa
 		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* set the throttle to an invalid value */
-			input = NAN_VALUE;
+			input = NAN;
 		}
 	}
 

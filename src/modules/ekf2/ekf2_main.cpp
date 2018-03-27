@@ -561,11 +561,11 @@ void Ekf2::run()
 		bool using_gps = (_params->fusion_mode & MASK_USE_GPS);
 
 		if (using_gps && (_indoor_mode.get() == 1)) {
-			_params->fusion_mode -= MASK_USE_GPS;
+			_params->fusion_mode &= ~MASK_USE_GPS;
 			PX4_INFO("EKF fusion mode set to %i\n", _params->fusion_mode);
 
 		} else if (!using_gps && (_indoor_mode.get() == 0)) {
-			_params->fusion_mode += MASK_USE_GPS;
+			_params->fusion_mode |= MASK_USE_GPS;
 			PX4_INFO("EKF fusion mode set to %i\n", _params->fusion_mode);
 		}
 

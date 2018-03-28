@@ -111,6 +111,7 @@ Navigator::Navigator() :
 	_param_takeoff_min_alt(this, "MIS_TAKEOFF_ALT", false),
 	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
 	_param_yaw_err(this, "MIS_YAW_ERR", false),
+	_param_hold_max_xy(this, "MPC_HOLD_MAX_XY", false),
 	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false),
 	_param_reverse_delay(this, "VT_B_REV_DEL", false)
 {

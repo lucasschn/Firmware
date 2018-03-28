@@ -273,6 +273,7 @@ public:
 	float		get_takeoff_min_alt() const { return _param_takeoff_min_alt.get(); }
 	float		get_yaw_timeout() const { return _param_yaw_timeout.get(); }
 	float		get_yaw_threshold() const { return _param_yaw_err.get(); }
+	float 		get_hold_max_xy_threshold() const { return _param_hold_max_xy.get(); };
 
 	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss.get(); }
 	float		get_vtol_reverse_delay() const { return _param_reverse_delay.get(); }
@@ -377,6 +378,7 @@ private:
 	control::BlockParamFloat _param_takeoff_min_alt;
 	control::BlockParamFloat _param_yaw_timeout;
 	control::BlockParamFloat _param_yaw_err;
+	control::BlockParamFloat _param_hold_max_xy;
 
 	// VTOL parameters TODO: get these out of navigator
 	control::BlockParamFloat _param_back_trans_dec_mss;

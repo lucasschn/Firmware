@@ -390,6 +390,17 @@ MissionBlock::is_mission_item_reached()
 
 	} else if (_waypoint_position_reached && _waypoint_yaw_reached) {
 
+		// For MC, the time-counter only starts once the vehicle is below a velocity threshold. This ensures
+		// that the vehicle first comes to rest before proceeding to the next waypoint.
+		if (_navigator->get_vstatus()->is_rotary_wing && _mission_item.time_inside > 0.0f) {
+			float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
+					       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
+
+			if (velocity > _navigator->get_hold_max_xy_threshold()) {
+				return false;
+			}
+		}
+
 		if (_time_first_inside_orbit == 0) {
 			_time_first_inside_orbit = now;
 		}

@@ -3953,6 +3953,8 @@ void MulticopterPositionControl::update_avoidance_input(const int point_number, 
 		const float yaw_speed)
 {
 	_avoidance_input.timestamp = hrt_absolute_time();
+	_avoidance_input.type = obstacle_avoidance_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
+
 	float *array = nullptr;
 
 	switch (point_number) {

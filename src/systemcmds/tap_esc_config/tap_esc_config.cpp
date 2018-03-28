@@ -270,7 +270,7 @@ static int log_versions(const char * device, uint8_t num_escs)
 	delete uploader;
 
 	if (ret != OK) {
-		PX4_ERR("TAP_ESC firmware auto check version and upload fail error %d", ret);
+		PX4_ERR("TAP_ESC failed to log ESC versions %d", ret);
 	}
 
 	return ret;

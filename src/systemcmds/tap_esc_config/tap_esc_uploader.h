@@ -59,8 +59,20 @@ public:
 	TAP_ESC_UPLOADER(const char *device, uint8_t esc_counter);
 	virtual ~TAP_ESC_UPLOADER();
 
-	int		upload(const char *filenames[]);
-	int 	checkcrc(const char *filenames[]);
+	/*
+	 * Upload ESC firmware from a binary.
+	 * @param filenames
+	 * @return OK on success, -errno otherwise
+	 */
+	int upload(const char *filenames[]);
+
+	/*
+	 * Compare ESC firmware CRC with that of a binary file.
+	 * In case of mismatch, the binary file is uploaded to the ESCs.
+	 * @param filenames
+	 * @return OK on success, -errno otherwise
+	 */
+	int checkcrc(const char *filenames[]);
 
 	/*
 	 * Query ESCs for version information (firmware, hardware, bootloader)
@@ -232,20 +244,20 @@ private:
 		uint8_t len;		/**< length of data field */
 		uint8_t msg_id;		/**< ID for this message */
 		union {
-			EscbusBootFeedbackPacket		feedback_packet;
-			EscbusBootSyncPacket 			sync_packet;
-			EscbusBootErasePacket			erase_packet;
-			EscbusBootProgPacket			program_packet;
-			EscbusFlashCRCPacket 			flash_crc_packet;
-			EscbusBootFeedbackCRCPacket		feedback_crc_packet;
-			EscbusRebootPacket				reboot_packet;
-			EscbusGetDevicePacket			device_info_packet;
+			EscbusBootFeedbackPacket	feedback_packet;
+			EscbusBootSyncPacket 		sync_packet;
+			EscbusBootErasePacket		erase_packet;
+			EscbusBootProgPacket		program_packet;
+			EscbusFlashCRCPacket 		flash_crc_packet;
+			EscbusBootFeedbackCRCPacket	feedback_crc_packet;
+			EscbusRebootPacket		reboot_packet;
+			EscbusGetDevicePacket		device_info_packet;
 			EscbusBootloaderRevisionPacket	bootloader_revis_packet;
-			EscbusHardwareIDPacket			hardware_id_packet;
+			EscbusHardwareIDPacket		hardware_id_packet;
 			EscbusHardwareRevisionPacket	hardware_revis_packet;
-			EscbusFirmwareSizePacket		firmware_size_packet;
+			EscbusFirmwareSizePacket	firmware_size_packet;
 			EscbusFirmwareRevisionPacket	firmware_revis_packet;
-			EscbusProtocolInvalidPacket		protocal_invalid_packet;
+			EscbusProtocolInvalidPacket	protocal_invalid_packet;
 			EscbusDeviceInfoPacket          esc_version_packet;
 			uint8_t data[ESCBUS_DATA_CRC_LEN];	/**< length of data field is 255 and plus one byte for CRC */
 		} d;
@@ -263,14 +275,14 @@ private:
 	/* _device_mux_map[sel]:Asign the id's to the ESC to match the mux */
 	static const uint8_t 	_device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	EscUploaderMessage  	_uploader_packet;
-	orb_advert_t    		_mavlink_log_pub;
+	orb_advert_t    	_mavlink_log_pub;
 	int			upload_id(uint8_t esc_id, int32_t fw_size);
-	int 		recv_byte_with_timeout(uint8_t *c, unsigned timeout);
-	int 		read_and_parse_data(unsigned timeout = 50);
-	int 		parse_tap_esc_feedback(uint8_t decode_data, EscUploaderMessage *packetdata);
-	uint8_t 	crc8_esc(uint8_t *p, uint8_t len);
-	uint8_t 	crc_packet(EscUploaderMessage &p);
-	int 		send_packet(EscUploaderMessage &packet, int responder);
+	int 			recv_byte_with_timeout(uint8_t *c, unsigned timeout);
+	int 			read_and_parse_data(unsigned timeout = 50);
+	int 			parse_tap_esc_feedback(uint8_t decode_data, EscUploaderMessage *packetdata);
+	uint8_t 		crc8_esc(uint8_t *p, uint8_t len);
+	uint8_t 		crc_packet(EscUploaderMessage &p);
+	int 			send_packet(EscUploaderMessage &packet, int responder);
 	int			sync(uint8_t esc_id);
 	int			get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t &val);
 	int			get_esc_versions(uint8_t esc_id, uint16_t &fw_ver, uint16_t &hw_ver, uint16_t &bl_ver);

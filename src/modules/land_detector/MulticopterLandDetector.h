@@ -50,7 +50,6 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -139,7 +138,6 @@ private:
 	int _attitudeSub;
 	int _sensor_bias_sub;
 	int _vehicle_control_mode_sub;
-	int _battery_sub;
 	int _v_att_sp_sub;
 
 	struct vehicle_local_position_s				_vehicleLocalPosition;
@@ -148,7 +146,6 @@ private:
 	struct vehicle_attitude_s					_vehicleAttitude;
 	struct sensor_bias_s					_sensors;
 	struct vehicle_control_mode_s				_control_mode;
-	struct battery_status_s						_battery;
 	struct vehicle_attitude_setpoint_s			_v_att_sp;		/**< vehicle angle setpoint */
 
 	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first

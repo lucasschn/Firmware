@@ -492,7 +492,7 @@ private:
 
 	void update_avoidance_input(const int point_number, const float x, const float y, const float z,
 				    const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
-				    const float yaw_speed);
+				    const float yaw_speed, const int trajectory_type);
 
 	void reset_avoidance_input();
 
@@ -3833,24 +3833,26 @@ MulticopterPositionControl::task_main()
 					/* point_1 containes the current position with the desired velocity */
 					update_avoidance_input(obstacle_avoidance_s::POINT_1, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0), _vel_sp_desired(1),
 							       _vel_sp_desired(1),
-							       NAN, NAN, NAN, _yaw, NAN);
+							       NAN, NAN, NAN, _yaw, NAN, obstacle_avoidance_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS);
 
 					if (_pos_sp_triplet.current.valid) {
 						update_avoidance_input(obstacle_avoidance_s::POINT_2, _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
-								       _pos_sp_triplet.current.z, NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.current.yaw, NAN);
+								       _pos_sp_triplet.current.z, NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.current.yaw, NAN,
+								       obstacle_avoidance_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS);
 					}
 
 					if (_pos_sp_triplet.next.valid) {
 						update_avoidance_input(obstacle_avoidance_s::POINT_3, _pos_sp_triplet.next.x, _pos_sp_triplet.next.y,
 								       _pos_sp_triplet.next.z,
-								       NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.next.yaw, NAN);
+								       NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.next.yaw, NAN,
+								       obstacle_avoidance_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS);
 					}
 
 				} else {
 
 					update_avoidance_input(obstacle_avoidance_s::POINT_1, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0), _vel_sp_desired(1),
 							       _vel_sp_desired(2),
-							       NAN, NAN, NAN, _yaw, NAN);
+							       NAN, NAN, NAN, _yaw, NAN, obstacle_avoidance_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS);
 				}
 
 				/* publish local position setpoint */
@@ -3950,10 +3952,11 @@ MulticopterPositionControl::task_main()
 void MulticopterPositionControl::update_avoidance_input(const int point_number, const float x, const float y,
 		const float z,
 		const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
-		const float yaw_speed)
+		const float yaw_speed, const int trajectory_type)
 {
 	_avoidance_input.timestamp = hrt_absolute_time();
-	_avoidance_input.type = obstacle_avoidance_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
+	_avoidance_input.type = trajectory_type;
+
 
 	float *array = nullptr;
 

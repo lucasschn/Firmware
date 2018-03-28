@@ -299,43 +299,36 @@ TAP_ESC_UPLOADER::log_versions()
 	}
 
 	// get information from first ESC
-	uint32_t temp_revision[3] = {};
-	ret = get_device_info(0, PROTO_GET_DEVICE, PROTO_DEVICE_VERSION, temp_revision);
+	uint16_t fw_ver, hw_ver, bl_ver;
+	ret =  get_esc_versions(0, fw_ver, hw_ver, bl_ver);
 
 	if (ret != OK) {
 		PX4_LOG("Failed to get ESC 0 device info");
 		return ret;
 	}
 
-	uint16_t fw_ver = temp_revision[0];
-	uint16_t hw_ver = temp_revision[1];
-	uint16_t bl_ver = temp_revision[2];
-
 	/* Get firmware versions of the remainig ESCs and compare with the first one*/
 	bool esc_versions_matching = true;
 
 	for (unsigned esc_id = 1; esc_id < _esc_counter; esc_id++) {
-		/* get device esc revision */
-		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_VERSION, temp_revision);
+		uint16_t temp_fw_ver, temp_hw_ver, temp_bl_ver;
+		ret =  get_esc_versions(0, temp_fw_ver, temp_hw_ver, temp_bl_ver);
 
 		if (ret != OK) {
 			PX4_LOG("Failed to get ESC %u device info", esc_id);
 			return ret;
 		}
 
-		if (fw_ver != temp_revision[0] ||
-		    hw_ver != temp_revision[1] ||
-		    bl_ver != temp_revision[2]) {
+		if (fw_ver != temp_fw_ver || hw_ver != temp_hw_ver ||  bl_ver != temp_bl_ver) {
 			esc_versions_matching = false;
 			break;
 		}
 	}
 
 	if (!esc_versions_matching) {
-		// ESC versions not matching
-		fw_ver = 0; // 0 means unknown
-		hw_ver = 0; // 0 means unknown
-		bl_ver = 0; // 0 means unknown
+		fw_ver = 0; // version 0 means unknown
+		hw_ver = 0; // version 0 means unknown
+		bl_ver = 0; // version 0 means unknown
 	}
 
 	param_set(param_find("ESC_FIRM_VER"), &fw_ver);
@@ -712,15 +705,20 @@ TAP_ESC_UPLOADER::sync(uint8_t esc_id)
 	return OK;
 }
 
+// TODO: It is weird, that we have a separate function to request the ESC
+// versions when there is also the get_device_info() function. Problem is, that
+// the versions request will return three values instead of only one, hence
+// the need for this new function here. Ideally we would utilize
+// get_device_info() for all requests...
 int
-TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t (&val)[3])
+TAP_ESC_UPLOADER::get_esc_versions(uint8_t esc_id, uint16_t &fw_ver, uint16_t &hw_ver, uint16_t &bl_ver)
 {
 	int ret;
 
 	/*prepare information request packet */
-	EscUploaderMessage device_info_packet = {PACKET_HEAD, sizeof(EscbusGetDevicePacket), msg_id};
+	EscUploaderMessage device_info_packet = {PACKET_HEAD, sizeof(EscbusGetDevicePacket), PROTO_GET_DEVICE};
 	device_info_packet.d.device_info_packet.myID = esc_id;
-	device_info_packet.d.device_info_packet.deviceInfo = msg_arg;
+	device_info_packet.d.device_info_packet.deviceInfo = PROTO_DEVICE_VERSION;
 	send_packet(device_info_packet, esc_id);
 
 	/* read and parse device information feedback packet, blocking 50ms */
@@ -731,37 +729,29 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 	}
 
 	/* check device information feedback is ok or fail */
-	switch (msg_arg) {
-	case PROTO_DEVICE_VERSION:
-		if (_uploader_packet.msg_id == PROTO_OK) {
-			if (_uploader_packet.d.esc_version_packet.myID != esc_id) {
-				PX4_LOG("get device firmware revision id don't match, myID: 0x%02x, esc_id: 0x%02x",
-					_uploader_packet.d.esc_version_packet.myID, esc_id);
-				return -EIO;
-			}
-
-			val[0] = _uploader_packet.d.esc_version_packet.FwRev;
-			val[1] = _uploader_packet.d.esc_version_packet.HwRev;
-			val[2] = _uploader_packet.d.esc_version_packet.blRev;
-
-		} else if (_uploader_packet.msg_id == PROTO_FAILED) {
-			PX4_LOG("get device firmware revision failed, myID: 0x%02x,esc_id: 0x%02x, FwRev: 0x%02x",
-				_uploader_packet.d.esc_version_packet.myID, esc_id,
-				_uploader_packet.d.esc_version_packet.FwRev);
+	if (_uploader_packet.msg_id == PROTO_OK) {
+		if (_uploader_packet.d.esc_version_packet.myID != esc_id) {
+			PX4_LOG("get device firmware revision: ID mismatch, received: 0x%02x, asked for: 0x%02x",
+				_uploader_packet.d.esc_version_packet.myID, esc_id);
 			return -EIO;
-
-		} else if (_uploader_packet.msg_id == PROTO_INVALID) {
-			PX4_LOG("get device firmware revision invalid, myID: 0x%02x,esc_id: 0x%02x, FwRev: 0x%02x",
-				_uploader_packet.d.esc_version_packet.myID, esc_id,
-				_uploader_packet.d.esc_version_packet.FwRev);
-			return -EIO;
-
 		}
 
-		break;
+		fw_ver = _uploader_packet.d.esc_version_packet.FwRev;
+		hw_ver = _uploader_packet.d.esc_version_packet.HwRev;
+		bl_ver = _uploader_packet.d.esc_version_packet.blRev;
 
-	default:
-		break;
+	} else if (_uploader_packet.msg_id == PROTO_FAILED) {
+		PX4_LOG("Failed to get ESC versions, ESC ID: 0x%02x, we sent to ID: 0x%02x, FwRev: 0x%02x",
+			_uploader_packet.d.esc_version_packet.myID, esc_id,
+			_uploader_packet.d.esc_version_packet.FwRev);
+		return -EIO;
+
+	} else if (_uploader_packet.msg_id == PROTO_INVALID) {
+		PX4_LOG("Failed to get ESC versions, ESC reports invalid protocl, ESC ID: 0x%02x, we sent to ID: 0x%02x, FwRev: 0x%02x",
+			_uploader_packet.d.esc_version_packet.myID, esc_id,
+			_uploader_packet.d.esc_version_packet.FwRev);
+		return -EIO;
+
 	}
 
 	return OK;
@@ -934,6 +924,11 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 		break;
 
 	case PROTO_DEVICE_VERSION:
+
+		// NOTE: PROTO_DEVICE_VERSION returns three different versions:
+		// Firmware, Hardware and Bootloader. get_device_info() currently only
+		// supports one return value for each query, which is why we only return
+		// the firmware version here.
 		if (_uploader_packet.msg_id == PROTO_OK) {
 			if (_uploader_packet.d.firmware_revis_packet.myID != esc_id) {
 				PX4_LOG("get device firmware revision id don't match, myID: 0x%02x, esc_id: 0x%02x",

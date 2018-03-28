@@ -61,7 +61,12 @@ public:
 
 	int		upload(const char *filenames[]);
 	int 	checkcrc(const char *filenames[]);
-	int 	log_versions();
+
+	/*
+	 * Query ESCs for version information (firmware, hardware, bootloader)
+	 * and store the response in the corresponding parameters.
+	 */
+	int log_versions();
 
 	/*
 	 * read version of ESC firmware from tap_esc.bin file
@@ -268,7 +273,7 @@ private:
 	int 		send_packet(EscUploaderMessage &packet, int responder);
 	int			sync(uint8_t esc_id);
 	int			get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t &val);
-	int			get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t (&val)[3]);
+	int			get_esc_versions(uint8_t esc_id, uint16_t &fw_ver, uint16_t &hw_ver, uint16_t &bl_ver);
 	int			erase(uint8_t esc_id);
 	int			program(uint8_t esc_id, size_t fw_size);
 	int			verify_crc(uint8_t esc_id, size_t fw_size_local);

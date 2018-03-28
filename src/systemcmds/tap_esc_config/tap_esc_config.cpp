@@ -77,7 +77,6 @@ static int check_crc(const char *fw_paths[], const char *device, uint8_t num_esc
 
 /**
  *  Log the versions of ESC Bootloader, Firmware and Hardware to dedicated params
- *  @param fw_paths Firmware paths to search for the binary file. Must be terminated with a nullptr entry.
  *  @param device Unix path of UART device where ESCs are connected to
  *  @param num_escs Number of ESCs that are currently connected to the board
  *  @return PX4_OK on success, PX4_ERROR on error or -errno (linux man) if available

@@ -231,7 +231,7 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 						hrt_abstime now = hrt_absolute_time();
 
 						if (hrt_absolute_time() - _last_error_time > 15000000) {
-							mavlink_log_critical(&_mavlink_log_pub, "Incompatible remote version, please update!");
+							mavlink_log_critical(&_mavlink_log_pub, "Old remote control version, please update!");
 							_last_error_time = now;
 						}
 					}

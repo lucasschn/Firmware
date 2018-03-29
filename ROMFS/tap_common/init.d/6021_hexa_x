@@ -241,6 +241,9 @@ then
 	param set RC_MAP_KILL_SW 14
 
 	# channel calibration
+	# RC mapping sends 12 bit values [0,4095]
+	# Because ST16 factory calibration can lead to offset from maximum and minimum
+	# we cut 95 (2.3%) from top and bottom such that we are sure to reach the limits
 	set CHANNEL_MAX 4000.0
 	set CHANNEL_MIN 95.0
 	set CHANNEL_MID 2048.0

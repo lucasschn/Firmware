@@ -6,6 +6,15 @@ uint8 POINT_3 = 2
 uint8 POINT_4 = 3
 uint8 POINT_5 = 4
 
+uint8 X = 0
+uint8 Y = 1
+uint8 Z = 2
+uint8 VX = 3
+uint8 VY = 4
+uint8 VZ = 5
+uint8 AX = 6
+uint8 AY = 7
+uint8 AZ = 8
 uint8 YAW = 9
 uint8 YAW_SPEED = 10
 

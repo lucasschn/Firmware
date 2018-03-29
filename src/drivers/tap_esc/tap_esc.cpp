@@ -901,10 +901,6 @@ TAP_ESC::cycle()
 			// set next tone call time
 			_next_tone = now + silence + duration;
 
-			if (parse_ret_val > 0) {
-				_play_tone = true;
-			}
-
 			if (!_is_armed || _armed.manual_lockdown) {
 				send_tune_packet(esc_tune_packet);
 			}

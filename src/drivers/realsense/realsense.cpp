@@ -395,13 +395,13 @@ REALSENSE::_send_obstacle_avoidance_data()
 	ObstacleAvoidanceInput tx = {};
 
 	// desired velocity - ENU
-	if (!PX4_ISFINITE(_avoidance_input.point_1[3]) || !PX4_ISFINITE(_avoidance_input.point_1[4])
-	    || !PX4_ISFINITE(_avoidance_input.point_1[5]) ||
-	    _avoidance_input.point_valid[0] == false) {
+	if (!PX4_ISFINITE(_avoidance_input.point_1[obstacle_avoidance_s::VX]) || !PX4_ISFINITE(_avoidance_input.point_1[obstacle_avoidance_s::VY])
+	    || !PX4_ISFINITE(_avoidance_input.point_1[obstacle_avoidance_s::VZ]) ||
+	    _avoidance_input.point_valid[obstacle_avoidance_s::POINT_1] == false) {
 		return;
 	}
 
-	const float avoidance_input_z = _avoidance_input.point_1[5];
+	const float avoidance_input_z = _avoidance_input.point_1[obstacle_avoidance_s::VZ];
 	const float diff_xy = matrix::Vector2f((_local_pos_prev.x - _local_pos.x), (_local_pos_prev.y - _local_pos.y)).length();
 	const bool xy_lock = diff_xy < SIGMA_NORM;
 	const float diff_z = fabsf(_local_pos_prev.z - _local_pos.z);
@@ -409,8 +409,8 @@ REALSENSE::_send_obstacle_avoidance_data()
 
 	/* get velocity setpoint in heading frame */
 	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
-	matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_avoidance_input.point_1[3],
-					  _avoidance_input.point_1[4],
+	matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_avoidance_input.point_1[obstacle_avoidance_s::VX],
+					  _avoidance_input.point_1[obstacle_avoidance_s::VY],
 					  0.0f));
 
 	if (!xy_lock && vel_sp_heading(0) < 0.0f && (fabsf(vel_sp_heading(1)) <  0.1f)) {
@@ -425,17 +425,17 @@ REALSENSE::_send_obstacle_avoidance_data()
 		 * and downwards if only z-direction maneuvers are requested. This is rather a hack to
 		 * fix realsense output for straight up and down maneuvers. */
 
-		vel_sp_heading(0) = 0.001f + 0.1f * fabsf(_avoidance_input.point_1[5]);
+		vel_sp_heading(0) = 0.001f + 0.1f * fabsf(_avoidance_input.point_1[obstacle_avoidance_s::VZ]);
 	}
 
 	matrix::Vector3f vel_sp_local = q_yaw.conjugate(vel_sp_heading);
-	_avoidance_input.point_1[3] = vel_sp_local(0);
-	_avoidance_input.point_1[4] = vel_sp_local(1);
-	_avoidance_input.point_1[5] = avoidance_input_z;
+	_avoidance_input.point_1[obstacle_avoidance_s::VX] = vel_sp_local(0);
+	_avoidance_input.point_1[obstacle_avoidance_s::VY] = vel_sp_local(1);
+	_avoidance_input.point_1[obstacle_avoidance_s::VZ] = avoidance_input_z;
 
-	tx.desiredSpeed.x   = _avoidance_input.point_1[4]; // E
-	tx.desiredSpeed.y   = _avoidance_input.point_1[3]; // N
-	tx.desiredSpeed.z   = -_avoidance_input.point_1[5]; // U
+	tx.desiredSpeed.x   = _avoidance_input.point_1[obstacle_avoidance_s::VY]; // E
+	tx.desiredSpeed.y   = _avoidance_input.point_1[obstacle_avoidance_s::VX]; // N
+	tx.desiredSpeed.z   = -_avoidance_input.point_1[obstacle_avoidance_s::VZ]; // U
 
 	// current attitude - NED the  just one of the four elements is be check is enough
 	if (!PX4_ISFINITE(_attitude.q[0])) {
@@ -650,25 +650,26 @@ REALSENSE::_read_obstacle_avoidance_data()
 					struct obstacle_avoidance_s obstacle_avoidance = {};
 
 					obstacle_avoidance.timestamp = hrt_absolute_time();
+					obstacle_avoidance.type = obstacle_avoidance_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
 
-					obstacle_avoidance.point_1[0] = NAN; // position sp
-					obstacle_avoidance.point_1[1] = NAN;
-					obstacle_avoidance.point_1[2] = NAN;
-					obstacle_avoidance.point_1[3] = packet_data_output.obstacleAvoidanceSpeed.y;	 //realsense E  -> UAV N
-					obstacle_avoidance.point_1[4] = packet_data_output.obstacleAvoidanceSpeed.x;  //realsense N  -> UAV E
-					obstacle_avoidance.point_1[5] = -packet_data_output.obstacleAvoidanceSpeed.z; //realsense U  -> UAV D
-					obstacle_avoidance.point_1[6] = NAN; // acceleration sp
-					obstacle_avoidance.point_1[7] = NAN;
-					obstacle_avoidance.point_1[8] = NAN;
-					obstacle_avoidance.point_1[9] = NAN; // yaw
-					obstacle_avoidance.point_1[10] = math::constrain(packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F,
+					obstacle_avoidance.point_1[obstacle_avoidance_s::X] = NAN; // position sp
+					obstacle_avoidance.point_1[obstacle_avoidance_s::Y] = NAN;
+					obstacle_avoidance.point_1[obstacle_avoidance_s::Z] = NAN;
+					obstacle_avoidance.point_1[obstacle_avoidance_s::VX] = packet_data_output.obstacleAvoidanceSpeed.y;	 //realsense E  -> UAV N
+					obstacle_avoidance.point_1[obstacle_avoidance_s::VY] = packet_data_output.obstacleAvoidanceSpeed.x;  //realsense N  -> UAV E
+					obstacle_avoidance.point_1[obstacle_avoidance_s::VZ] = -packet_data_output.obstacleAvoidanceSpeed.z; //realsense U  -> UAV D
+					obstacle_avoidance.point_1[obstacle_avoidance_s::AX] = NAN; // acceleration sp
+					obstacle_avoidance.point_1[obstacle_avoidance_s::AY] = NAN;
+					obstacle_avoidance.point_1[obstacle_avoidance_s::AZ] = NAN;
+					obstacle_avoidance.point_1[obstacle_avoidance_s::YAW] = NAN; // yaw
+					obstacle_avoidance.point_1[obstacle_avoidance_s::YAW_SPEED] = math::constrain(packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F,
 									 M_PI_F); //yawspeed
 
-					obstacle_avoidance.point_valid[0] = 1;
-					obstacle_avoidance.point_valid[1] = 0;
-					obstacle_avoidance.point_valid[2] = 0;
-					obstacle_avoidance.point_valid[3] = 0;
-					obstacle_avoidance.point_valid[4] = 0;
+					obstacle_avoidance.point_valid[obstacle_avoidance_s::POINT_1] = true;
+					obstacle_avoidance.point_valid[obstacle_avoidance_s::POINT_2] = false;
+					obstacle_avoidance.point_valid[obstacle_avoidance_s::POINT_3] = false;
+					obstacle_avoidance.point_valid[obstacle_avoidance_s::POINT_4] = false;
+					obstacle_avoidance.point_valid[obstacle_avoidance_s::POINT_5] = false;
 
 					obstacle_avoidance.field_of_view[0] = 0;
 					obstacle_avoidance.field_of_view[1] = 0;

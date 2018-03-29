@@ -582,6 +582,11 @@ protected:
 			bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
 			bat_msg.battery_remaining = (battery_status.connected) ? battery_status.remaining * 100.0f : -1;
 			bat_msg.temperature = INT16_MAX;
+			// MAVLink extension: 0 is unsupported, in uORB it's -1
+			bat_msg.time_remaining = (battery_status.connected && (battery_status.time_remaining_s >= 0.f)) ?
+						 math::max((int)battery_status.time_remaining_s, 1) : 0;
+			// MAVLink definition is exactly one shifted from uORB battery warning definition, unhealthy/error state not supported yet
+			bat_msg.charge_state = (battery_status.connected)  ? battery_status.warning + 1 : 0;
 
 			for (unsigned int i = 0; i < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); i++) {
 				if ((int)i < battery_status.cell_count && battery_status.connected) {

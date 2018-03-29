@@ -1393,6 +1393,8 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.discharged_mah = (float)battery_mavlink.current_consumed;
 	battery_status.cell_count = cell_count;
 	battery_status.connected = true;
+	battery_status.time_remaining_s = battery_mavlink.time_remaining > 0 ?
+					  static_cast<float>(battery_mavlink.time_remaining) : -1.f;
 
 	// Get the battery level thresholds.
 	float bat_emergen_thr;
@@ -1402,16 +1404,22 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	param_get(_p_bat_crit_thr, &bat_crit_thr);
 	param_get(_p_bat_low_thr, &bat_low_thr);
 
-	// Set the battery warning based on remaining charge.
-	//  Note: Smallest values must come first in evaluation.
-	if (battery_status.remaining < bat_emergen_thr) {
-		battery_status.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+	if (battery_mavlink.charge_state > 0) {
+		// MAVLink definition is exactly one shifted from uORB battery warning definition, unhealthy/error state not supported yet
+		battery_status.warning = math::min(battery_mavlink.charge_state - 1, (int)battery_status_s::BATTERY_WARNING_FAILED);
 
-	} else if (battery_status.remaining < bat_crit_thr) {
-		battery_status.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+	} else {
+		// If we're not provided with a charge state, set the battery warning based on remaining charge.
+		// Note: Smallest values must come first in evaluation.
+		if (battery_status.remaining < bat_emergen_thr) {
+			battery_status.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-	} else if (battery_status.remaining < bat_low_thr) {
-		battery_status.warning = battery_status_s::BATTERY_WARNING_LOW;
+		} else if (battery_status.remaining < bat_crit_thr) {
+			battery_status.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+
+		} else if (battery_status.remaining < bat_low_thr) {
+			battery_status.warning = battery_status_s::BATTERY_WARNING_LOW;
+		}
 	}
 
 	if (_battery_pub == nullptr) {

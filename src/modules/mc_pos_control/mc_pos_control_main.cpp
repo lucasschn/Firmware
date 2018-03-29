@@ -158,6 +158,8 @@ private:
 	/* publication to allow heading dependent orientation LEDs in smart mode */
 	orb_advert_t	_smart_heading_pub;		/**< smart heading reference publication */
 
+	control::BlockParamInt _RC_MAP_AUX5; /**< tap specific to check if the turtle slider is present */
+
 	/** Time in us that direction change condition has to be true for direction change state */
 	static constexpr uint64_t DIRECTION_CHANGE_TRIGGER_TIME_US = 100000;
 	/** Time in us that the no obstacle ahead condition has to be true to exit obstacle avoidance lock in */
@@ -521,6 +523,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_realsense_avoidance_input{},
 	_realsense_input_pub(nullptr),
 	_smart_heading_pub(nullptr),
+	_RC_MAP_AUX5(this, "RC_MAP_AUX5", false),
 	/* --- */
 
 	_control_task(-1),
@@ -1801,6 +1804,15 @@ MulticopterPositionControl::control_manual()
 	/* prepare cruise speed (m/s) vector to scale the velocity setpoint */
 	float vel_mag = (_velocity_hor_manual.get() < _vel_max_xy) ? _velocity_hor_manual.get() : _vel_max_xy;
 	matrix::Vector3f vel_cruise_scale(vel_mag, vel_mag, (man_vel_sp(2) > 0.0f) ? _vel_z_down.get() : _vel_z_up.get());
+
+	// Yuneec specific: support an RC slider directly scaling maximal manual velocity if it is mapped
+	if (_RC_MAP_AUX5.get() > 0) {
+		vel_cruise_scale *= math::gradual(_manual.aux5, -1.f, 1.f, 0.1f, 1.f);
+	}
+
+	// make sure the pilot can command a minimal vertical speed and is always able to land
+	vel_cruise_scale(2) = math::max(vel_cruise_scale(2), _params.land_speed);
+
 	/* Setpoint scaled to cruise speed */
 	man_vel_sp = man_vel_sp.emult(vel_cruise_scale);
 

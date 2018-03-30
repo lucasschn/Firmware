@@ -922,78 +922,88 @@ void stop()
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-// void
-// test()
-// {
-// 	struct distance_sensor_s report;
-// 	ssize_t sz;
-// 	int ret;
-//
-// 	int fd = open(SR04_DEVICE_PATH, O_RDONLY);
-//
-// 	if (fd < 0) {
-// 		PX4_ERR("%s open failed (try 'hc_sr04 start' if the driver is not running", SR04_DEVICE_PATH);
-// 		exit(1);
-// 	}
-//
-// 	/* do a simple demand read */
-// 	sz = read(fd, &report, sizeof(report));
-//
-// 	if (sz != sizeof(report)) {
-// 		PX4_ERR("immediate read failed");
-// 		exit(1);
-// 	}
-//
-// 	PX4_INFO("single read");
-// 	PX4_INFO("measurement: %0.2f", (double)report.current_distance);
-// 	PX4_INFO("time:        %lld", report.timestamp);
-//
-// 	/* start the sensor polling at 2Hz */
-// 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 20)) {
-// 		PX4_ERR("failed to set 20Hz poll rate");
-// 		exit(1);
-// 	}
-//
-// 	/* read the sensor 5x and report each value */
-// 	for (unsigned i = 0; i < 5; i++) {
-// 		struct pollfd fds;
-//
-// 		/* wait for data to be ready */
-// 		fds.fd = fd;
-// 		fds.events = POLLIN;
-// 		ret = poll(&fds, 1, 2000);
-//
-// 		if (ret != 1) {
-// 			PX4_ERR("timed out waiting for sensor data");
-// 			exit(1);
-// 		}
-//
-// 		/* now go get it */
-// 		sz = read(fd, &report, sizeof(report));
-//
-// 		if (sz != sizeof(report)) {
-// 			PX4_ERR("periodic read failed");
-// 			exit(1);
-// 		}
-//
-// 		PX4_INFO("periodic read %u", i);
-//
-// 		/* Print the sonar rangefinder report sonar distance vector */
-// 		PX4_INFO("measurement: %0.3f", (double)report.current_distance);
-//
-// 		PX4_INFO("time:        %lld", report.timestamp);
-// 	}
-//
-// 	/* reset the sensor polling to default rate */
-// 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-// 		PX4_ERR("failed to set default poll rate");
-// 		exit(1);;
-// 	}
-//
-// 	PX4_INFO("PASS");
-// 	exit(0);
-// }
+void
+test()
+{
+#if 0
+	struct distance_sensor_s report;
+	ssize_t sz;
+	int ret;
 
+	int fd = open(SR04_DEVICE_PATH, O_RDONLY);
+
+	if (fd < 0) {
+		err(1, "%s open failed (try 'hc_sr04 start' if the driver is not running", SR04_DEVICE_PATH);
+	}
+
+	/* do a simple demand read */
+	sz = read(fd, &report, sizeof(report));
+
+	if (sz != sizeof(report)) {
+		err(1, "immediate read failed");
+	}
+
+	print_message(report);
+
+	/* start the sensor polling at 2Hz */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
+		errx(1, "failed to set 2Hz poll rate");
+	}
+
+	/* read the sensor 5x and report each value */
+	for (unsigned i = 0; i < 5; i++) {
+		struct pollfd fds;
+
+		/* wait for data to be ready */
+		fds.fd = fd;
+		fds.events = POLLIN;
+		ret = poll(&fds, 1, 2000);
+
+		if (ret != 1) {
+			errx(1, "timed out waiting for sensor data");
+		}
+
+		/* now go get it */
+		sz = read(fd, &report, sizeof(report));
+
+		if (sz != sizeof(report)) {
+			err(1, "periodic read failed");
+		}
+
+		print_message(report);
+	}
+
+	/* reset the sensor polling to default rate */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
+		errx(1, "failed to set default poll rate");
+	}
+
+	errx(0, "PASS");
+#endif
+}
+
+/**
+ * Reset the driver.
+ */
+void
+reset()
+{
+	int fd = open(SR04_DEVICE_PATH, O_RDONLY);
+
+	if (fd < 0) {
+		err(1, "failed ");
+	}
+
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
+		err(1, "driver reset failed");
+	}
+
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		err(1, "driver poll restart failed");
+	}
+
+	exit(0);
+}
 
 /**
  * Print a little info about the driver.

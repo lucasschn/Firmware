@@ -93,8 +93,6 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/ecl
 	lib/FlightTasks
-	lib/geo
-	lib/geo_lookup
 	lib/led
 	lib/mathlib
 	lib/mixer

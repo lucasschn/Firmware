@@ -47,7 +47,7 @@
 #include <math.h>
 #include <float.h>
 
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <uORB/uORB.h>
@@ -57,8 +57,8 @@
 #include <drivers/realsense/realsense.h>
 #include <uORB/topics/manual_control_setpoint.h>
 
-MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
-	NavigatorMode(navigator, name)
+MissionBlock::MissionBlock(Navigator *navigator) :
+	NavigatorMode(navigator)
 {
 }
 

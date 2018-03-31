@@ -861,8 +861,9 @@ HC_SR04	*g_dev;
 
 void	start(uint8_t rotation, bool enable_median_filter, bool enable_obsavoid_switch);
 void	stop();
-// void	test();
+void	test();
 void	info();
+void	reset();
 
 /**
  * Start the driver.

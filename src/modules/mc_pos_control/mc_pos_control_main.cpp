@@ -2894,8 +2894,8 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 		vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
 
 		/* apply position and velocity setpoint from task */
-		_pos_sp = math::Vector<3>(&setpoint.x);
-		_vel_sp = math::Vector<3>(&setpoint.vx);
+		_pos_sp = matrix::Vector3f(&setpoint.x);
+		_vel_sp = matrix::Vector3f(&setpoint.vx);
 
 		_run_pos_control = true;
 		_run_alt_control = true;
@@ -3047,7 +3047,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 		 * velocity setpoint will be set to desired setpoint to ensure that setpoint
 		 * increases linearly with acceleration.
 		 */
-		_vel_sp_prev = math::Vector<3>(&_vel_sp_desired(0));
+		_vel_sp_prev = matrix::Vector3f(&_vel_sp_desired(0));
 
 	} else {
 		_vel_sp_prev = _vel_sp;
@@ -4142,8 +4142,10 @@ MulticopterPositionControl::get_stick_roll_pitch(float &yaw_sp)
 	rpy(1) = euler_sp(1);
 	rpy(2) = yaw_sp + euler_sp(2);
 
+	// FIXME: the optimal recovery param is not available anymore.
+	// This is probably broken.
 	/* only if optimal recovery is not used, modify roll/pitch */
-	if (!(_vehicle_status.is_vtol && _params.opt_recover)) {
+	if (!(_vehicle_status.is_vtol /*&& _params.opt_recover*/)) {
 		// construct attitude setpoint rotation matrix. modify the setpoints for roll
 		// and pitch such that they reflect the user's intention even if a yaw error
 		// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix

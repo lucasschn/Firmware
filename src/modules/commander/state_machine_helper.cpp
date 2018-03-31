@@ -425,8 +425,8 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 		/* need global position estimate and home position because
 		 * relative altitude update is not supported in flight.*/
-		if (status_flags->condition_global_position_valid &&
-				status_flags->condition_home_position_valid) {
+		if (status_flags.condition_global_position_valid &&
+				status_flags.condition_home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -435,9 +435,9 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
 
 		/* FOLLOW only implemented in MC */
-		if (status->is_rotary_wing) {
+		if (status.is_rotary_wing) {
 			/* need global position and home position */
-			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
+			if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
 				ret = TRANSITION_CHANGED;
 			}
 		}
@@ -448,8 +448,8 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 		/* need global position, home position, and a valid mission
 		 * because relative altitude update is not supported in flight.*/
-		if (status_flags->condition_global_position_valid &&
-		    status_flags->condition_auto_mission_available) {
+		if (status_flags.condition_global_position_valid &&
+		    status_flags.condition_auto_mission_available) {
 
 			ret = TRANSITION_CHANGED;
 		}
@@ -470,7 +470,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 		/* need home position because
 		 * relative altitude update is not supported in flight.*/
-		if (status_flags->condition_home_position_valid) {
+		if (status_flags.condition_home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -501,8 +501,8 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_SMART:
 
 		/* need at minimum local position estimate */
-		if (status_flags->condition_local_position_valid ||
-			 status_flags->condition_global_position_valid) {
+		if (status_flags.condition_local_position_valid ||
+			 status_flags.condition_global_position_valid) {
 			 ret = TRANSITION_CHANGED;
 		}
 
@@ -970,7 +970,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	if (rc_lost && is_armed && rcloss_sitl) {
 		enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
-		set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+		// FIXME: this was added manually by Yuneec but the method is no longer available.
+		// set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
 		return status->nav_state != nav_state_old;
 	}
 

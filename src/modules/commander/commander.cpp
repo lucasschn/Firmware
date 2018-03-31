@@ -689,7 +689,7 @@ Commander::handle_command(vehicle_status_s *status_local,
 		// the data at the exact same time.
 
 		// Check if a mode switch had been requested
-		if ((((uint32_t)cmd->param2) & 1) > 0) {
+		if ((((uint32_t)cmd.param2) & 1) > 0) {
 			// check if a critical or emergency action is in progress and if the battery failsafe mode is not WARNING
 			bool battery_critical_action = (emergency_battery_voltage_actions_done || critical_battery_voltage_actions_done) && (low_bat_action != 0);
 
@@ -698,7 +698,7 @@ Commander::handle_command(vehicle_status_s *status_local,
 				mavlink_log_critical(&mavlink_log_pub, "Low battery state, rejecting pause");
 
 			} else {
-				transition_result_t main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, &status_flags, &internal_state);
+				transition_result_t main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
 
 				if ((main_ret != TRANSITION_DENIED)) {
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
@@ -768,11 +768,11 @@ Commander::handle_command(vehicle_status_s *status_local,
 
 				}else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SMART) {
 					/* SMART */
-					main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_SMART, &status_flags, &internal_state);
+					main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_SMART, status_flags, &internal_state);
 
 				}else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SPORT) {
 					/* SPORT */
-					main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_SPORT, &status_flags, &internal_state);
+					main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_SPORT, status_flags, &internal_state);
 
 				}else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
@@ -1046,7 +1046,7 @@ Commander::handle_command(vehicle_status_s *status_local,
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH: {
 			/* switch to RTL which ends the mission */
-			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, &status_flags, &internal_state)) {
+			if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state)) {
 				mavlink_and_console_log_info(&mavlink_log_pub, "Returning to launch.");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1065,9 +1065,9 @@ Commander::handle_command(vehicle_status_s *status_local,
 			if (sp_man.return_switch || _desired_flight_mode == commander_state_s::MAIN_STATE_AUTO_RTL){
 				mavlink_log_critical(&mavlink_log_pub, "Takeoff denied, switch out of RTL.");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-				main_state_transition(&status, _desired_flight_mode, &status_flags, &internal_state);
+				main_state_transition(status, _desired_flight_mode, status_flags, &internal_state);
 
-			} else if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_TAKEOFF, &status_flags, &internal_state)) {
+			} else if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_TAKEOFF, status_flags, &internal_state)) {
 				/* ok, home set, use it to take off */
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1082,7 +1082,7 @@ Commander::handle_command(vehicle_status_s *status_local,
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_LAND: {
-			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, &status_flags, &internal_state)) {
+			if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state)) {
 				mavlink_and_console_log_info(&mavlink_log_pub, "Landing at current position.");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1116,7 +1116,7 @@ Commander::handle_command(vehicle_status_s *status_local,
 			if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && (cmd.param1 < _mission_result_sub.get().seq_total)) {
 
 				// switch to AUTO_MISSION and ARM
-				if ((TRANSITION_DENIED != main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, &status_flags, &internal_state))
+				if ((TRANSITION_DENIED != main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags, &internal_state))
 					&& (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "Mission start command."))) {
 
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
@@ -1393,7 +1393,6 @@ Commander::run()
 	/* Set home and global position to false */
 	status_flags.condition_last_home_position_valid = false;
 	status_flags.condition_home_position_valid = false;
-	status_flags.condition_last_global_position_valid = false;
 	status_flags.condition_global_position_valid = false;
 
 
@@ -2287,7 +2286,7 @@ Commander::run()
 					} else {
 						if (low_bat_action == 1 || low_bat_action == 3) {
 							// let us send the critical message even if already in RTL
-							transition_result_t s = main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, &status_flags, &internal_state);
+							transition_result_t s = main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state);
 
 							if (s == TRANSITION_CHANGED) {
 								warning_action_on = true;
@@ -2302,7 +2301,7 @@ Commander::run()
 							}
 
 						} else if (low_bat_action == 2) {
-							transition_result_t s = main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, &status_flags, &internal_state);
+							transition_result_t s = main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state);
 
 							if (s == TRANSITION_CHANGED) {
 								warning_action_on = true;
@@ -2340,7 +2339,7 @@ Commander::run()
 
 					} else {
 						if (low_bat_action == 2 || low_bat_action == 3) {
-							transition_result_t s = main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state);
+							transition_result_t s = main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state);
 
 							if (s == TRANSITION_CHANGED) {
 								warning_action_on = true;
@@ -2551,7 +2550,7 @@ Commander::run()
 				 (fabsf(sp_man.r - _last_sp_man.r) > min_stick_change))) {
 
 				// revert to position control in any case
-				main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
+				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
 				mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot.");
 			}
 		}
@@ -2606,7 +2605,7 @@ Commander::run()
 
 						/* We interrupted land via sticks */
 						control_mode.flag_control_updated = true;
-						main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
+						main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
 						land_interrupt_hysteresis.set_state_and_update(true);
 					}
 				}
@@ -2622,7 +2621,7 @@ Commander::run()
 
 					if (!land_interrupt_hysteresis.get_state()){
 						control_mode.flag_control_updated = false;
-						main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state);
+						main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state);
 					}
 				} else {
 					/* stick are still moving */
@@ -2838,7 +2837,6 @@ Commander::run()
 
 
 			/* store last position lock state */
-			status_flags.condition_last_global_position_valid = status_flags.condition_global_position_valid;
 			status_flags.condition_last_local_altitude_valid = status_flags.condition_local_altitude_valid;
 
 			/* play tune on mode change only if armed, blink LED always */
@@ -3014,7 +3012,7 @@ Commander::run()
 
 			if (!status.rc_signal_lost) {
 				if (was_armed && (internal_state.main_state != _desired_flight_mode)) {
-					transition_result_t res_auto = main_state_transition(&status, _desired_flight_mode, status_flags, &internal_state);
+					transition_result_t res_auto = main_state_transition(status, _desired_flight_mode, status_flags, &internal_state);
 					if (res_auto == TRANSITION_CHANGED) {
 						 mavlink_log_info(&mavlink_log_pub, "Automated flight complete.");
 					} else if (res_auto == TRANSITION_DENIED) {
@@ -3564,9 +3562,7 @@ Commander::set_main_state_rc(const vehicle_status_s& status_local, const vehicle
 	// feature, just in case offboard control goes crazy.
 
 	/* manual setpoint has not updated, do not re-evaluate it */
-	if (!(!status_flags.condition_last_global_position_valid &&
-		status_flags.condition_global_position_valid) &&
-		!(!status_flags.condition_last_local_altitude_valid &&
+	if (!(!status_flags.condition_last_local_altitude_valid &&
 		status_flags.condition_local_altitude_valid) &&
 		!(!status_flags.condition_last_home_position_valid && status_flags.condition_home_position_valid)
 		&& (((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man.timestamp)) ||
@@ -3685,8 +3681,7 @@ Commander::set_main_state_rc(const vehicle_status_s& status_local, const vehicle
 
 			/* enable the use of break */
 			/* fallback strategies, give the user the closest mode to what he wanted */
-			while ((status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED
-					|| status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR)
+			while (status_local.arming_state == vehicle_status_s::ARMING_STATE_ARMED
 					&& res == TRANSITION_DENIED && maxcount > 0) {
 
 				maxcount--;
@@ -3767,7 +3762,7 @@ Commander::set_main_state_rc(const vehicle_status_s& status_local, const vehicle
 
 					/* fall back to altitude control */
 					new_mode = commander_state_s::MAIN_STATE_ALTCTL;
-					print_reject_mode(status_local, "SMART CONTROL");
+					print_reject_mode("SMART CONTROL");
 					res = main_state_transition(status_local, new_mode, status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
@@ -3779,7 +3774,7 @@ Commander::set_main_state_rc(const vehicle_status_s& status_local, const vehicle
 
 					/* fall back to altitude control */
 					new_mode = commander_state_s::MAIN_STATE_ALTCTL;
-					print_reject_mode(status_local, "SPORT CONTROL");
+					print_reject_mode("SPORT CONTROL");
 					res = main_state_transition(status_local, new_mode, status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {

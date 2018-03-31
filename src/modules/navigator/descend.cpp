@@ -53,14 +53,8 @@
 #include "descend.h"
 #include "navigator.h"
 
-Descend::Descend(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name)
-{
-	/* load initial params */
-	updateParams();
-}
-
-Descend::~Descend()
+Descend::Descend(Navigator *navigator) :
+	MissionBlock(navigator)
 {
 }
 

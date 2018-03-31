@@ -90,9 +90,9 @@ private:
 
 		{
 			-1.0F,  0.0F, 0.0F,
-			0.0F, -1.0F, 0.0F,
-			0.0F,  0.0F, 1.0F
-		}, // follow behind
+				0.0F, -1.0F, 0.0F,
+				0.0F,  0.0F, 1.0F
+			}, // follow behind
 
 		{
 			1.0F,   0.0F, 0.0F,

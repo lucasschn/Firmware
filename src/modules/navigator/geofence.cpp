@@ -47,7 +47,6 @@
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <systemlib/mavlink_log.h>
-#include <v2.0/yuneec/mavlink.h>
 
 #include "navigator.h"
 

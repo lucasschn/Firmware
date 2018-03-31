@@ -51,7 +51,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <float.h>
 #include <uORB/topics/vehicle_command.h>
 
@@ -59,7 +59,8 @@
 #include "navigator.h"
 
 Land::Land(Navigator *navigator) :
-	MissionBlock(navigator)
+	MissionBlock(navigator),
+	ModuleParams(navigator)
 {
 	/* initial reset */
 	on_inactive();

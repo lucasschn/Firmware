@@ -385,7 +385,8 @@ private:
 
 		// VTOL parameters TODO: get these out of navigator
 		(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_back_trans_dec_mss,
-		(ParamFloat<px4::params::VT_B_REV_DEL>) _param_reverse_delay
+		(ParamFloat<px4::params::VT_B_REV_DEL>) _param_reverse_delay,
+		(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _param_hold_max_xy
 	)
 
 	float _mission_cruising_speed_mc{-1.0f};

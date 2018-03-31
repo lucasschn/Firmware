@@ -94,7 +94,7 @@ RTL::on_activation()
 	// go directly to home if obstacle avoidance is used
 	const bool obstacle_avoidance_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
 			manual_control_setpoint_s::SWITCH_POS_ON;
-	const bool obstacle_avoidance_running = _navigator->get_obstacle_avoidance()->point_valid[0] == true;
+	const bool obstacle_avoidance_running = _navigator->get_trajectory_waypoint()->point_valid[0] == true;
 
 	/* for safety reasons don't go into RTL if landed */
 	if (_navigator->get_land_detected()->landed) {

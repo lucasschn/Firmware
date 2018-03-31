@@ -378,9 +378,9 @@ private:
 		(ParamFloat<px4::params::EKF2_PCOEF_Y>)
 		_K_pstatic_coef_y,	///< static pressure position error coefficient along the Y body axis
 		(ParamFloat<px4::params::EKF2_PCOEF_Z>)
-		_K_pstatic_coef_z	///< static pressure position error coefficient along the Z body axis
-		(ParamInt<px4::params::INDOOR_MODE>)
-		_K_indoor_mode	///< Disable GPS for flying indoors and avoiding auto modes
+		_K_pstatic_coef_z,	///< static pressure position error coefficient along the Z body axis
+		(ParamInt<px4::params::EKF2_INDOOR_MODE>)
+		_indoor_mode	///< Disable GPS for flying indoors and avoiding auto modes
 	)
 
 };
@@ -479,8 +479,7 @@ Ekf2::Ekf2():
 	_acc_bias_learn_tc(_params->acc_bias_learn_tc),
 	_drag_noise(_params->drag_noise),
 	_bcoef_x(_params->bcoef_x),
-	_bcoef_y(_params->bcoef_y),
-	_indoor_mode(_params->indoor_mode)
+	_bcoef_y(_params->bcoef_y)
 {
 }
 

@@ -303,7 +303,7 @@ Navigator::vehicle_esc_report_update()
 void
 Navigator::obstacle_avoidance_update()
 {
-	orb_copy(ORB_ID(obstacle_avoidance), _obstacle_avoidance_sub, &_obstacle_avoidance);
+	orb_copy(ORB_ID(trajectory_waypoint), _traj_wp_avoidance_sub, &_traj_wp_avoidance);
 }
 
 void
@@ -349,7 +349,7 @@ Navigator::task_main()
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
-	_obstacle_avoidance_sub = orb_subscribe(ORB_ID(obstacle_avoidance));
+	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(trajectory_waypoint));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -492,14 +492,14 @@ Navigator::task_main()
 		}
 
 		/* obstacle avoidance update */
-		orb_check(_obstacle_avoidance_sub, &updated);
+		orb_check(_traj_wp_avoidance_sub, &updated);
 
 		if (updated) {
 			obstacle_avoidance_update();
 
 		} else {
 			/* if the obstacle avoidance output is not updated, set the waypoint as invalid */
-			_obstacle_avoidance.point_valid[0] = false;
+			_traj_wp_avoidance.point_valid[0] = false;
 		}
 
 		orb_check(_manual_sub, &updated);
@@ -946,7 +946,7 @@ Navigator::task_main()
 	orb_unsubscribe(_vstatus_sub);
 	orb_unsubscribe(_land_detected_sub);
 	orb_unsubscribe(_home_pos_sub);
-	orb_unsubscribe(_obstacle_avoidance_sub);
+	orb_unsubscribe(_traj_wp_avoidance_sub);
 	orb_unsubscribe(_manual_sub);
 	orb_unsubscribe(_offboard_mission_sub);
 	orb_unsubscribe(_param_update_sub);

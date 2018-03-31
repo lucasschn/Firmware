@@ -47,8 +47,6 @@
 #include <mathlib/mathlib.h>
 #include "uORB/topics/parameter_update.h"
 #include "Utility/ControlMath.hpp"
-#include <lib/geo/geo.h>  //TODO: only used for wrap_pi -> move this to mathlib since
-// it makes more sense
 
 using namespace matrix;
 

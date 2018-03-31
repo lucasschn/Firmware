@@ -73,7 +73,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/obstacle_avoidance.h>
+#include <uORB/topics/trajectory_waypoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/uORB.h>
 
@@ -161,7 +161,7 @@ public:
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 
-	struct obstacle_avoidance_s *get_obstacle_avoidance() { return &_obstacle_avoidance;}
+	struct trajectory_waypoint_s *get_trajectory_waypoint() { return &_traj_wp_avoidance;}
 	struct manual_control_setpoint_s *get_manual_setpoint() { return &_manual;}
 
 	/* --- tap specific getters */
@@ -303,7 +303,7 @@ private:
 	/* --- tap specific subscription */
 	int		_esc_report_sub{-1};		/**< esc report subscription */
 	int		_vehicle_att_sp_sub{-1};	/**< attitude contain gear flag */
-	int 	_obstacle_avoidance_sub{-1}; /**< obstacle avoidance subscription */
+	int 	_traj_wp_avoidance_sub{-1}; /**< obstacle avoidance subscription */
 	int 	_manual_sub{-1}; /** manual setpoint subscription */
 	/* --- */
 
@@ -326,7 +326,7 @@ private:
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
-	obstacle_avoidance_s			_obstacle_avoidance{}; /** < obstacle avoidance >*/
+	trajectory_waypoint_s			_traj_wp_avoidance{}; /** < obstacle avoidance >*/
 	manual_control_setpoint_s		_manual{};		/**< r/c channel data */
 
 	/* --- tap specific subsciption variables */

@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/esc_status.h>
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -107,6 +108,7 @@ private:
 	void		vehicle_motor_limits_poll();
 	void		vehicle_rates_setpoint_poll();
 	void		vehicle_status_poll();
+	void		engine_failure_poll();
 
 	/**
 	 * Attitude controller.
@@ -136,6 +138,7 @@ private:
 	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
 	int		_sensor_correction_sub{-1};	/**< sensor thermal correction subscription */
 	int		_sensor_bias_sub{-1};		/**< sensor in-run bias correction subscription */
+	int		_esc_status_sub{-1};		/**< sensor in-run bias correction subscription */
 
 	unsigned _gyro_count{1};
 	int _selected_gyro{0};
@@ -160,6 +163,7 @@ private:
 	struct sensor_gyro_s			_sensor_gyro {};	/**< gyro data before thermal correctons and ekf bias estimates are applied */
 	struct sensor_correction_s		_sensor_correction {};	/**< sensor thermal corrections */
 	struct sensor_bias_s			_sensor_bias {};	/**< sensor in-run bias corrections */
+	struct esc_status_s			_esc_status_report {};
 
 	MultirotorMixer::saturation_status _saturation_status{};
 

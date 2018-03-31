@@ -201,17 +201,17 @@ MulticopterAttitudeControl::parameters_updated()
 	_board_rotation = board_rotation_offset * _board_rotation;
 
 	/* get fault tolerant control pid parameters */
-	param_get(_params_handles.ftc_roll_rate_p, &_params.ftc_rate_p(0));
-	param_get(_params_handles.ftc_roll_rate_i, &_params.ftc_rate_i(0));
-	param_get(_params_handles.ftc_roll_rate_d, &_params.ftc_rate_d(0));
+	_ftc_rate_p(0) = _ftc_rollrate_p.get();
+	_ftc_rate_i(0) = _ftc_rollrate_i.get();
+	_ftc_rate_d(0) = _ftc_rollrate_d.get();
 
-	param_get(_params_handles.ftc_pitch_rate_p, &_params.ftc_rate_p(1));
-	param_get(_params_handles.ftc_pitch_rate_i, &_params.ftc_rate_i(1));
-	param_get(_params_handles.ftc_pitch_rate_d, &_params.ftc_rate_d(1));
+	_ftc_rate_p(1) = _ftc_pitchrate_p.get();
+	_ftc_rate_i(1) = _ftc_pitchrate_i.get();
+	_ftc_rate_d(1) = _ftc_pitchrate_d.get();
 
-	param_get(_params_handles.ftc_yaw_rate_p, &_params.ftc_rate_p(2));
-	param_get(_params_handles.ftc_yaw_rate_i, &_params.ftc_rate_i(2));
-	param_get(_params_handles.ftc_yaw_rate_d, &_params.ftc_rate_d(2));
+	_ftc_rate_p(2) = _ftc_yawrate_p.get();
+	_ftc_rate_i(2) = _ftc_yawrate_i.get();
+	_ftc_rate_d(2) = _ftc_yawrate_d.get();
 }
 
 void
@@ -556,14 +556,14 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 	/* check engine failure mode */
 	if (_esc_status_report.engine_failure_report.motor_state != OK) {
-		rates_p_scaled = _params.ftc_rate_p;
-		rates_i_scaled = _params.ftc_rate_i;
-		rates_d_scaled = _params.ftc_rate_d;
+		rates_p_scaled = _ftc_rate_p;
+		rates_i_scaled = _ftc_rate_i;
+		rates_d_scaled = _ftc_rate_d;
 
 	} else {
-		rates_p_scaled = _params.rate_p.emult(pid_attenuations(_params.tpa_breakpoint_p, _params.tpa_rate_p));
-		rates_i_scaled = _params.rate_i.emult(pid_attenuations(_params.tpa_breakpoint_i, _params.tpa_rate_i));
-		rates_d_scaled = _params.rate_d.emult(pid_attenuations(_params.tpa_breakpoint_d, _params.tpa_rate_d));
+		rates_p_scaled = _rate_p.emult(pid_attenuations(_tpa_breakpoint_p.get(), _tpa_rate_p.get()));
+		rates_i_scaled = _rate_i.emult(pid_attenuations(_tpa_breakpoint_i.get(), _tpa_rate_i.get()));
+		rates_d_scaled = _rate_d.emult(pid_attenuations(_tpa_breakpoint_d.get(), _tpa_rate_d.get()));
 	}
 
 	/* angular rates error */

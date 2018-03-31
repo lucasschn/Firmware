@@ -233,7 +233,17 @@ private:
 		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _board_offset_y,
 		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _board_offset_z,
 
-		(ParamFloat<px4::params::VT_WV_YAWR_SCL>) _vtol_wv_yaw_rate_scale		/**< Scale value [0, 1] for yaw rate setpoint  */
+		(ParamFloat<px4::params::VT_WV_YAWR_SCL>) _vtol_wv_yaw_rate_scale,		/**< Scale value [0, 1] for yaw rate setpoint  */
+
+		(ParamFloat<px4::params::FTC_ROLLRATE_P>) _ftc_rollrate_p,
+		(ParamFloat<px4::params::FTC_ROLLRATE_I>) _ftc_rollrate_i,
+		(ParamFloat<px4::params::FTC_ROLLRATE_D>) _ftc_rollrate_d,
+		(ParamFloat<px4::params::FTC_PITCHRATE_P>) _ftc_pitchrate_p,
+		(ParamFloat<px4::params::FTC_PITCHRATE_I>) _ftc_pitchrate_i,
+		(ParamFloat<px4::params::FTC_PITCHRATE_D>) _ftc_pitchrate_d,
+		(ParamFloat<px4::params::FTC_YAWRATE_P>) _ftc_yawrate_p,
+		(ParamFloat<px4::params::FTC_YAWRATE_I>) _ftc_yawrate_i,
+		(ParamFloat<px4::params::FTC_YAWRATE_D>) _ftc_yawrate_d
 	)
 
 	matrix::Vector3f _attitude_p;		/**< P gain for attitude control */
@@ -247,4 +257,7 @@ private:
 	matrix::Vector3f _auto_rate_max;	/**< attitude rate limits in auto modes */
 	matrix::Vector3f _acro_rate_max;	/**< max attitude rates in acro mode */
 
+	matrix::Vector3f _ftc_rate_p;
+	matrix::Vector3f _ftc_rate_i;
+	matrix::Vector3f _ftc_rate_d;
 };

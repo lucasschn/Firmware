@@ -64,7 +64,7 @@
 #include <cmath>
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 
 #include "MulticopterLandDetector.h"
 

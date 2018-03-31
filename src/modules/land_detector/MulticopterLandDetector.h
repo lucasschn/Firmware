@@ -75,6 +75,8 @@ protected:
 	bool _get_ground_contact_state() override;
 	bool _get_maybe_landed_state() override;
 	bool _get_freefall_state() override;
+	bool _get_crash_state() override;
+	bool _get_inverted_state() override;
 
 	float _get_max_altitude() override;
 private:

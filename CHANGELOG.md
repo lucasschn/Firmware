@@ -14,6 +14,9 @@
 * mavlink: don't send wrong time (#1578)
 * navigator: don't continue cam triggering automatically after 2nd takeoff (#1563)
 
+## v1.6.5-1.3.1 - 
+*   Fix battery monitoring, add multiple checks for current measurement handling to prevent error cases.
+*   Fix Barometer device ID, factory calibration gets recognized again.
 
 ## v1.6.5-1.3.0 - 2018-02-28
 ### Added

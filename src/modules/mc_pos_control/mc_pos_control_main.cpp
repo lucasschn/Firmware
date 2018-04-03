@@ -896,11 +896,9 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 
 	if (use_obstacle_avoidance()) {
 
-		if (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true) {
-			_vel_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VX];
-			_vel_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VY];
-			_vel_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ];
-		}
+		_vel_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VX];
+		_vel_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VY];
+		_vel_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ];
 
 	}
 
@@ -1326,9 +1324,9 @@ bool
 MulticopterPositionControl::use_obstacle_avoidance()
 {
 
-	/* external obstacle avoidance is sending data */
-	return hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
-	       DISTANCE_STREAM_TIMEOUT_US;
+	/* check that external obstacle avoidance is sending data and that the first point is valid */
+	return (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
+		DISTANCE_STREAM_TIMEOUT_US && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
 }
 
 float

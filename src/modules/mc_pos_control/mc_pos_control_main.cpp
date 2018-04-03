@@ -477,6 +477,8 @@ private:
 
 	void reset_wp_avoidance_desired();
 
+	void execute_avoidance_position_waypoint();
+
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
@@ -904,6 +906,13 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 
 	/* we always constrain velocity since we do not know what realsense spits out */
 	constrain_velocity_setpoint();
+}
+
+void MulticopterPositionControl::execute_avoidance_position_waypoint()
+{
+	_pos_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::X];
+	_pos_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::Y];
+	_pos_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::Z];
 }
 
 void
@@ -2763,6 +2772,10 @@ MulticopterPositionControl::control_position()
 void
 MulticopterPositionControl::calculate_velocity_setpoint()
 {
+	if (use_obstacle_avoidance()) {
+		execute_avoidance_position_waypoint();
+	}
+
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
 

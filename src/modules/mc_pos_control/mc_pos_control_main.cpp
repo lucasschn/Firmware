@@ -778,6 +778,35 @@ MulticopterPositionControl::fuse_obstacle_distance_sonar(float altitude_above_ho
 }
 
 void
+MulticopterPositionControl::apply_gear_switch()
+{
+	//reset the _gear_state_initialized after disarmed
+	// record the state that when disarmed in position mode and the gear switch on.
+	// TODO: avoid next time at the time armed and the gear_switch:SWITCH_POS_ON, the gear up, this is not safe
+	if ((!_was_armed && _arming.armed && _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+	    || !_arming.armed || _vehicle_land_detected.landed) {
+		_gear_state_initialized = false;
+	}
+
+	// Only switch the landing gear up if we are not landed and if
+	// the user switched from gear down to gear up.
+	// If the user had the switch in the gear up position and took off ignore it
+	// until he toggles the switch to avoid retracting the gear immediately on takeoff.
+	// only after gear state has been initialized, then can switch the gear down
+	if (!_gear_state_initialized && (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF
+					 || _vehicle_land_detected.inverted)) {
+		_gear_state_initialized = true;
+	}
+
+	if (_gear_state_initialized && (_gear_switch_prev != _manual.gear_switch)) {
+		_att_sp.landing_gear = (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) ?
+				       vehicle_attitude_setpoint_s::LANDING_GEAR_UP : vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+		_gear_switch_prev = _manual.gear_switch;
+	}
+}
+/* --- */
+
+void
 MulticopterPositionControl::stop_in_front_obstacle(float altitude_above_home)
 {
 	/*tap specific to enable avoidance through ST16*/
@@ -916,34 +945,6 @@ MulticopterPositionControl::execute_avoidance_velocity_waypoint()
 	constrain_velocity_setpoint();
 }
 
-void
-MulticopterPositionControl::apply_gear_switch()
-{
-	//reset the _gear_state_initialized after disarmed
-	// record the state that when disarmed in position mode and the gear switch on.
-	// TODO: avoid next time at the time armed and the gear_switch:SWITCH_POS_ON, the gear up, this is not safe
-	if ((!_was_armed && _arming.armed && _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON)
-	    || !_arming.armed || _vehicle_land_detected.landed) {
-		_gear_state_initialized = false;
-	}
-
-	// Only switch the landing gear up if we are not landed and if
-	// the user switched from gear down to gear up.
-	// If the user had the switch in the gear up position and took off ignore it
-	// until he toggles the switch to avoid retracting the gear immediately on takeoff.
-	// only after gear state has been initialized, then can switch the gear down
-	if (!_gear_state_initialized && (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF
-					 || _vehicle_land_detected.inverted)) {
-		_gear_state_initialized = true;
-	}
-
-	if (_gear_state_initialized && (_gear_switch_prev != _manual.gear_switch)) {
-		_att_sp.landing_gear = (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) ?
-				       vehicle_attitude_setpoint_s::LANDING_GEAR_UP : vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
-		_gear_switch_prev = _manual.gear_switch;
-	}
-}
-/* --- */
 
 void
 MulticopterPositionControl::poll_subscriptions()

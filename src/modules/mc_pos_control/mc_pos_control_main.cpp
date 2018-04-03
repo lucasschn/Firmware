@@ -340,7 +340,6 @@ private:
 	matrix::Vector3f _thrust_int;
 	matrix::Vector3f _pos;
 	matrix::Vector3f _pos_sp;
-	matrix::Vector3f _pos_sp_prev;  /**< previous local position setpoint for all modes */
 	matrix::Vector3f _vel;
 	matrix::Vector3f _vel_sp;
 	matrix::Vector3f _vel_prev;			/**< velocity on previous step */
@@ -619,7 +618,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	_pos.zero();
 	_pos_sp.zero();
-	_pos_sp_prev.zero();
 	_vel.zero();
 	_vel_sp.zero();
 	_vel_prev.zero();
@@ -3040,8 +3038,6 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	}
 
 	/* Previous position setpoint is used for creating position locks.*/
-	_pos_sp_prev = _pos_sp;
-
 	if (use_obstacle_avoidance()) {
 		/* Slewrate is also active for angle mode. If realsense is on, the previous
 		 * velocity setpoint will be set to desired setpoint to ensure that setpoint

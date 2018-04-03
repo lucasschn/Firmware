@@ -3889,15 +3889,11 @@ MulticopterPositionControl::task_main()
 			 * in this case the attitude setpoint is published by the mavlink app.
 			 * - if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
 			 * attitude setpoints for the transition).
-			 *
-			 * FIXME(julianoes): the inverted flag seems wrong, the armed flag was removed from the check
-			 * here in the merge.
 			 */
-			if ((_vehicle_land_detected.inverted)
-			    && (!(_control_mode.flag_control_offboard_enabled
-				  && !(_control_mode.flag_control_position_enabled
-				       || _control_mode.flag_control_velocity_enabled
-				       || _control_mode.flag_control_acceleration_enabled)))) {
+			if ((!(_control_mode.flag_control_offboard_enabled
+			       && !(_control_mode.flag_control_position_enabled
+				    || _control_mode.flag_control_velocity_enabled
+				    || _control_mode.flag_control_acceleration_enabled)))) {
 
 				if (_att_sp_pub != nullptr) {
 					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);

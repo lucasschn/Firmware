@@ -469,7 +469,7 @@ private:
 
 	void publish_local_pos_sp();
 
-	void obstacle_avoidance(float altitude_above_home);
+	void stop_in_front_obstacle(float altitude_above_home);
 
 	void update_avoidance_waypoints_input(const int point_number, const float x, const float y, const float z,
 					      const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
@@ -478,6 +478,8 @@ private:
 	void reset_wp_avoidance_desired();
 
 	void execute_avoidance_position_waypoint();
+
+	void execute_avoidance_velocity_waypoint();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -776,7 +778,7 @@ MulticopterPositionControl::fuse_obstacle_distance_sonar(float altitude_above_ho
 }
 
 void
-MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
+MulticopterPositionControl::stop_in_front_obstacle(float altitude_above_home)
 {
 	/*tap specific to enable avoidance through ST16*/
 	const bool stop_in_front = (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
@@ -893,24 +895,25 @@ MulticopterPositionControl::obstacle_avoidance(float altitude_above_home)
 		/* release lock if obstacle avoidance off */
 		_obstacle_lock_hysteresis.set_state_and_update(false);
 	}
-
-	if (use_obstacle_avoidance()) {
-
-		_vel_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VX];
-		_vel_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VY];
-		_vel_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ];
-
-	}
-
-	/* we always constrain velocity since we do not know what realsense spits out */
-	constrain_velocity_setpoint();
 }
 
-void MulticopterPositionControl::execute_avoidance_position_waypoint()
+void
+MulticopterPositionControl::execute_avoidance_position_waypoint()
 {
 	_pos_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::X];
 	_pos_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::Y];
 	_pos_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::Z];
+}
+
+void
+MulticopterPositionControl::execute_avoidance_velocity_waypoint()
+{
+	_vel_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VX];
+	_vel_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VY];
+	_vel_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ];
+
+	/* we always constrain velocity since we do not know what the avoidance module sends out */
+	constrain_velocity_setpoint();
 }
 
 void
@@ -2889,15 +2892,17 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	constrain_velocity_setpoint();
 	_vel_sp_desired = matrix::Vector3f(_vel_sp(0), _vel_sp(1), _vel_sp(2));
 
-	/* check obstacle avoidance */
+	/* check if the vehicle has to stop in front of the obstacle*/
 	if (!_in_smooth_takeoff) {
-		/* tap specific: handle obstacle avoidance */
-		obstacle_avoidance(altitude_above_home);
 
+		stop_in_front_obstacle(altitude_above_home);
 	}
 
-	/* Previous position setpoint is used for creating position locks.*/
-	if (use_obstacle_avoidance()) {
+	/* check obstacle avoidance */
+	if (use_obstacle_avoidance() && !_in_smooth_takeoff) {
+
+		execute_avoidance_velocity_waypoint();
+
 		/* Slewrate is also active for angle mode. If realsense is on, the previous
 		 * velocity setpoint will be set to desired setpoint to ensure that setpoint
 		 * increases linearly with acceleration.

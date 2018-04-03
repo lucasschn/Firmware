@@ -77,6 +77,9 @@
 #define BOARD_LEFT_LED_MASK  (0)
 #define BOARD_RIGHT_LED_MASK (0)
 
+// In HITL, we can use the usual voltage measurement.
+#define BOARD_HAS_VOLTAGE_IN_HITL
+
 /************************************************************************************
  * Name: board_pwr_init()
  *

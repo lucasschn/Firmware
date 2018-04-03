@@ -2193,12 +2193,13 @@ void MulticopterPositionControl::control_auto()
 		const bool follow_me_target_on = _pos_sp_triplet.current.yawspeed_valid
 						 && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
 
-		if (use_obstacle_avoidance() || follow_me_target_on) {
+		if ((use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED]))
+		    || follow_me_target_on) {
 
 			// default is triplet yaw-speed
 			float yaw_speed = _pos_sp_triplet.current.yawspeed;
 
-			if (use_obstacle_avoidance()) {
+			if (use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED])) {
 				yaw_speed = _traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED];
 			}
 
@@ -2218,8 +2219,14 @@ void MulticopterPositionControl::control_auto()
 				_att_sp.yaw_body = yaw_target;
 			}
 
-		} else if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
-			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+		} else {
+
+			if (use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW])) {
+				_att_sp.yaw_body = _traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW];
+
+			} else if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
+				_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+			}
 		}
 
 		/* only follow previous-current-line for specific triplet type */
@@ -3220,7 +3227,7 @@ MulticopterPositionControl::generate_attitude_setpoint()
 		_att_sp.yaw_sp_move_rate = yaw_rate_max * math::expo_deadzone(_manual.r, _yaw_expo.get(), _hold_dz.get());
 
 		/* check if avoidance is on */
-		if (use_obstacle_avoidance()) {
+		if (use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED])) {
 			_att_sp.yaw_sp_move_rate = _traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED];
 		}
 

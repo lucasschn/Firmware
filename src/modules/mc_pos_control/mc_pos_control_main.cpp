@@ -3015,7 +3015,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	    && !_control_mode.flag_control_manual_enabled) {
 		float vel_limit = math::gradual(altitude_above_home,
 						_params.slow_land_alt2, _params.slow_land_alt1,
-						_params.tko_speed, _vel_z_up.get());
+						_params.tko_speed, _speed_z_auto.get());
 		_vel_sp(2) = math::max(_vel_sp(2), -vel_limit);
 	}
 
@@ -3031,13 +3031,20 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 		}
 	}
 
-	/* limit vertical downwards speed (positive z) close to ground
+	/* limit vertical downwards speed (positive z) close to ground based on mode.
 	 * for now we use the altitude above home and assume that we want to land at same height as we took off */
-	float vel_limit = math::gradual(altitude_above_home,
-					_params.slow_land_alt2, _params.slow_land_alt1,
-					_params.land_speed, _vel_z_down.get());
+	float vel_limit_down =  _vel_z_down.get(); //default is maximum velocity downwards for manual controlled mode
 
-	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
+	if (_control_mode.flag_control_auto_enabled) {
+		vel_limit_down = _speed_z_auto.get(); // maximum velocity downwards for auto-controlled mode
+	}
+
+	// adjust downwards velocity based on altitude
+	vel_limit_down = math::gradual(altitude_above_home,
+				       _params.slow_land_alt2, _params.slow_land_alt1,
+				       _params.land_speed, vel_limit_down);
+
+	_vel_sp(2) = math::min(_vel_sp(2), vel_limit_down);
 
 	/* apply slewrate (aka acceleration limit) for smooth flying */
 	if (!_control_mode.flag_control_auto_enabled && !_flight_tasks.isAnyTaskActive() && !_in_smooth_takeoff) {

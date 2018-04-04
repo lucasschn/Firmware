@@ -311,8 +311,8 @@ TAP_ESC_UPLOADER::log_versions()
 	bool esc_versions_matching = true;
 
 	for (unsigned esc_id = 1; esc_id < _esc_counter; esc_id++) {
-		ret =  get_esc_versions(0, temp_fw_ver, temp_hw_ver, temp_bl_ver);
 		uint32_t temp_fw_ver, temp_hw_ver, temp_bl_ver;
+		ret =  get_esc_versions(esc_id, temp_fw_ver, temp_hw_ver, temp_bl_ver);
 
 		if (ret != OK) {
 			PX4_LOG("Failed to get ESC %u device info", esc_id);

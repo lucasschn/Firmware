@@ -443,6 +443,10 @@ private:
 
 	bool use_obstacle_avoidance();
 
+	bool use_pos_wp_avoidance();
+
+	bool use_vel_wp_avoidance();
+
 	/**
 	 * limit altitude based on several conditions
 	 */
@@ -1331,6 +1335,22 @@ MulticopterPositionControl::use_obstacle_avoidance()
 	/* check that external obstacle avoidance is sending data and that the first point is valid */
 	return (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
 		DISTANCE_STREAM_TIMEOUT_US && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
+}
+
+bool
+MulticopterPositionControl::use_pos_wp_avoidance()
+{
+	return use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::X]) &&
+	       PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::Y])
+	       && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::Z]);
+}
+
+bool
+MulticopterPositionControl::use_vel_wp_avoidance()
+{
+	return use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VX]) &&
+	       PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VY])
+	       && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ]);
 }
 
 float
@@ -2900,7 +2920,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	}
 
 	/* check obstacle avoidance */
-	if (use_obstacle_avoidance() && !_in_smooth_takeoff) {
+	if (use_vel_wp_avoidance() && !_in_smooth_takeoff) {
 
 		execute_avoidance_velocity_waypoint();
 

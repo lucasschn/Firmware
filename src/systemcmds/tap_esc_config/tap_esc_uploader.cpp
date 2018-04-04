@@ -920,37 +920,6 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 
 		break;
 
-	case PROTO_DEVICE_VERSION:
-
-		// NOTE: PROTO_DEVICE_VERSION returns three different versions:
-		// Firmware, Hardware and Bootloader. get_device_info() currently only
-		// supports one return value for each query, which is why we only return
-		// the firmware version here.
-		if (_uploader_packet.msg_id == PROTO_OK) {
-			if (_uploader_packet.d.firmware_revis_packet.myID != esc_id) {
-				PX4_LOG("get device firmware revision id don't match, myID: 0x%02x, esc_id: 0x%02x",
-					_uploader_packet.d.firmware_revis_packet.myID, esc_id);
-				return -EIO;
-			}
-
-			val = _uploader_packet.d.firmware_revis_packet.FwRev;
-
-		} else if (_uploader_packet.msg_id == PROTO_FAILED) {
-			PX4_LOG("get device firmware revision failed, myID: 0x%02x,esc_id: 0x%02x, FwRev: 0x%02x",
-				_uploader_packet.d.firmware_revis_packet.myID, esc_id,
-				_uploader_packet.d.firmware_revis_packet.FwRev);
-			return -EIO;
-
-		} else if (_uploader_packet.msg_id == PROTO_INVALID) {
-			PX4_LOG("get device firmware revision invalid, myID: 0x%02x,esc_id: 0x%02x, FwRev: 0x%02x",
-				_uploader_packet.d.firmware_revis_packet.myID, esc_id,
-				_uploader_packet.d.firmware_revis_packet.FwRev);
-			return -EIO;
-
-		}
-
-		break;
-
 	default:
 		break;
 	}

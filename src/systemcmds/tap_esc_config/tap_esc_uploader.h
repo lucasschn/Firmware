@@ -142,7 +142,6 @@ private:
 		PROTO_DEVICE_FW_SIZE	= 4,		/**< size of flashable area */
 		PROTO_DEVICE_VEC_AREA	= 5,		/**< contents of reserved vectors 7-10 */
 		PROTO_DEVICE_FW_REV	= 6,		/**< firmware revision */
-		PROTO_DEVICE_VERSION	= 7,		/**< esc firmware,bootloader,hardware revision */
 
 		PROG_MULTI_MAX		= 128,		/**< protocol max is 255, must be multiple of 4 */
 

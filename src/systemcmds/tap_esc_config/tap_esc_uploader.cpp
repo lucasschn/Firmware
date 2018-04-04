@@ -299,7 +299,7 @@ TAP_ESC_UPLOADER::log_versions()
 	}
 
 	// get information from first ESC
-	uint16_t fw_ver, hw_ver, bl_ver;
+	uint32_t fw_ver, hw_ver, bl_ver;
 	ret =  get_esc_versions(0, fw_ver, hw_ver, bl_ver);
 
 	if (ret != OK) {
@@ -311,8 +311,8 @@ TAP_ESC_UPLOADER::log_versions()
 	bool esc_versions_matching = true;
 
 	for (unsigned esc_id = 1; esc_id < _esc_counter; esc_id++) {
-		uint16_t temp_fw_ver, temp_hw_ver, temp_bl_ver;
 		ret =  get_esc_versions(0, temp_fw_ver, temp_hw_ver, temp_bl_ver);
+		uint32_t temp_fw_ver, temp_hw_ver, temp_bl_ver;
 
 		if (ret != OK) {
 			PX4_LOG("Failed to get ESC %u device info", esc_id);
@@ -708,7 +708,7 @@ TAP_ESC_UPLOADER::sync(uint8_t esc_id)
 // the need for this new function here. Ideally we would utilize
 // get_device_info() for all requests...
 int
-TAP_ESC_UPLOADER::get_esc_versions(uint8_t esc_id, uint16_t &fw_ver, uint16_t &hw_ver, uint16_t &bl_ver)
+TAP_ESC_UPLOADER::get_esc_versions(uint8_t esc_id, uint32_t &fw_ver, uint32_t &hw_ver, uint32_t &bl_ver)
 {
 	int ret;
 

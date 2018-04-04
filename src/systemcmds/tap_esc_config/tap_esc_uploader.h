@@ -285,7 +285,7 @@ private:
 	int 			send_packet(EscUploaderMessage &packet, int responder);
 	int			sync(uint8_t esc_id);
 	int			get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_arg, uint32_t &val);
-	int			get_esc_versions(uint8_t esc_id, uint16_t &fw_ver, uint16_t &hw_ver, uint16_t &bl_ver);
+	int			get_esc_versions(uint8_t esc_id, uint32_t &fw_ver, uint32_t &hw_ver, uint32_t &bl_ver);
 	int			erase(uint8_t esc_id);
 	int			program(uint8_t esc_id, size_t fw_size);
 	int			verify_crc(uint8_t esc_id, size_t fw_size_local);

@@ -76,6 +76,6 @@
 
 // LED mapping required by the set_led function. not used in simulation
 #define BOARD_FRONT_LED_MASK (0)
-#define BOARD_BACK_LED_MASK  (0)
+#define BOARD_REAR_LED_MASK  (0)
 #define BOARD_LEFT_LED_MASK  (0)
 #define BOARD_RIGHT_LED_MASK (0)

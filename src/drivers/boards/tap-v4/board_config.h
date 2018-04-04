@@ -73,7 +73,7 @@
 
 // LED mapping
 #define BOARD_FRONT_LED_MASK (1 << 0) | (1 << 3)
-#define BOARD_BACK_LED_MASK  (1 << 1) | (1 << 2)
+#define BOARD_REAR_LED_MASK  (1 << 1) | (1 << 2)
 #define BOARD_LEFT_LED_MASK  (0)
 #define BOARD_RIGHT_LED_MASK (0)
 

@@ -83,7 +83,7 @@ void StatusDisplay::set_leds()
 	int sector = roundf(delta_heading / (M_PI_F / 3.0f));
 
 	// set the led mask for the status led which are the back LED
-	_led_control.led_mask = BOARD_BACK_LED_MASK;
+	_led_control.led_mask = BOARD_REAR_LED_MASK;
 
 	// TODO: need reworking with new LED definition this does only work on H520
 	// choose color depending on the nav state

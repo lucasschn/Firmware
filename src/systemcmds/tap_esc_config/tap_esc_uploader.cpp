@@ -713,9 +713,9 @@ TAP_ESC_UPLOADER::get_esc_versions(uint8_t esc_id, uint16_t &fw_ver, uint16_t &h
 	int ret;
 
 	/*prepare information request packet */
-	EscUploaderMessage device_info_packet = {PACKET_HEAD, sizeof(EscbusGetDevicePacket), PROTO_GET_DEVICE};
+	EscUploaderMessage device_info_packet = {PACKET_HEAD, sizeof(EscbusGetDevicePacket), ESCBUS_MSG_ID_REQUEST_INFO};
 	device_info_packet.d.device_info_packet.myID = esc_id;
-	device_info_packet.d.device_info_packet.deviceInfo = PROTO_DEVICE_VERSION;
+	device_info_packet.d.device_info_packet.deviceInfo = REQUEST_INFO_DEVICE;
 	send_packet(device_info_packet, esc_id);
 
 	/* read and parse device information feedback packet, blocking 50ms */
@@ -726,7 +726,7 @@ TAP_ESC_UPLOADER::get_esc_versions(uint8_t esc_id, uint16_t &fw_ver, uint16_t &h
 	}
 
 	/* check device information feedback is ok or fail */
-	if (_uploader_packet.msg_id == PROTO_OK) {
+	if (_uploader_packet.msg_id == ESCBUS_MSG_ID_DEVICE_INFO) {
 		if (_uploader_packet.d.esc_version_packet.myID != esc_id) {
 			PX4_LOG("get device firmware revision: ID mismatch, received: 0x%02x, asked for: 0x%02x",
 				_uploader_packet.d.esc_version_packet.myID, esc_id);

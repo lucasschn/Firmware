@@ -2326,8 +2326,7 @@ Commander::run()
 
 					status_changed = true;
 
-				} else if (!status_flags.usb_connected &&
-					   battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL &&
+				} else if (battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL &&
 					   !critical_battery_voltage_actions_done) {
 					critical_battery_voltage_actions_done = true;
 
@@ -2373,8 +2372,7 @@ Commander::run()
 
 					status_changed = true;
 
-				} else if (!status_flags.usb_connected &&
-					   battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY &&
+				} else if (battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY &&
 					   !emergency_battery_voltage_actions_done) {
 					emergency_battery_voltage_actions_done = true;
 

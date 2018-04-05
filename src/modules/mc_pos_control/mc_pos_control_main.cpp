@@ -153,6 +153,8 @@ private:
 	static constexpr uint64_t OBSTACLE_LOCK_EXIT_TRIGGER_TIME_US = 1000000;
 	/** Timeout in us for obstacle avoidance sonar data to get considered invalid */
 	static constexpr uint64_t DISTANCE_STREAM_TIMEOUT_US = 500000;
+	/** Timeout in us for trajectory data to get considered invalid */
+	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500000;
 
 	bool		_task_should_exit = false;			/**<true if task should exit */
 	bool		_gear_state_initialized = false;		/**<true if the gear state has been initialized */
@@ -186,12 +188,12 @@ private:
 	int		_local_pos_sub;			/**< vehicle local position */
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_home_pos_sub; 			/**< home position */
-	int 	_traj_wp_avoidance_sub;
-	int 	_obstacle_distance_sub;
+	int 	_traj_wp_avoidance_sub; /**< trajectory waypoint */
+	int 	_obstacle_distance_sub; /**< obstacle distance */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
-	orb_advert_t 	_traj_wp_avoidance_desired_pub; 	/**< obstacle avoidance input publication */
+	orb_advert_t 	_traj_wp_avoidance_desired_pub; 	/**< trajectory waypoint desired publication */
 
 	orb_id_t _attitude_setpoint_id;
 
@@ -205,10 +207,10 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct home_position_s				_home_pos; 				/**< home position */
-	struct trajectory_waypoint_s 		_traj_wp_avoidance;
-	struct obstacle_distance_s 			_obstacle_distance;
+	struct trajectory_waypoint_s 		_traj_wp_avoidance; /**< trajectory waypoint */
 	struct trajectory_waypoint_s
 		_traj_wp_avoidance_desired; /**< desired waypoints, inputs to an obstacle avoidance module */
+	struct obstacle_distance_s 			_obstacle_distance; /**< obstacle distance */
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MPC_FLT_TSK>) _test_flight_tasks, /**< temporary flag for the transition to flight tasks */
@@ -475,7 +477,7 @@ private:
 
 	void stop_in_front_obstacle(float altitude_above_home);
 
-	void update_avoidance_waypoints_input(const int point_number, const float x, const float y, const float z,
+	void update_avoidance_waypoints_desired(const int point_number, const float x, const float y, const float z,
 					      const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
 					      const float yaw_speed);
 
@@ -548,8 +550,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sp{},
 	_home_pos{},
 	_traj_wp_avoidance{},
-	_obstacle_distance{},
 	_traj_wp_avoidance_desired{},
+	_obstacle_distance{},
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -1334,7 +1336,7 @@ MulticopterPositionControl::use_obstacle_avoidance()
 
 	/* check that external obstacle avoidance is sending data and that the first point is valid */
 	return (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
-		DISTANCE_STREAM_TIMEOUT_US && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
+		TRAJECTORY_STREAM_TIMEOUT_US && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
 }
 
 bool
@@ -2924,8 +2926,8 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 
 		execute_avoidance_velocity_waypoint();
 
-		/* Slewrate is also active for angle mode. If realsense is on, the previous
-		 * velocity setpoint will be set to desired setpoint to ensure that setpoint
+		/* If obstacle avoidanc is active, the previous velocity
+		 * setpoint will be set to desired setpoint to ensure that setpoint
 		 * increases linearly with acceleration.
 		 */
 		_vel_sp_prev = matrix::Vector3f(&_vel_sp_desired(0));
@@ -3250,7 +3252,7 @@ MulticopterPositionControl::generate_attitude_setpoint()
 
 		_att_sp.yaw_sp_move_rate = yaw_rate_max * math::expo_deadzone(_manual.r, _yaw_expo.get(), _hold_dz.get());
 
-		/* check if avoidance is on */
+		/* check if obstacle avoidance is on */
 		if (use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED])) {
 			_att_sp.yaw_sp_move_rate = _traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED];
 		}
@@ -3679,29 +3681,29 @@ MulticopterPositionControl::task_main()
 				_local_pos_sp.vy = _vel_sp(1);
 				_local_pos_sp.vz = _vel_sp(2);
 
-				/* publish desired setpoints to obstacle avoidance */
+				/* desired waypoints for obstacle avoidance */
 				if (_pos_sp_triplet.current.valid) {
 
 					/* point_0 containes the current position with the desired velocity */
-					update_avoidance_waypoints_input(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
+					update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
 									 _vel_sp_desired(1),
 									 _vel_sp_desired(1),
 									 NAN, NAN, NAN, _yaw, NAN);
 
 					if (_pos_sp_triplet.current.valid) {
-						update_avoidance_waypoints_input(trajectory_waypoint_s::POINT_1, _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
+						update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_1, _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
 										 _pos_sp_triplet.current.z, NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.current.yaw, NAN);
 					}
 
 					if (_pos_sp_triplet.next.valid) {
-						update_avoidance_waypoints_input(trajectory_waypoint_s::POINT_2, _pos_sp_triplet.next.x, _pos_sp_triplet.next.y,
+						update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_2, _pos_sp_triplet.next.x, _pos_sp_triplet.next.y,
 										 _pos_sp_triplet.next.z,
 										 NAN, NAN, NAN, NAN, NAN, NAN, _pos_sp_triplet.next.yaw, NAN);
 					}
 
 				} else {
 
-					update_avoidance_waypoints_input(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
+					update_avoidance_waypoints_desired(trajectory_waypoint_s::POINT_0, _pos(0), _pos(1), _pos(2), _vel_sp_desired(0),
 									 _vel_sp_desired(1),
 									 _vel_sp_desired(2),
 									 NAN, NAN, NAN, _yaw, NAN);
@@ -3715,7 +3717,7 @@ MulticopterPositionControl::task_main()
 					_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
 				}
 
-				/* publish realsense input */
+				/* publish desired waypoint*/
 				if (_traj_wp_avoidance_desired_pub != nullptr) {
 					orb_publish(ORB_ID(trajectory_waypoint_desired), _traj_wp_avoidance_desired_pub, &_traj_wp_avoidance_desired);
 
@@ -3792,7 +3794,7 @@ MulticopterPositionControl::task_main()
 	_control_task = -1;
 }
 
-void MulticopterPositionControl::update_avoidance_waypoints_input(const int point_number, const float x, const float y,
+void MulticopterPositionControl::update_avoidance_waypoints_desired(const int point_number, const float x, const float y,
 		const float z,
 		const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
 		const float yaw_speed)

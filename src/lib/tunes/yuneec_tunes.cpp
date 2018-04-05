@@ -9,8 +9,8 @@ const char *Tunes::_default_tunes[] = {
 	"MFT200e8e", // Notify Neutral tone
 	"MFT200e8c8e8c8e8c8", // Notify Negative tone
 	"MNT75L1O2G", //arming warning
-	"MBNT100a8", //battery warning slow
-	"MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8", //battery warning fast
+	"MNT100a8Pa8Pa8Pa8Pa8Pa8Pa8Pa8", //battery warning slow
+	"MNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8", //battery warning fast
 	"MFT255L4AAAL1F#", //gps warning slow
 	"MFT255L4<<<BAP", // arming failure tune
 	"MFT255L16agagagag", // parachute release

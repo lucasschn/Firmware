@@ -318,7 +318,10 @@ TAP_ESC_UPLOADER::log_versions()
 		return ret;
 	}
 
-	/* Get firmware versions of the remainig ESCs and compare with the first one*/
+	/* Get firmware versions of the remainig ESCs and compare with the first one
+	   Since the parameters can only store one version (not six), we need to make
+	   sure that all ESCs have matchin version numbers. If not, all version
+	   parameters will be set to zero. */
 	bool esc_versions_matching = true;
 
 	for (unsigned esc_id = 1; esc_id < _esc_counter; esc_id++) {
@@ -337,6 +340,7 @@ TAP_ESC_UPLOADER::log_versions()
 	}
 
 	if (!esc_versions_matching) {
+		// One or more ESCs have mismatching versions
 		fw_ver = 0; // version 0 means unknown
 		hw_ver = 0; // version 0 means unknown
 		bl_ver = 0; // version 0 means unknown

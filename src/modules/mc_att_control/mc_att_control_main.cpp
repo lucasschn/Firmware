@@ -543,13 +543,6 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	rates(1) -= _sensor_bias.gyro_y_bias;
 	rates(2) -= _sensor_bias.gyro_z_bias;
 
-	// TODO: check with upstream fro the i term
-	/* Upstream form
-	Vector3f rates_p_scaled = _params.rate_p.emult(pid_attenuations(_params.tpa_breakpoint_p, _params.tpa_rate_p));
-	//Vector3f rates_i_scaled = _params.rate_i.emult(pid_attenuations(_params.tpa_breakpoint_i, _params.tpa_rate_i));
-	Vector3f rates_d_scaled = _params.rate_d.emult(pid_attenuations(_params.tpa_breakpoint_d, _params.tpa_rate_d));
-	*/
-
 	Vector3f rates_p_scaled;
 	Vector3f rates_i_scaled;
 	Vector3f rates_d_scaled;

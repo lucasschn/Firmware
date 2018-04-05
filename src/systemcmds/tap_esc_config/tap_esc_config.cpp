@@ -270,7 +270,7 @@ static int log_versions(const char * device, uint8_t num_escs)
 	delete uploader;
 
 	if (ret != OK) {
-		PX4_ERR("TAP_ESC failed to log ESC versions %d", ret);
+		PX4_ERR("TAP_ESC failed to log ESC versions (%d)", ret);
 	}
 
 	return ret;
@@ -640,7 +640,7 @@ int tap_esc_config_main(int argc, char *argv[]) {
 
 	} else if(!strcmp(argv[myoptind], "log_versions")) {
 		return log_versions(device, num_escs);
-		
+
 	} else if (!strcmp(argv[myoptind], "identify")) {
 		if (id_config_num>=num_escs)
 		{

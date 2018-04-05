@@ -291,6 +291,17 @@ TAP_ESC_UPLOADER::upload(const char *filenames[])
 int
 TAP_ESC_UPLOADER::log_versions()
 {
+	param_t param_esc_fw_ver = param_find("ESC_FW_VER");
+	param_t param_esc_hw_ver = param_find("ESC_HW_VER");
+	param_t param_esc_bl_ver = param_find("ESC_BL_VER");
+
+	if (param_esc_fw_ver == PARAM_INVALID ||
+	    param_esc_hw_ver == PARAM_INVALID ||
+	    param_esc_bl_ver == PARAM_INVALID) {
+		PX4_WARN("Cannot find one or more parameters, unable to log ESC versions.");
+		return -1;
+	}
+
 	int ret = tap_esc_common::initialise_uart(_device, _esc_fd);
 
 	if (ret < 0) {
@@ -331,9 +342,9 @@ TAP_ESC_UPLOADER::log_versions()
 		bl_ver = 0; // version 0 means unknown
 	}
 
-	param_set(param_find("ESC_FW_VER"), &fw_ver);
-	param_set(param_find("ESC_HW_VER"), &hw_ver);
-	param_set(param_find("ESC_BL_VER"), &bl_ver);
+	param_set(param_esc_fw_ver, &fw_ver);
+	param_set(param_esc_hw_ver, &hw_ver);
+	param_set(param_esc_bl_ver, &bl_ver);
 
 	return ret;
 }

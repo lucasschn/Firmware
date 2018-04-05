@@ -153,13 +153,13 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 	lib/ecl
-	lib/FlightTasks
 	lib/led
 	lib/mathlib
 	lib/mixer
 	#lib/terrain_estimation
 	lib/tunes
 	lib/version
+	lib/FlightTasks
 
 	#
 	# OBC challenge

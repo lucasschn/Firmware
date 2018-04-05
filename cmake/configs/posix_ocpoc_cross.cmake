@@ -84,13 +84,13 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 	lib/ecl
-	lib/FlightTasks
 	lib/led
 	lib/mathlib
 	lib/mixer
 	lib/rc
 	lib/terrain_estimation
 	lib/version
+	lib/FlightTasks
 
 	examples/px4_simple_app
 )

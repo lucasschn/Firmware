@@ -50,8 +50,6 @@
 
 using namespace matrix;
 
-using Data = matrix::Vector3f;
-
 PositionControl::PositionControl()
 {
 	_Pz_h   = param_find("MPC_Z_P");
@@ -73,20 +71,20 @@ PositionControl::PositionControl()
 	_setParams();
 };
 
-void PositionControl::updateState(const struct vehicle_local_position_s state, const Data &vel_dot)
+void PositionControl::updateState(const struct vehicle_local_position_s state, const Vector3f &vel_dot)
 {
-	_pos = Data(&state.x);
-	_vel = Data(&state.vx);
+	_pos = Vector3f(&state.x);
+	_vel = Vector3f(&state.vx);
 	_yaw = state.yaw;
 	_vel_dot = vel_dot;
 }
 
 void PositionControl::updateSetpoint(struct vehicle_local_position_setpoint_s setpoint)
 {
-	_pos_sp = Data(&setpoint.x);
-	_vel_sp = Data(&setpoint.vx);
-	_acc_sp = Data(&setpoint.acc_x);
-	_thr_sp = Data(setpoint.thrust);
+	_pos_sp = Vector3f(&setpoint.x);
+	_vel_sp = Vector3f(&setpoint.vx);
+	_acc_sp = Vector3f(&setpoint.acc_x);
+	_thr_sp = Vector3f(setpoint.thrust);
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;
 	_interfaceMapping();
@@ -223,7 +221,7 @@ void PositionControl::_velocityController(const float &dt)
 		tilt_max = _constraints.tilt_max;
 	}
 
-	Data vel_err = _vel_sp - _vel;
+	Vector3f vel_err = _vel_sp - _vel;
 
 	/*
 	 * TODO: add offboard acceleration mode

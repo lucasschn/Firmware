@@ -425,6 +425,8 @@ private:
 
 	void vel_sp_slewrate();
 
+	void wrap_yaw_speed(float yaw_speed);
+
 	void update_velocity_derivative();
 
 	void do_control();
@@ -1824,18 +1826,8 @@ MulticopterPositionControl::control_offboard()
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 
 		} else if (_pos_sp_triplet.current.yawspeed_valid) {
-			float yaw_target = _wrap_pi(_att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * _dt);
-			float yaw_offs = _wrap_pi(yaw_target - _yaw);
-			const float yaw_rate_max = (_man_yaw_max < _global_yaw_max) ? _man_yaw_max : _global_yaw_max;
-			const float yaw_offset_max = yaw_rate_max / _mc_att_yaw_p.get();
 
-			// If the yaw offset became too big for the system to track stop
-			// shifting it, only allow if it would make the offset smaller again.
-			if (fabsf(yaw_offs) < yaw_offset_max ||
-			    (_pos_sp_triplet.current.yawspeed > 0 && yaw_offs < 0) ||
-			    (_pos_sp_triplet.current.yawspeed < 0 && yaw_offs > 0)) {
-				_att_sp.yaw_body = yaw_target;
-			}
+			wrap_yaw_speed(_pos_sp_triplet.current.yawspeed);
 		}
 
 	} else {
@@ -2065,21 +2057,7 @@ void MulticopterPositionControl::control_auto()
 				yaw_speed = _traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED];
 			}
 
-			/* we want to know the real constraint, and global overrides manual */
-			const float yaw_rate_max = (_man_yaw_max < _global_yaw_max) ? _man_yaw_max :
-						   _global_yaw_max;
-			const float yaw_offset_max = yaw_rate_max / _mc_att_yaw_p.get();
-
-			float yaw_target = _wrap_pi(_att_sp.yaw_body + yaw_speed * _dt);
-			float yaw_offs = _wrap_pi(yaw_target - _yaw);
-
-			// If the yaw offset became too big for the system to track stop
-			// shifting it, only allow if it would make the offset smaller again.
-			if (fabsf(yaw_offs) < yaw_offset_max ||
-			    (_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
-			    (_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
-				_att_sp.yaw_body = yaw_target;
-			}
+			wrap_yaw_speed(yaw_speed);
 
 		} else {
 
@@ -2528,6 +2506,25 @@ void MulticopterPositionControl::control_auto()
 		_vel_sp.zero();
 		_run_pos_control = false;
 		_run_alt_control = false;
+	}
+}
+
+void
+MulticopterPositionControl::wrap_yaw_speed(float yaw_speed)
+{
+	/* we want to know the real constraint, and global overrides manual */
+	const float yaw_rate_max = (_man_yaw_max < _global_yaw_max) ? _man_yaw_max : _global_yaw_max;
+	const float yaw_offset_max = yaw_rate_max /  _mc_att_yaw_p.get();
+
+	float yaw_target = _wrap_pi(_att_sp.yaw_body + yaw_speed * _dt);
+	float yaw_offs = _wrap_pi(yaw_target - _yaw);
+
+	// If the yaw offset became too big for the system to track stop
+	// shifting it, only allow if it would make the offset smaller again.
+	if (fabsf(yaw_offs) < yaw_offset_max ||
+	    (yaw_speed > 0 && yaw_offs < 0) ||
+	    (yaw_speed < 0 && yaw_offs > 0)) {
+		_att_sp.yaw_body = yaw_target;
 	}
 }
 
@@ -3086,7 +3083,6 @@ MulticopterPositionControl::generate_attitude_setpoint()
 
 		/* we want to know the real constraint, and global overrides manual */
 		const float yaw_rate_max = (_man_yaw_max < _global_yaw_max) ? _man_yaw_max : _global_yaw_max;
-		const float yaw_offset_max = yaw_rate_max / _mc_att_yaw_p.get();
 
 		_att_sp.yaw_sp_move_rate = yaw_rate_max * math::expo_deadzone(_manual.r, _yaw_expo.get(), _hold_dz.get());
 
@@ -3095,16 +3091,7 @@ MulticopterPositionControl::generate_attitude_setpoint()
 			_att_sp.yaw_sp_move_rate = _traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED];
 		}
 
-		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);
-		float yaw_offs = _wrap_pi(yaw_target - _yaw);
-
-		// If the yaw offset became too big for the system to track stop
-		// shifting it, only allow if it would make the offset smaller again.
-		if (fabsf(yaw_offs) < yaw_offset_max ||
-		    (_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
-		    (_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
-			_att_sp.yaw_body = yaw_target;
-		}
+		wrap_yaw_speed(_att_sp.yaw_sp_move_rate);
 	}
 
 	/* control throttle directly if no climb rate controller is active */

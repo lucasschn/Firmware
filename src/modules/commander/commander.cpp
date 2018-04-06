@@ -2696,7 +2696,7 @@ Commander::run()
 					print_reject_arm("NOT DISARMING: Not in manual mode or landed yet.");
 				}
 
-				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
+				if (disarm) {
 					arming_ret = arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */,
 													&mavlink_log_pub, &status_flags, avionics_power_rail_voltage, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 				}

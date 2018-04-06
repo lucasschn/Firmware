@@ -2554,7 +2554,8 @@ Commander::run()
 
 				// revert to position control in any case
 				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
-				mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot");
+				// NOTE: Yuneec: Prevent console from being spammed
+				// mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot");
 			}
 		}
 

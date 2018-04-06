@@ -86,11 +86,6 @@
 #include <uORB/topics/distance_sensor.h>
 #include <lib/conversion/rotation.h>
 #include <drivers/realsense/realsense.h>
-
-#include "PositionControl.hpp"
-#include "Utility/ControlMath.hpp"
-
-#define TILT_COS_MAX	0.7f
 /* --- */
 
 #define SIGMA_SINGLE_OP			0.000001f

@@ -51,11 +51,6 @@
 #include "PreflightCheck.h"
 #include "arm_auth.h"
 
-#ifndef __PX4_NUTTX
-#include "DevMgr.hpp"
-using namespace DriverFramework;
-#endif
-
 static constexpr const char reason_no_rc[] = "no RC";
 static constexpr const char reason_no_offboard[] = "no offboard";
 static constexpr const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
@@ -112,6 +107,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 	arming_state_t current_arming_state = status->arming_state;
 	bool feedback_provided = false;
 
+	// NOTE: man_pos_mode is Yuneec-specific
 	// system is being operated in a manual mode where the position is controlled by the user
 	bool man_pos_mode = (status->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
 				|| status->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB
@@ -1052,6 +1048,8 @@ void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 	} else if (link_loss_act == link_loss_actions_t::AUTO_RTL
 		   && status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
 
+		// NOTE(YUNEEC): Removed
+		// main_state_transition(*status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state);
 		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 	} else if (link_loss_act == link_loss_actions_t::AUTO_LAND && status_flags.condition_local_position_valid) {

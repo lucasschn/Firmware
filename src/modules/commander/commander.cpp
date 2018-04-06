@@ -191,17 +191,6 @@ static hrt_abstime last_lvel_fail_time_us = 0;	// Last time that the local veloc
 
 static hrt_abstime gpos_last_update_time_us = 0; // last time a global position update was received (usec)
 
-/* pre-flight EKF checks */
-static float max_ekf_pos_ratio = 0.5f;
-static float max_ekf_vel_ratio = 0.5f;
-static float max_ekf_hgt_ratio = 0.5f;
-static float max_ekf_yaw_ratio = 0.5f;
-static float max_ekf_dvel_bias = 2.0e-3f;
-static float max_ekf_dang_bias = 3.5e-4f;
-
-/* pre-flight IMU consistency checks */
-static float max_imu_acc_diff = 0.7f;
-static float max_imu_gyr_diff = 0.09f;
 static float min_stick_change = 0.25f;
 static float min_interrupt_stick_change = 0.15f;
 
@@ -213,7 +202,7 @@ static struct vehicle_control_mode_s control_mode = {};
 static struct offboard_control_mode_s offboard_control_mode = {};
 static struct home_position_s _home = {};
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
-static int32_t _desired_flight_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+static int32_t _desired_flight_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;    // NOTE: Yuneec-specific variable
 static struct commander_state_s internal_state = {};
 
 static uint8_t main_state_before_rtl = commander_state_s::MAIN_STATE_MAX;
@@ -693,6 +682,7 @@ Commander::handle_command(vehicle_status_s *status_local,
 			// check if a critical or emergency action is in progress and if the battery failsafe mode is not WARNING
 			bool battery_critical_action = (emergency_battery_voltage_actions_done || critical_battery_voltage_actions_done) && (low_bat_action != 0);
 
+			// NOTE: The if{} is Yuneec-specific, upstream code follows in the else{}
 			if (battery_critical_action) {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				mavlink_log_critical(&mavlink_log_pub, "Low battery state, rejecting pause");
@@ -869,7 +859,7 @@ Commander::handle_command(vehicle_status_s *status_local,
 			// Adhere to MAVLink specs, but base on knowledge that these fundamentally encode ints
 			// for logic state parameters
 			if (static_cast<int>(cmd.param1 + 0.5f) != 0 && static_cast<int>(cmd.param1 + 0.5f) != 1) {
-				mavlink_log_critical(&mavlink_log_pub, "Unsupported ARM_DISARM parameter: %.3f.", (double)cmd.param1);
+				mavlink_log_critical(&mavlink_log_pub, "Unsupported ARM_DISARM param: %.3f", (double)cmd.param1);
 
 			} else {
 
@@ -1117,7 +1107,7 @@ Commander::handle_command(vehicle_status_s *status_local,
 
 				// switch to AUTO_MISSION and ARM
 				if ((TRANSITION_DENIED != main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags, &internal_state))
-					&& (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "Mission start command."))) {
+					&& (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "mission start command"))) {
 
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
@@ -1299,18 +1289,6 @@ Commander::run()
 	param_t _param_fmode_4 = param_find("COM_FLTMODE4");
 	param_t _param_fmode_5 = param_find("COM_FLTMODE5");
 	param_t _param_fmode_6 = param_find("COM_FLTMODE6");
-
-	/* pre-flight EKF checks */
-	param_t _param_max_ekf_pos_ratio = param_find("COM_ARM_EKF_POS");
-	param_t _param_max_ekf_vel_ratio = param_find("COM_ARM_EKF_VEL");
-	param_t _param_max_ekf_hgt_ratio = param_find("COM_ARM_EKF_HGT");
-	param_t _param_max_ekf_yaw_ratio = param_find("COM_ARM_EKF_YAW");
-	param_t _param_max_ekf_dvel_bias = param_find("COM_ARM_EKF_AB");
-	param_t _param_max_ekf_dang_bias = param_find("COM_ARM_EKF_GB");
-
-	/* pre-flight IMU consistency checks */
-	param_t _param_max_imu_acc_diff = param_find("COM_ARM_IMU_ACC");
-	param_t _param_max_imu_gyr_diff = param_find("COM_ARM_IMU_GYR");
 
 	/* failsafe response to loss of navigation accuracy */
 	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
@@ -1787,18 +1765,6 @@ Commander::run()
 			param_get(_param_fmode_4, &_flight_mode_slots[3]);
 			param_get(_param_fmode_5, &_flight_mode_slots[4]);
 			param_get(_param_fmode_6, &_flight_mode_slots[5]);
-
-			/* pre-flight EKF checks */
-			param_get(_param_max_ekf_pos_ratio, &max_ekf_pos_ratio);
-			param_get(_param_max_ekf_vel_ratio, &max_ekf_vel_ratio);
-			param_get(_param_max_ekf_hgt_ratio, &max_ekf_hgt_ratio);
-			param_get(_param_max_ekf_yaw_ratio, &max_ekf_yaw_ratio);
-			param_get(_param_max_ekf_dvel_bias, &max_ekf_dvel_bias);
-			param_get(_param_max_ekf_dang_bias, &max_ekf_dang_bias);
-
-			/* pre-flight IMU consistency checks */
-			param_get(_param_max_imu_acc_diff, &max_imu_acc_diff);
-			param_get(_param_max_imu_gyr_diff, &max_imu_gyr_diff);
 
 			/* failsafe response to loss of navigation accuracy */
 			param_get(_param_posctl_nav_loss_act, &posctl_nav_loss_act);
@@ -2551,7 +2517,7 @@ Commander::run()
 
 				// revert to position control in any case
 				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
-				mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot.");
+				mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot");
 			}
 		}
 
@@ -2588,6 +2554,7 @@ Commander::run()
 
 				// revert to position control in any case
 				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
+				mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot");
 			}
 		}
 
@@ -2729,26 +2696,9 @@ Commander::run()
 					print_reject_arm("NOT DISARMING: Not in manual mode or landed yet.");
 				}
 
-				if (disarm) {
-					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
-					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
-									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
-					arming_ret = arming_state_transition(&status,
-									     battery,
-									     safety,
-									     new_arming_state,
-									     &armed,
-									     true /* fRunPreArmChecks */,
-									     &mavlink_log_pub,
-									     &status_flags,
-									     avionics_power_rail_voltage,
-									     arm_requirements,
-									     hrt_elapsed_time(&commander_boot_timestamp));
-
-					if (arming_ret == TRANSITION_CHANGED) {
-						/* don't allow to switch to arm if the arming button still is pressed */
-						arming_button_switch_allowed = false;
-					}
+				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
+					arming_ret = arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */,
+													&mavlink_log_pub, &status_flags, avionics_power_rail_voltage, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 				}
 			}
 
@@ -2792,13 +2742,12 @@ Commander::run()
 						arming_ret = arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_ARMED, &armed, true /* fRunPreArmChecks */,
 												&mavlink_log_pub, &status_flags, avionics_power_rail_voltage, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
-						if (arming_ret == TRANSITION_CHANGED) {
-							/* don't allow to switch to disarm if the arming button still is pressed */
-							arming_button_switch_allowed = false;
-
-						} else {
+						if (arming_ret != TRANSITION_CHANGED) {
 							usleep(100000);
 							print_reject_arm("NOT ARMING: preflight checks failed.");
+						}else{ // NOTE: Yuneec-specific block
+							/* don't allow to switch to disarm if the arming button still is pressed */
+							arming_button_switch_allowed = false;
 						}
 					}
 				}

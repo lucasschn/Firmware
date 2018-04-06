@@ -82,6 +82,10 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		determineWarning(connected);
 	}
 
+	if (_battery_initialized) {
+		determineWarning(connected);
+	}
+
 	if (_voltage_filtered_v > 2.1f) {
 		_battery_initialized = true;
 		battery_status->voltage_v = voltage_v;

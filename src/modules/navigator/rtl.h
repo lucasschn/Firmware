@@ -43,7 +43,6 @@
 
 #include <px4_module_params.h>
 
-
 #include <uORB/topics/geofence_result.h>
 
 #include "navigator_mode.h"
@@ -105,11 +104,11 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_RETURN_ALT>) _param_return_alt,
 		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_min_loiter_alt, // NOTE: Yuneec specific, has been deleted upstream
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_alt,
+		(ParamInt<px4::params::GF_ACTION>) _param_gf_actions
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_descend_alt,
 		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_land_delay,
 		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
 		(ParamInt<px4::params::RTL_LAND_TYPE>) _param_rtl_land_type,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_alt,
-		(ParamInt<px4::params::GF_ACTION>) _param_gf_actions
 	)
 };

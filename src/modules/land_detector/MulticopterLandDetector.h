@@ -108,7 +108,7 @@ private:
 		param_t freefall_trigger_time;
 		param_t altitude_max;
 		param_t landSpeed;
-		param_t tilt_max;
+		param_t tilt_max;  // NOTE: Yuneec-specific
 	} _paramHandle{};
 
 	struct {
@@ -133,7 +133,7 @@ private:
 	int _sensor_bias_sub{-1};
 	int _vehicle_control_mode_sub{-1};
 	int _battery_sub{-1};
-	int _v_att_sp_sub{-1};
+	int _v_att_sp_sub{-1};  // NOTE: Yuneec-specific
 
 	vehicle_local_position_s				_vehicleLocalPosition {};
 	vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint {};
@@ -142,7 +142,7 @@ private:
 	sensor_bias_s					_sensors {};
 	vehicle_control_mode_s				_control_mode {};
 	battery_status_s						_battery {};
-	struct vehicle_attitude_setpoint_s			_v_att_sp {};
+	struct vehicle_attitude_setpoint_s			_v_att_sp {};  // NOTE: Yuneec-specific
 
 	uint64_t _min_trust_start{0};		///< timestamp when minimum trust was applied first
 	uint64_t _landed_time{0};

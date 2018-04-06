@@ -443,12 +443,6 @@ private:
 
 	void constrain_velocity_setpoint();
 
-	bool use_obstacle_avoidance();
-
-	bool use_pos_wp_avoidance();
-
-	bool use_vel_wp_avoidance();
-
 	/**
 	 * limit altitude based on several conditions
 	 */
@@ -475,17 +469,26 @@ private:
 
 	void publish_local_pos_sp();
 
-	void stop_in_front_obstacle(float altitude_above_home);
-
-	void update_avoidance_waypoints_desired(const int point_number, const float x, const float y, const float z,
-					      const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
-					      const float yaw_speed);
-
-	void reset_wp_avoidance_desired();
-
+	/**
+	 * trajectory generation
+	 */
 	void execute_avoidance_position_waypoint();
 
 	void execute_avoidance_velocity_waypoint();
+
+	bool use_obstacle_avoidance();
+
+	bool use_pos_wp_avoidance();
+
+	bool use_vel_wp_avoidance();
+
+	void update_avoidance_waypoints_desired(const int point_number, const float x, const float y, const float z,
+					       const float vx, const float vy, const float vz, const float ax, const float ay, const float az,
+					       const float yaw, const float yaw_speed);
+
+	void reset_wp_avoidance_desired();
+
+	void stop_in_front_obstacle(float altitude_above_home);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -811,146 +814,6 @@ MulticopterPositionControl::apply_gear_switch()
 	}
 }
 /* --- */
-
-void
-MulticopterPositionControl::stop_in_front_obstacle(float altitude_above_home)
-{
-	/*tap specific to enable avoidance through ST16*/
-	const bool stop_in_front = (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
-				   && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) && (!_flight_tasks.isAnyTaskActive());
-
-	/* don't run obstacle avoidance in altitude mode because there are altitude jumps */
-	if (stop_in_front && _control_mode.flag_control_velocity_enabled) {
-
-		const bool obstacle_distance_valid = hrt_elapsed_time((hrt_abstime *)&_obstacle_distance.timestamp) <
-						     DISTANCE_STREAM_TIMEOUT_US;
-
-		/* default set obstacle_distance distance unknown */
-		_min_obstacle_distance = (float)UINT16_MAX;
-
-		/* if obstacle_distance is published, we always want to calculate the minimum distance to obstacle */
-		if (obstacle_distance_valid) {
-
-			/* find front direction in the array of obsacle positions*/
-			float yaw_deg = math::degrees(_local_pos.yaw);
-			yaw_deg = (yaw_deg > FLT_EPSILON && yaw_deg < 180.0f) ? yaw_deg : (180.0f + (180.0f + yaw_deg));
-
-			/* if increment not set, put it to the minimum value to represent obstacles 360 degrees around the MAV */
-			_obstacle_distance.increment = (_obstacle_distance.increment == 0) ? obstacle_distance_s::MINIMUM_INCREMENT :
-						       _obstacle_distance.increment;
-
-			/* array resolution defined by the increment, index 0 is always global north */
-			const int index = (int)floorf(yaw_deg / (float)_obstacle_distance.increment);
-
-			const int distances_array_length = sizeof(_obstacle_distance.distances) / sizeof(uint16_t);
-
-			/* consider only 30 degrees in front of the MAV */
-			for (int i = -3; i < 3; ++i) {
-				/* exclude measurements greater than max_distance+1 because it means there is no obstacle ahead */
-				int shifted_index = index + i;
-
-				if (shifted_index < 0) {
-					shifted_index = distances_array_length + shifted_index;
-
-				} else if (shifted_index >= distances_array_length) {
-					shifted_index = shifted_index % distances_array_length;
-				}
-
-				if (_obstacle_distance.distances[shifted_index] < (_obstacle_distance.max_distance + 1)) {
-					/* covert from centimeters to meters */
-					_min_obstacle_distance = math::min(_min_obstacle_distance,
-									   (float)_obstacle_distance.distances[shifted_index] * 0.01f);
-				}
-			}
-		}
-
-		/* keep a minimum braking distance of start_braking_distance, otherwise give the vehicle at least 1s time to brake*/
-		const float safety_margin = 1.0f;
-		const float brake_distance = math::max(_start_braking_distance.get(), _vel_max_xy + safety_margin);
-
-		/* tap specific: fuse obstacle_distance from RealSense and sonar */
-		float minimum_distance = fuse_obstacle_distance_sonar(altitude_above_home, safety_margin, brake_distance);
-
-		/* anything under the brake distance is considered an obstalce */
-		const bool obstacle_ahead = minimum_distance < brake_distance && altitude_above_home > 1.5f;
-
-		if (obstacle_ahead) {
-			/* vehicle just detected an obstacle */
-			_obstacle_lock_hysteresis.set_state_and_update(true);
-			_yaw_obstacle_lock = _yaw;
-		}
-
-		/* get velocity setpoint in heading frame */
-		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
-		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_vel_sp_desired(0), _vel_sp_desired(1),
-						  0.0f));
-
-		/* adjust velocity setpoint _vel_sp based on obstacle_distance */
-		if (_obstacle_lock_hysteresis.get_state()) {
-
-			/* stay in obstacle lock when trying to go forwards without yawing 30 degree away from the last obstacle */
-			_obstacle_lock_hysteresis.set_state_and_update(vel_sp_heading(0) > FLT_EPSILON &&
-					fabsf(_yaw - _yaw_obstacle_lock) > math::radians(30.0f));
-
-			/* we don't allow movement perpendicular to heading direction */
-			vel_sp_heading(1) = 0.0f;
-
-			/* default: we only allow movement in heading direction */
-			matrix::Vector3f vel_sp_tmp = q_yaw.conjugate(vel_sp_heading);
-			_vel_sp(0) = vel_sp_tmp(0);
-			_vel_sp(1) = vel_sp_tmp(1);
-
-			if (vel_sp_heading(0) > 0.0f) {
-				/* vehicle wants to fly towards obstacle */
-
-				if (minimum_distance <= safety_margin) {
-					/* vehicle is already saftety_margin close to obstacle. Don't move forward */
-
-					_vel_sp(0) = 0.0f;
-					_vel_sp(1) = 0.0f;
-
-				} else {
-					/* vehicle wants to move forward but is more than safety margin away */
-
-					/* limit the speed linearly from max velocity to zero over braking distance + safety margin */
-					const float m = _vel_max_xy / (brake_distance - safety_margin); // slope
-					const float speed_limit =  m * (minimum_distance - safety_margin);
-
-					if (vel_sp_heading(0) > speed_limit && vel_sp_heading(0) >= SIGMA_NORM) {
-
-						/* desired heading velocity is above speed limit*/
-						_vel_sp(0) = vel_sp_tmp(0) / vel_sp_tmp.length() * speed_limit;
-						_vel_sp(1) = vel_sp_tmp(1) / vel_sp_tmp.length() * speed_limit;
-					}
-				}
-			}
-		}
-
-	} else {
-		/* release lock if obstacle avoidance off */
-		_obstacle_lock_hysteresis.set_state_and_update(false);
-	}
-}
-
-void
-MulticopterPositionControl::execute_avoidance_position_waypoint()
-{
-	_pos_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::X];
-	_pos_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::Y];
-	_pos_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::Z];
-}
-
-void
-MulticopterPositionControl::execute_avoidance_velocity_waypoint()
-{
-	_vel_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VX];
-	_vel_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VY];
-	_vel_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ];
-
-	/* we always constrain velocity since we do not know what the avoidance module sends out */
-	constrain_velocity_setpoint();
-}
-
 
 void
 MulticopterPositionControl::poll_subscriptions()
@@ -1328,31 +1191,6 @@ MulticopterPositionControl::constrain_velocity_setpoint()
 	}
 
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_vel_max_up.get(), _vel_max_down.get());
-}
-
-bool
-MulticopterPositionControl::use_obstacle_avoidance()
-{
-
-	/* check that external obstacle avoidance is sending data and that the first point is valid */
-	return (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
-		TRAJECTORY_STREAM_TIMEOUT_US && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
-}
-
-bool
-MulticopterPositionControl::use_pos_wp_avoidance()
-{
-	return use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::X]) &&
-	       PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::Y])
-	       && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::Z]);
-}
-
-bool
-MulticopterPositionControl::use_vel_wp_avoidance()
-{
-	return use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VX]) &&
-	       PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VY])
-	       && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ]);
 }
 
 float
@@ -3794,86 +3632,6 @@ MulticopterPositionControl::task_main()
 	_control_task = -1;
 }
 
-void MulticopterPositionControl::update_avoidance_waypoints_desired(const int point_number, const float x, const float y,
-		const float z,
-		const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
-		const float yaw_speed)
-{
-	_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
-	_traj_wp_avoidance_desired.type = trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
-
-
-	float *array = nullptr;
-
-	switch (point_number) {
-	case trajectory_waypoint_s::POINT_0: {
-			array = &_traj_wp_avoidance_desired.point_0[0];
-			_traj_wp_avoidance_desired.point_valid[point_number] = true;
-			break;
-		}
-
-	case trajectory_waypoint_s::POINT_1: {
-			array = &_traj_wp_avoidance_desired.point_1[0];
-			_traj_wp_avoidance_desired.point_valid[point_number] = true;
-			break;
-		}
-
-	case trajectory_waypoint_s::POINT_2: {
-			array = &_traj_wp_avoidance_desired.point_2[0];
-			_traj_wp_avoidance_desired.point_valid[point_number] = true;
-			break;
-		}
-
-	case trajectory_waypoint_s::POINT_3: {
-			array = &_traj_wp_avoidance_desired.point_3[0];
-			_traj_wp_avoidance_desired.point_valid[point_number] = true;
-			break;
-		}
-
-	case trajectory_waypoint_s::POINT_4: {
-			array = &_traj_wp_avoidance_desired.point_4[0];
-			_traj_wp_avoidance_desired.point_valid[point_number] = true;
-			break;
-		}
-
-	default :
-		_traj_wp_avoidance_desired.point_valid[trajectory_waypoint_s::POINT_0] = false;
-		return;
-
-	}
-
-	array[0] = x;
-	array[1] = y;
-	array[2] = z;
-	array[3] = vx;
-	array[4] = vy;
-	array[5] = vz;
-	array[6] = ax;
-	array[7] = ay;
-	array[8] = az;
-	array[9] = yaw;
-	array[10] = yaw_speed;
-}
-
-void
-MulticopterPositionControl::reset_wp_avoidance_desired()
-{
-	const int point_size = 11;
-
-	for (int i = 0; i < point_size; ++i) {
-		_traj_wp_avoidance_desired.point_0[i] = NAN;
-		_traj_wp_avoidance_desired.point_1[i] = NAN;
-		_traj_wp_avoidance_desired.point_2[i] = NAN;
-		_traj_wp_avoidance_desired.point_3[i] = NAN;
-		_traj_wp_avoidance_desired.point_4[i] = NAN;
-	}
-
-	const int number_points = 5;
-
-	for (int i = 0; i < number_points; ++i) {
-		_traj_wp_avoidance_desired.point_valid[i] = 0;
-	}
-}
 
 void
 MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z)
@@ -3971,6 +3729,251 @@ MulticopterPositionControl::set_idle_state()
 	q_sp.copyTo(_att_sp.q_d);
 	_att_sp.q_d_valid = true; //TODO: check if this flag is used anywhere
 	_att_sp.thrust = 0.0f;
+}
+
+void
+MulticopterPositionControl::execute_avoidance_position_waypoint()
+{
+	_pos_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::X];
+	_pos_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::Y];
+	_pos_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::Z];
+}
+
+void
+MulticopterPositionControl::execute_avoidance_velocity_waypoint()
+{
+	_vel_sp(0) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VX];
+	_vel_sp(1) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VY];
+	_vel_sp(2) = _traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ];
+
+	/* we always constrain velocity since we do not know what the avoidance module sends out */
+	constrain_velocity_setpoint();
+}
+
+bool
+MulticopterPositionControl::use_obstacle_avoidance()
+{
+
+	/* check that external obstacle avoidance is sending data and that the first point is valid */
+	return (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) <
+		TRAJECTORY_STREAM_TIMEOUT_US && (_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] == true));
+}
+
+bool
+MulticopterPositionControl::use_pos_wp_avoidance()
+{
+	return use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::X]) &&
+	       PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::Y])
+	       && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::Z]);
+}
+
+bool
+MulticopterPositionControl::use_vel_wp_avoidance()
+{
+	return use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VX]) &&
+	       PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VY])
+	       && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ]);
+}
+
+void MulticopterPositionControl::update_avoidance_waypoints_desired(const int point_number, const float x, const float y,
+		const float z,
+		const float vx, const float vy, const float vz, const float ax, const float ay, const float az, const float yaw,
+		const float yaw_speed)
+{
+	_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
+	_traj_wp_avoidance_desired.type = trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
+
+
+	float *array = nullptr;
+
+	switch (point_number) {
+	case trajectory_waypoint_s::POINT_0: {
+			array = &_traj_wp_avoidance_desired.point_0[0];
+			_traj_wp_avoidance_desired.point_valid[point_number] = true;
+			break;
+		}
+
+	case trajectory_waypoint_s::POINT_1: {
+			array = &_traj_wp_avoidance_desired.point_1[0];
+			_traj_wp_avoidance_desired.point_valid[point_number] = true;
+			break;
+		}
+
+	case trajectory_waypoint_s::POINT_2: {
+			array = &_traj_wp_avoidance_desired.point_2[0];
+			_traj_wp_avoidance_desired.point_valid[point_number] = true;
+			break;
+		}
+
+	case trajectory_waypoint_s::POINT_3: {
+			array = &_traj_wp_avoidance_desired.point_3[0];
+			_traj_wp_avoidance_desired.point_valid[point_number] = true;
+			break;
+		}
+
+	case trajectory_waypoint_s::POINT_4: {
+			array = &_traj_wp_avoidance_desired.point_4[0];
+			_traj_wp_avoidance_desired.point_valid[point_number] = true;
+			break;
+		}
+
+	default :
+		_traj_wp_avoidance_desired.point_valid[trajectory_waypoint_s::POINT_0] = false;
+		return;
+
+	}
+
+	array[0] = x;
+	array[1] = y;
+	array[2] = z;
+	array[3] = vx;
+	array[4] = vy;
+	array[5] = vz;
+	array[6] = ax;
+	array[7] = ay;
+	array[8] = az;
+	array[9] = yaw;
+	array[10] = yaw_speed;
+}
+
+void
+MulticopterPositionControl::reset_wp_avoidance_desired()
+{
+	const int point_size = 11;
+
+	for (int i = 0; i < point_size; ++i) {
+		_traj_wp_avoidance_desired.point_0[i] = NAN;
+		_traj_wp_avoidance_desired.point_1[i] = NAN;
+		_traj_wp_avoidance_desired.point_2[i] = NAN;
+		_traj_wp_avoidance_desired.point_3[i] = NAN;
+		_traj_wp_avoidance_desired.point_4[i] = NAN;
+	}
+
+	const int number_points = 5;
+
+	for (int i = 0; i < number_points; ++i) {
+		_traj_wp_avoidance_desired.point_valid[i] = 0;
+	}
+}
+
+void
+MulticopterPositionControl::stop_in_front_obstacle(float altitude_above_home)
+{
+	/*tap specific to enable avoidance through ST16*/
+	const bool stop_in_front = (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+				   && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) && (!_flight_tasks.isAnyTaskActive());
+
+	/* don't run obstacle avoidance in altitude mode because there are altitude jumps */
+	if (stop_in_front && _control_mode.flag_control_velocity_enabled) {
+
+		const bool obstacle_distance_valid = hrt_elapsed_time((hrt_abstime *)&_obstacle_distance.timestamp) <
+						     DISTANCE_STREAM_TIMEOUT_US;
+
+		/* default set obstacle_distance distance unknown */
+		_min_obstacle_distance = (float)UINT16_MAX;
+
+		/* if obstacle_distance is published, we always want to calculate the minimum distance to obstacle */
+		if (obstacle_distance_valid) {
+
+			/* find front direction in the array of obsacle positions*/
+			float yaw_deg = math::degrees(_local_pos.yaw);
+			yaw_deg = (yaw_deg > FLT_EPSILON && yaw_deg < 180.0f) ? yaw_deg : (180.0f + (180.0f + yaw_deg));
+
+			/* if increment not set, put it to the minimum value to represent obstacles 360 degrees around the MAV */
+			_obstacle_distance.increment = (_obstacle_distance.increment == 0) ? obstacle_distance_s::MINIMUM_INCREMENT :
+						       _obstacle_distance.increment;
+
+			/* array resolution defined by the increment, index 0 is always global north */
+			const int index = (int)floorf(yaw_deg / (float)_obstacle_distance.increment);
+
+			const int distances_array_length = sizeof(_obstacle_distance.distances) / sizeof(uint16_t);
+
+			/* consider only 30 degrees in front of the MAV */
+			for (int i = -3; i < 3; ++i) {
+				/* exclude measurements greater than max_distance+1 because it means there is no obstacle ahead */
+				int shifted_index = index + i;
+
+				if (shifted_index < 0) {
+					shifted_index = distances_array_length + shifted_index;
+
+				} else if (shifted_index >= distances_array_length) {
+					shifted_index = shifted_index % distances_array_length;
+				}
+
+				if (_obstacle_distance.distances[shifted_index] < (_obstacle_distance.max_distance + 1)) {
+					/* covert from centimeters to meters */
+					_min_obstacle_distance = math::min(_min_obstacle_distance,
+									   (float)_obstacle_distance.distances[shifted_index] * 0.01f);
+				}
+			}
+		}
+
+		/* keep a minimum braking distance of start_braking_distance, otherwise give the vehicle at least 1s time to brake*/
+		const float safety_margin = 1.0f;
+		const float brake_distance = math::max(_start_braking_distance.get(), _vel_max_xy + safety_margin);
+
+		/* tap specific: fuse obstacle_distance from RealSense and sonar */
+		float minimum_distance = fuse_obstacle_distance_sonar(altitude_above_home, safety_margin, brake_distance);
+
+		/* anything under the brake distance is considered an obstalce */
+		const bool obstacle_ahead = minimum_distance < brake_distance && altitude_above_home > 1.5f;
+
+		if (obstacle_ahead) {
+			/* vehicle just detected an obstacle */
+			_obstacle_lock_hysteresis.set_state_and_update(true);
+			_yaw_obstacle_lock = _yaw;
+		}
+
+		/* get velocity setpoint in heading frame */
+		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
+		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_vel_sp_desired(0), _vel_sp_desired(1),
+						  0.0f));
+
+		/* adjust velocity setpoint _vel_sp based on obstacle_distance */
+		if (_obstacle_lock_hysteresis.get_state()) {
+
+			/* stay in obstacle lock when trying to go forwards without yawing 30 degree away from the last obstacle */
+			_obstacle_lock_hysteresis.set_state_and_update(vel_sp_heading(0) > FLT_EPSILON &&
+					fabsf(_yaw - _yaw_obstacle_lock) > math::radians(30.0f));
+
+			/* we don't allow movement perpendicular to heading direction */
+			vel_sp_heading(1) = 0.0f;
+
+			/* default: we only allow movement in heading direction */
+			matrix::Vector3f vel_sp_tmp = q_yaw.conjugate(vel_sp_heading);
+			_vel_sp(0) = vel_sp_tmp(0);
+			_vel_sp(1) = vel_sp_tmp(1);
+
+			if (vel_sp_heading(0) > 0.0f) {
+				/* vehicle wants to fly towards obstacle */
+
+				if (minimum_distance <= safety_margin) {
+					/* vehicle is already saftety_margin close to obstacle. Don't move forward */
+
+					_vel_sp(0) = 0.0f;
+					_vel_sp(1) = 0.0f;
+
+				} else {
+					/* vehicle wants to move forward but is more than safety margin away */
+
+					/* limit the speed linearly from max velocity to zero over braking distance + safety margin */
+					const float m = _vel_max_xy / (brake_distance - safety_margin); // slope
+					const float speed_limit =  m * (minimum_distance - safety_margin);
+
+					if (vel_sp_heading(0) > speed_limit && vel_sp_heading(0) >= SIGMA_NORM) {
+
+						/* desired heading velocity is above speed limit*/
+						_vel_sp(0) = vel_sp_tmp(0) / vel_sp_tmp.length() * speed_limit;
+						_vel_sp(1) = vel_sp_tmp(1) / vel_sp_tmp.length() * speed_limit;
+					}
+				}
+			}
+		}
+
+	} else {
+		/* release lock if obstacle avoidance off */
+		_obstacle_lock_hysteresis.set_state_and_update(false);
+	}
 }
 
 void

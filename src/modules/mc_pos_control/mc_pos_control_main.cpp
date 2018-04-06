@@ -78,6 +78,8 @@
 #include <controllib/block/BlockParam.hpp>
 
 #include <lib/FlightTasks/FlightTasks.hpp>
+#include "PositionControl.hpp"
+#include "Utility/ControlMath.hpp"
 
 /* --- tap specific headers */
 #include <uORB/topics/actuator_armed.h>

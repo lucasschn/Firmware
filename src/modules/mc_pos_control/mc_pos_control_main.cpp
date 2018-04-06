@@ -480,7 +480,7 @@ private:
 
 	bool use_pos_wp_avoidance();
 
-	bool use_vel_wp_avoidance();
+	bool use_avoidance_velocity_waypoint();
 
 	void update_avoidance_waypoints_desired(const int point_number, const float x, const float y, const float z,
 					       const float vx, const float vy, const float vz, const float ax, const float ay, const float az,
@@ -2760,7 +2760,7 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	}
 
 	/* check obstacle avoidance */
-	if (use_vel_wp_avoidance() && !_in_smooth_takeoff) {
+	if (use_avoidance_velocity_waypoint() && !_in_smooth_takeoff) {
 
 		execute_avoidance_velocity_waypoint();
 
@@ -3768,7 +3768,7 @@ MulticopterPositionControl::use_pos_wp_avoidance()
 }
 
 bool
-MulticopterPositionControl::use_vel_wp_avoidance()
+MulticopterPositionControl::use_avoidance_velocity_waypoint()
 {
 	return use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VX]) &&
 	       PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VY])

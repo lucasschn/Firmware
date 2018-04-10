@@ -83,7 +83,6 @@ set(msg_files
 	power_button_state.msg
 	pwm_input.msg
 	qshell_req.msg
-	realsense_avoidance_setpoint.msg
 	realsense_distance_info.msg
 	rate_ctrl_status.msg
 	rc_channels.msg
@@ -108,6 +107,8 @@ set(msg_files
 	telemetry_status.msg
 	test_motor.msg
 	time_offset.msg
+	trajectory_bezier.msg
+	trajectory_waypoint.msg
 	transponder_report.msg
 	tune_control.msg
 	uavcan_parameter_request.msg

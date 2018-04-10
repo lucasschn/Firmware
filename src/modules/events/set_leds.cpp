@@ -43,6 +43,7 @@
 #include "status_display.h"
 #include <px4_log.h>
 #include <matrix/math.hpp>
+#include <drivers/drv_led.h>
 
 using namespace status;
 
@@ -57,20 +58,20 @@ void StatusDisplay::set_leds()
 	// try to publish the static LED for the first 10s
 	// this avoid the problem if a LED driver did not subscribe to the topic yet
 	if (hrt_absolute_time() < 10 * 1000000 || restore_position_lights) {
-		// set the base color for motor 1
-		_led_control.led_mask = (1 << 1);
+		// set the base color for right LED
+		_led_control.led_mask = BOARD_RIGHT_LED_MASK;
 		_led_control.color = led_control_s::COLOR_GREEN;
 		_led_control.mode = led_control_s::MODE_ON;
 		publish();
 
-		// set the base color for motor 2 and 3
-		_led_control.led_mask = (1 << 2) | (1 << 3);
+		// set the base color for front LED
+		_led_control.led_mask = BOARD_FRONT_LED_MASK;
 		_led_control.color = led_control_s::COLOR_WHITE;
 		_led_control.mode = led_control_s::MODE_ON;
 		publish();
 
-		// set the base color for motor 4
-		_led_control.led_mask = (1 << 4);
+		// set the base color for left LED
+		_led_control.led_mask = BOARD_LEFT_LED_MASK;
 		_led_control.color = led_control_s::COLOR_RED;
 		_led_control.mode = led_control_s::MODE_ON;
 		publish();
@@ -81,9 +82,10 @@ void StatusDisplay::set_leds()
 	float delta_heading = current_heading - _smart_heading.smart_heading_ref;
 	int sector = roundf(delta_heading / (M_PI_F / 3.0f));
 
-	// set the led mask for the status led which are number 0 and 5
-	_led_control.led_mask = (1 << 0) | (1 << 5);
+	// set the led mask for the status led which are the back LED
+	_led_control.led_mask = BOARD_REAR_LED_MASK;
 
+	// TODO: need reworking with new LED definition this does only work on H520
 	// choose color depending on the nav state
 	if (nav_state == vehicle_status_s::NAVIGATION_STATE_SMART
 	    || (_old_nav_state == vehicle_status_s::NAVIGATION_STATE_SMART && _old_sector != sector)) {

@@ -628,9 +628,9 @@ void Logger::add_default_topics()
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);  // NOTE(YUNEEC): Saving memory
 	add_topic("wind_estimate", 200);
-	add_topic("realsense_avoidance_setpoint", 20);
-	add_topic("realsense_distance_360", 20);
-	add_topic("realsense_avoidance_setpoint_input", 20);
+	add_topic("trajectory_waypoint", 20);
+	add_topic("trajectory_waypoint_desired", 20);
+	add_topic("obstacle_distance", 20);
 
 #ifdef CONFIG_ARCH_BOARD_SITL
 	add_topic("actuator_armed");

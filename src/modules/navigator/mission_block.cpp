@@ -54,7 +54,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-#include <drivers/realsense/realsense.h>
 #include <uORB/topics/manual_control_setpoint.h>
 
 MissionBlock::MissionBlock(Navigator *navigator) :
@@ -126,11 +125,10 @@ MissionBlock::is_mission_item_reached()
 
 	hrt_abstime now = hrt_absolute_time();
 
-	/* Don't check for yaw and altitude if realsense is used */
-	const bool realsense_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
-					 manual_control_setpoint_s::SWITCH_POS_ON;
-	const bool realsense_running = _navigator->get_realsense_setpoint()->flags ==
-				       ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
+	/* Don't check for yaw and altitude if obstacle avoidance is used */
+	const bool obstacle_avoidance_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
+			manual_control_setpoint_s::SWITCH_POS_ON;
+	const bool obstacle_avoidance_running = _navigator->get_trajectory_waypoint()->point_valid[0] == true;
 
 	if (!_navigator->get_land_detected()->landed && !_waypoint_position_reached) {
 
@@ -148,8 +146,8 @@ MissionBlock::is_mission_item_reached()
 				_navigator->get_global_position()->alt,
 				&dist_xy, &dist_z);
 
-		/* don't check for altitude if realsense is running */
-		if (realsense_running && realsense_switch_on) {
+		/* don't check for altitude if obstacle avoidance is running */
+		if (obstacle_avoidance_running && obstacle_avoidance_switch_on) {
 			dist_z = 0.0f;
 		}
 
@@ -330,7 +328,7 @@ MissionBlock::is_mission_item_reached()
 	}
 
 
-	if (realsense_switch_on && realsense_running) {
+	if (obstacle_avoidance_switch_on && obstacle_avoidance_running) {
 		_waypoint_yaw_reached = true;
 	}
 

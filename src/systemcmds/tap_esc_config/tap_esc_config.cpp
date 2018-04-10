@@ -75,6 +75,14 @@ static int upload_firmware(const char *fw_paths[], const char *device, uint8_t n
  */
 static int check_crc(const char *fw_paths[], const char *device, uint8_t num_escs);
 
+/**
+ *  Log the versions of ESC Bootloader, Firmware and Hardware to dedicated params
+ *  @param device Unix path of UART device where ESCs are connected to
+ *  @param num_escs Number of ESCs that are currently connected to the board
+ *  @return PX4_OK on success, PX4_ERROR on error or -errno (linux man) if available
+ */
+static int log_versions(const char *device, uint8_t num_escs);
+
 
 /**
  *  Read and decode version from a firmware binary file
@@ -242,6 +250,27 @@ static int check_crc(const char * fw_paths[], const char * device, uint8_t num_e
 
 	if (ret != OK) {
 		PX4_ERR("TAP_ESC firmware auto check crc and upload fail error %d", ret);
+	}
+
+	return ret;
+}
+
+static int log_versions(const char * device, uint8_t num_escs)
+{
+	TAP_ESC_UPLOADER *uploader = nullptr;
+	uploader = new TAP_ESC_UPLOADER(device, num_escs);
+
+	if (uploader==nullptr)
+	{
+		PX4_ERR("failed to initialize firmware uploader");
+		return PX4_ERROR;
+	}
+
+	int ret = uploader->log_versions();
+	delete uploader;
+
+	if (ret != OK) {
+		PX4_ERR("TAP_ESC failed to log ESC versions (%d)", ret);
 	}
 
 	return ret;
@@ -608,6 +637,9 @@ int tap_esc_config_main(int argc, char *argv[]) {
 	/* Commands that require device and number of ESCs as arguments follow now */
 	if (!strcmp(argv[myoptind], "checkcrc")) {
 		return check_crc(&firmware_paths[0], device, num_escs);
+
+	} else if(!strcmp(argv[myoptind], "log_versions")) {
+		return log_versions(device, num_escs);
 
 	} else if (!strcmp(argv[myoptind], "identify")) {
 		if (id_config_num>=num_escs)

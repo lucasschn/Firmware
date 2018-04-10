@@ -191,10 +191,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
  * Vehicle vertical ascent velocity.
  *
  * Adjusting this parameter changes the velocity in upwards direction for any altitude controlled mode. However,
- * the vehicle can never go faster than MPC_Z_VEL_MAX_UP.
- *
- * Yuneec specific: The default value and limits are vehicle specific. The limits agree with the value set
- * in the start-up script by MPC_Z_VEL_MAX_UP.
+ * the vehicle can never go faster than the maximum vertical ascent velocity.
  *
  * @unit m/s
  * @min 1.0
@@ -208,10 +205,7 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MAN_UP, 4.0f);
  * Vehicle vertical descent velocity.
  *
  * Adjusting this parameter changes the velocity in downwards direction for any altitude controlled mode. However,
- * the vehicle can never go faster than MPC_Z_VEL_MAX_DN.
- *
- * Yuneec specific: The default value and limits are vehicle specific. The limits agree with the value set
- * in the start-up script by MPC_Z_VEL_MAX_DN.
+ * the vehicle can never go faster than the maximum vertical descent velocity.
  *
  * @unit m/s
  * @min 1.0

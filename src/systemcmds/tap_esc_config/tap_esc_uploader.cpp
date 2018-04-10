@@ -289,6 +289,71 @@ TAP_ESC_UPLOADER::upload(const char *filenames[])
 }
 
 int
+TAP_ESC_UPLOADER::log_versions()
+{
+	param_t param_esc_fw_ver = param_find("ESC_FW_VER");
+	param_t param_esc_hw_ver = param_find("ESC_HW_VER");
+	param_t param_esc_bl_ver = param_find("ESC_BL_VER");
+
+	if (param_esc_fw_ver == PARAM_INVALID ||
+	    param_esc_hw_ver == PARAM_INVALID ||
+	    param_esc_bl_ver == PARAM_INVALID) {
+		PX4_WARN("Cannot find one or more parameters, unable to log ESC versions.");
+		return -1;
+	}
+
+	int ret = tap_esc_common::initialise_uart(_device, _esc_fd);
+
+	if (ret < 0) {
+		PX4_LOG("initialise uart failed %s");
+		return ret;
+	}
+
+	// get information from first ESC
+	uint32_t fw_ver, hw_ver, bl_ver;
+	ret =  get_esc_versions(0, fw_ver, hw_ver, bl_ver);
+
+	if (ret != OK) {
+		PX4_LOG("Failed to get ESC 0 device info");
+		return ret;
+	}
+
+	/* Get firmware versions of the remainig ESCs and compare with the first one
+	   Since the parameters can only store one version (not six), we need to make
+	   sure that all ESCs have matchin version numbers. If not, all version
+	   parameters will be set to zero. */
+	bool esc_versions_matching = true;
+
+	for (unsigned esc_id = 1; esc_id < _esc_counter; esc_id++) {
+		uint32_t temp_fw_ver, temp_hw_ver, temp_bl_ver;
+		ret =  get_esc_versions(esc_id, temp_fw_ver, temp_hw_ver, temp_bl_ver);
+
+		if (ret != OK) {
+			PX4_LOG("Failed to get ESC %u device info", esc_id);
+			return ret;
+		}
+
+		if (fw_ver != temp_fw_ver || hw_ver != temp_hw_ver ||  bl_ver != temp_bl_ver) {
+			esc_versions_matching = false;
+			break;
+		}
+	}
+
+	if (!esc_versions_matching) {
+		// One or more ESCs have mismatching versions
+		fw_ver = 0; // version 0 means unknown
+		hw_ver = 0; // version 0 means unknown
+		bl_ver = 0; // version 0 means unknown
+	}
+
+	param_set(param_esc_fw_ver, &fw_ver);
+	param_set(param_esc_hw_ver, &hw_ver);
+	param_set(param_esc_bl_ver, &bl_ver);
+
+	return ret;
+}
+
+int
 TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 {
 	/*
@@ -645,6 +710,58 @@ TAP_ESC_UPLOADER::sync(uint8_t esc_id)
 	} else if (_uploader_packet.msg_id == PROTO_FAILED) {
 		PX4_LOG("sync failed: don't receive sync failed: myID: 0x%02x, esc_id: 0x%02x", _uploader_packet.d.feedback_packet.myID,
 			esc_id);
+		return -EIO;
+
+	}
+
+	return OK;
+}
+
+// TODO: It is weird, that we have a separate function to request the ESC
+// versions when there is also the get_device_info() function. Problem is, that
+// the versions request will return three values instead of only one, hence
+// the need for this new function here. Ideally we would utilize
+// get_device_info() for all requests...
+int
+TAP_ESC_UPLOADER::get_esc_versions(uint8_t esc_id, uint32_t &fw_ver, uint32_t &hw_ver, uint32_t &bl_ver)
+{
+	int ret;
+
+	/*prepare information request packet */
+	EscUploaderMessage device_info_packet = {PACKET_HEAD, sizeof(EscbusGetDevicePacket), ESCBUS_MSG_ID_REQUEST_INFO};
+	device_info_packet.d.device_info_packet.myID = esc_id;
+	device_info_packet.d.device_info_packet.deviceInfo = REQUEST_INFO_DEVICE;
+	send_packet(device_info_packet, esc_id);
+
+	/* read and parse device information feedback packet, blocking 50ms */
+	ret = read_and_parse_data();
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	/* check device information feedback is ok or fail */
+	if (_uploader_packet.msg_id == ESCBUS_MSG_ID_DEVICE_INFO) {
+		if (_uploader_packet.d.esc_version_packet.myID != esc_id) {
+			PX4_LOG("get device firmware revision: ID mismatch, received: 0x%02x, asked for: 0x%02x",
+				_uploader_packet.d.esc_version_packet.myID, esc_id);
+			return -EIO;
+		}
+
+		fw_ver = _uploader_packet.d.esc_version_packet.FwRev;
+		hw_ver = _uploader_packet.d.esc_version_packet.HwRev;
+		bl_ver = _uploader_packet.d.esc_version_packet.blRev;
+
+	} else if (_uploader_packet.msg_id == PROTO_FAILED) {
+		PX4_LOG("Failed to get ESC versions, ESC ID: 0x%02x, we sent to ID: 0x%02x, FwRev: 0x%02x",
+			_uploader_packet.d.esc_version_packet.myID, esc_id,
+			_uploader_packet.d.esc_version_packet.FwRev);
+		return -EIO;
+
+	} else if (_uploader_packet.msg_id == PROTO_INVALID) {
+		PX4_LOG("Failed to get ESC versions, ESC reports invalid protocl, ESC ID: 0x%02x, we sent to ID: 0x%02x, FwRev: 0x%02x",
+			_uploader_packet.d.esc_version_packet.myID, esc_id,
+			_uploader_packet.d.esc_version_packet.FwRev);
 		return -EIO;
 
 	}

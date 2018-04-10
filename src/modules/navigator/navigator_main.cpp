@@ -129,6 +129,75 @@ Navigator::local_position_update()
 }
 
 void
+Navigator::local_reference_update()
+{
+	// This method is the same as the method used in the mc_pos_control.
+	// https://github.com/PX4/Firmware/blob/master/src/modules/mc_pos_control/mc_pos_control_main.cpp#L869
+	// It is not used anywhere yet, but the ultimate goal is to free the position controller from
+	// any global computation.
+
+	if ((_local_pos.ref_timestamp != _ref_timestamp)
+	    && ((_vstatus.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+		|| (!_ref_alt_is_global && _local_pos.z_global))) {
+
+		double lat_current_sp, lon_current_sp;
+		double lat_previous_sp, lon_previous_sp;
+		double lat_next_sp, lon_next_sp;
+		float alt_current_sp { 0.0f }, alt_previous_sp { 0.0f }, alt_next_sp {
+			0.0f };
+
+		bool new_reference = _ref_timestamp != 0;
+
+		if (new_reference) {
+			// calculate current position setpoint in global frame
+			map_projection_reproject(&_ref_pos, _pos_sp_triplet.current.x,
+						 _pos_sp_triplet.current.y, &lat_current_sp,
+						 &lon_current_sp);
+			map_projection_reproject(&_ref_pos, _pos_sp_triplet.previous.x,
+						 _pos_sp_triplet.previous.y, &lat_previous_sp,
+						 &lon_previous_sp);
+			map_projection_reproject(&_ref_pos, _pos_sp_triplet.next.x,
+						 _pos_sp_triplet.next.y, &lat_next_sp, &lon_next_sp);
+
+			// the altitude setpoint is the reference altitude - the current local setpoint because
+			// of NED frame
+			alt_current_sp = _ref_alt - _pos_sp_triplet.current.z;
+			alt_previous_sp = _ref_alt - _pos_sp_triplet.previous.z;
+			alt_next_sp = _ref_alt - _pos_sp_triplet.next.z;
+		}
+
+		// update local projection reference including altitude
+		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
+		_ref_alt = _local_pos.ref_alt;
+
+
+		if (_local_pos.z_global) {
+			_ref_alt_is_global = true;
+		}
+
+		if (new_reference) {
+			// reproject position setpoint to new reference
+			// this effectively adjusts the position setpoint to keep the vehicle
+			// in its current local position. It would only change its
+			// global position on the next setpoint update.
+			map_projection_project(&_ref_pos, lat_current_sp, lon_current_sp,
+					       &_pos_sp_triplet.current.x, &_pos_sp_triplet.current.y);
+			map_projection_project(&_ref_pos, lat_previous_sp, lon_previous_sp,
+					       &_pos_sp_triplet.previous.x, &_pos_sp_triplet.previous.y);
+			map_projection_project(&_ref_pos, lat_next_sp, lon_next_sp,
+					       &_pos_sp_triplet.next.x, &_pos_sp_triplet.next.y);
+			_pos_sp_triplet.current.z = -(alt_current_sp - _ref_alt);
+			_pos_sp_triplet.previous.z = -(alt_previous_sp - _ref_alt);
+			_pos_sp_triplet.next.z = -(alt_next_sp - _ref_alt);
+
+		}
+
+		// we update the timestamp because the reference gets updated only if timestamps are different
+		_ref_timestamp = _local_pos.ref_timestamp;
+	}
+}
+
+void
 Navigator::gps_position_update()
 {
 	orb_copy(ORB_ID(vehicle_gps_position), _gps_pos_sub, &_gps_pos);
@@ -192,9 +261,9 @@ Navigator::vehicle_esc_report_update()
 /* --- */
 
 void
-Navigator::realsense_setpoint_update()
+Navigator::obstacle_avoidance_update()
 {
-	orb_copy(ORB_ID(realsense_avoidance_setpoint), _realsense_avoidance_setpoint_sub, &_realsense_avoidance_setpoint);
+	orb_copy(ORB_ID(trajectory_waypoint), _traj_wp_avoidance_sub, &_traj_wp_avoidance);
 }
 
 void
@@ -234,7 +303,7 @@ Navigator::run()
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
-	_realsense_avoidance_setpoint_sub = orb_subscribe(ORB_ID(realsense_avoidance_setpoint));
+	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(trajectory_waypoint));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -252,11 +321,12 @@ Navigator::run()
 	vehicle_land_detected_update();
 	global_position_update();
 	local_position_update();
+	local_reference_update();
 	gps_position_update();
 	sensor_combined_update();
 	home_position_update(true);
 	fw_pos_ctrl_status_update(true);
-	realsense_setpoint_update();
+	obstacle_avoidance_update();
 	manual_update();
 	params_update();
 
@@ -290,6 +360,7 @@ Navigator::run()
 			if (fds[0].revents & POLLIN) {
 				/* success, local pos is available */
 				local_position_update();
+				local_reference_update();
 			}
 		}
 
@@ -376,11 +447,15 @@ Navigator::run()
 			home_position_update();
 		}
 
-		/* realsense update */
-		orb_check(_realsense_avoidance_setpoint_sub, &updated);
+		/* obstacle avoidance update */
+		orb_check(_traj_wp_avoidance_sub, &updated);
 
 		if (updated) {
-			realsense_setpoint_update();
+			obstacle_avoidance_update();
+
+		} else {
+			/* if the obstacle avoidance output is not updated, set the waypoint as invalid */
+			_traj_wp_avoidance.point_valid[0] = false;
 		}
 
 		orb_check(_manual_sub, &updated);
@@ -768,6 +843,23 @@ Navigator::run()
 
 		if (_pos_sp_triplet_updated) {
 			_pos_sp_triplet.timestamp = hrt_absolute_time();
+
+			// Map to local frame
+			// This is not used anywhere yet. The goal is to free the position controller
+			// from any global computation.
+			// Current waypoint projection
+			map_projection_project(get_local_reference_pos(), _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
+					       &_pos_sp_triplet.current.x, &_pos_sp_triplet.current.y);
+			_pos_sp_triplet.current.z = - (_pos_sp_triplet.current.alt - get_local_reference_alt());
+			// Previous waypoint projection
+			map_projection_project(get_local_reference_pos(), _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
+					       &_pos_sp_triplet.previous.x, &_pos_sp_triplet.previous.y);
+			_pos_sp_triplet.previous.z = - (_pos_sp_triplet.previous.alt - get_local_reference_alt());
+			// Next waypoint projection
+			map_projection_project(get_local_reference_pos(), _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
+					       &_pos_sp_triplet.next.x, &_pos_sp_triplet.next.y);
+			_pos_sp_triplet.next.z = - (_pos_sp_triplet.next.alt - get_local_reference_alt());
+
 			publish_position_setpoint_triplet();
 			_pos_sp_triplet_updated = false;
 		}
@@ -788,7 +880,7 @@ Navigator::run()
 	orb_unsubscribe(_vstatus_sub);
 	orb_unsubscribe(_land_detected_sub);
 	orb_unsubscribe(_home_pos_sub);
-	orb_unsubscribe(_realsense_avoidance_setpoint_sub);
+	orb_unsubscribe(_traj_wp_avoidance_sub);
 	orb_unsubscribe(_manual_sub);
 	orb_unsubscribe(_offboard_mission_sub);
 	orb_unsubscribe(_param_update_sub);

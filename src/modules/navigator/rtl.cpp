@@ -48,7 +48,6 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_command.h>
-#include <drivers/realsense/realsense.h>
 
 using math::max;
 using math::min;
@@ -85,11 +84,10 @@ RTL::on_activation()
 	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->next.valid = false;
 
-	// go directly to home if realsense is used
-	const bool realsense_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
-					 manual_control_setpoint_s::SWITCH_POS_ON;
-	const bool realsense_running = _navigator->get_realsense_setpoint()->flags ==
-				       ObstacleAvoidanceOutputFlags::CAMERA_RUNNING;
+	// go directly to home if obstacle avoidance is used
+	const bool obstacle_avoidance_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
+			manual_control_setpoint_s::SWITCH_POS_ON;
+	const bool obstacle_avoidance_running = _navigator->get_trajectory_waypoint()->point_valid[0] == true;
 
 	/* for safety reasons don't go into RTL if landed */
 	if (_navigator->get_land_detected()->landed) {
@@ -98,7 +96,7 @@ RTL::on_activation()
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Already landed, not executing RTL");
 		// otherwise start RTL by braking first
 
-	} else if (realsense_running && realsense_switch_on) {
+	} else if (obstacle_avoidance_running && obstacle_avoidance_switch_on) {
 		_rtl_state = RTL_STATE_HOME;
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Flying straight to home");
 

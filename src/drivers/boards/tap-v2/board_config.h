@@ -303,6 +303,12 @@ extern  bool esc_disabled_for_console;
 
 #define BOARD_SUPPORTS_FTC // Board supports fault tolerant control. Set param FTC_ENABLE to 1 to enable it.
 
+// LED mapping
+#define BOARD_FRONT_LED_MASK (1 << 2) | (1 << 3)
+#define BOARD_REAR_LED_MASK  (1 << 0) | (1 << 5)
+#define BOARD_LEFT_LED_MASK  (1 << 4)
+#define BOARD_RIGHT_LED_MASK (1 << 1)
+
 // In HITL, we can use the usual voltage measurement.
 #define BOARD_HAS_VOLTAGE_IN_HITL
 

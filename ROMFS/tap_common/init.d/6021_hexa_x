@@ -343,6 +343,12 @@ then
 fi
 
 #
+# Log ESC Firmware, Bootloader and Hardware version
+# NOTE: This should obviously always be executed AFTER an ESC firmware upgrade!
+#
+tap_esc_config log_versions -d ${ESC_TTY} -n 6
+
+#
 # ESC driver
 #
 # First re-send ESC configuration and verify to make sure everything is setup

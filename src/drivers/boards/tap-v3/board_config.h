@@ -63,6 +63,12 @@
 //      HW_INFO_INIT_REV       2
 //      HW_INFO_INIT_VER            3
 
+// LED mapping
+#define BOARD_FRONT_LED_MASK (1 << 2) | (1 << 3)
+#define BOARD_REAR_LED_MASK  (1 << 0) | (1 << 5)
+#define BOARD_LEFT_LED_MASK  (1 << 4)
+#define BOARD_RIGHT_LED_MASK (1 << 1)
+
 // In HITL, we can use the usual voltage measurement.
 #define BOARD_HAS_VOLTAGE_IN_HITL
 

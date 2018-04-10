@@ -104,7 +104,6 @@ void MulticopterLandDetector::_initialize_topics()
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 }
 
@@ -116,7 +115,6 @@ void MulticopterLandDetector::_update_topics()
 	_orb_update(ORB_ID(actuator_controls_0), _actuatorsSub, &_actuators);
 	_orb_update(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
 	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
-	_orb_update(ORB_ID(battery_status), _battery_sub, &_battery);
 	_orb_update(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_sub, &_v_att_sp);
 }
 
@@ -328,18 +326,6 @@ float MulticopterLandDetector::_get_max_altitude()
 {
 	/* ToDo: add a meaningful altitude */
 	float valid_altitude_max = _params.altitude_max;
-
-	if (_battery.warning == battery_status_s::BATTERY_WARNING_LOW) {
-		valid_altitude_max = _params.altitude_max * 0.75f;
-	}
-
-	if (_battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
-		valid_altitude_max = _params.altitude_max * 0.5f;
-	}
-
-	if (_battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
-		valid_altitude_max = _params.altitude_max * 0.25f;
-	}
 
 	return valid_altitude_max;
 }

@@ -49,10 +49,10 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/realsense_avoidance_setpoint.h>
 #include <uORB/topics/realsense_distance_info.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/trajectory_waypoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
 
@@ -116,7 +116,7 @@ private:
 	uint64_t 	_init_time;
 	int		_measure_ticks;
 	int		_vehicle_local_position_sub;
-	int		_avoidance_input_sub;
+	int		_traj_wp_avoidance_desired_sub;
 	int		_sensor_combined_sub;
 	int 	_vehicle_attitude_sub;
 	int 	_distance_sensor_subs[DISTANCE_SENSOR_INSTANCES];
@@ -126,7 +126,7 @@ private:
 	float _current_distance;
 	struct vehicle_local_position_s _local_pos;
 	struct vehicle_local_position_s _local_pos_prev;
-	struct realsense_avoidance_setpoint_s _avoidance_input;
+	struct trajectory_waypoint_s _traj_wp_avoidance_desired;
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
 	struct vehicle_status_s _vehicle_status;
@@ -139,7 +139,7 @@ private:
 
 	FlightTasks _flight_tasks;
 
-	orb_advert_t _realsense_avoidance_setpoint_pub;
+	orb_advert_t _traj_wp_avoidance_pub;
 	orb_advert_t _optical_flow_pub;
 	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _realsense_distance_info_pub;
@@ -186,7 +186,7 @@ REALSENSE::REALSENSE(const char *port):
 	_init_time(0),
 	_measure_ticks(0),
 	_vehicle_local_position_sub(-1),
-	_avoidance_input_sub(-1),
+	_traj_wp_avoidance_desired_sub(-1),
 	_sensor_combined_sub(-1),
 	_vehicle_attitude_sub(-1),
 	_distance_sensor_subs{},
@@ -195,7 +195,7 @@ REALSENSE::REALSENSE(const char *port):
 	_current_distance(0.0f),
 	_local_pos{},
 	_local_pos_prev{},
-	_avoidance_input{},
+	_traj_wp_avoidance_desired{},
 	_attitude {},
 	_manual{},
 	_vehicle_status{},
@@ -205,7 +205,7 @@ REALSENSE::REALSENSE(const char *port):
 	_yaw(0.0f),
 	_nav_rad(0.0f),
 	_flight_tasks(),
-	_realsense_avoidance_setpoint_pub(nullptr),
+	_traj_wp_avoidance_pub(nullptr),
 	_optical_flow_pub(nullptr),
 	_distance_sensor_pub(nullptr),
 	_realsense_distance_info_pub(nullptr),
@@ -296,10 +296,10 @@ REALSENSE::poll_subscriptions()				 // update all msg
 		orb_copy(ORB_ID(vehicle_local_position), _vehicle_local_position_sub, &_local_pos);
 	}
 
-	orb_check(_avoidance_input_sub, &updated);
+	orb_check(_traj_wp_avoidance_desired_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(realsense_avoidance_setpoint_input), _avoidance_input_sub, &_avoidance_input);
+		orb_copy(ORB_ID(trajectory_waypoint_desired), _traj_wp_avoidance_desired_sub, &_traj_wp_avoidance_desired);
 	}
 
 	orb_check(_sensor_combined_sub, &updated);
@@ -395,11 +395,11 @@ REALSENSE::_send_obstacle_avoidance_data()
 	ObstacleAvoidanceInput tx = {};
 
 	// desired velocity - ENU
-	if (!PX4_ISFINITE(_avoidance_input.vx) || !PX4_ISFINITE(_avoidance_input.vy) || !PX4_ISFINITE(_avoidance_input.vz)) {
+	if (_traj_wp_avoidance_desired.point_valid[trajectory_waypoint_s::POINT_0] == false) {
 		return;
 	}
 
-	const float avoidance_input_z = _avoidance_input.vz;
+	const float avoidance_input_z = _traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VZ];
 	const float diff_xy = matrix::Vector2f((_local_pos_prev.x - _local_pos.x), (_local_pos_prev.y - _local_pos.y)).length();
 	const bool xy_lock = diff_xy < SIGMA_NORM;
 	const float diff_z = fabsf(_local_pos_prev.z - _local_pos.z);
@@ -407,8 +407,10 @@ REALSENSE::_send_obstacle_avoidance_data()
 
 	/* get velocity setpoint in heading frame */
 	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
-	matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_avoidance_input.vx, _avoidance_input.vy,
-					  0.0f));
+	matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(
+			_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VX],
+			_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VY],
+			0.0f));
 
 	if (!xy_lock && vel_sp_heading(0) < 0.0f && (fabsf(vel_sp_heading(1)) <  0.1f)) {
 
@@ -422,17 +424,17 @@ REALSENSE::_send_obstacle_avoidance_data()
 		 * and downwards if only z-direction maneuvers are requested. This is rather a hack to
 		 * fix realsense output for straight up and down maneuvers. */
 
-		vel_sp_heading(0) = 0.001f + 0.1f * fabsf(_avoidance_input.vz);
+		vel_sp_heading(0) = 0.001f + 0.1f * fabsf(_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VZ]);
 	}
 
 	matrix::Vector3f vel_sp_local = q_yaw.conjugate(vel_sp_heading);
-	_avoidance_input.vx = vel_sp_local(0);
-	_avoidance_input.vy = vel_sp_local(1);
-	_avoidance_input.vz = avoidance_input_z;
+	_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VX] = vel_sp_local(0);
+	_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VY] = vel_sp_local(1);
+	_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VZ] = avoidance_input_z;
 
-	tx.desiredSpeed.x   = _avoidance_input.vy; // E
-	tx.desiredSpeed.y   = _avoidance_input.vx; // N
-	tx.desiredSpeed.z   = -_avoidance_input.vz; // U
+	tx.desiredSpeed.x   = _traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VY]; // E
+	tx.desiredSpeed.y   = _traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VX]; // N
+	tx.desiredSpeed.z   = -_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VZ]; // U
 
 	// current attitude - NED the  just one of the four elements is be check is enough
 	if (!PX4_ISFINITE(_attitude.q[0])) {
@@ -644,14 +646,41 @@ REALSENSE::_read_obstacle_avoidance_data()
 					ObstacleAvoidanceOutput packet_data_output;
 					memcpy((char *)&packet_data_output, _YP_PACKET_DATA(_rxpacket_realsense), PACKET_LENGTH_REALSENSE_OBSTACLE_DATA_OUTPUT);
 
-					struct realsense_avoidance_setpoint_s realsense_avoidance_setpoint;
+					struct trajectory_waypoint_s _traj_wp_avoidance = {};
 
-					realsense_avoidance_setpoint.vx = packet_data_output.obstacleAvoidanceSpeed.y;	 //realsense E  -> UAV N
-					realsense_avoidance_setpoint.vy = packet_data_output.obstacleAvoidanceSpeed.x;  //realsense N  -> UAV E
-					realsense_avoidance_setpoint.vz = -packet_data_output.obstacleAvoidanceSpeed.z; //realsense U  -> UAV D
-					realsense_avoidance_setpoint.yawspeed = math::constrain(packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F, M_PI_F);
-					realsense_avoidance_setpoint.flags = packet_data_output.flags;
-					realsense_avoidance_setpoint.timestamp = hrt_absolute_time();
+					_traj_wp_avoidance.timestamp = hrt_absolute_time();
+					_traj_wp_avoidance.type = trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
+
+					_traj_wp_avoidance.point_0[trajectory_waypoint_s::X] = NAN; // position sp
+					_traj_wp_avoidance.point_0[trajectory_waypoint_s::Y] = NAN;
+					_traj_wp_avoidance.point_0[trajectory_waypoint_s::Z] = NAN;
+					_traj_wp_avoidance.point_0[trajectory_waypoint_s::VX] =
+						packet_data_output.obstacleAvoidanceSpeed.y;	 //realsense E  -> UAV N
+					_traj_wp_avoidance.point_0[trajectory_waypoint_s::VY] =
+						packet_data_output.obstacleAvoidanceSpeed.x;  //realsense N  -> UAV E
+					_traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ] =
+						-packet_data_output.obstacleAvoidanceSpeed.z; //realsense U  -> UAV D
+					_traj_wp_avoidance.point_0[trajectory_waypoint_s::AX] = NAN; // acceleration sp
+					_traj_wp_avoidance.point_0[trajectory_waypoint_s::AY] = NAN;
+					_traj_wp_avoidance.point_0[trajectory_waypoint_s::AZ] = NAN;
+					_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW] = NAN; // yaw
+					_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED] = math::constrain(
+								packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F,
+								M_PI_F); //yawspeed
+
+					if (PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VX]) &&
+					    PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VY])
+					    && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ])) {
+						_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] = true;
+
+					} else {
+						_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] = false;
+					}
+
+					_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_1] = false;
+					_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_2] = false;
+					_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_3] = false;
+					_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_4] = false;
 
 					/* Don't use realsense if we are above home within acceptance radius */
 					const float dist_to_home_xy =  matrix::Vector2f(_home_pos.x - _local_pos.x, _home_pos.y - _local_pos.y).length();
@@ -662,11 +691,11 @@ REALSENSE::_read_obstacle_avoidance_data()
 								   && !close_to_home;
 
 					if (use_realsense) {
-						if (_realsense_avoidance_setpoint_pub == nullptr) {
-							_realsense_avoidance_setpoint_pub = orb_advertise(ORB_ID(realsense_avoidance_setpoint), &realsense_avoidance_setpoint);
+						if (_traj_wp_avoidance_pub == nullptr) {
+							_traj_wp_avoidance_pub = orb_advertise(ORB_ID(trajectory_waypoint), &_traj_wp_avoidance);
 
 						} else {
-							orb_publish(ORB_ID(realsense_avoidance_setpoint), _realsense_avoidance_setpoint_pub, &realsense_avoidance_setpoint);
+							orb_publish(ORB_ID(trajectory_waypoint), _traj_wp_avoidance_pub, &_traj_wp_avoidance);
 						}
 
 					}
@@ -821,7 +850,7 @@ REALSENSE::_init_realsense() 							 // init - initialise the sensor
 {
 	if (!_initialized) {
 		_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-		_avoidance_input_sub = orb_subscribe(ORB_ID(realsense_avoidance_setpoint_input));
+		_traj_wp_avoidance_desired_sub = orb_subscribe(ORB_ID(trajectory_waypoint_desired));
 		_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 		_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 

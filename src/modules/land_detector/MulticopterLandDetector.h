@@ -50,7 +50,6 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -132,7 +131,6 @@ private:
 	int _attitudeSub{-1};
 	int _sensor_bias_sub{-1};
 	int _vehicle_control_mode_sub{-1};
-	int _battery_sub{-1};
 	int _v_att_sp_sub{-1};  // NOTE: Yuneec-specific
 
 	vehicle_local_position_s				_vehicleLocalPosition {};
@@ -141,7 +139,6 @@ private:
 	vehicle_attitude_s					_vehicleAttitude {};
 	sensor_bias_s					_sensors {};
 	vehicle_control_mode_s				_control_mode {};
-	battery_status_s						_battery {};
 	struct vehicle_attitude_setpoint_s			_v_att_sp {};  // NOTE: Yuneec-specific
 
 	uint64_t _min_trust_start{0};		///< timestamp when minimum trust was applied first

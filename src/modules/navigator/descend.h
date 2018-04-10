@@ -54,7 +54,7 @@ public:
 
 	~Descend() override = default;
 
-	virtual void on_inactive();
+	virtual void on_inactive() override;
 
 	virtual void on_activation();
 

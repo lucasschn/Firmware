@@ -56,9 +56,9 @@ public:
 
 	virtual void on_inactive() override;
 
-	virtual void on_activation();
+	virtual void on_activation() override;
 
-	virtual void on_active();
+	virtual void on_active() override;
 
 };
 

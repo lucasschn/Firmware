@@ -41,7 +41,7 @@
 #endif
 
 #include <px4_log.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
 
 #include "polyfit.hpp"

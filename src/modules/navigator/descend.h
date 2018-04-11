@@ -50,15 +50,15 @@
 class Descend : public MissionBlock
 {
 public:
-	Descend(Navigator *navigator, const char *name);
+	Descend(Navigator *navigator);
 
-	~Descend();
+	~Descend() override = default;
 
-	virtual void on_inactive();
+	virtual void on_inactive() override;
 
-	virtual void on_activation();
+	virtual void on_activation() override;
 
-	virtual void on_active();
+	virtual void on_active() override;
 
 };
 

@@ -39,17 +39,19 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#ifndef NAVIGATOR_LAND_H
-#define NAVIGATOR_LAND_H
+#pragma once
 
 #include "navigator_mode.h"
 #include "mission_block.h"
+#include <px4_module_params.h>
 
-class Land final : public MissionBlock
+class Navigator;
+
+class Land : public MissionBlock, public ModuleParams
 {
 public:
-	Land(Navigator *navigator, const char *name);
-	~Land() = default;
+	Land(Navigator *navigator);
+	~Land() override = default;
 
 	void on_activation() override;
 	void on_active() override;
@@ -75,8 +77,8 @@ private:
 		LAND_STATE_LANDED,
 	} _land_state;
 
-	control::BlockParamFloat _param_land_delay;
-	control::BlockParamFloat _param_descend_alt;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::LAND_LOI_DELAY>) _param_land_delay,
+		(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_descend_alt
+	)
 };
-
-#endif

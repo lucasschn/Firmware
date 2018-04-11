@@ -52,7 +52,7 @@ if(DEFINED config_tap_esc_fw)
 	message(STATUS "ESC firmware: ${fw_file_name}")
 
 	set(fw_esc_bin "${PX4_SOURCE_DIR}/ROMFS/yuneec/esc/${fw_file_name}")
-	set(renamed_fw_esc_bin "${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/tap_esc.bin")
+	set(renamed_fw_esc_bin "${PX4_BINARY_DIR}/genromfs/${config_romfs_root}/extras/tap_esc.bin")
 
 	add_custom_command(OUTPUT ${renamed_fw_esc_bin}
 		COMMAND mkdir -p ${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/

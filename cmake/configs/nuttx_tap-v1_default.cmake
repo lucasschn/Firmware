@@ -1,3 +1,4 @@
+
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT tap_common)
 
 set(target_definitions MEMORY_CONSTRAINED_SYSTEM)
@@ -75,7 +76,6 @@ set(config_module_list
 	# Logging
 	#
 	modules/logger
-	modules/sdlog2
 
 	#
 	# Library modules
@@ -92,9 +92,6 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 	lib/ecl
-	lib/FlightTasks
-	lib/geo
-	lib/geo_lookup
 	lib/led
 	lib/mathlib
 	lib/mixer
@@ -102,4 +99,5 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/tunes
 	lib/version
+	lib/FlightTasks
 )

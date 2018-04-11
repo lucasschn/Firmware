@@ -46,6 +46,7 @@
 #include <lib/led/led.h>
 #include <lib/tunes/tunes.h>
 #include <drivers/device/device.h>
+#include <px4_module_params.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -56,16 +57,15 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/multirotor_motor_limits.h>
-#include <systemlib/mavlink_log.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <lib/mixer/mixer.h>
-#include <systemlib/param/param.h>
+#include <systemlib/mavlink_log.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include "tap_esc_common.h"
 #include "fault_tolerant_control/fault_tolerant_control.h"
-#define NAN_VALUE	(0.0f/0.0f)
 
 #include "drv_tap_esc.h"
 
@@ -86,7 +86,7 @@
  * This driver connects to TAP ESCs via serial.
  */
 
-class TAP_ESC : public device::CDev, public ModuleBase<TAP_ESC>
+class TAP_ESC : public device::CDev, public ModuleBase<TAP_ESC>, public ModuleParams
 {
 public:
 
@@ -124,6 +124,7 @@ private:
 	// subscriptions
 	int	_armed_sub;
 	int _test_motor_sub;
+	int _params_sub;
 	int _led_control_sub;
 	int _tune_control_sub;
 	orb_advert_t        	_outputs_pub;
@@ -161,6 +162,12 @@ private:
 	unsigned	_current_update_rate;
 	ESC_UART_BUF _uartbuf = {};
 	EscPacket  		_packet;
+
+
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::MC_AIRMODE>) _airmode   ///< multicopter air-mode
+	)
+
 	void		subscribe();
 
 	void send_esc_outputs(const uint16_t *pwm, const unsigned num_pwm);
@@ -186,11 +193,13 @@ const uint8_t TAP_ESC::device_out_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_OUT;
 
 TAP_ESC::TAP_ESC():
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
+	ModuleParams(nullptr),
 	_uart_fd(-1),
 	_is_armed(false),
 	_poll_fds_num(0),
 	_armed_sub(-1),
 	_test_motor_sub(-1),
+	_params_sub(-1),
 	_led_control_sub(-1),
 	_tune_control_sub(-1),
 	_outputs_pub(nullptr),
@@ -252,6 +261,7 @@ TAP_ESC::~TAP_ESC()
 
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(_test_motor_sub);
+	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_tune_control_sub);
 	orb_unsubscribe(_led_control_sub);
 
@@ -344,6 +354,7 @@ TAP_ESC::init()
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_led_control_sub = orb_subscribe(ORB_ID(led_control));
 	_led_controller.init(_led_control_sub);
 	_tune_control_sub = orb_subscribe(ORB_ID(tune_control));
@@ -551,6 +562,9 @@ TAP_ESC::cycle()
 		_current_update_rate = max_rate;
 	}
 
+	if (_mixers) {
+		_mixers->set_airmode(_airmode.get());
+	}
 
 
 	/* check if anything updated.
@@ -911,6 +925,16 @@ TAP_ESC::cycle()
 			_play_tone = true;
 		}
 	}
+
+	/* check for parameter updates */
+	bool param_updated = false;
+	orb_check(_params_sub, &param_updated);
+
+	if (param_updated) {
+		struct parameter_update_s update;
+		orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+		updateParams();
+	}
 }
 
 int TAP_ESC::control_callback_trampoline(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
@@ -949,7 +973,7 @@ int TAP_ESC::control_callback(uint8_t control_group, uint8_t control_index, floa
 		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* set the throttle to an invalid value */
-			input = NAN_VALUE;
+			input = NAN;
 		}
 	}
 

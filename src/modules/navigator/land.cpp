@@ -51,22 +51,17 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <float.h>
 #include <uORB/topics/vehicle_command.h>
 
 #include "land.h"
 #include "navigator.h"
 
-Land::Land(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_land_state(LAND_STATE_NONE),
-	_param_land_delay(this, "LAND_LOI_DELAY", false),
-	_param_descend_alt(this, "MPC_LAND_ALT1", false)
-
+Land::Land(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator)
 {
-	/* load initial params */
-	updateParams();  // NOTE: Removed upstream, redundant they say (#8391)
 	/* initial reset */
 	on_inactive();
 }

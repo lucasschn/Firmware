@@ -40,34 +40,6 @@
  */
 
 /**
- * Roll time constant
- *
- * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
- *
- * @unit s
- * @min 0.15
- * @max 0.25
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_ROLL_TC, 0.2f);
-
-/**
- * Pitch time constant
- *
- * Reduce if the system is too twitchy, increase if the response is too slow and sluggish.
- *
- * @unit s
- * @min 0.15
- * @max 0.25
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_PITCH_TC, 0.2f);
-
-/**
  * Roll P gain
  *
  * Roll proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
@@ -570,4 +542,139 @@ PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
  * @increment 10
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 0.f);
+PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 30.f);
+
+/**
+ * Multicopter air-mode
+ *
+ * The air-mode enables the mixer to increase the total thrust of the multirotor
+ * in order to keep attitude and rate control even at low and high throttle.
+ * This function should be disabled during tuning as it will help the controller
+ * to diverge if the closed-loop is unstable.
+ *
+ * @boolean
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_INT32(MC_AIRMODE, 0);
+
+/**
+ * fault tolerant control mode roll rate P gain when motor have failure
+ *
+ * Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
+ *
+ * @min 0.0
+ * @max 0.5
+ * @decimal 3
+ * @increment 0.01
+ * @group Fault Tolerant Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(FTC_ROLLRATE_P, 0.130f);
+
+/**
+ * fault tolerant control mode roll rate I gain when motor have failure
+ *
+ * Roll rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
+ *
+ * @min 0.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Fault Tolerant Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(FTC_ROLLRATE_I, 0.06f);
+
+/**
+ * fault tolerant control mode roll rate D gain when motor have failure
+ *
+ * Roll rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ *
+ * @min 0.0
+ * @max 0.01
+ * @decimal 4
+ * @increment 0.0005
+ * @group Fault Tolerant Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(FTC_ROLLRATE_D, 0.0f);
+
+/**
+ * fault tolerant control mode pitch rate P gain when motor have failure
+ *
+ * Pitch rate proportional gain, i.e. control output for angular speed error 1 rad/s.
+ *
+ * @min 0.0
+ * @max 0.5
+ * @decimal 3
+ * @increment 0.01
+ * @group Fault Tolerant Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(FTC_PITCHRATE_P, 0.130f);
+
+/**
+ * fault tolerant control mode pitch rate I gain when motor have failure
+ *
+ * Pitch rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
+ *
+ * @min 0.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Fault Tolerant Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(FTC_PITCHRATE_I, 0.06f);
+
+/**
+ * fault tolerant control mode pitch rate D gain when motor have failure
+ *
+ * Pitch rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ *
+ * @min 0.0
+ * @max 0.01
+ * @decimal 4
+ * @increment 0.0005
+ * @group Fault Tolerant Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(FTC_PITCHRATE_D, 0.0f);
+
+/**
+ * fault tolerant control mode yaw rate P gain when one motor have failure
+ *
+ * Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.
+ *
+ * @min 0.0
+ * @max 0.6
+ * @decimal 2
+ * @increment 0.01
+ * @group Fault Tolerant Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(FTC_YAWRATE_P, 0.165f);
+
+/**
+ * fault tolerant control mode yaw rate I gain when one motor have failure
+ *
+ * Yaw rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
+ *
+ * @min 0.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Fault Tolerant Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(FTC_YAWRATE_I, 0.1f);
+
+/**
+ * fault tolerant control mode yaw rate D gain when one motor have failure
+ *
+ * Yaw rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ *
+ * @min 0.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Fault Tolerant Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(FTC_YAWRATE_D, 0.0f);

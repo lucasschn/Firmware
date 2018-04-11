@@ -66,25 +66,18 @@ public:
 	MulticopterLandDetector();
 
 protected:
-	virtual void _initialize_topics() override;
+	void _initialize_topics() override;
+	void _update_params() override;
+	void _update_topics() override;
 
-	virtual void _update_params() override;
+	bool _get_landed_state() override;
+	bool _get_ground_contact_state() override;
+	bool _get_maybe_landed_state() override;
+	bool _get_freefall_state() override;
+	bool _get_crash_state() override;
+	bool _get_inverted_state() override;
 
-	virtual void _update_topics() override;
-
-	virtual bool _get_landed_state() override;
-
-	virtual bool _get_ground_contact_state() override;
-
-	virtual bool _get_maybe_landed_state() override;
-
-	virtual bool _get_freefall_state() override;
-
-	virtual bool _get_crash_state() override;
-
-	virtual bool _get_inverted_state() override;
-
-	virtual float _get_max_altitude() override;
+	float _get_max_altitude() override;
 private:
 
 	/** Time in us that landing conditions have to hold before triggering a land. */
@@ -114,8 +107,8 @@ private:
 		param_t freefall_trigger_time;
 		param_t altitude_max;
 		param_t landSpeed;
-		param_t tilt_max;
-	} _paramHandle;
+		param_t tilt_max;  // NOTE: Yuneec-specific
+	} _paramHandle{};
 
 	struct {
 		float maxClimbRate;
@@ -130,26 +123,26 @@ private:
 		float altitude_max;
 		float landSpeed;
 		float tilt_max;
-	} _params;
+	} _params{};
 
-	int _vehicleLocalPositionSub;
-	int _vehicleLocalPositionSetpointSub;
-	int _actuatorsSub;
-	int _attitudeSub;
-	int _sensor_bias_sub;
-	int _vehicle_control_mode_sub;
-	int _v_att_sp_sub;
+	int _vehicleLocalPositionSub{-1};
+	int _vehicleLocalPositionSetpointSub{-1};
+	int _actuatorsSub{-1};
+	int _attitudeSub{-1};
+	int _sensor_bias_sub{-1};
+	int _vehicle_control_mode_sub{-1};
+	int _v_att_sp_sub{-1};  // NOTE: Yuneec-specific
 
-	struct vehicle_local_position_s				_vehicleLocalPosition;
-	struct vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint;
-	struct actuator_controls_s					_actuators;
-	struct vehicle_attitude_s					_vehicleAttitude;
-	struct sensor_bias_s					_sensors;
-	struct vehicle_control_mode_s				_control_mode;
-	struct vehicle_attitude_setpoint_s			_v_att_sp;		/**< vehicle angle setpoint */
+	vehicle_local_position_s				_vehicleLocalPosition {};
+	vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint {};
+	actuator_controls_s					_actuators {};
+	vehicle_attitude_s					_vehicleAttitude {};
+	sensor_bias_s					_sensors {};
+	vehicle_control_mode_s				_control_mode {};
+	struct vehicle_attitude_setpoint_s			_v_att_sp {};  // NOTE: Yuneec-specific
 
-	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
-	uint64_t _landed_time;
+	uint64_t _min_trust_start{0};		///< timestamp when minimum trust was applied first
+	uint64_t _landed_time{0};
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();

@@ -254,6 +254,11 @@ mixer_tick(void)
 	 */
 	mixer_group.set_trims(r_page_servo_control_trim, PX4IO_SERVO_COUNT);
 
+	/*
+	 * Update air-mode parameter
+	 */
+	mixer_group.set_airmode(REG_TO_BOOL(r_setup_airmode));
+
 
 	/*
 	 * Run the mixers.
@@ -487,7 +492,7 @@ mixer_callback(uintptr_t handle,
  * not loaded faithfully.
  */
 
-static char mixer_text[PX4IO_MAX_MIXER_LENGHT];		/* large enough for one mixer */
+static char mixer_text[PX4IO_MAX_MIXER_LENGTH];		/* large enough for one mixer */
 static unsigned mixer_text_length = 0;
 static bool mixer_update_pending = false;
 

@@ -2075,9 +2075,9 @@ void MulticopterPositionControl::control_auto()
 		}
 
 		/* only follow previous-current-line for specific triplet type */
-		if (!use_obstacle_avoidance() && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
-						  _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
-						  _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET)) {
+		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
+		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
+		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
 
 			float yaw_diff = _wrap_pi(_att_sp.yaw_body - _yaw);
 

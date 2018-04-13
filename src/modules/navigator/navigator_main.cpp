@@ -482,12 +482,10 @@ Navigator::run()
 
 		if (updated) {
 			target_motion_update();
-			last_target_motion_check = hrt_absolute_time();
 
-		} else if (hrt_elapsed_time(&last_target_motion_check) > TARGET_MOTION_CHECK_INTERVAL) {
-			// Too much time passed since the last upated. Don't use target motion.
-			_target_motion.lat = _target_motion.lon = _target_motion.alt = NAN;
-			_target_motion.vx = _target_motion.vy = _target_motion.vz = NAN;
+		} else if (hrt_elapsed_time(&_target_motion.timestamp) > TARGET_MOTION_CHECK_INTERVAL) {
+			// Too much time passed since the last update. Don't use target motion.
+			reset_target_motion();
 		}
 
 		/* vehicle_command updated */

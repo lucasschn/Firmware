@@ -114,3 +114,13 @@ PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
  * @group Return To Land
  */
 PARAM_DEFINE_INT32(RTL_LAND_TYPE, 0);
+
+/**
+ * Return to Ground Control Station (GCS)
+ *
+ * Return to GCS if there is a valid global position available.
+ *
+ * @value 0 Return to Takeoff-location
+ * @value 1 Return to GCS-location
+ */
+PARAM_DEFINE_INT32(RTL_TO_GCS, 0);

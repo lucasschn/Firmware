@@ -118,7 +118,6 @@ private:
 	FollowTargetState _follow_target_state{SET_WAIT_FOR_TARGET_POSITION};
 	int _follow_target_position{FOLLOW_FROM_BEHIND};
 
-	int _follow_target_sub{-1};
 	float _step_time_in_ms{0.0f};
 	float _follow_offset{OFFSET_M};
 

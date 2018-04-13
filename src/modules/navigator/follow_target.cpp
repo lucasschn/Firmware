@@ -88,10 +88,6 @@ void FollowTarget::on_activation()
 	}
 
 	_rot_matrix = (_follow_position_matricies[_follow_target_position]);
-
-	if (_follow_target_sub < 0) {
-		_follow_target_sub = orb_subscribe(ORB_ID(follow_target));
-	}
 }
 
 void FollowTarget::on_active()
@@ -104,18 +100,16 @@ void FollowTarget::on_active()
 	bool updated = false;
 	float dt_ms = 0;
 
-	orb_check(_follow_target_sub, &updated);
+	follow_target_s &target_motion = *_navigator->get_target_motion();
 
-	if (updated) {
-		follow_target_s target_motion;
+	// requires valid global position
+	if (PX4_ISFINITE(target_motion.lat) && PX4_ISFINITE(target_motion.lon) && PX4_ISFINITE(target_motion.alt)) {
 
 		_target_updates++;
 
 		// save last known motion topic
 
 		_previous_target_motion = _current_target_motion;
-
-		orb_copy(ORB_ID(follow_target), _follow_target_sub, &target_motion);
 
 		if (_current_target_motion.timestamp == 0) {
 			_current_target_motion = target_motion;
@@ -127,7 +121,7 @@ void FollowTarget::on_active()
 		_current_target_motion.lon = (_current_target_motion.lon * (double)_responsiveness) + target_motion.lon * (double)(
 						     1 - _responsiveness);
 
-	} else if (((current_time - _current_target_motion.timestamp) / 1000) > TARGET_TIMEOUT_MS && target_velocity_valid()) {
+	} else {
 		reset_target_validity();
 	}
 

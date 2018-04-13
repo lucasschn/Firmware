@@ -44,6 +44,7 @@
 #include <px4_module_params.h>
 
 #include <uORB/topics/geofence_result.h>
+#include "uORB/topics/home_position.h"
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -83,6 +84,8 @@ private:
 	 */
 	float 		get_rtl_altitude();
 
+	void set_GCS_to_home(home_position_s &home_position, const position_setpoint_triplet_s *triplet);
+
 
 	enum RTLState {
 		RTL_STATE_NONE = 0,
@@ -109,6 +112,7 @@ private:
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_descend_alt,
 		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_land_delay,
 		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
-		(ParamInt<px4::params::RTL_LAND_TYPE>) _param_rtl_land_type
+		(ParamInt<px4::params::RTL_LAND_TYPE>) _param_rtl_land_type,
+		(ParamInt<px4::params::RTL_TO_GCS>) _param_home_at_gcs // home position is where GCS is located
 	)
 };

@@ -48,6 +48,7 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/follow_target.h>
 
 using math::max;
 using math::min;
@@ -166,10 +167,17 @@ RTL::set_rtl_item()
 
 	_navigator->set_can_loiter_at_sp(false);
 
-	const home_position_s &home = *_navigator->get_home_position();
-	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
-
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	// default home is where takeoff location was
+	home_position_s home = *_navigator->get_home_position();
+
+	if (_param_home_at_gcs.get()) {
+		// land location is where GCS is located
+		set_GCS_to_home(home, pos_sp_triplet);
+	}
+
+	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
 	// use home yaw if close to home
 	float home_dist = get_distance_to_next_waypoint(_navigator->get_home_position()->lat,
@@ -419,7 +427,6 @@ RTL::set_rtl_item()
 	// it will not set mission yaw setpoint when the vehicle enter fault tolerant control(yaw control tracking is not good)
 	if (_navigator->get_esc_report()->engine_failure_report.motor_state != OK) {
 		_mission_item.yaw = NAN;
-
 	}
 
 	reset_mission_item_reached();
@@ -545,5 +552,26 @@ RTL::get_rtl_altitude()
 	}
 
 	return climb_alt;
+}
+
+void RTL::set_GCS_to_home(home_position_s &hpos, const position_setpoint_triplet_s *triplet)
+{
+	const follow_target_s &target = *_navigator->get_target_motion();
+
+	if (!PX4_ISFINITE(target.lat) || !PX4_ISFINITE(target.lon) || !PX4_ISFINITE(target.alt)) {
+		// don't do anything since not all components are valid
+		return;
+	}
+
+	// keep a safe distance to GCS
+	float safe_distance = 2.0f;
+
+	// get bearing from GCS to current target
+	float bearing = get_bearing_to_next_waypoint(target.lat, target.lon, triplet->current.lat, triplet->current.lon);
+
+	// set home position a safe distance away but on the flight path
+	waypoint_from_heading_and_distance(target.lat, target.lon,
+					   bearing, safe_distance,
+					   &hpos.lat, &hpos.lon);
 
 }

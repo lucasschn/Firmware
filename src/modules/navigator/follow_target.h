@@ -150,14 +150,10 @@ private:
 
 	matrix::Dcmf _rot_matrix;
 
-	void track_target_position();
-	void track_target_velocity();
 	bool target_velocity_valid();
 	bool target_position_valid();
 	void reset_target_validity();
 	void update_position_sp(bool velocity_valid, bool position_valid, float yaw_rate);
-	void update_target_motion();
-	void update_target_velocity();
 
 	/**
 	 * Set follow_target item

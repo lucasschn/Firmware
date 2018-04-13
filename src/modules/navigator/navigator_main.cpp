@@ -352,7 +352,8 @@ Navigator::run()
 	orb_set_interval(_local_pos_sub, 50);
 
 	hrt_abstime last_geofence_check = 0;
-	hrt_abstime last_target_motion_check = 0;
+
+	reset_target_motion();
 
 	while (!should_exit()) {
 
@@ -1029,6 +1030,13 @@ Navigator::reset_cruising_speed()
 {
 	_mission_cruising_speed_mc = -1.0f;
 	_mission_cruising_speed_fw = -1.0f;
+}
+
+void
+Navigator::reset_target_motion()
+{
+	_target_motion.lat = _target_motion.lon = _target_motion.alt = NAN;
+	_target_motion.vx = _target_motion.vy = _target_motion.vz = NAN;
 }
 
 void

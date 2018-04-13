@@ -242,6 +242,11 @@ public:
 	void 		reset_triplets();
 
 	/**
+	 *  Set target motion to invalid
+	 */
+	void		reset_target_motion();
+
+	/**
 	 * Get the target throttle
 	 *
 	 * @return the desired throttle for this mission

@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 * Yaw P gain lowered from 6.0 to 3.5 because of upstream merge (#1872)
 
 ### Fixed
+* Compass calibration uses less memory, now also works after a flight (#1884)
 
 
 ## [v1.7.3-1.4.0beta1]

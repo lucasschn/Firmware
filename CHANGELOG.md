@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Added
 * ESC firmware version logging (#1786)
+* New waypoint types for Region of Interest (ROI) (#1819)
 
 ### Changed
 * Yaw P gain lowered from 6.0 to 3.5 because of upstream merge (#1872)

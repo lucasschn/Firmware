@@ -54,42 +54,42 @@ void select_responder(uint8_t sel);
 /**
  *  Opens a device for use as UART.
  *  @param device UNIX path of UART device
- *  @param uart_file_des file-descriptor of UART device
+ *  @param uart_fd file-descriptor of UART device
  *  @return 0 on success, -1 on error
  */
-int initialise_uart(const char *const device, int &uart_file_des);
+int initialise_uart(const char *const device, int &uart_fd);
 
 /**
  *  Closes a device previously opened with initialise_uart().
- *  @param uart_file_des file-descriptor of UART device as provided by initialise_uart()
+ *  @param uart_fd file-descriptor of UART device as provided by initialise_uart()
  *  @return 0 on success, -1 on error
  */
-int deinitialise_uart(int &uart_file_des);
+int deinitialise_uart(int &uart_fd);
 
 /**
  *  Enables/disables flow control for open UART device.
- *  @param uart_file_des file-descriptor of UART device
+ *  @param uart_fd file-descriptor of UART device
  *  @param enabled Set true for enabling and false for disabling flow control
  *  @return 0 on success, -1 on error
  */
-int enable_flow_control(int uart_file_des, bool enabled);
+int enable_flow_control(int uart_fd, bool enabled);
 
 /**
  *  Sends a packet to all ESCs and requests a specific ESC to respond
- *  @param uart_file_des file-descriptor of UART device
+ *  @param uart_fd file-descriptor of UART device
  *  @param packet Packet to be sent to ESCs. CRC information will be added.
  *  @param responder ID of the ESC (responder) that should return feedback
  *  @return On success number of bytes written, on error -1
  */
-int send_packet(int uart_file_des, EscPacket &packet, int responder);
+int send_packet(int uart_fd, EscPacket &packet, int responder);
 
 /**
  *  Read data from the UART into a buffer
- *  @param uart_file_des file-descriptor of UART device
+ *  @param uart_fd file-descriptor of UART device
  *  @param uart_buf Buffer where incoming data will be stored
  *  @return 0 on success, -1 on error
  */
-int read_data_from_uart(int uart_file_des, ESC_UART_BUF *const uart_buf);
+int read_data_from_uart(int uart_fd, ESC_UART_BUF *const uart_buf);
 
 /**
  *  Parse feedback from an ESC

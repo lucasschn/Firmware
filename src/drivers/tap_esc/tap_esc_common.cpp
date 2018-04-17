@@ -83,15 +83,15 @@ void select_responder(uint8_t sel)
 #endif
 }
 
-int initialise_uart(const char *const device, int &uart_file_des)
+int initialise_uart(const char *const device, int &uart_fd)
 {
 #if defined(CONFIG_ARCH_BOARD_TAP_V2) && defined(CONFIG_USART3_SERIAL_CONSOLE)
 	return -1;
 #else
 	// open uart
-	uart_file_des = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	uart_fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
-	if (uart_file_des < 0) {
+	if (uart_fd < 0) {
 		PX4_ERR("failed to open uart device!");
 		return -1;
 	}
@@ -103,11 +103,11 @@ int initialise_uart(const char *const device, int &uart_file_des)
 	// and not supported by QURT's POSIX-like interface.
 	dspal_serial_ioctl_data_rate ioctl_baud_rate;
 	ioctl_baud_rate.bit_rate = DSPAL_SIO_BITRATE_250000;
-	int ioctl_ret = ioctl(uart_file_des, SERIAL_IOCTL_SET_DATA_RATE, &ioctl_baud_rate);
+	int ioctl_ret = ioctl(uart_fd, SERIAL_IOCTL_SET_DATA_RATE, &ioctl_baud_rate);
 
 	if (ioctl_ret) {
 		PX4_ERR("error while configuring baud-rate");
-		close(uart_file_des);
+		close(uart_fd);
 		return -1;
 	}
 
@@ -116,7 +116,7 @@ int initialise_uart(const char *const device, int &uart_file_des)
 	// set baud rate
 	int speed = B250000;
 	struct termios uart_config;
-	tcgetattr(uart_file_des, &uart_config);
+	tcgetattr(uart_fd, &uart_config);
 
 	// clear ONLCR flag (which appends a CR for every LF)
 	uart_config.c_oflag &= ~ONLCR;
@@ -124,18 +124,18 @@ int initialise_uart(const char *const device, int &uart_file_des)
 	// set baud rate
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
 		PX4_ERR("failed to set baudrate for %s: %d\n", device, termios_state);
-		close(uart_file_des);
+		close(uart_fd);
 		return -1;
 	}
 
-	if ((termios_state = tcsetattr(uart_file_des, TCSANOW, &uart_config)) < 0) {
+	if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
 		PX4_ERR("tcsetattr failed for %s\n", device);
-		close(uart_file_des);
+		close(uart_fd);
 		return -1;
 	}
 
 	// setup output flow control
-	if (enable_flow_control(uart_file_des, false)) {
+	if (enable_flow_control(uart_fd, false)) {
 		PX4_WARN("hardware flow disable failed");
 	}
 
@@ -145,22 +145,22 @@ int initialise_uart(const char *const device, int &uart_file_des)
 #endif
 }
 
-int deinitialise_uart(int &uart_file_des)
+int deinitialise_uart(int &uart_fd)
 {
-	int ret = close(uart_file_des);
+	int ret = close(uart_fd);
 
 	if (ret == 0) {
-		uart_file_des = -1;
+		uart_fd = -1;
 	}
 
 	return ret;
 }
 
-int enable_flow_control(int uart_file_des, bool enabled)
+int enable_flow_control(int uart_fd, bool enabled)
 {
 	struct termios uart_config;
 
-	int ret = tcgetattr(uart_file_des, &uart_config);
+	int ret = tcgetattr(uart_fd, &uart_config);
 
 	if (ret != 0) {
 		PX4_ERR("error getting uart configuration");
@@ -174,17 +174,17 @@ int enable_flow_control(int uart_file_des, bool enabled)
 		uart_config.c_cflag &= ~CRTSCTS;
 	}
 
-	return tcsetattr(uart_file_des, TCSANOW, &uart_config);
+	return tcsetattr(uart_fd, TCSANOW, &uart_config);
 }
 
-int send_packet(int uart_file_des, EscPacket &packet, int responder)
+int send_packet(int uart_fd, EscPacket &packet, int responder)
 {
 	if (responder >= 0) {
 		select_responder(responder);
 	}
 
 	int packet_len = crc_packet(packet);
-	int ret = ::write(uart_file_des, &packet.head, packet_len);
+	int ret = ::write(uart_fd, &packet.head, packet_len);
 
 	if (ret != packet_len) {
 		PX4_WARN("TX ERROR: ret: %d, errno: %d", ret, errno);
@@ -193,11 +193,11 @@ int send_packet(int uart_file_des, EscPacket &packet, int responder)
 	return ret;
 }
 
-int read_data_from_uart(int uart_file_des, ESC_UART_BUF *const uart_buf)
+int read_data_from_uart(int uart_fd, ESC_UART_BUF *const uart_buf)
 {
 	uint8_t tmp_serial_buf[UART_BUFFER_SIZE];
 
-	int len =::read(uart_file_des, tmp_serial_buf, arraySize(tmp_serial_buf));
+	int len =::read(uart_fd, tmp_serial_buf, arraySize(tmp_serial_buf));
 
 	if (len > 0 && (uart_buf->dat_cnt + len < UART_BUFFER_SIZE)) {
 		for (int i = 0; i < len; i++) {

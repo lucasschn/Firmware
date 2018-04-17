@@ -43,6 +43,8 @@
 #include "rtl.h"
 #include "navigator.h"
 
+#include <math.h>
+
 #include <uORB/topics/vehicle_command.h>
 
 static constexpr float DELAY_SIGMA = 0.01f;
@@ -58,6 +60,35 @@ RTL::on_inactive()
 {
 	// Reset RTL state.
 	_rtl_state = RTL_STATE_NONE;
+
+	static hrt_abstime last_update = hrt_absolute_time();
+
+	// Update only with 1 Hz
+	if ((hrt_absolute_time() - last_update) > 10000000) {
+
+		home_position_s *h = _navigator->get_home_position();
+		vehicle_local_position_s *p = _navigator->get_local_position();
+
+		uint32_t rtl_time_est_s = 0;
+
+		// Add first segment: Ascending or descending to the RTL travel altitude
+		rtl_time_est_s += fabsf(p->z - (h->z + _param_return_alt.get())) / _param_mpc_vel_z_auto.get();
+
+		// Add cruise segment
+		float dist_x = p->x - h->x;
+		float dist_y = p->y - h->y;
+		rtl_time_est_s += sqrtf(dist_x * dist_x + dist_y * dist_y) / _param_mpc_xy_cruise.get();
+
+		// Add descend segment
+		rtl_time_est_s += _param_return_alt.get() / _param_mpc_land_speed.get();
+
+		// Add land delay (the short pause for deploying landing gear)
+		rtl_time_est_s += _param_land_delay.get();
+
+		last_update = hrt_absolute_time();
+
+		PX4_INFO("RTL time estimate: %u", rtl_time_est_s);
+	}
 }
 
 int

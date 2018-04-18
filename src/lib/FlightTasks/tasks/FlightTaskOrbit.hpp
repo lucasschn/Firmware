@@ -42,6 +42,7 @@
 #pragma once
 
 #include "FlightTaskManual.hpp"
+#include "Utility/GimbalControl.hpp"
 
 class FlightTaskOrbit : public FlightTaskManual
 {
@@ -55,6 +56,8 @@ public:
 	bool activate() override;
 
 	bool update() override;
+
+	GimbalControl _gimbal_control;
 
 private:
 	float _r = 0.f; /**< radius with which to orbit the target */

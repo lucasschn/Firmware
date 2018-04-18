@@ -40,12 +40,13 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
+#include <systemlib/param/param.h>
 #include <uORB/topics/mount_orientation.h>
 
 class GimbalControl
 {
 public:
-	GimbalControl() = default;
+	GimbalControl();
 	~GimbalControl() {};
 
 	void _PointOfInterest(const matrix::Vector3f poi, const matrix::Vector3f position, const float yaw);
@@ -54,6 +55,8 @@ public:
 private:
 
 	orb_advert_t _pub_mount_orientation = nullptr;
+
+	param_t _mnt_yaw_ctl{PARAM_INVALID};
 
 	void _PublishMountOrientation(struct mount_orientation_s &mount_orientation);
 

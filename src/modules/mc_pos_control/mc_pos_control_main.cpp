@@ -215,6 +215,7 @@ private:
 	control::BlockParamFloat _manual_thr_max; /**< maximal throttle output when flying in manual mode */
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
+	control::BlockParamFloat _yaw_expo; /**< ratio of exponential curve for stick input in yaw for modes except acro */
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
 	control::BlockParamFloat _acceleration_hor_max; /**<maximum velocity setpoint slewrate for auto & fast manual brake */
 	control::BlockParamFloat _acceleration_hor; /**<acceleration for auto and maximum for manual in velocity control mode*/
@@ -551,6 +552,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_xy_vel_man_expo(this, "XY_MAN_EXPO"),
 	_z_vel_man_expo(this, "Z_MAN_EXPO"),
+	_yaw_expo(this, "YAW_EXPO"),
 	_hold_dz(this, "HOLD_DZ"),
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 	_acceleration_hor(this, "ACC_HOR", true),
@@ -3306,7 +3308,7 @@ MulticopterPositionControl::generate_attitude_setpoint()
 					   _params.global_yaw_max;
 		const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
 
-		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
+		_att_sp.yaw_sp_move_rate = yaw_rate_max * math::expo_deadzone(_manual.r, _yaw_expo.get(), _hold_dz.get());
 
 		/* check if avoidance is on */
 		if (use_obstacle_avoidance()) {

@@ -61,7 +61,6 @@ protected:
 	bool _sticks_data_required = true; /**< let inherited task-class define if it depends on stick data */
 	matrix::Vector<float, 4> _sticks; /**< unmodified manual stick inputs */
 	matrix::Vector<float, 4> _sticks_expo; /**< modified manual sticks using expo function*/
-	control::BlockParamFloat _stick_dz; /**< 0-deadzone around the center for the sticks */
 
 	float stickDeadzone() const { return _stick_dz.get(); }
 private:
@@ -76,6 +75,7 @@ private:
 					_xy_vel_man_expo, /**< ratio of exponential curve for stick input in xy direction */
 					(ParamFloat<px4::params::MPC_Z_MAN_EXPO>)
 					_z_vel_man_expo, /**< ratio of exponential curve for stick input in z direction */
-					(ParamFloat<px4::params::MPC_YAW_EXPO>)_yaw_expo  /**< ratio of exponential curve for stick input in yaw for modes except acro */
+					(ParamFloat<px4::params::MPC_YAW_EXPO>)
+					_yaw_expo  /**< ratio of exponential curve for stick input in yaw for modes except acro */
 				       )
 };

@@ -54,14 +54,15 @@ void GimbalControl::_PointOfInterest(const matrix::Vector3f poi, const matrix::V
 
 	mount_orientation_s mount_orientation = {};
 	mount_orientation.timestamp = hrt_absolute_time();
+	/* roll */
 	mount_orientation.attitude_euler_angle[0] = 0.0f;
 
-	/* calculate angle between ground and vehicle*/
+	/* pitch: calculate angle between ground and vehicle */
 	mount_orientation.attitude_euler_angle[1] = -atan2f(position_to_poi_vec_z, position_to_poi_vec.length());
 
-	/* calculate the angle between vector v = (poi - position) and u = (1, 0)
-	 * alpha = arccos((v * u) / (||v|| * ||u||)) = arccos(v(0) / ||v||)
-	 * the sign of the angle
+	/* yaw: calculate the angle between vector v = (poi - position) and u = (1, 0)
+	 * alpha = arccos((u * v) / (||u|| * ||v||)) = arccos(v(0) / ||v||)
+	 * the sign of the angle is given by sign(u x v) = sign(u(0) * v(1) + u(1) * v(0)) = sign(v(1))
 	 * substract vehicle yaw because the gimbal neutral position is in the UAV heading direction */
 	mount_orientation.attitude_euler_angle[2] = math::sign(position_to_poi_vec(1)) * wrap_pi(acosf(position_to_poi_vec(
 				0) / position_to_poi_vec.norm())) - yaw;

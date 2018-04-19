@@ -400,8 +400,7 @@ void TAP_ESC::subscribe()
 
 void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 {
-	uint16_t rpm[TAP_ESC_MAX_MOTOR_NUM];
-	memset(rpm, 0, sizeof(rpm));
+	uint16_t rpm[TAP_ESC_MAX_MOTOR_NUM] = {};
 	_led_controller.update(_led_control_data);
 
 	for (uint8_t i = 0; i < motor_cnt; i++) {

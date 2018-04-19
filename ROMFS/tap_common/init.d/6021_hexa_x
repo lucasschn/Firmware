@@ -93,7 +93,9 @@ then
 		param set MPC_HOLD_DZ 0.1
 		param set MPC_XY_MAN_EXPO 0.7
 		param set MPC_Z_MAN_EXPO 0.6
+		param set MPC_YAW_EXPO 0.6
 		param set MPC_MANTHR_MIN 0.15
+		param set MPC_MAN_Y_MAX 100.0
 
 		# Position control velocity
 		param set MPC_XY_CRUISE 10.0

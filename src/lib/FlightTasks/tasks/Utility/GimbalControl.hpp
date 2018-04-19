@@ -49,6 +49,12 @@ public:
 	GimbalControl();
 	~GimbalControl() = default;
 
+	/**
+	 * Calculates gimbal orientation to point towards a point of interest
+	 * @param poi: point of iterest in local NED coordinates
+	 * @param position: UAV position in local NED coordinates
+	 * @param yaw: UAV yaw in radiants
+	 */
 	void pointOfInterest(const matrix::Vector3f &poi, const matrix::Vector3f &position, const float yaw);
 
 
@@ -58,6 +64,7 @@ private:
 
 	param_t _mnt_yaw_ctl{PARAM_INVALID};
 
-	void _publishMountOrientation(struct mount_orientation_s &mount_orientation);
+	void _publishMountOrientation(struct mount_orientation_s
+				      &mount_orientation); /** publishes on topic mount_orientation_flight_task */
 
 };

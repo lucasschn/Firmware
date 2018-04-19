@@ -71,6 +71,6 @@ void GimbalControl::pointOfInterest(const matrix::Vector3f &poi, const matrix::V
 
 void GimbalControl::_publishMountOrientation(struct mount_orientation_s &mount_orientation)
 {
-	int instance = 1;
-	orb_publish_auto(ORB_ID(mount_orientation), &_pub_mount_orientation, &mount_orientation, &instance, ORB_PRIO_DEFAULT);
+	int instance = 0;
+	orb_publish_auto(ORB_ID(mount_orientation_flight_task), &_pub_mount_orientation, &mount_orientation, &instance, ORB_PRIO_DEFAULT);
 }

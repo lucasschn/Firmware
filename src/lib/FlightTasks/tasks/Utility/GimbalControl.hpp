@@ -47,9 +47,9 @@ class GimbalControl
 {
 public:
 	GimbalControl();
-	~GimbalControl() {};
+	~GimbalControl() = default;
 
-	void _PointOfInterest(const matrix::Vector3f poi, const matrix::Vector3f position, const float yaw);
+	void pointOfInterest(const matrix::Vector3f &poi, const matrix::Vector3f &position, const float yaw);
 
 
 private:
@@ -58,6 +58,6 @@ private:
 
 	param_t _mnt_yaw_ctl{PARAM_INVALID};
 
-	void _PublishMountOrientation(struct mount_orientation_s &mount_orientation);
+	void _publishMountOrientation(struct mount_orientation_s &mount_orientation);
 
 };

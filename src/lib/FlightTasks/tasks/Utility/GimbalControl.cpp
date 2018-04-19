@@ -46,7 +46,7 @@ GimbalControl::GimbalControl()
 	_mnt_yaw_ctl = param_find("MIS_MNT_YAW_CTL");
 }
 
-void GimbalControl::_PointOfInterest(const matrix::Vector3f poi, const matrix::Vector3f position, const float yaw)
+void GimbalControl::pointOfInterest(const matrix::Vector3f &poi, const matrix::Vector3f &position, const float yaw)
 {
 	Vector2f position_to_poi_vec(poi(0) - position(0), poi(1) - position(1));
 	float position_to_poi_vec_z = poi(2) - position(2);
@@ -66,10 +66,10 @@ void GimbalControl::_PointOfInterest(const matrix::Vector3f poi, const matrix::V
 	 * substract vehicle yaw because the gimbal neutral position is in the UAV heading direction */
 	mount_orientation.attitude_euler_angle[2] = math::sign(position_to_poi_vec(1)) * wrap_pi(acosf(position_to_poi_vec(
 				0) / position_to_poi_vec.norm())) - yaw;
-	_PublishMountOrientation(mount_orientation);
+	_publishMountOrientation(mount_orientation);
 }
 
-void GimbalControl::_PublishMountOrientation(struct mount_orientation_s &mount_orientation)
+void GimbalControl::_publishMountOrientation(struct mount_orientation_s &mount_orientation)
 {
 	int instance = 1;
 	orb_publish_auto(ORB_ID(mount_orientation), &_pub_mount_orientation, &mount_orientation, &instance, ORB_PRIO_DEFAULT);

@@ -44,7 +44,8 @@ FlightTaskManual::FlightTaskManual(control::SuperBlock *parent, const char *name
 	FlightTask(parent, name),
 	_stick_dz(parent, "MPC_HOLD_DZ", false),
 	_xy_vel_man_expo(parent, "MPC_XY_MAN_EXPO", false),
-	_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false)
+	_z_vel_man_expo(parent, "MPC_Z_MAN_EXPO", false),
+	_yaw_expo(parent, "MPC_YAW_EXPO", false)
 {
 }
 
@@ -88,6 +89,7 @@ bool FlightTaskManual::_evaluateSticks()
 		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _stick_dz.get());
 		_sticks_expo(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _stick_dz.get());
 		_sticks_expo(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _stick_dz.get());
+		_sticks_expo(3) = math::expo_deadzone(_sticks(3), _yaw_expo.get(), _stick_dz.get());
 
 		return true;
 

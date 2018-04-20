@@ -586,8 +586,6 @@ then
 	then
 		mixer load /dev/pwm_output0 /etc/mixers/quad_x.main.mix
 		fmu mode_pwm3
-	else
-		tone_alarm $TUNE_ERR
 	fi
 fi
 
@@ -598,7 +596,6 @@ unset HITL_ON
 
 # There is no further script processing, so we can free some RAM
 # XXX potentially unset all script variables.
-#unset TUNE_ERR
 unset DO_TEMP_CALIB
 
 if param compare SYS_COMPANION 1921600

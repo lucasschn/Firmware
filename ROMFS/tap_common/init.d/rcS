@@ -398,12 +398,6 @@ unset TEMP_CALIB_ARGS
 
 if [ $HITL_ON == no ]
 then
-	if ver hwcmp PX4_SAME70XPLAINED_V1
-	then
-		gps start -d /dev/ttyS2
-	else
-		gps start
-	fi
 	sh /etc/init.d/rc.sensors
 	commander start
 else

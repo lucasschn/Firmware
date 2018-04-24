@@ -170,7 +170,7 @@ private:
 	// FTC related members (not upstream)
 	FaultTolerantControl 	*_fault_tolerant_control = nullptr;
 	int 			_stall_by_lost_prop = -1;
-	int 			esc_failure_check(uint8_t channel_id);
+	bool 			esc_failure_check(uint8_t channel_id);
 
 	// HITL related members (not upstream)
 	bool 	_hitl = false;
@@ -496,7 +496,7 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 	tap_esc_common::send_packet(_uart_fd, buzzer_packet, -1);
 }
 
-int TAP_ESC::esc_failure_check(uint8_t channel_id)
+bool TAP_ESC::esc_failure_check(uint8_t channel_id)
 {
 	if (!_is_armed) {
 		// clear all motor state
@@ -506,7 +506,7 @@ int TAP_ESC::esc_failure_check(uint8_t channel_id)
 
 	// the motor has happen failure so far it will not check esc state again when the vehicle is armed
 	if (_esc_feedback.engine_failure_report.motor_state & (1 << channel_id)) {
-		return channel_id;
+		return true;
 
 	} else {
 		// check esc feedback state is error
@@ -528,11 +528,11 @@ int TAP_ESC::esc_failure_check(uint8_t channel_id)
 						     channel_id, _esc_feedback.esc[channel_id].esc_state);
 			}
 
-			return channel_id;
+			return true;
 		}
 	}
 
-	return PX4_ERROR;
+	return false;
 }
 
 void TAP_ESC::cycle()
@@ -685,22 +685,17 @@ void TAP_ESC::cycle()
 
 		if (_fault_tolerant_control != nullptr) {
 
-			int failure_motor_num = -1;
 
 			for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
-				failure_motor_num = esc_failure_check(channel_id);
-
-				// enter fault tolerant control
-				if (failure_motor_num == channel_id) {
-
+				if (esc_failure_check(channel_id)) {
 					// update fault tolerant controller parameters about PID or others, only for debug PID parameters
 					_fault_tolerant_control->parameter_update_poll();
 
 					// find the motor with the failure motor is diagonal
-					uint8_t diagonal_motor_num = DIAG_MOTOR_MAP[failure_motor_num];
+					uint8_t diagonal_motor_num = DIAG_MOTOR_MAP[channel_id];
 
 					// check the diagonal motor is failure,will stop it.
-					if (esc_failure_check(diagonal_motor_num) == diagonal_motor_num) {
+					if (esc_failure_check(diagonal_motor_num)) {
 
 						// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
 						if (((hrt_absolute_time() - _wait_esc_save_log) > ESC_SAVE_LOG_DURATION_MS)
@@ -713,28 +708,28 @@ void TAP_ESC::cycle()
 					} else {
 						// recalculate output of the motor with the failure motor is diagonal
 						_outputs.output[diagonal_motor_num] = _fault_tolerant_control->recalculate_pwm_outputs(
-								_outputs.output[failure_motor_num],
+								_outputs.output[channel_id],
 								_outputs.output[diagonal_motor_num],
 								_esc_feedback.engine_failure_report.delta_pwm);
 
 						// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
 						if (((hrt_absolute_time() - _wait_esc_save_log) > ESC_SAVE_LOG_DURATION_MS)
-						    || (_esc_feedback.esc[failure_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
+						    || (_esc_feedback.esc[channel_id].esc_setpoint_raw == RPMSTOPPED)) {
 							// stop the failure motor
-							_outputs.output[failure_motor_num] = RPMSTOPPED;
+							_outputs.output[channel_id] = RPMSTOPPED;
 
 						}
 					}
 
 					// check a motor stall is caused by a collision of another motor's lost propeller
-					if (_esc_feedback.esc[failure_motor_num].esc_state == ESC_STATUS_ERROR_MOTOR_STALL) {
+					if (_esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_MOTOR_STALL) {
 						// check whether the other motor is lost propeller
 						for (uint8_t lose_id = 0; lose_id < _channels_count; lose_id++) {
 							if (_esc_feedback.esc[lose_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
 								// stop the failure motor try restart this motor
-								_outputs.output[failure_motor_num] = RPMSTOPPED;
+								_outputs.output[channel_id] = RPMSTOPPED;
 								// set the flag when the motor stall by a collision of another motor's lost propeller
-								_stall_by_lost_prop = failure_motor_num;
+								_stall_by_lost_prop = channel_id;
 								break;
 							}
 						}
@@ -742,9 +737,9 @@ void TAP_ESC::cycle()
 					}
 
 					// when ESC unlock to clear motor failure mask
-					if ((hrt_absolute_time() - _wait_esc_save_log) > 50000 && (failure_motor_num == _stall_by_lost_prop)) {
+					if ((hrt_absolute_time() - _wait_esc_save_log) > 50000 && (channel_id == _stall_by_lost_prop)) {
 						// clear this motor mask and has failure
-						_esc_feedback.engine_failure_report.motor_state &= ~(1 << failure_motor_num);
+						_esc_feedback.engine_failure_report.motor_state &= ~(1 << channel_id);
 						_stall_by_lost_prop = -1;
 					}
 				}

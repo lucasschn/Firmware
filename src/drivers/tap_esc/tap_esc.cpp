@@ -687,30 +687,29 @@ void TAP_ESC::cycle()
 		for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
 			if (esc_failure_check(channel_id)) {
 
+				// TODO: Implement for QUAD_X, this currently only works for HEX_X
 				if (_fault_tolerant_control != nullptr) {
 					// update FTC parameters about PID or others, only for debug PID parameters
 					_fault_tolerant_control->parameter_update_poll();
 
-					// Motor diagonally opposed to the failing one
-					uint8_t diagonal_motor_num = DIAG_MOTOR_MAP[channel_id];
-
 					// check the diagonal motor is also failing (we need it for FTC)
-					if (esc_failure_check(diagonal_motor_num)) {
+					if (esc_failure_check(DIAG_MOTOR_MAP[channel_id])) {
 
 						// wait for ESC to log. ESC save log frequency is 5Hz.
 						// if we stop motor beforehand, ESC state will be cleared.
 						if (((hrt_absolute_time() - _esc_log_save_start_time) > ESC_SAVE_LOG_DURATION_MS)
-						    || (_esc_feedback.esc[diagonal_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
+						    || (_esc_feedback.esc[DIAG_MOTOR_MAP[channel_id]].esc_setpoint_raw == RPMSTOPPED)) {
 							// stop the failing motor
-							_outputs.output[diagonal_motor_num] = RPMSTOPPED;
+							_outputs.output[DIAG_MOTOR_MAP[channel_id]] = RPMSTOPPED;
 
 						}
 
 					} else {
 						// recalculate output of the motor with the failure motor is diagonal
-						_outputs.output[diagonal_motor_num] = _fault_tolerant_control->recalculate_pwm_outputs(
+						_outputs.output[DIAG_MOTOR_MAP[channel_id]] =
+							_fault_tolerant_control->recalculate_pwm_outputs(
 								_outputs.output[channel_id],
-								_outputs.output[diagonal_motor_num],
+								_outputs.output[DIAG_MOTOR_MAP[channel_id]],
 								_esc_feedback.engine_failure_report.delta_pwm);
 
 						// wait for ESC to log. ESC save log frequency is 5Hz.

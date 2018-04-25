@@ -86,6 +86,7 @@
 #endif
 
 constexpr int ESC_SAVE_LOG_DURATION_MS = 200000;  //ESC log save frequency is 5Hz.
+constexpr int RESTART_STALLED_MOTOR_AFTER_MS = 50000;
 
 // Maps motor ID to diagonally-opposed motor ID
 // In PX4, motors 1 and 2, 3 and 4, 5 and 6 are diagonaly opposed
@@ -738,7 +739,8 @@ void TAP_ESC::cycle()
 
 					// For stall failure after a neighbour lost its prop: Clear failure.
 					// This will also restart the motor eventually
-					if ((hrt_absolute_time() - _wait_esc_save_log) > 50000 && (channel_id == _stall_by_lost_prop)) {
+					if ((hrt_absolute_time() - _wait_esc_save_log) > RESTART_STALLED_MOTOR_AFTER_MS &&
+					    (channel_id == _stall_by_lost_prop)) {
 						_esc_feedback.engine_failure_report.motor_state &= ~(1 << channel_id);
 						_stall_by_lost_prop = -1;
 					}

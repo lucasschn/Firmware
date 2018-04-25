@@ -153,7 +153,7 @@ private:
 	ESC_UART_BUF 	_uartbuf = {};
 	EscPacket 	_packet = {};
 
-	hrt_abstime	_wait_esc_save_log = 0;
+	hrt_abstime	_esc_log_save_start_time = 0;
 
 	// Tune related members (not upstream)
 	Tunes 		_tunes;
@@ -517,7 +517,7 @@ bool TAP_ESC::esc_failure_check(uint8_t channel_id)
 		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_CMD
 		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
 
-			_wait_esc_save_log = hrt_absolute_time();
+			_esc_log_save_start_time = hrt_absolute_time();
 
 			// set this motor's failure flag to true
 			_esc_feedback.engine_failure_report.motor_state |= 1 << channel_id;
@@ -699,7 +699,7 @@ void TAP_ESC::cycle()
 
 						// wait for ESC to log. ESC save log frequency is 5Hz.
 						// if we stop motor beforehand, ESC state will be cleared.
-						if (((hrt_absolute_time() - _wait_esc_save_log) > ESC_SAVE_LOG_DURATION_MS)
+						if (((hrt_absolute_time() - _esc_log_save_start_time) > ESC_SAVE_LOG_DURATION_MS)
 						    || (_esc_feedback.esc[diagonal_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
 							// stop the failing motor
 							_outputs.output[diagonal_motor_num] = RPMSTOPPED;
@@ -715,7 +715,7 @@ void TAP_ESC::cycle()
 
 						// wait for ESC to log. ESC save log frequency is 5Hz.
 						// if we stop motor beforehand, ESC state will be cleared.
-						if (((hrt_absolute_time() - _wait_esc_save_log) > ESC_SAVE_LOG_DURATION_MS)
+						if (((hrt_absolute_time() - _esc_log_save_start_time) > ESC_SAVE_LOG_DURATION_MS)
 						    || (_esc_feedback.esc[channel_id].esc_setpoint_raw == RPMSTOPPED)) {
 							// stop the failure motor
 							_outputs.output[channel_id] = RPMSTOPPED;
@@ -739,7 +739,7 @@ void TAP_ESC::cycle()
 
 					// For stall failure after a neighbour lost its prop: Clear failure.
 					// This will also restart the motor eventually
-					if ((hrt_absolute_time() - _wait_esc_save_log) > RESTART_STALLED_MOTOR_AFTER_MS &&
+					if ((hrt_absolute_time() - _esc_log_save_start_time) > RESTART_STALLED_MOTOR_AFTER_MS &&
 					    (channel_id == _stall_by_lost_prop)) {
 						_esc_feedback.engine_failure_report.motor_state &= ~(1 << channel_id);
 						_stall_by_lost_prop = -1;

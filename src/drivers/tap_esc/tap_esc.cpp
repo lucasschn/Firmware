@@ -500,26 +500,25 @@ bool TAP_ESC::esc_failure_check(uint8_t channel_id)
 {
 	if (!_is_armed) {
 		// TODO: I don't agree with this. Why ignore failures prior to arming?
-		// clear all motor state
+		// clear any motor failure flags
 		_esc_feedback.engine_failure_report.motor_state = 0;
 		return false;
 	}
 
-	// the motor has happen failure so far it will not check esc state again when the vehicle is armed
+	// If the motor has shown a failure once, do not check it again
 	if (_esc_feedback.engine_failure_report.motor_state & (1 << channel_id)) {
 		return true;
 
 	} else {
-		// check esc feedback state is error
+		// check for ESC errors that require handling by fault-tolerant control
 		if (_esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_MOTOR_STALL
 		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_HARDWARE
 		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_CMD
 		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
 
-			// update ESC save log start time
 			_wait_esc_save_log = hrt_absolute_time();
 
-			// set this motor mask and has failure
+			// set this motor's failure flag to true
 			_esc_feedback.engine_failure_report.motor_state |= 1 << channel_id;
 
 			// Print failure log once
@@ -687,21 +686,21 @@ void TAP_ESC::cycle()
 		for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
 			if (esc_failure_check(channel_id)) {
 
-				// If possible, perform fault-tolerant-control
 				if (_fault_tolerant_control != nullptr) {
-					// update fault tolerant controller parameters about PID or others, only for debug PID parameters
+					// update FTC parameters about PID or others, only for debug PID parameters
 					_fault_tolerant_control->parameter_update_poll();
 
-					// find the motor with the failure motor is diagonal
+					// Motor diagonally opposed to the failing one
 					uint8_t diagonal_motor_num = DIAG_MOTOR_MAP[channel_id];
 
-					// check the diagonal motor is failure,will stop it.
+					// check the diagonal motor is also failing (we need it for FTC)
 					if (esc_failure_check(diagonal_motor_num)) {
 
-						// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
+						// wait for ESC to log. ESC save log frequency is 5Hz.
+						// if we stop motor beforehand, ESC state will be cleared.
 						if (((hrt_absolute_time() - _wait_esc_save_log) > ESC_SAVE_LOG_DURATION_MS)
 						    || (_esc_feedback.esc[diagonal_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
-							// stop the failure motor
+							// stop the failing motor
 							_outputs.output[diagonal_motor_num] = RPMSTOPPED;
 
 						}
@@ -713,7 +712,8 @@ void TAP_ESC::cycle()
 								_outputs.output[diagonal_motor_num],
 								_esc_feedback.engine_failure_report.delta_pwm);
 
-						// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
+						// wait for ESC to log. ESC save log frequency is 5Hz.
+						// if we stop motor beforehand, ESC state will be cleared.
 						if (((hrt_absolute_time() - _wait_esc_save_log) > ESC_SAVE_LOG_DURATION_MS)
 						    || (_esc_feedback.esc[channel_id].esc_setpoint_raw == RPMSTOPPED)) {
 							// stop the failure motor
@@ -722,24 +722,23 @@ void TAP_ESC::cycle()
 						}
 					}
 
-					// check a motor stall is caused by a collision of another motor's lost propeller
+					// check if stall failure is caused by colliding with another motor's lost propeller
 					if (_esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_MOTOR_STALL) {
 						// check whether the other motor is lost propeller
 						for (uint8_t lose_id = 0; lose_id < _channels_count; lose_id++) {
 							if (_esc_feedback.esc[lose_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
-								// stop the failure motor try restart this motor
+								// stop the stalling motor and try restarting it
 								_outputs.output[channel_id] = RPMSTOPPED;
 								// set the flag when the motor stall by a collision of another motor's lost propeller
 								_stall_by_lost_prop = channel_id;
 								break;
 							}
 						}
-
 					}
 
-					// when ESC unlock to clear motor failure mask
+					// For stall failure after a neighbour lost its prop: Clear failure.
+					// This will also restart the motor eventually
 					if ((hrt_absolute_time() - _wait_esc_save_log) > 50000 && (channel_id == _stall_by_lost_prop)) {
-						// clear this motor mask and has failure
 						_esc_feedback.engine_failure_report.motor_state &= ~(1 << channel_id);
 						_stall_by_lost_prop = -1;
 					}

@@ -499,9 +499,10 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 bool TAP_ESC::esc_failure_check(uint8_t channel_id)
 {
 	if (!_is_armed) {
+		// TODO: I don't agree with this. Why ignore failures prior to arming?
 		// clear all motor state
 		_esc_feedback.engine_failure_report.motor_state = 0;
-
+		return false;
 	}
 
 	// the motor has happen failure so far it will not check esc state again when the vehicle is armed

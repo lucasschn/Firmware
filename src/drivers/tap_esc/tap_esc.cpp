@@ -172,7 +172,7 @@ private:
 	FaultTolerantControl 	*_fault_tolerant_control = nullptr;
 	int 			_stall_by_lost_prop = -1;
 	int8_t			_first_failing_motor = -1;  ///< First motor to show critical failure
-	bool 			esc_failure_check(uint8_t channel_id);
+	bool 			esc_critical_failure(uint8_t channel_id);
 
 	// HITL related members (not upstream)
 	bool 	_hitl = false;
@@ -498,7 +498,7 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 	tap_esc_common::send_packet(_uart_fd, buzzer_packet, -1);
 }
 
-bool TAP_ESC::esc_failure_check(uint8_t channel_id)
+bool TAP_ESC::esc_critical_failure(uint8_t channel_id)
 {
 	if (!_is_armed) {
 		// TODO: I don't agree with this. Why ignore failures prior to arming?
@@ -525,7 +525,7 @@ bool TAP_ESC::esc_failure_check(uint8_t channel_id)
 
 			// Print failure log once
 			if (_is_armed) {
-				mavlink_log_critical(&_mavlink_log_pub, "MOTOR %d ERROR IS %d",
+				mavlink_log_critical(&_mavlink_log_pub, "motor %d error: %d",
 						     channel_id, _esc_feedback.esc[channel_id].esc_state);
 			}
 
@@ -686,7 +686,7 @@ void TAP_ESC::cycle()
 
 		// Check for motor failures and if enabled engage fault-tolerant-control
 		for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
-			if (esc_failure_check(channel_id)) {
+			if (esc_critical_failure(channel_id)) {
 
 				if (_first_failing_motor == -1) {
 					// The current implementation of FTC allows only failure of one motor.
@@ -701,7 +701,7 @@ void TAP_ESC::cycle()
 					_fault_tolerant_control->parameter_update_poll();
 
 					// check the diagonal motor is also failing (we need it for FTC)
-					if (esc_failure_check(DIAG_MOTOR_MAP[channel_id])) {
+					if (esc_critical_failure(DIAG_MOTOR_MAP[channel_id])) {
 
 						// wait for ESC to log. ESC save log frequency is 5Hz.
 						// if we stop motor beforehand, ESC state will be cleared.
@@ -730,6 +730,7 @@ void TAP_ESC::cycle()
 						}
 					}
 
+					// TODO: Restart any failing motor except for the first failure for any reason!
 					// check if stall failure is caused by colliding with another motor's lost propeller
 					if (_esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_MOTOR_STALL) {
 						// check whether the other motor is lost propeller
@@ -885,6 +886,11 @@ void TAP_ESC::cycle()
 
 		_is_armed = _armed.armed;
 
+	}
+
+	// Reset flag for motor failure - no FTC while disarmed
+	if (!_is_armed) {
+		_first_failing_motor = -1;
 	}
 
 	// Handle tunes

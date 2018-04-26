@@ -171,6 +171,7 @@ private:
 	// FTC related members (not upstream)
 	FaultTolerantControl 	*_fault_tolerant_control = nullptr;
 	int 			_stall_by_lost_prop = -1;
+	int8_t			_first_failing_motor = -1;  ///< First motor to show critical failure
 	bool 			esc_failure_check(uint8_t channel_id);
 
 	// HITL related members (not upstream)
@@ -687,8 +688,15 @@ void TAP_ESC::cycle()
 		for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
 			if (esc_failure_check(channel_id)) {
 
+				if (_first_failing_motor == -1) {
+					// The current implementation of FTC allows only failure of one motor.
+					// Hence we attempt to run FTC for the first failing motor and if more
+					// fail, those are ignored. Best that can be done right now.
+					_first_failing_motor = channel_id;
+				}
+
 				// TODO: Implement for QUAD_X, this currently only works for HEX_X
-				if (_fault_tolerant_control != nullptr) {
+				if (_fault_tolerant_control != nullptr && channel_id == _first_failing_motor) {
 					// update FTC parameters about PID or others, only for debug PID parameters
 					_fault_tolerant_control->parameter_update_poll();
 

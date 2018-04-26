@@ -3734,6 +3734,9 @@ MulticopterPositionControl::execute_avoidance_velocity_waypoint()
 
 	/* we always constrain velocity since we do not know what the avoidance module sends out */
 	constrain_velocity_setpoint();
+
+	/* reset position setpoint to current position so that there are no jumps when switching off obstacle avoidance */
+	_pos_sp = _pos;
 }
 
 bool

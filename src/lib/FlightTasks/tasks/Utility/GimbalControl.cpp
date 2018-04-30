@@ -93,13 +93,14 @@ void GimbalControl::pointOfInterest(const Vector3f &poi, const Vector3f &positio
 	_publishVehicleCommand(vehicle_command);
 }
 
-void GimbalControl::_publishVehicleCommand(struct vehicle_command_s &vehicle_command)
+void GimbalControl::_publishVehicleCommand(const vehicle_command_s &vehicle_command)
 {
 
 	if (_pub_vehicle_command != nullptr) {
 		orb_publish(ORB_ID(vehicle_command), _pub_vehicle_command, &vehicle_command);
 
 	} else {
-		_pub_vehicle_command = orb_advertise(ORB_ID(vehicle_command), &vehicle_command);
+		_pub_vehicle_command = orb_advertise_queue(ORB_ID(vehicle_command), &vehicle_command,
+				       vehicle_command_s::ORB_QUEUE_LENGTH);
 	}
 }

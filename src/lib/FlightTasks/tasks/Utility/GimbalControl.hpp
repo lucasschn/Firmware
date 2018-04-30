@@ -65,8 +65,8 @@ private:
 	int32_t _sys_id = 0;
 	int32_t _cmp_id = 0;
 
-	void _publishVehicleCommand(struct vehicle_command_s
-				    &vehicle_command); /** publishes on topic vehicle_command_flight_task */
+	/** publishes on topic vehicle_command_flight_task */
+	void _publishVehicleCommand(const vehicle_command_s &vehicle_command);
 
 	DEFINE_PARAMETERS((ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mnt_yaw_ctl)
 };

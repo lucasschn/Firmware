@@ -41,7 +41,7 @@
 
 #include <matrix/matrix/math.hpp>
 #include <px4_module_params.h>
-#include <uORB/topics/mount_orientation.h>
+#include <uORB/topics/vehicle_command.h>
 
 class GimbalControl : public ModuleParams
 {
@@ -60,11 +60,13 @@ public:
 
 private:
 
-	orb_advert_t _pub_mount_orientation = nullptr;
+	orb_advert_t _pub_vehicle_command = nullptr;
 
+	int32_t _sys_id = 0;
+	int32_t _cmp_id = 0;
 
-	void _publishMountOrientation(struct mount_orientation_s
-				      &mount_orientation); /** publishes on topic mount_orientation_flight_task */
+	void _publishVehicleCommand(struct vehicle_command_s
+				    &vehicle_command); /** publishes on topic vehicle_command_flight_task */
 
 	DEFINE_PARAMETERS((ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mnt_yaw_ctl)
 };

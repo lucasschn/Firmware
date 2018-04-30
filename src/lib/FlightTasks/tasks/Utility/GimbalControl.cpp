@@ -44,6 +44,11 @@ using namespace matrix;
 GimbalControl::GimbalControl():
 	ModuleParams(nullptr)
 {
+	param_t param_sys_id = param_find("MAV_SYS_ID");
+	param_t param_comp_id = param_find("MAV_COMP_ID");
+
+	param_get(param_sys_id, &_sys_id);
+	param_get(param_comp_id, &_cmp_id);
 }
 
 void GimbalControl::pointOfInterest(const Vector3f &poi, const Vector3f &position, const float yaw)
@@ -54,26 +59,36 @@ void GimbalControl::pointOfInterest(const Vector3f &poi, const Vector3f &positio
 	float position_to_poi_vec_z = poi(2) - position(2);
 	position_to_poi_vec.normalized();
 
-	mount_orientation_s mount_orientation = {};
-	mount_orientation.timestamp = hrt_absolute_time();
+	vehicle_command_s vehicle_command = {};
+	vehicle_command.timestamp = hrt_absolute_time();
+	vehicle_command.target_system = _sys_id;
+	vehicle_command.target_component = _cmp_id;
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
+	vehicle_command.param7 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+
 	/* roll */
-	mount_orientation.attitude_euler_angle[0] = 0.0f;
+	vehicle_command.param2 = 0.0f;
 
 	/* pitch: calculate angle between ground and vehicle */
-	mount_orientation.attitude_euler_angle[1] = -atan2f(position_to_poi_vec_z, position_to_poi_vec.length());
+	vehicle_command.param1 = math::degrees(-atan2f(position_to_poi_vec_z, position_to_poi_vec.length()));
 
 	/* yaw: calculate the angle between vector v = (poi - position) and u = (1, 0)
 	 * alpha = arccos((u * v) / (||u|| * ||v||)) = arccos(v(0) / ||v||)
 	 * the sign of the angle is given by sign(u x v) = sign(u(0) * v(1) + u(1) * v(0)) = sign(v(1))
 	 * substract vehicle yaw because the gimbal neutral position is in the UAV heading direction */
-	mount_orientation.attitude_euler_angle[2] = math::sign(position_to_poi_vec(1)) * wrap_pi(acosf(position_to_poi_vec(
-				0) / position_to_poi_vec.norm())) - yaw;
-	_publishMountOrientation(mount_orientation);
+	vehicle_command.param3 = math::degrees(math::sign(position_to_poi_vec(1)) * wrap_pi(acosf(position_to_poi_vec(
+				0) / position_to_poi_vec.norm())) - yaw);
+
+	_publishVehicleCommand(vehicle_command);
 }
 
-void GimbalControl::_publishMountOrientation(struct mount_orientation_s &mount_orientation)
+void GimbalControl::_publishVehicleCommand(struct vehicle_command_s &vehicle_command)
 {
-	int instance = 0;
-	orb_publish_auto(ORB_ID(mount_orientation_flight_task), &_pub_mount_orientation, &mount_orientation, &instance,
-			 ORB_PRIO_DEFAULT);
+
+	if (_pub_vehicle_command != nullptr) {
+		orb_publish(ORB_ID(vehicle_command), _pub_vehicle_command, &vehicle_command);
+
+	} else {
+		_pub_vehicle_command = orb_advertise(ORB_ID(vehicle_command), &vehicle_command);
+	}
 }

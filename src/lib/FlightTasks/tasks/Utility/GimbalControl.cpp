@@ -41,13 +41,15 @@
 
 using namespace matrix;
 
-GimbalControl::GimbalControl()
+GimbalControl::GimbalControl():
+	ModuleParams(nullptr)
 {
-	_mnt_yaw_ctl = param_find("MIS_MNT_YAW_CTL");
 }
 
 void GimbalControl::pointOfInterest(const Vector3f &poi, const Vector3f &position, const float yaw)
 {
+	ModuleParams::updateParams();
+
 	Vector2f position_to_poi_vec(poi(0) - position(0), poi(1) - position(1));
 	float position_to_poi_vec_z = poi(2) - position(2);
 	position_to_poi_vec.normalized();

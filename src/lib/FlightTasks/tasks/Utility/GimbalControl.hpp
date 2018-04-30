@@ -40,10 +40,10 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
-#include <systemlib/param/param.h>
+#include <px4_module_params.h>
 #include <uORB/topics/mount_orientation.h>
 
-class GimbalControl
+class GimbalControl : public ModuleParams
 {
 public:
 	GimbalControl();
@@ -62,9 +62,9 @@ private:
 
 	orb_advert_t _pub_mount_orientation = nullptr;
 
-	param_t _mnt_yaw_ctl{PARAM_INVALID};
 
 	void _publishMountOrientation(struct mount_orientation_s
 				      &mount_orientation); /** publishes on topic mount_orientation_flight_task */
 
+	DEFINE_PARAMETERS((ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mnt_yaw_ctl)
 };

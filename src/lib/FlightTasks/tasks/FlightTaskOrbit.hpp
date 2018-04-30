@@ -44,6 +44,8 @@
 #include "FlightTaskManual.hpp"
 #include "Utility/GimbalControl.hpp"
 
+#include <uORB/topics/home_position.h>
+
 class FlightTaskOrbit : public FlightTaskManual
 {
 public:
@@ -52,6 +54,8 @@ public:
 	virtual ~FlightTaskOrbit() = default;
 
 	bool applyCommandParameters(const vehicle_command_s &command) override;
+
+	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 
 	bool activate() override;
 
@@ -65,4 +69,5 @@ private:
 	float _z = 0.f; /**< local z coordinate in meters */
 	matrix::Vector2f _center;
 
+	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 };

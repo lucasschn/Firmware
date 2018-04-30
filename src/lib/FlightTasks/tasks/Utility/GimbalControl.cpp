@@ -41,8 +41,8 @@
 
 using namespace matrix;
 
-GimbalControl::GimbalControl():
-	ModuleParams(nullptr)
+GimbalControl::GimbalControl(ModuleParams *parent):
+	ModuleParams(parent)
 {
 	param_t param_sys_id = param_find("MAV_SYS_ID");
 	param_t param_comp_id = param_find("MAV_COMP_ID");
@@ -53,7 +53,6 @@ GimbalControl::GimbalControl():
 
 void GimbalControl::pointOfInterest(const Vector3f &poi, const Vector3f &position, const float yaw)
 {
-	ModuleParams::updateParams();
 
 	vehicle_command_s vehicle_command = {};
 	vehicle_command.timestamp = hrt_absolute_time();

@@ -46,7 +46,7 @@
 class GimbalControl : public ModuleParams
 {
 public:
-	GimbalControl();
+	GimbalControl(ModuleParams *parent);
 	~GimbalControl() = default;
 
 	/**

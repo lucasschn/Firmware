@@ -40,7 +40,8 @@
 
 using namespace matrix;
 
-FlightTaskOrbit::FlightTaskOrbit()
+FlightTaskOrbit::FlightTaskOrbit():
+	_gimbal_control(this)
 {
 	_sticks_data_required = false;
 }

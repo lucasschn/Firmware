@@ -136,7 +136,7 @@ private:
 
 	/* sonar obstacle avoidance */
 	int 	_sonar_sub;				/**< sonar data */
-	struct distance_sensor_s _sonar_measurament; /**<sonar neasurament message>*/
+	struct distance_sensor_s _sonar_measurement; /**<sonar measurement message>*/
 	systemlib::Hysteresis _obstacle_lock_hysteresis;
 	float _yaw_obstacle_lock; /**< the yaw angle at which the vehicle exits obstacle avoidance */
 	float fuse_obstacle_distance_sonar(float altitude_above_home, float &safety_margin,
@@ -518,7 +518,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_arming_sub(-1),
 	_arming{},
 	_sonar_sub(-1),
-	_sonar_measurament{},
+	_sonar_measurement{},
 	_obstacle_lock_hysteresis(false),
 	_yaw_obstacle_lock(0.0f),
 	_smart_heading_pub(nullptr),
@@ -764,18 +764,19 @@ MulticopterPositionControl::fuse_obstacle_distance_sonar(float altitude_above_ho
 	const bool obstacle_ahead = _min_obstacle_distance < brake_distance && altitude_above_home > 1.5f;
 
 	/* sonar is pointing forward, data stream is running, omit floor detection in low altitude */
-	const bool valid_sonar_measurament = _sonar_measurament.orientation == distance_sensor_s::ROTATION_FORWARD_FACING &&
-					     hrt_elapsed_time((hrt_abstime *)&_sonar_measurament.timestamp) < DISTANCE_STREAM_TIMEOUT_US &&
+	const bool valid_sonar_measurement = _sonar_measurement.orientation == distance_sensor_s::ROTATION_FORWARD_FACING &&
+					     hrt_elapsed_time((hrt_abstime *)&_sonar_measurement.timestamp) < DISTANCE_STREAM_TIMEOUT_US &&
 					     altitude_above_home > 1.5f;
 	/* sonar: anything but maximum distance measurement is considered an obstacle */
-	const bool obstacle_ahead_sonar = _sonar_measurament.current_distance < _sonar_measurament.max_distance;
+	const bool obstacle_ahead_sonar = _sonar_measurement.current_distance < _sonar_measurement.max_distance;
 
-	if (obstacle_ahead || (valid_sonar_measurament && obstacle_ahead_sonar)) {
+	if (obstacle_ahead || (valid_sonar_measurement && obstacle_ahead_sonar)) {
 
 		if (!obstacle_ahead) {
+
 			/* sonar only detected obstacle */
-			minimum_distance_fused = _sonar_measurament.current_distance;
-			/* if only the sonar is active, increase safety margin to max_distance */
+			minimum_distance_fused = _sonar_measurement.current_distance;
+
 			/* if only the sonar is active, increase safety margin to max_distance so that the UAV
 			 * starts braking as soon as the obstacle is detected */
 			safety_margin = _sonar_measurement.max_distance;
@@ -784,8 +785,8 @@ MulticopterPositionControl::fuse_obstacle_distance_sonar(float altitude_above_ho
 			// if both sonar and obstacle_distance detect obstacle, then only consider
 			// sonar if sonar distant measurement is below safety margin
 
-			if (_sonar_measurament.current_distance <= safety_margin) {
-				minimum_distance_fused = _sonar_measurament.current_distance;
+			if (_sonar_measurement.current_distance <= safety_margin) {
+				minimum_distance_fused = _sonar_measurement.current_distance;
 			}
 		}
 	}
@@ -851,7 +852,7 @@ MulticopterPositionControl::poll_subscriptions()
 	orb_check(_sonar_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(distance_sensor), _sonar_sub, &_sonar_measurament);
+		orb_copy(ORB_ID(distance_sensor), _sonar_sub, &_sonar_measurement);
 	}
 
 	/* --- */
@@ -976,7 +977,7 @@ MulticopterPositionControl::poll_subscriptions()
 	orb_check(_sonar_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(distance_sensor), _sonar_sub, &_sonar_measurament);
+		orb_copy(ORB_ID(distance_sensor), _sonar_sub, &_sonar_measurement);
 	}
 
 }
@@ -3930,7 +3931,7 @@ MulticopterPositionControl::stop_in_front_obstacle(float altitude_above_home)
 				/* vehicle wants to fly towards obstacle */
 
 				if (minimum_distance <= safety_margin) {
-					/* vehicle is already saftety_margin close to obstacle. Don't move forward */
+					/* vehicle is already safety_margin close to obstacle. Don't move forward */
 
 					_vel_sp(0) = 0.0f;
 					_vel_sp(1) = 0.0f;

@@ -139,7 +139,7 @@ private:
 	struct distance_sensor_s _sonar_measurament; /**<sonar neasurament message>*/
 	systemlib::Hysteresis _obstacle_lock_hysteresis;
 	float _yaw_obstacle_lock; /**< the yaw angle at which the vehicle exits obstacle avoidance */
-	float fuse_obstacle_distance_sonar(float altitude_above_home, const float safety_margin,
+	float fuse_obstacle_distance_sonar(float altitude_above_home, float &safety_margin,
 					   const float brake_distance); /**< function to fuse distance data from RealSense and Sonar >*/
 
 	/* publication to allow heading dependent orientation LEDs in smart mode */
@@ -753,7 +753,7 @@ MulticopterPositionControl::parameters_update(bool force)
 
 /* --- tap specific method implementations */
 float
-MulticopterPositionControl::fuse_obstacle_distance_sonar(float altitude_above_home, const float safety_margin,
+MulticopterPositionControl::fuse_obstacle_distance_sonar(float altitude_above_home, float &safety_margin,
 		const float brake_distance)
 {
 
@@ -775,6 +775,10 @@ MulticopterPositionControl::fuse_obstacle_distance_sonar(float altitude_above_ho
 		if (!obstacle_ahead) {
 			/* sonar only detected obstacle */
 			minimum_distance_fused = _sonar_measurament.current_distance;
+			/* if only the sonar is active, increase safety margin to max_distance */
+			/* if only the sonar is active, increase safety margin to max_distance so that the UAV
+			 * starts braking as soon as the obstacle is detected */
+			safety_margin = _sonar_measurement.max_distance;
 
 		} else if (obstacle_ahead && obstacle_ahead_sonar) {
 			// if both sonar and obstacle_distance detect obstacle, then only consider
@@ -3887,7 +3891,7 @@ MulticopterPositionControl::stop_in_front_obstacle(float altitude_above_home)
 		}
 
 		/* keep a minimum braking distance of start_braking_distance, otherwise give the vehicle at least 1s time to brake*/
-		const float safety_margin = 1.0f;
+		float safety_margin = 1.0f;
 		const float brake_distance = math::max(_start_braking_distance.get(), _vel_max_xy + safety_margin);
 
 		/* tap specific: fuse obstacle_distance from RealSense and sonar */

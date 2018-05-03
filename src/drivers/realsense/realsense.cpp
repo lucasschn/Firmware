@@ -40,7 +40,7 @@
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <lib/rc/st24.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_local_position.h>

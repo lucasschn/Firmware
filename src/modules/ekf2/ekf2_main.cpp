@@ -634,6 +634,7 @@ void Ekf2::run()
 		// update all other topics if they have new data
 		bool vehicle_status_updated = false;
 
+		// yuneec-specific:
 		// Allow GPS use to be toggled by changing the aiding mask, but do not save the parameter
 		bool using_gps = (_params->fusion_mode & MASK_USE_GPS);
 
@@ -646,7 +647,8 @@ void Ekf2::run()
 			PX4_INFO("EKF fusion mode set to %i\n", _params->fusion_mode);
 		}
 
-		orb_check(gps_sub, &gps_updated);
+		bool gps_updated = false;
+		orb_check(_gps_sub, &gps_updated);
 
 		orb_check(_status_sub, &vehicle_status_updated);
 
@@ -845,7 +847,7 @@ void Ekf2::run()
 		}
 
 		// read gps data if available
-		bool gps_updated = false;
+		// bool gps_updated = false;
 		orb_check(_gps_sub, &gps_updated);
 
 		if (gps_updated) {

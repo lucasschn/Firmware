@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
@@ -205,7 +205,7 @@ private:
 
 	Mavlink	*_mavlink;
 
-	MavlinkMissionManager		_mission_manager;
+	MavlinkMissionManager		*_mission_manager;
 	MavlinkParametersManager	_parameters_manager;
 	MavlinkFTP			_mavlink_ftp;
 	MavlinkLogHandler		_mavlink_log_handler;

@@ -204,12 +204,6 @@ Navigator::gps_position_update()
 }
 
 void
-Navigator::sensor_combined_update()
-{
-	orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
-}
-
-void
 Navigator::home_position_update(bool force)
 {
 	bool updated = false;
@@ -298,7 +292,6 @@ Navigator::run()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_fw_pos_ctrl_status_sub = orb_subscribe(ORB_ID(fw_pos_ctrl_status));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
@@ -323,7 +316,6 @@ Navigator::run()
 	local_position_update();
 	local_reference_update();
 	gps_position_update();
-	sensor_combined_update();
 	home_position_update(true);
 	fw_pos_ctrl_status_update(true);
 	obstacle_avoidance_update();
@@ -388,13 +380,6 @@ Navigator::run()
 			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 				have_geofence_position_data = true;
 			}
-		}
-
-		/* sensors combined updated */
-		orb_check(_sensor_combined_sub, &updated);
-
-		if (updated) {
-			sensor_combined_update();
 		}
 
 		/* parameters updated */
@@ -685,7 +670,7 @@ Navigator::run()
 		    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 		    (hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
 
-			bool inside = _geofence.check(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos,
+			bool inside = _geofence.check(_global_pos, _gps_pos, _home_pos,
 						      home_position_valid());
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
@@ -875,7 +860,6 @@ Navigator::run()
 	orb_unsubscribe(_global_pos_sub);
 	orb_unsubscribe(_local_pos_sub);
 	orb_unsubscribe(_gps_pos_sub);
-	orb_unsubscribe(_sensor_combined_sub);
 	orb_unsubscribe(_fw_pos_ctrl_status_sub);
 	orb_unsubscribe(_vstatus_sub);
 	orb_unsubscribe(_land_detected_sub);

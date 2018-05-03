@@ -64,7 +64,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <platforms/px4_getopt.h>
 
@@ -640,19 +640,6 @@ MPC2520::ioctl(struct file *filp, int cmd, unsigned long arg)
 		 */
 		return OK;
 
-	case BAROIOCSMSLPRESSURE:
-
-		/* range-check for sanity */
-		if ((arg < 80000) || (arg > 120000)) {
-			return -EINVAL;
-		}
-
-		_msl_pressure = arg;
-		return OK;
-
-	case BAROIOCGMSLPRESSURE:
-		return _msl_pressure;
-
 	default:
 		break;
 	}
@@ -797,31 +784,6 @@ MPC2520::collect()
 
 	/* return device ID */
 	report.device_id = _device_id.devid;
-
-	/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
-
-	/* tropospheric properties (0-11km) for standard atmosphere */
-	const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
-	const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
-	const double g  = 9.80665;	/* gravity constant in m/s/s */
-	const double R  = 287.05;	/* ideal gas constant in J/kg/K */
-
-	/* current pressure at MSL in kPa */
-	double p1 = _msl_pressure / 1000.0;
-
-	/* measured pressure in kPa */
-	double p = fPCompensate / 1000.0;
-
-	/*
-	 * Solve:
-	 *
-	 *     /        -(aR / g)     \
-	 *    | (p / p1)          . T1 | - T1
-	 *     \                      /
-	 * h = -------------------------------  + h1
-	 *                   a
-	 */
-	report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
 	/* publish it */
 	if (!(_pub_blocked) && _baro_topic != nullptr) {
@@ -1000,7 +962,6 @@ test(enum MPC2520_BUS busid)
 
 	warnx("single read");
 	warnx("pressure:    %10.4f", (double)report.pressure);
-	warnx("altitude:    %11.4f", (double)report.altitude);
 	warnx("temperature: %8.4f", (double)report.temperature);
 	warnx("time:        %lld", report.timestamp);
 
@@ -1036,7 +997,6 @@ test(enum MPC2520_BUS busid)
 
 		warnx("periodic read %u", i);
 		warnx("pressure:    %10.4f", (double)report.pressure);
-		warnx("altitude:    %11.4f", (double)report.altitude);
 		warnx("temperature: %8.4f", (double)report.temperature);
 		warnx("time:        %lld", report.timestamp);
 	}

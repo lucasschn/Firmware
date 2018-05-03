@@ -2421,7 +2421,8 @@ Commander::run()
 
 		/* TODO: complete documentation of this part */
 		/* The relative altitude of the home point */
-		float current_relative_alt = global_position.alt - _home.alt;
+
+		float current_relative_alt = _global_position_sub.get().alt - _home.alt;
 		if (gohome_land_interrupt) {
 			if (!emergency_battery_voltage_actions_done && (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND || pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) &&(
 					internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
@@ -2442,7 +2443,7 @@ Commander::run()
 					fabsf(sp_man.x - 0.f) <= min_interrupt_stick_change &&
 					fabsf(sp_man.y - 0.f) <= min_interrupt_stick_change &&
 					(sp_man.z - 0.5f) <= min_interrupt_stick_change &&
-					fabsf(local_position.vx) < 0.3f && fabsf(local_position.vy) < 0.3f) {
+					fabsf(_local_position_sub.get().vx) < 0.3f && fabsf(_local_position_sub.get().vy) < 0.3f) {
 
 					/* set land interrupt hysteresis to false since sticks are not moving */
 					land_interrupt_hysteresis.set_state_and_update(false);
@@ -2560,7 +2561,7 @@ Commander::run()
 
 				if (disarm) {
 					arming_ret = arming_state_transition(&status, battery, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */,
-													&mavlink_log_pub, &status_flags, avionics_power_rail_voltage, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+													&mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 				}
 			}
 
@@ -3112,17 +3113,15 @@ Commander::run()
 	/* close fds */
 	led_deinit();
 	buzzer_deinit();
-	orb_unsubscribe(sp_man_sub);
-	orb_unsubscribe(offboard_control_mode_sub);
-	orb_unsubscribe(local_position_sub);
-	orb_unsubscribe(global_position_sub);
-	orb_unsubscribe(safety_sub);
-	orb_unsubscribe(cmd_sub);
-	orb_unsubscribe(subsys_sub);
-	orb_unsubscribe(param_changed_sub);
-	orb_unsubscribe(battery_sub);
-	orb_unsubscribe(land_detector_sub);
-	orb_unsubscribe(estimator_status_sub);
+	px4_close(sp_man_sub);
+	px4_close(offboard_control_mode_sub);
+	px4_close(safety_sub);
+	px4_close(cmd_sub);
+	px4_close(subsys_sub);
+	px4_close(param_changed_sub);
+	px4_close(battery_sub);
+	px4_close(land_detector_sub);
+	px4_close(estimator_status_sub);
 
 	thread_running = false;
 }

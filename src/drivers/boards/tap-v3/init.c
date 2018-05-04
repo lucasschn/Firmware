@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file tap_init.c
+ * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
  * nsh_archinitialize() function that is called early by nsh during startup.

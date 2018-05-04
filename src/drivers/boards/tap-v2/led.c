@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *         Author: David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,37 +33,75 @@
  ****************************************************************************/
 
 /**
- * @file tap_i2c.c
+ * @file led.c
  *
  * TAP_V1 LED backend.
  */
 
 #include <px4_config.h>
 
+#include <stdbool.h>
 
+#include "stm32.h"
 #include "board_config.h"
+
 #include <arch/board/board.h>
-#include <drivers/device/i2c.h>
-/****************************************************************************
- * Name: board_i2c_initialize
- *
- * Description:
- *   Called to set I2C bus frequncies.
- *
- ****************************************************************************/
 
-int board_i2c_initialize(void)
+/*
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
+
+__EXPORT void led_init(void)
 {
+	/* Configure LED1-2 GPIOs for output */
 
-	int ret = device::I2C::set_bus_clock(PX4_I2C_BUS_ONBOARD, PX4_I2C_BUS_ONBOARD_HZ);
+	stm32_configgpio(GPIO_BLUE_LED);
+	stm32_configgpio(GPIO_RED_LED);
+}
 
-	if (ret == OK) {
-		ret = device::I2C::set_bus_clock(PX4_I2C_BUS_SONAR, PX4_I2C_BUS_SONAR);
+__EXPORT void led_on(int led)
+{
+	if (led == 0) {
+		/* Pull down to switch on */
+		stm32_gpiowrite(GPIO_BLUE_LED, false);
 	}
 
-	if (ret == OK) {
-		ret = device::I2C::set_bus_clock(PX4_I2C_BUS_EXPANSION, PX4_I2C_BUS_EXPANSION_HZ);
+	if (led == 1) {
+		/* Pull down to switch on */
+		stm32_gpiowrite(GPIO_RED_LED, false);
+	}
+}
+
+__EXPORT void led_off(int led)
+{
+	if (led == 0) {
+		/* Pull up to switch off */
+		stm32_gpiowrite(GPIO_BLUE_LED, true);
 	}
 
-	return ret;
+	if (led == 1) {
+		/* Pull up to switch off */
+		stm32_gpiowrite(GPIO_RED_LED, true);
+	}
+}
+
+__EXPORT void led_toggle(int led)
+{
+	if (led == 0) {
+		stm32_gpiowrite(GPIO_BLUE_LED, !stm32_gpioread(GPIO_BLUE_LED));
+	}
+
+	if (led == 1) {
+		stm32_gpiowrite(GPIO_RED_LED, !stm32_gpioread(GPIO_RED_LED));
+	}
 }

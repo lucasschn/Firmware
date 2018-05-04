@@ -32,14 +32,14 @@
 #
 ############################################################################
 px4_add_library(drivers_board
-	tap_init.c
-	tap_pwr.c
-	tap_i2c.cpp
-	tap_sdio.c
-	tap_timer_config.c
-	tap_spi.c
-	tap_usb.c
-	tap_led.c
+	init.c
+	pwr.c
+	i2c.cpp
+	sdio.c
+	timer_config.c
+	spi.c
+	usb.c
+	led.c
 )
 
 target_link_libraries(drivers_board

@@ -1008,7 +1008,7 @@ test(enum MPC2520_BUS busid)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate'");
+	warnx("missing command: try 'start', 'info', 'test'");
 	warnx("options:");
 	warnx("    -X    (external I2C bus)");
 	warnx("    -I    (intternal I2C bus)");
@@ -1068,7 +1068,7 @@ mpc2520_main(int argc, char *argv[])
 		mpc2520::test(busid);
 	}
 
-	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
+	errx(1, "unrecognised command, try 'start', 'test' or 'info'");
 
 	return 0;
 }

@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 * Yaw P gain lowered from 6.0 to 3.5 because of upstream merge (#1872)
 * Obstacle Avoidance Interface (#1827)
+* Sonar-based obstacle avoidance increased trigger range and reliability (#1959)
 
 ### Fixed
 * Compass calibration uses less memory, now also works after a flight (#1884)

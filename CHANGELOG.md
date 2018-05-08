@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Added
 * ESC firmware version logging (#1786)
-* New waypoint types for Region of Interest (ROI) (#1819)
+* ROI: New waypoint types for Region of Interest (#1819)
+* Structure scan (#1819)
 * Yaw stick deadzone and exponential curve (#1910)
 
 ### Changed

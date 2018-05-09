@@ -51,6 +51,7 @@
 // Init static members
 char Flow::_device_flow[DEVICE_ARGUMENT_MAX_LENGTH] = {};
 work_s	Flow::_work = {};
+int constexpr READ_BUFFER_SIZE = 64;
 
 Flow::Flow():
 	CDev("Flow", FLOW_DEVICE_PATH),
@@ -104,14 +105,6 @@ int Flow::task_spawn(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 	}
-
-  // Initialize
-  if(flow->init_flow() != 0){
-    PX4_ERR("failed to initialize module");
-    delete flow;
-    flow = nullptr;
-    return PX4_ERROR;
-  }
 
 	_object = flow;
 
@@ -174,7 +167,7 @@ void Flow::cycle_trampoline(void *arg)
 void Flow::read_flow_data()
 {
 	// read data from the serial port
-	uint8_t rcs_buf[64] = {};
+	uint8_t rcs_buf[READ_BUFFER_SIZE] = {};
 	int newBytes = ::read(_uart_fd, &rcs_buf[0], sizeof(rcs_buf));
 
 	// Parse optical flow data
@@ -243,7 +236,7 @@ void Flow::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	}
 }
 
-int Flow::init_flow()
+int Flow::init()
 {
 	// Init UART
 	int ret = initialise_uart(_device_flow);
@@ -266,6 +259,16 @@ int Flow::init_flow()
 
 void Flow::cycle_flow()
 {
+	// Initialize module
+	// For some reason UART does not work when the initialization is done sooner
+	// right after the instantiation.
+	if(!_initialized){
+		if(init() !=0){
+			PX4_ERR("Could not init module");
+		}
+		_initialized = true;
+	}
+
 	// Process data
 	read_flow_data();
 

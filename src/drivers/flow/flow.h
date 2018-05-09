@@ -80,12 +80,13 @@ private:
 
 	static struct work_s	_work;
 	int _uart_fd = -1;
+	bool _initialized = false;
 
 	orb_advert_t _flow_pub;
 	orb_advert_t _flow_distance_sensor_pub;
 
 	static void cycle_trampoline(void *arg);
-	int init_flow();  				 	 // init - initialise the sensor
+	int init();
 	void cycle_flow();
 	int initialise_uart(const char *device);
 

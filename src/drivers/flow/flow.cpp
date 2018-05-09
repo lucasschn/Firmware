@@ -215,8 +215,8 @@ void Flow::handle_message_optical_flow_rad(mavlink_message_t *msg)
 
 	if (flow.distance > 0.0f) {  // negative values signal invalid data
 		ground_distance.timestamp = hrt_absolute_time();
-		ground_distance.min_distance = 0.2f;
-		ground_distance.max_distance = 5.f;  //According to the sensor to determine
+		ground_distance.min_distance = 0.35f;  // measurements start at 30cm, reliable after 35cm
+		ground_distance.max_distance = 5.f;  //According to the specs, to determine
 		ground_distance.current_distance = flow.distance;  // both are in m
 		ground_distance.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 		ground_distance.id = 0;

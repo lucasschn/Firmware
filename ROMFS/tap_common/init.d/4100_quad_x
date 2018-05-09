@@ -297,6 +297,11 @@ then
 fi
 
 #
+# Flow driver
+#
+flow start -d /dev/ttyS2
+
+#
 # If necessary and possible, update ESC firmware before starting the ESC driver
 #
 #if tap_esc_config update_fw -d ${ESC_TTY} -n 4

@@ -164,7 +164,7 @@ void Flow::cycle_trampoline(void *arg)
 	dev->cycle();
 }
 
-void Flow::read_flow_data()
+void Flow::read_and_pub_data()
 {
 	// read data from the serial port
 	uint8_t rcs_buf[READ_BUFFER_SIZE] = {};
@@ -176,13 +176,13 @@ void Flow::read_flow_data()
 		mavlink_status_t status = {};
 		if (mavlink_parse_char(FLOW_CHAN, rcs_buf[i], &msg, &status)) {
 			if (msg.msgid == MAVLINK_MSG_ID_OPTICAL_FLOW_RAD) {
-				handle_message_optical_flow_rad(&msg);
+				publish_flow_messages(&msg);
 			}
 		}
 	}
 }
 
-void Flow::handle_message_optical_flow_rad(mavlink_message_t *msg)
+void Flow::publish_flow_messages(mavlink_message_t *msg)
 {
 	mavlink_optical_flow_rad_t flow = {};
 	struct optical_flow_s optical_flow = {};
@@ -270,7 +270,7 @@ void Flow::cycle()
 	}
 
 	// Process data
-	read_flow_data();
+	read_and_pub_data();
 
 	if (!should_exit()) {
 		// Schedule next cycle.

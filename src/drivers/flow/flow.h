@@ -90,6 +90,6 @@ private:
 	void cycle();
 	int initialise_uart(const char *device);
 
-	void read_flow_data();
-	void handle_message_optical_flow_rad(mavlink_message_t *msg);
+	void read_and_pub_data();
+	void publish_flow_messages(mavlink_message_t *msg);
 };

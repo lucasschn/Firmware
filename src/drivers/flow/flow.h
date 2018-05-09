@@ -50,13 +50,9 @@
 
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/optical_flow_binary.h>
-#include <uORB/topics/optical_flow_upgrade_mode.h>
-#include <uORB/topics/optical_flow_upgrade_ack.h>
 
 /* Measurement rate is 100 Hz for Optical Flow info and 1KHz for image upgrade */
 #define CONVERSION_INTERVAL_FLOW	(1000000 / 100)	  /* microseconds, the measurement rate is 100 Hz */
-#define UPGRADE_INTERVAL_FLOW	(1000000 / 1000)	  /* microseconds, the measurement rate is 1K Hz */
 #define FLOW_DEVICE_PATH "/dev/flow"
 #define FLOW_CHAN 1
 
@@ -80,23 +76,16 @@ public:
 	static int print_usage(const char *reason = nullptr);
 private:
 
-	bool _initialized;
 	static char _device_flow[DEVICE_ARGUMENT_MAX_LENGTH];
 
 	static struct work_s	_work;
 	int _uart_fd = -1;
 
-	int	_optical_flow_binary_sub;			/**< vehicle optical upgrade setpoint */
-	int	_optical_flow_upgrade_mode_sub;
 	orb_advert_t _flow_pub;
-	orb_advert_t _optical_flow_upgrade_ack_pub;
 	orb_advert_t _flow_distance_sensor_pub;
-	struct optical_flow_binary_s _optical_flow_binary;
-	struct optical_flow_upgrade_mode_s _optical_flow_upgrade_mode;
 
 	static void cycle_trampoline(void *arg);
 	int init_flow();  				 	 // init - initialise the sensor
-	void poll_subscriptions();	 			 // update all msg
 	void cycle_flow();
 	int initialise_uart(const char *device);
 

@@ -54,23 +54,13 @@ work_s	Flow::_work = {};
 
 Flow::Flow():
 	CDev("Flow", FLOW_DEVICE_PATH),
-	_initialized(false),
-	_optical_flow_binary_sub(-1),
-	_optical_flow_upgrade_mode_sub(-1),
 	_flow_pub(nullptr),
-	_optical_flow_upgrade_ack_pub(nullptr),
 	_flow_distance_sensor_pub(nullptr)
 {
-	_optical_flow_upgrade_mode.enabled = false;
 }
 
 Flow::~Flow()
 {
-	if (_initialized) {
-		/* tell the task we want it to go away */
-		_initialized = false;
-	}
-
 	work_cancel(HPWORK, &_work);
 
 	::close(_uart_fd);
@@ -114,6 +104,14 @@ int Flow::task_spawn(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 	}
+
+  // Initialize
+  if(flow->init_flow() != 0){
+    PX4_ERR("failed to initialize module");
+    delete flow;
+    flow = nullptr;
+    return PX4_ERROR;
+  }
 
 	_object = flow;
 
@@ -173,72 +171,22 @@ void Flow::cycle_trampoline(void *arg)
 	dev->cycle_flow();
 }
 
-void Flow::poll_subscriptions()
-{
-	bool updated = false;
-	orb_check(_optical_flow_upgrade_mode_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(optical_flow_upgrade_mode), _optical_flow_upgrade_mode_sub, &_optical_flow_upgrade_mode);
-	}
-
-	if(_optical_flow_upgrade_mode.enabled) {
-		orb_check(_optical_flow_binary_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(optical_flow_binary), _optical_flow_binary_sub, &_optical_flow_binary);
-		}
-	}
-}
-
 void Flow::read_flow_data()
 {
 	// read data from the serial port
 	uint8_t rcs_buf[64] = {};
 	int newBytes = ::read(_uart_fd, &rcs_buf[0], sizeof(rcs_buf));
 
-	if(!_optical_flow_upgrade_mode.enabled) {
-		// Parse optical flow data
-		for (int i = 0; i < newBytes; i++) {
-			mavlink_message_t msg = {};
-			mavlink_status_t status = {};
-			if (mavlink_parse_char(FLOW_CHAN, rcs_buf[i], &msg, &status)) {
-				if (msg.msgid == MAVLINK_MSG_ID_OPTICAL_FLOW_RAD) {
-					handle_message_optical_flow_rad(&msg);
-				}
+	// Parse optical flow data
+	for (int i = 0; i < newBytes; i++) {
+		mavlink_message_t msg = {};
+		mavlink_status_t status = {};
+		if (mavlink_parse_char(FLOW_CHAN, rcs_buf[i], &msg, &status)) {
+			if (msg.msgid == MAVLINK_MSG_ID_OPTICAL_FLOW_RAD) {
+				handle_message_optical_flow_rad(&msg);
 			}
 		}
-
-	} else if (newBytes > 0) {
-		// We are upgrading the optical flow firmware.
-		// send flow bootloader ack data to the camera usart port
-		mavlink_status_t *mav_stat = mavlink_get_channel_status(FLOW_CHAN);
-
-		if (mav_stat->parse_state != MAVLINK_PARSE_STATE_IDLE) {
-			mavlink_reset_channel_status(FLOW_CHAN);  /*Reset the previous mavlink status*/
-		}
-
-		if (1 == newBytes) {
-			usleep(10);
-			newBytes = ::read(_uart_fd, &rcs_buf[1], sizeof(rcs_buf));
-			newBytes += 1;
-		}
-
-		struct optical_flow_upgrade_ack_s optical_flow_upgrade_ack = {};
-
-		optical_flow_upgrade_ack.size = newBytes;
-
-		memcpy(optical_flow_upgrade_ack.data, &rcs_buf[0], newBytes);
-
-		if (_optical_flow_upgrade_ack_pub == nullptr) {
-			_optical_flow_upgrade_ack_pub = orb_advertise(ORB_ID(optical_flow_upgrade_ack), &optical_flow_upgrade_ack);
-
-		} else {
-			orb_publish(ORB_ID(optical_flow_upgrade_ack), _optical_flow_upgrade_ack_pub, &optical_flow_upgrade_ack);
-
-		}
 	}
-
 }
 
 void Flow::handle_message_optical_flow_rad(mavlink_message_t *msg)
@@ -313,49 +261,18 @@ int Flow::init_flow()
 		return ret;
 	}
 
-	if (!_initialized) {
-		_optical_flow_binary_sub = orb_subscribe(ORB_ID(optical_flow_binary));
-		_optical_flow_upgrade_mode_sub = orb_subscribe(ORB_ID(optical_flow_upgrade_mode));
-		memset(&_optical_flow_binary, 0, sizeof(_optical_flow_binary));
-		_initialized = true;
-	}
-
 	return PX4_OK;
 }
 
 void Flow::cycle_flow()
 {
-	// Complete initialization if necessary
-	if (!_initialized) {
-		init_flow();
-	}
-
-	// Get new data
-	poll_subscriptions();
-
 	// Process data
 	read_flow_data();
 
-	if( _optical_flow_upgrade_mode.enabled) {
-		// write data to the serial port
-		if (_optical_flow_binary.size > 0) {
-			if (::write(_uart_fd, _optical_flow_binary.data, _optical_flow_binary.size) < 0) {
-				PX4_ERR("failed to write data to serial port \n");
-			}
-		}
-	}
-
 	if (!should_exit()) {
 		// Schedule next cycle.
-		if( _optical_flow_upgrade_mode.enabled) {
-			work_queue(HPWORK, &_work, (worker_t)&Flow::cycle_trampoline, this,
-				   USEC2TICK(UPGRADE_INTERVAL_FLOW));
-
-		} else {
 			work_queue(HPWORK, &_work, (worker_t)&Flow::cycle_trampoline, this,
 				   USEC2TICK(CONVERSION_INTERVAL_FLOW));
-		}
-
 	}
 }
 

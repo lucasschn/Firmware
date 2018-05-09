@@ -161,7 +161,7 @@ flow start -d /dev/ttyS2
 void Flow::cycle_trampoline(void *arg)
 {
 	Flow *dev = reinterpret_cast<Flow *>(arg);
-	dev->cycle_flow();
+	dev->cycle();
 }
 
 void Flow::read_flow_data()
@@ -257,7 +257,7 @@ int Flow::init()
 	return PX4_OK;
 }
 
-void Flow::cycle_flow()
+void Flow::cycle()
 {
 	// Initialize module
 	// For some reason UART does not work when the initialization is done sooner

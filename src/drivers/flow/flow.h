@@ -87,7 +87,7 @@ private:
 
 	static void cycle_trampoline(void *arg);
 	int init();
-	void cycle_flow();
+	void cycle();
 	int initialise_uart(const char *device);
 
 	void read_flow_data();

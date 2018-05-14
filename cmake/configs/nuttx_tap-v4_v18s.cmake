@@ -7,5 +7,5 @@ list(REMOVE_ITEM config_module_list
 )
 
 list(APPEND config_module_list
-	drivers/flow
+	drivers/yuneec_flow
 )

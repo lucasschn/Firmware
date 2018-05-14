@@ -34,12 +34,12 @@
 include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
 
 px4_add_module(
-	MODULE drivers__flow
-	MAIN flow
+	MODULE drivers__yuneec_flow
+	MAIN yuneec_flow
 	STACK_MAIN 1400
 	COMPILE_FLAGS
 	SRCS
-		flow.cpp
+		yuneec_flow.cpp
 	DEPENDS
 		platforms__common
 	)

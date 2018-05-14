@@ -33,7 +33,7 @@
 
 
 
-#include "flow.h"
+#include "yuneec_flow.h"
 
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -59,16 +59,16 @@
 #include <uORB/topics/distance_sensor.h>
 
 // Init static members
-char Flow::_device_flow[DEVICE_ARGUMENT_MAX_LENGTH] = {};
-work_s Flow::_work = {};
+char Yuneec_Flow::_device_flow[DEVICE_ARGUMENT_MAX_LENGTH] = {};
+work_s Yuneec_Flow::_work = {};
 int constexpr READ_BUFFER_SIZE = 64;
 
-Flow::Flow():
-	CDev("Flow", FLOW_DEVICE_PATH)
+Yuneec_Flow::Yuneec_Flow():
+	CDev("Yuneec_Flow", FLOW_DEVICE_PATH)
 {
 }
 
-Flow::~Flow()
+Yuneec_Flow::~Yuneec_Flow()
 {
 	work_cancel(HPWORK, &_work);
 
@@ -76,7 +76,7 @@ Flow::~Flow()
 }
 
 /** @see ModuleBase */
-int Flow::task_spawn(int argc, char *argv[])
+int Yuneec_Flow::task_spawn(int argc, char *argv[])
 {
 	// parse the arguments
 	const char *device = nullptr;
@@ -103,10 +103,10 @@ int Flow::task_spawn(int argc, char *argv[])
 	}
 
 	// Instantiate task
-	Flow *flow = nullptr;
+	Yuneec_Flow *flow = nullptr;
 
 	if (_object == nullptr) {
-		flow = new Flow();
+		flow = new Yuneec_Flow();
 
 		if (flow == nullptr) {
 			PX4_ERR("failed to start flow");
@@ -117,7 +117,7 @@ int Flow::task_spawn(int argc, char *argv[])
 	_object = flow;
 
 	// schedule a cycle to start things
-	int ret = work_queue(HPWORK, &_work, (worker_t)&Flow::cycle_trampoline, flow, 0);
+	int ret = work_queue(HPWORK, &_work, (worker_t)&Yuneec_Flow::cycle_trampoline, flow, 0);
 
 	if (ret < 0) {
 		return ret;
@@ -137,13 +137,13 @@ int Flow::task_spawn(int argc, char *argv[])
 
 /** @see ModuleBase */
 int
-Flow::custom_command(int argc, char *argv[])
+Yuneec_Flow::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
 /** @see ModuleBase */
-int Flow::print_usage(const char *reason)
+int Yuneec_Flow::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -155,10 +155,10 @@ int Flow::print_usage(const char *reason)
 Driver module for flow. Runs on high-priority work-queue.
 ### Example
 The module is typically started with:
-flow start -d /dev/ttyS2
+yuneec_flow start -d /dev/ttyS2
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("flow", "driver");
+	PRINT_MODULE_USAGE_NAME("yuneec_flow", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Device used to talk to ESCs", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop the task");
@@ -166,13 +166,13 @@ flow start -d /dev/ttyS2
 	return PX4_OK;
 }
 
-void Flow::cycle_trampoline(void *arg)
+void Yuneec_Flow::cycle_trampoline(void *arg)
 {
-	Flow *dev = reinterpret_cast<Flow *>(arg);
+	Yuneec_Flow *dev = reinterpret_cast<Yuneec_Flow *>(arg);
 	dev->cycle();
 }
 
-void Flow::read_and_pub_data()
+void Yuneec_Flow::read_and_pub_data()
 {
 	// read data from the serial port
 	uint8_t rcs_buf[READ_BUFFER_SIZE] = {};
@@ -190,7 +190,7 @@ void Flow::read_and_pub_data()
 	}
 }
 
-void Flow::publish_flow_messages(mavlink_message_t *msg)
+void Yuneec_Flow::publish_flow_messages(mavlink_message_t *msg)
 {
 	mavlink_optical_flow_rad_t flow = {};
 	struct optical_flow_s optical_flow = {};
@@ -244,7 +244,7 @@ void Flow::publish_flow_messages(mavlink_message_t *msg)
 	}
 }
 
-int Flow::init()
+int Yuneec_Flow::init()
 {
 	// Init UART
 	int ret = initialise_uart(_device_flow);
@@ -265,7 +265,7 @@ int Flow::init()
 	return PX4_OK;
 }
 
-void Flow::cycle()
+void Yuneec_Flow::cycle()
 {
 	// Initialize module
 	// For some reason UART does not work when the initialization is done sooner
@@ -282,12 +282,12 @@ void Flow::cycle()
 
 	if (!should_exit()) {
 		// Schedule next cycle.
-			work_queue(HPWORK, &_work, (worker_t)&Flow::cycle_trampoline, this,
+			work_queue(HPWORK, &_work, (worker_t)&Yuneec_Flow::cycle_trampoline, this,
 				   USEC2TICK(CONVERSION_INTERVAL_FLOW));
 	}
 }
 
-int Flow::initialise_uart(const char *device)
+int Yuneec_Flow::initialise_uart(const char *device)
 {
 	// open uart
 	_uart_fd = px4_open(device, O_RDWR | O_NONBLOCK | O_NOCTTY);
@@ -333,8 +333,8 @@ int Flow::initialise_uart(const char *device)
 }
 
 // driver 'main' command
-extern "C" __EXPORT int flow_main(int argc, char *argv[]);
-int flow_main(int argc, char *argv[])
+extern "C" __EXPORT int yuneec_flow_main(int argc, char *argv[]);
+int yuneec_flow_main(int argc, char *argv[])
 {
-	return Flow::main(argc, argv);
+	return Yuneec_Flow::main(argc, argv);
 }

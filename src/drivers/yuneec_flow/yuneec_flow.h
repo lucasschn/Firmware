@@ -50,11 +50,11 @@
 #  define DEVICE_ARGUMENT_MAX_LENGTH 20
 #endif
 
-class Flow: public device::CDev, public ModuleBase<Flow>
+class Yuneec_Flow: public device::CDev, public ModuleBase<Yuneec_Flow>
 {
 public:
-	Flow();
-	~Flow();
+	Yuneec_Flow();
+	~Yuneec_Flow();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);

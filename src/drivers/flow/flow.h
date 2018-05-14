@@ -34,22 +34,12 @@
 
 
 #include <px4_module.h>
-#include <px4_posix.h>
 #include <px4_workqueue.h>
 
-#include <errno.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <drivers/device/device.h>
-#include <uORB/uORB.h>
 
 #include <v2.0/yuneec/mavlink.h>
 #include <v2.0/mavlink_types.h>
-
-#include <uORB/topics/optical_flow.h>
-#include <uORB/topics/distance_sensor.h>
 
 /* Measurement rate is 100 Hz for Optical Flow info and 1KHz for image upgrade */
 #define CONVERSION_INTERVAL_FLOW	(1000000 / 100)	  /* microseconds, the measurement rate is 100 Hz */
@@ -74,22 +64,20 @@ public:
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
+
 private:
-
 	static char _device_flow[DEVICE_ARGUMENT_MAX_LENGTH];
-
 	static struct work_s	_work;
 	int _uart_fd = -1;
 	bool _initialized = false;
 
-	orb_advert_t _flow_pub;
-	orb_advert_t _flow_distance_sensor_pub;
+	orb_advert_t _flow_pub = nullptr;
+	orb_advert_t _flow_distance_sensor_pub = nullptr;
 
 	static void cycle_trampoline(void *arg);
 	int init();
 	void cycle();
 	int initialise_uart(const char *device);
-
 	void read_and_pub_data();
 	void publish_flow_messages(mavlink_message_t *msg);
 };

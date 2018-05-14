@@ -35,28 +35,36 @@
 
 #include "flow.h"
 
-#include <px4_config.h>	// NOTE: Unused, but maybe we should use it (open close read write poll)
+#include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
+#include <px4_posix.h>
 #include <px4_tasks.h>
 
-#include <poll.h>
-#include <string.h>
-#include <termios.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/conversion/rotation.h>
-#include <drivers/drv_hrt.h>
+#include <poll.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <systemlib/param/param.h>
+#include <termios.h>
+#include <unistd.h>
+
+#include <uORB/uORB.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/distance_sensor.h>
 
 // Init static members
 char Flow::_device_flow[DEVICE_ARGUMENT_MAX_LENGTH] = {};
-work_s	Flow::_work = {};
+work_s Flow::_work = {};
 int constexpr READ_BUFFER_SIZE = 64;
 
 Flow::Flow():
-	CDev("Flow", FLOW_DEVICE_PATH),
-	_flow_pub(nullptr),
-	_flow_distance_sensor_pub(nullptr)
+	CDev("Flow", FLOW_DEVICE_PATH)
 {
 }
 
@@ -64,7 +72,7 @@ Flow::~Flow()
 {
 	work_cancel(HPWORK, &_work);
 
-	::close(_uart_fd);
+	px4_close(_uart_fd);
 }
 
 /** @see ModuleBase */
@@ -168,7 +176,7 @@ void Flow::read_and_pub_data()
 {
 	// read data from the serial port
 	uint8_t rcs_buf[READ_BUFFER_SIZE] = {};
-	int newBytes = ::read(_uart_fd, &rcs_buf[0], sizeof(rcs_buf));
+	int newBytes = px4_read(_uart_fd, &rcs_buf[0], sizeof(rcs_buf));
 
 	// Parse optical flow data
 	for (int i = 0; i < newBytes; i++) {
@@ -224,11 +232,11 @@ void Flow::publish_flow_messages(mavlink_message_t *msg)
 		ground_distance.covariance = 0.f;
 
 		// There are 2 sonars -> use multi
-		int _orb_class_instance = -1;
+		int orb_class_instance;
 
 		if (_flow_distance_sensor_pub == nullptr) {
 			_flow_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &ground_distance,
-						    &_orb_class_instance, ORB_PRIO_LOW);
+						    &orb_class_instance, ORB_PRIO_LOW);
 
 		} else {
 			orb_publish(ORB_ID(distance_sensor), _flow_distance_sensor_pub, &ground_distance);
@@ -282,7 +290,7 @@ void Flow::cycle()
 int Flow::initialise_uart(const char *device)
 {
 	// open uart
-	_uart_fd = ::open(device, O_RDWR | O_NONBLOCK | O_NOCTTY);
+	_uart_fd = px4_open(device, O_RDWR | O_NONBLOCK | O_NOCTTY);
 
 	if (_uart_fd < 0) {
 		PX4_ERR("failed to open uart device!");
@@ -293,30 +301,31 @@ int Flow::initialise_uart(const char *device)
 
 	int termios_state = -1;
 
-	/* fill the struct for the new configuration */
+	// fill the struct for the new configuration
 	tcgetattr(_uart_fd, &uart_config);
 
-	/* properly configure the terminal (see also https://en.wikibooks.org/wiki/Serial_Programming/termios ) */
-
+	// Configure the terminal (see also https://en.wikibooks.org/wiki/Serial_Programming/termios )
 	// clear ONLCR flag (which appends a CR for every LF)
 	uart_config.c_oflag &= ~ONLCR;
 
-	/* set baud rate */
+	// input baud rate
 	if ((termios_state = cfsetispeed(&uart_config, B500000)) < 0) {
-		PX4_ERR("ERR: %d (cfsetispeed)", termios_state);
-		::close(_uart_fd);
+		PX4_ERR("UART error: %d (cfsetispeed)", termios_state);
+		px4_close(_uart_fd);
 		return -1;
 	}
 
+	// output baud rate
 	if ((termios_state = cfsetospeed(&uart_config, B500000)) < 0) {
-		PX4_ERR("ERR: %d (cfsetospeed)", termios_state);
-		::close(_uart_fd);
+		PX4_ERR("UART error: %d (cfsetospeed)", termios_state);
+		px4_close(_uart_fd);
 		return -1;
 	}
 
+	// Apply change immediately
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
-		PX4_ERR("ERR: %d (tcsetattr)", termios_state);
-		::close(_uart_fd);
+		PX4_ERR("UART error: %d (tcsetattr)", termios_state);
+		px4_close(_uart_fd);
 		return -1;
 	}
 
@@ -324,11 +333,6 @@ int Flow::initialise_uart(const char *device)
 }
 
 // driver 'main' command
-/**
-* flow start / stop handling function
-* This makes the flow drivers accessible from the nuttx shell
-* @ingroup apps
-*/
 extern "C" __EXPORT int flow_main(int argc, char *argv[]);
 int flow_main(int argc, char *argv[])
 {

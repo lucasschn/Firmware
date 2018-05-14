@@ -3578,6 +3578,11 @@ MulticopterPositionControl::task_main()
 			/* update previous velocity for velocity controller D part */
 			_vel_prev = _vel;
 
+			/* Yuneec H520* specific: make sure the landing gear stays unchanged while not armed or inverted */
+			if (!_control_mode.flag_armed && !_vehicle_land_detected.inverted) {
+				_att_sp.landing_gear = 0;
+			}
+
 			/* publish attitude setpoint
 			 * Do not publish if
 			 * - offboard is enabled but position/velocity/accel control is disabled,

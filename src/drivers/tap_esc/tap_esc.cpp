@@ -700,10 +700,20 @@ void TAP_ESC::cycle()
 					// update FTC parameters about PID or others, only for debug PID parameters
 					_fault_tolerant_control->parameter_update_poll();
 
-					// check the diagonal motor is also failing (we need it for FTC)
+					// Stop the first failing motor after it stored the log.
+					// wait long enough for ESC to log. ESC log save frequency is 5Hz.
+					// if we stop motor beforehand, ESC state will be cleared.
+					if (((hrt_absolute_time() - _esc_log_save_start_time) > ESC_SAVE_LOG_DURATION_MS)
+					    || (_esc_feedback.esc[channel_id].esc_setpoint_raw == RPMSTOPPED)) {
+						// stop the failing motor
+						_outputs.output[channel_id] = RPMSTOPPED;
+					}
+
+					// check the diagonal motor is also failing. If not, use it for
+					// five-rotor-mode.
 					if (esc_critical_failure(DIAG_MOTOR_MAP[channel_id])) {
 
-						// wait for ESC to log. ESC save log frequency is 5Hz.
+						// wait long enough for ESC to log. ESC log save frequency is 5Hz.
 						// if we stop motor beforehand, ESC state will be cleared.
 						if (((hrt_absolute_time() - _esc_log_save_start_time) > ESC_SAVE_LOG_DURATION_MS)
 						    || (_esc_feedback.esc[DIAG_MOTOR_MAP[channel_id]].esc_setpoint_raw == RPMSTOPPED)) {
@@ -719,15 +729,6 @@ void TAP_ESC::cycle()
 								_outputs.output[channel_id],
 								_outputs.output[DIAG_MOTOR_MAP[channel_id]],
 								_esc_feedback.engine_failure_report.delta_pwm);
-
-						// wait for ESC to log. ESC save log frequency is 5Hz.
-						// if we stop motor beforehand, ESC state will be cleared.
-						if (((hrt_absolute_time() - _esc_log_save_start_time) > ESC_SAVE_LOG_DURATION_MS)
-						    || (_esc_feedback.esc[channel_id].esc_setpoint_raw == RPMSTOPPED)) {
-							// stop the failure motor
-							_outputs.output[channel_id] = RPMSTOPPED;
-
-						}
 					}
 
 					// TODO: Restart any failing motor except for the first failure for any reason!

@@ -606,8 +606,9 @@ void TAP_ESC::cycle()
 			}
 		}
 
-		/* get the actual (i.e. non-faulty) number of motors */
-		uint8_t num_outputs = _channels_count - motor_fault_count;
+		// NOTE: HOTFIX: In case of one or more faulty motors, reduce the number of outputs by 1
+		// to notify the mixer of FTC running
+		uint8_t num_outputs = _channels_count - bool(motor_fault_count > 0);
 
 		/* can we mix? */
 		_outputs.timestamp = hrt_absolute_time();
@@ -626,6 +627,7 @@ void TAP_ESC::cycle()
 
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = num_outputs; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
+				// TODO: Set to RPMSTOPPED instead of NAN?
 				_outputs.output[i] = NAN;
 			}
 
@@ -679,6 +681,7 @@ void TAP_ESC::cycle()
 
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = num_outputs; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
+				// TODO: Set to RPMSTOPPED instead of NAN?
 				_outputs.output[i] = NAN;
 			}
 
@@ -879,8 +882,9 @@ void TAP_ESC::cycle()
 		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
 		if (_is_armed != _armed.armed) {
-			/* reset all outputs */
+			/* Switching from armed to disarmed: reset all outputs */
 			for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
+				// TODO: Set to RPMSTOPPED instead of NAN?
 				_outputs.output[i] = NAN;
 			}
 		}

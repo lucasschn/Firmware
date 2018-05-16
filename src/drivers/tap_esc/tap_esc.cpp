@@ -157,7 +157,6 @@ private:
 
 	// Tune related members (not upstream)
 	Tunes 		_tunes;
-	tune_control_s 	_tune;
 	hrt_abstime 	_next_tone;
 	bool 		_play_tone = false;
 	int 		_tune_control_sub = -1;
@@ -904,9 +903,10 @@ void TAP_ESC::cycle()
 	hrt_abstime now = hrt_absolute_time();
 
 	if (updated) {
-		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune);
+		tune_control_s 	tune;
+		orb_copy(ORB_ID(tune_control), _tune_control_sub, &tune);
 
-		if (_tunes.set_control(_tune) == 0) {
+		if (_tunes.set_control(tune) == 0) {
 			_next_tone = hrt_absolute_time();
 			_play_tone = true;
 
@@ -920,7 +920,6 @@ void TAP_ESC::cycle()
 	EscbusTunePacket esc_tune_packet;
 
 	if ((now >= _next_tone) && _play_tone) {
-		_play_tone = false;
 		int parse_ret_val = _tunes.get_next_tune(frequency, duration, silence, strength);
 
 		// Is there right now a tone that needs to be played?
@@ -938,9 +937,7 @@ void TAP_ESC::cycle()
 		}
 
 		// Does a tone follow after this one?
-		if (parse_ret_val > 0) {
-			_play_tone = true;
-		}
+		_play_tone = (parse_ret_val > 0);
 	}
 
 	/* check for parameter updates */

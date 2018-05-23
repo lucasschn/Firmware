@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -84,10 +84,10 @@ enum MPC2520_MODE {
 	CONTINUOUS_P_AND_T
 };
 
-/* internal conversion time: 9.17 ms, so should not be read at rates higher than 100 Hz */
+/* internal conversion time is 9.17 ms, so sensor should not be polled at rates higher than 100 Hz */
 #define MPC2520_CONVERSION_INTERVAL	25000	/* microseconds */
 #define MPC2520_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
-#define MPC2520_BARO_DEVICE_PATH_EXT	"/dev/mpc2520_ext"
+#define MPC2520_BARO_DEVICE_PATH_EXT	"/dev/mpc2520_ext"  // TODO: Move to some header
 #define MPC2520_BARO_DEVICE_PATH_INT	"/dev/mpc2520_int"
 
 class MPC2520 : public device::CDev
@@ -196,9 +196,9 @@ protected:
 	int			read_reg(uint8_t reg, uint8_t &val);
 
 
-	int 		rateset(uint8_t iSensor, uint8_t u8SmplRate, uint8_t u8OverSmpl);
+	int	 		set_sampling_rate(uint8_t iSensor, uint8_t u8SmplRate, uint8_t u8OverSmpl);
 
-	int 		modeset(uint8_t mode);
+	int	 		set_measure_mode(uint8_t mode);
 
 	/**
 	 * Collect the result of the most recent measurement.
@@ -260,8 +260,7 @@ MPC2520::~MPC2520()
 	delete _interface;
 }
 
-int
-MPC2520::init()
+int MPC2520::init()
 {
 	int ret;
 
@@ -269,7 +268,7 @@ MPC2520::init()
 
 	if (ret != OK) {
 		DEVICE_DEBUG("CDev init failed");
-		goto out;
+		goto out;  // TODO: Get rid of goto
 	}
 
 	/* allocate basic report buffers */
@@ -278,7 +277,7 @@ MPC2520::init()
 	if (_reports == nullptr) {
 		DEVICE_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
-		goto out;
+		goto out;  // TODO: Get rid of goto
 	}
 
 	/* register alternate interfaces if we have to */
@@ -292,12 +291,12 @@ MPC2520::init()
 	/* this do..while is goto without goto */
 	do {
 		// sampling rate = 1Hz; Pressure oversample = 2;
-		rateset(PRESSURE_SENSOR, 32, 8);
+		set_sampling_rate(PRESSURE_SENSOR, 32, 8);
 
 		// sampling rate = 1Hz; Temperature oversample = 1;
-		rateset(TEMPERATURE_SENSOR, 32, 8);
+		set_sampling_rate(TEMPERATURE_SENSOR, 32, 8);
 
-		modeset(CONTINUOUS_P_AND_T);
+		set_measure_mode(CONTINUOUS_P_AND_T);
 
 		usleep(MPC2520_CONVERSION_INTERVAL);
 
@@ -325,15 +324,13 @@ out:
 	return ret;
 }
 
-int
-MPC2520::write_reg(uint8_t reg, uint8_t val)
+int MPC2520::write_reg(uint8_t reg, uint8_t val)
 {
 	uint8_t buf = val;
 	return _interface->write(reg, &buf, 1);
 }
 
-int
-MPC2520::read_reg(uint8_t reg, uint8_t &val)
+int MPC2520::read_reg(uint8_t reg, uint8_t &val)
 {
 	uint8_t buf = val;
 	int ret = _interface->read(reg, &buf, 1);
@@ -341,12 +338,12 @@ MPC2520::read_reg(uint8_t reg, uint8_t &val)
 	return ret;
 }
 
-int
-MPC2520::rateset(uint8_t iSensor, uint8_t u8SmplRate, uint8_t u8OverSmpl)
+int MPC2520::set_sampling_rate(uint8_t iSensor, uint8_t u8SmplRate, uint8_t u8OverSmpl)
 {
 	uint8_t reg = 0;
 	int32_t i32kPkT = 0;
 
+	// TODO: document what's going on
 	switch (u8SmplRate) {
 	case 2:
 		reg |= (1 << 4);
@@ -381,6 +378,7 @@ MPC2520::rateset(uint8_t iSensor, uint8_t u8SmplRate, uint8_t u8OverSmpl)
 		break;
 	}
 
+	// TODO: Mention source PDF
 	switch (u8OverSmpl) {
 	case 2:
 		reg |= 1;
@@ -431,7 +429,7 @@ MPC2520::rateset(uint8_t iSensor, uint8_t u8SmplRate, uint8_t u8OverSmpl)
 		if (u8OverSmpl > 8) {
 			read_reg(MPC2520_CFG_REG, reg);
 
-			reg = reg | 0x04;
+			reg = reg | 0x04;  // TODO: what's 0x04 magic?
 			write_reg(MPC2520_CFG_REG, reg);
 
 		} else {
@@ -445,19 +443,19 @@ MPC2520::rateset(uint8_t iSensor, uint8_t u8SmplRate, uint8_t u8OverSmpl)
 	if (iSensor == TEMPERATURE_SENSOR) {
 		_kT = i32kPkT;
 
-		reg = reg | 0x80;
+		reg = reg | 0x80;  // TODO: magic
 		write_reg(MPC2520_TMP_CFG, reg);
 
 		if (u8OverSmpl > 8) {
 			read_reg(MPC2520_CFG_REG, reg);
 
-			reg = reg | 0x08;
+			reg = reg | 0x08;  // TODO: magic
 			write_reg(MPC2520_CFG_REG, reg);
 
 		} else {
 			read_reg(MPC2520_CFG_REG, reg);
 
-			reg = reg & (~0x08);
+			reg = reg & (~0x08);  // TODO: magic
 			write_reg(MPC2520_CFG_REG, reg);
 		}
 	}
@@ -466,10 +464,11 @@ MPC2520::rateset(uint8_t iSensor, uint8_t u8SmplRate, uint8_t u8OverSmpl)
 }
 
 int
-MPC2520::modeset(uint8_t mode)
+MPC2520::set_measure_mode(uint8_t mode)
 {
 	uint8_t mearsure_mode = 0x00;
 
+	// TODO: Define and document measure modes
 	switch (mode) {
 	case 0:
 		mearsure_mode = 0x01;
@@ -540,7 +539,7 @@ MPC2520::read(struct file *filp, char *buffer, size_t buflen)
 			ret = sizeof(*brp);
 		}
 
-	} while (0);
+	} while (0);  //TODO what's the point of this while loop?!
 
 	return ret;
 }
@@ -649,8 +648,7 @@ MPC2520::ioctl(struct file *filp, int cmd, unsigned long arg)
 	return CDev::ioctl(filp, cmd, arg);
 }
 
-void
-MPC2520::start_cycle(unsigned delay_ticks)
+void MPC2520::start_cycle(unsigned delay_ticks)
 {
 
 	/* reset the report ring and state machine */
@@ -662,22 +660,19 @@ MPC2520::start_cycle(unsigned delay_ticks)
 	work_queue(HPWORK, &_work, (worker_t)&MPC2520::cycle_trampoline, this, delay_ticks);
 }
 
-void
-MPC2520::stop_cycle()
+void MPC2520::stop_cycle()
 {
 	work_cancel(HPWORK, &_work);
 }
 
-void
-MPC2520::cycle_trampoline(void *arg)
+void MPC2520::cycle_trampoline(void *arg)
 {
 	MPC2520 *dev = reinterpret_cast<MPC2520 *>(arg);
 
 	dev->cycle();
 }
 
-void
-MPC2520::cycle()
+void MPC2520::cycle()
 {
 	int ret;
 	unsigned dummy;
@@ -686,7 +681,7 @@ MPC2520::cycle()
 	ret = collect();
 
 	if (ret != OK) {
-		if (ret == -6) {
+		if (ret == -6) {  // TODO: magic number. Also, the if-statement does absolutely nothing
 
 		} else {
 			//DEVICE_LOG("collection error %d", ret);
@@ -730,8 +725,7 @@ MPC2520::cycle()
 		   USEC2TICK(MPC2520_CONVERSION_INTERVAL));
 }
 
-int
-MPC2520::collect()
+int MPC2520::collect()
 {
 	int ret;
 	uint8_t buf[3];
@@ -758,7 +752,7 @@ MPC2520::collect()
 	}
 
 	raw = (int32_t)(buf[0] << 16) | (int32_t)(buf[1] << 8) | (int32_t)buf[2];
-	raw = (raw & 0x800000) ? (0xFF000000 | raw) : raw;
+	raw = (raw & 0x800000) ? (0xFF000000 | raw) : raw;  // TODO: more magic numbers
 	fTsc = raw / (double)_kT;
 	fTCompensate =  _prom.c0 * 0.5 + _prom.c1 * fTsc;
 
@@ -843,8 +837,7 @@ void	usage();
 /**
  * Start the driver.
  */
-bool
-start_bus(struct mpc2520_bus_option &bus)
+bool start_bus(struct mpc2520_bus_option &bus)
 {
 	if (bus.dev != nullptr) {
 		errx(1, "bus option already started");
@@ -869,11 +862,11 @@ start_bus(struct mpc2520_bus_option &bus)
 
 	int fd = open(bus.devpath, O_RDONLY);
 
-	/* set the poll rate to default, starts automatic data collection */
 	if (fd == -1) {
 		errx(1, "can't open baro device");
 	}
 
+	/* set the poll rate to default, starts automatic data collection */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		close(fd);
 		errx(1, "failed setting default poll rate");
@@ -889,8 +882,7 @@ start_bus(struct mpc2520_bus_option &bus)
  * This function call only returns once the driver
  * is either successfully up and running or failed to start.
  */
-void
-start(enum MPC2520_BUS busid)
+void start(enum MPC2520_BUS busid)
 {
 	uint8_t i;
 	bool started = false;
@@ -937,8 +929,7 @@ struct mpc2520_bus_option &find_bus(enum MPC2520_BUS busid)
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void
-test(enum MPC2520_BUS busid)
+void test(enum MPC2520_BUS busid)
 {
 	struct mpc2520_bus_option &bus = find_bus(busid);
 	struct baro_report report;
@@ -1005,8 +996,7 @@ test(enum MPC2520_BUS busid)
 	errx(0, "PASS");
 }
 
-void
-usage()
+void usage()
 {
 	warnx("missing command: try 'start', 'info', 'test'");
 	warnx("options:");
@@ -1018,8 +1008,7 @@ usage()
 
 }// namespace
 
-int
-mpc2520_main(int argc, char *argv[])
+int mpc2520_main(int argc, char *argv[])
 {
 	enum MPC2520_BUS busid = MPC2520_BUS_ALL;
 	int ch;

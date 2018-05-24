@@ -504,9 +504,9 @@ int TAP_ESC::esc_failure_check(uint8_t channel_id)
 			// set this motor mask and has failure
 			_esc_feedback.engine_failure_report.motor_state |= 1 << channel_id;
 
-			// print error information for user when the motor has failure
-			// Check for armed state to prevent flooding mavlink log
-			if (!_is_armed) {
+			// print error information for user when a motor is failing
+			// Check for armed state to prevent flooding mavlink log during tests
+			if (_is_armed) {
 				mavlink_log_critical(&_mavlink_log_pub, "MOTOR %d ERROR IS %d",
 						     channel_id, _esc_feedback.esc[channel_id].esc_state);
 			}

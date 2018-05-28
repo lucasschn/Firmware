@@ -2293,7 +2293,8 @@ Commander::run()
 
 					if (!armed.armed) {
 						mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN.");
-						usleep(200000);
+						// Yuneec-specific: Wait for a few seconds before powering off to allow LAND state to sync with DataPilot
+						usleep(3000000);
 						int ret_val = px4_shutdown_request(false, false);
 						if (ret_val) {
 							mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");

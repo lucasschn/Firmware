@@ -232,6 +232,7 @@ static struct vehicle_land_detected_s land_detector = {};
 bool low_battery_voltage_actions_done = false;
 bool critical_battery_voltage_actions_done = false;
 bool emergency_battery_voltage_actions_done = false;
+bool dangerous_battery_level_requests_poweroff = false;
 int32_t low_bat_action = 0;
 
 // Geofence actions
@@ -246,6 +247,7 @@ enum class power_state_e : uint8_t
 	commited,
 	wait_for_poweroff
 };
+
 
 /**
  * The daemon app only briefly exists to start
@@ -2292,16 +2294,9 @@ Commander::run()
 					emergency_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
-						mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN.");
-						// Yuneec-specific: Wait for a few seconds before powering off to allow LAND state to sync with DataPilot
-						usleep(3000000);
-						int ret_val = px4_shutdown_request(false, false);
-						if (ret_val) {
-							mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
-						} else {
-							while(1) { usleep(1); }
-						}
-
+						// Request shutdown at the end of the cycle. This allows
+						// the vehicle state to be published after emergency landing
+						dangerous_battery_level_requests_poweroff = true;
 					} else {
 						if (low_bat_action == 2 || low_bat_action == 3) {
 							transition_result_t s = main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state);
@@ -3283,6 +3278,19 @@ Commander::run()
 		}
 
 		arm_auth_update(now, params_updated || param_init_forced);
+
+
+		// Handle shutdown request from emergency battery action
+		if (dangerous_battery_level_requests_poweroff){
+			mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN.");
+			usleep(3000000); // 3 seconds
+			int ret_val = px4_shutdown_request(false, false);
+			if (ret_val) {
+				mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
+			} else {
+				while(1) { usleep(1); }
+			}
+		}
 
 		usleep(COMMANDER_MONITORING_INTERVAL);
 	}

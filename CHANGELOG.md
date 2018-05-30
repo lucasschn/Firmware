@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 * Compass calibration uses less memory, now also works after a flight (#1884)
 * Connecting to drone after startup is now significantly faster (#2049)
-
+* Multi-battery missions now resumable after low-battery emergency landing (#1999)
 
 ## [v1.7.3-1.4.0beta1]
 ### Changed

@@ -99,6 +99,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>  // TODO(Yuneec): This has been removed upstream
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/power_button_state.h>
+#include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
@@ -203,6 +204,10 @@ int32_t low_bat_action = 0;
 static bool geofence_loiter_on = false;
 static bool geofence_rtl_on = false;
 static struct geofence_result_s geofence_result = {};
+
+// RTL time estimate actions
+static struct rtl_time_estimate_s rtl_time_estimate = {};
+bool rtl_time_actions_done = false;
 
 enum class power_state_e : uint8_t
 {
@@ -1403,6 +1408,9 @@ Commander::run()
 	int battery_sub = orb_subscribe(ORB_ID(battery_status));
 	memset(&battery, 0, sizeof(battery));
 
+	/* Subsribe to rtl_time_estimate topic */
+	int rtl_time_estimate_sub = orb_subscribe(ORB_ID(rtl_time_estimate));
+
 	/* Subscribe to subsystem info topic */
 	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
 	struct subsystem_info_s info;
@@ -2063,6 +2071,36 @@ Commander::run()
 			orb_copy(ORB_ID(cpuload), cpuload_sub, &cpuload);
 		}
 
+		/* Update time estimate for RTL and perform RTL action if required */
+		orb_check(rtl_time_estimate_sub, &updated);
+		if(updated) {
+			orb_copy(ORB_ID(rtl_time_estimate), rtl_time_estimate_sub, &rtl_time_estimate);
+
+			// Compare estimate of RTL to estimate of remaining flight time
+			if(armed.armed &&
+				!rtl_time_actions_done &&
+				!(battery.time_remaining_s <= -1+FLT_EPSILON && battery.time_remaining_s >= -1-FLT_EPSILON) &&
+				internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL &&
+				rtl_time_estimate.valid &&
+				rtl_time_estimate.safe_time_estimate >= battery.time_remaining_s) {
+
+					// Try to initiate RTL
+					transition_result_t s = main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state);
+					switch(s){
+						case TRANSITION_CHANGED:
+							warning_action_on = true;
+							mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, RETURNING TO LAND.");
+							break;
+
+						default:
+							mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, BUT RTL FAILED");
+					}
+					status_changed = true;
+					rtl_time_actions_done = true;
+				}
+		}
+
+
 		/* update battery status */
 		orb_check(battery_sub, &updated);
 
@@ -2145,7 +2183,18 @@ Commander::run()
 						// the vehicle state to be published after emergency landing
 						dangerous_battery_level_requests_poweroff = true;
 					} else {
-						if (low_bat_action == 2 || low_bat_action == 3) {
+
+						// Skip emergency action if RTL is ongoing and will make it in time
+						bool rtl_will_make_it_in_time =
+							internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL
+							&& !(battery.time_remaining_s <= -1+FLT_EPSILON &&  // Check if defined
+							battery.time_remaining_s >= -1-FLT_EPSILON)  // Check if defined
+							&& rtl_time_estimate.valid
+							&& rtl_time_estimate.safe_time_estimate >= battery.time_remaining_s;
+
+						// Perform emergency action only if no RTL is ongoing OR RTL is ongoing
+						// but vehicle will not land in time
+						if (!rtl_will_make_it_in_time && (low_bat_action == 2 || low_bat_action == 3)) {
 							transition_result_t s = main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state);
 
 							if (s == TRANSITION_CHANGED) {
@@ -2325,7 +2374,8 @@ Commander::run()
 
 		// revert geofence failsafe transition if sticks are moved and we were previously in a manual mode or loiter or rtl
 		// but only if not in a low battery handling action
-		if (!geofence_loiter_on && !geofence_rtl_on && !critical_battery_voltage_actions_done && (warning_action_on &&
+		if (!geofence_loiter_on && !geofence_rtl_on && !critical_battery_voltage_actions_done &&
+			!rtl_time_actions_done && (warning_action_on &&
 			(main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
 			 main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
 			 main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||

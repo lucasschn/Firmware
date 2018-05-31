@@ -87,6 +87,7 @@ set(msg_files
 	pwm_input.msg
 	qshell_req.msg
 	realsense_distance_info.msg
+	rtl_time_estimate.msg
 	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg

@@ -55,39 +55,52 @@ RTL::RTL(Navigator *navigator) :
 {
 }
 
+RTL::~RTL()
+{
+	orb_unadvertise(_rtl_time_estimate_pub);
+}
+
 void
 RTL::on_inactive()
 {
 	// Reset RTL state.
 	_rtl_state = RTL_STATE_NONE;
 
-	static hrt_abstime last_update = hrt_absolute_time();
+	// Limit calculation and publishing frequency
+	if ((hrt_absolute_time() - rtl_time_estimate.timestamp) >
+	    1000000 / _RTL_TIME_ESTIMATE_FREQUENCY) {
 
-	// Update only with 1 Hz
-	if ((hrt_absolute_time() - last_update) > 10000000) {
+		// Advertise uORB topic the first time
+		if (_rtl_time_estimate_pub == nullptr) {
+			_rtl_time_estimate_pub = orb_advertise(ORB_ID(rtl_time_estimate),
+							       &rtl_time_estimate);
+		}
 
+		// Calculate RTL time estimate
 		home_position_s *h = _navigator->get_home_position();
 		vehicle_local_position_s *p = _navigator->get_local_position();
 
-		uint32_t rtl_time_est_s = 0;
+		rtl_time_estimate.time_estimate = 0;
 
 		// Add first segment: Ascending or descending to the RTL travel altitude
-		rtl_time_est_s += fabsf(p->z - (h->z + _param_return_alt.get())) / _param_mpc_vel_z_auto.get();
+		rtl_time_estimate.time_estimate += fabsf(p->z - (h->z + _param_return_alt.get())) /
+						   _param_mpc_vel_z_auto.get();
 
 		// Add cruise segment
 		float dist_x = p->x - h->x;
 		float dist_y = p->y - h->y;
-		rtl_time_est_s += sqrtf(dist_x * dist_x + dist_y * dist_y) / _param_mpc_xy_cruise.get();
+		rtl_time_estimate.time_estimate += sqrtf(dist_x * dist_x + dist_y * dist_y) /
+						   _param_mpc_xy_cruise.get();
 
 		// Add descend segment
-		rtl_time_est_s += _param_return_alt.get() / _param_mpc_land_speed.get();
+		rtl_time_estimate.time_estimate += _param_return_alt.get() / _param_mpc_land_speed.get();
 
 		// Add land delay (the short pause for deploying landing gear)
-		rtl_time_est_s += _param_land_delay.get();
+		rtl_time_estimate.time_estimate += _param_land_delay.get();
 
-		last_update = hrt_absolute_time();
-
-		PX4_INFO("RTL time estimate: %u", rtl_time_est_s);
+		// Publish message
+		rtl_time_estimate.timestamp = hrt_absolute_time();
+		orb_publish(ORB_ID(rtl_time_estimate), _rtl_time_estimate_pub, &rtl_time_estimate);
 	}
 }
 

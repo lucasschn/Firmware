@@ -46,6 +46,7 @@
 #include <uORB/topics/geofence_result.h>
 #include "uORB/topics/home_position.h"
 #include <uORB/topics/follow_target.h>
+#include <uORB/topics/rtl_time_estimate.h>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -63,7 +64,7 @@ public:
 
 	RTL(Navigator *navigator);
 
-	~RTL() = default;
+	~RTL();
 
 	void on_inactive() override;
 	void on_activation() override;
@@ -123,6 +124,9 @@ private:
 	} _rtl_state{RTL_STATE_NONE};
 
 	bool _rtl_alt_min{false};
+	orb_advert_t _rtl_time_estimate_pub = nullptr;
+	rtl_time_estimate_s rtl_time_estimate  {};
+	const unsigned int _RTL_TIME_ESTIMATE_FREQUENCY = 1;  // Hz
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_RETURN_ALT>) _param_return_alt,
@@ -134,9 +138,9 @@ private:
 		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
 		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type,
 		(ParamInt<px4::params::RTL_TO_GCS>) _param_home_at_gcs, // home position is where GCS is located
-		(ParamFloat<px4::params::RTL_CONE_DIST>) _param_cone_dist,  // NOTE: Yuneec specific for RTL cone
-		(ParamFloat<px4::params::MPC_VEL_Z_AUTO>) _param_mpc_vel_z_auto, // NOTE: Yuneec specific for RTL time estiamte
-		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise, 	 // NOTE: Yuneec specific for RTL time estiamte
-		(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed 	 // NOTE: Yuneec specific for RTL time estiamte
+		(ParamFloat<px4::params::RTL_CONE_DIST>) _param_cone_dist,
+		(ParamFloat<px4::params::MPC_VEL_Z_AUTO>) _param_mpc_vel_z_auto,
+		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
+		(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed
 	)
 };

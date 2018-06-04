@@ -42,7 +42,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <px4_defines.h>
-#include <mathlib/math/Quaternion.hpp>
+#include <matrix/math.hpp>
 #include <v2.0/checksum.h>
 
 #include <fcntl.h>

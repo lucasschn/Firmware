@@ -63,6 +63,7 @@
 
 #include <cmath>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <lib/ecl/geo/geo.h>
 
 #include "MulticopterLandDetector.h"

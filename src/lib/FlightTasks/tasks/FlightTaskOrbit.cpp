@@ -40,8 +40,7 @@
 
 using namespace matrix;
 
-FlightTaskOrbit::FlightTaskOrbit():
-	_gimbal_control(this)
+FlightTaskOrbit::FlightTaskOrbit()
 {
 	_sticks_data_required = false;
 }
@@ -58,19 +57,6 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	}
 
 	return false;
-}
-
-bool FlightTaskOrbit::initializeSubscriptions(SubscriptionArray &subscription_array)
-{
-	if (!FlightTaskManual::initializeSubscriptions(subscription_array)) {
-		return false;
-	}
-
-	if (!subscription_array.get(ORB_ID(home_position), _sub_home_position)) {
-		return false;
-	}
-
-	return true;
 }
 
 bool FlightTaskOrbit::activate()
@@ -107,8 +93,5 @@ bool FlightTaskOrbit::update()
 
 	/* make vehicle front always point towards the center */
 	_yawspeed_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
-
-	_gimbal_control.pointOfInterest(Vector3f(_center(0), _center(1), _sub_home_position->get().z), _position, _yaw);
-
 	return true;
 }

@@ -42,9 +42,6 @@
 #pragma once
 
 #include "FlightTaskManual.hpp"
-#include "Utility/GimbalControl.hpp"
-
-#include <uORB/topics/home_position.h>
 
 class FlightTaskOrbit : public FlightTaskManual
 {
@@ -55,13 +52,9 @@ public:
 
 	bool applyCommandParameters(const vehicle_command_s &command) override;
 
-	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
-
 	bool activate() override;
 
 	bool update() override;
-
-	GimbalControl _gimbal_control;
 
 private:
 	float _r = 0.f; /**< radius with which to orbit the target */
@@ -69,5 +62,4 @@ private:
 	float _z = 0.f; /**< local z coordinate in meters */
 	matrix::Vector2f _center;
 
-	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 };

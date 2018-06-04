@@ -31,19 +31,16 @@
 #
 ############################################################################
 
+include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
+
 px4_add_module(
-	MODULE modules__logger
-	MAIN logger
-	PRIORITY "SCHED_PRIORITY_MAX-30"
-	STACK_MAIN 2200
+	MODULE drivers__yuneec_flow
+	MAIN yuneec_flow
+	STACK_MAIN 1400
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
-		logger.cpp
-		log_writer.cpp
-		log_writer_file.cpp
-		log_writer_mavlink.cpp
-		watchdog.cpp
+		yuneec_flow.cpp
 	DEPENDS
-		version
+		platforms__common
 	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -1400,9 +1400,9 @@ Commander::run()
 	unsigned stick_off_counter = 0;
 	unsigned stick_on_counter = 0;
 
-	bool low_battery_voltage_actions_done = false;
-	bool critical_battery_voltage_actions_done = false;
-	bool emergency_battery_voltage_actions_done = false;
+	// bool low_battery_voltage_actions_done = false;
+	// bool critical_battery_voltage_actions_done = false;
+	// bool emergency_battery_voltage_actions_done = false;
 	bool dangerous_battery_level_requests_poweroff = false;
 
 	bool status_changed = true;
@@ -1418,6 +1418,7 @@ Commander::run()
 
 	/* Subscribe to geofence result topic */
 	int geofence_result_sub = orb_subscribe(ORB_ID(geofence_result));
+	// struct geofence_result_s geofence_result;
 	memset(&geofence_result, 0, sizeof(geofence_result));
 
 	/* Subscribe to manual control data */
@@ -2307,6 +2308,9 @@ Commander::run()
 		}
 
 		if (armed.armed && (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE) && !no_geofence_during_rtl) {
+
+			// static bool geofence_loiter_on = false;
+			// static bool geofence_rtl_on = false;
 
 			// check for geofence violation
 			if (geofence_result.geofence_violated) {

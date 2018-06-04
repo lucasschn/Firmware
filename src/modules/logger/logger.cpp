@@ -616,11 +616,13 @@ void Logger::add_default_topics()
 	add_topic("estimator_status", 200);
 	// add_topic("home_position");  // NOTE(YUNEEC): Saving memory
 	add_topic("input_rc", 200);
+	// add_topic("iridiumsbd_status");  // NOTE(YUNEEC): Saving memory
 	// add_topic("landing_target_pose");  // NOTE(YUNEEC): Saving memory
 	add_topic("manual_control_setpoint", 200);
 	// add_topic("mission");  // NOTE(YUNEEC): Saving memory
 	// add_topic("mission_result");  // NOTE(YUNEEC): Saving memory
 	add_topic("optical_flow", 50);
+	add_topic("ping");
 	add_topic("position_setpoint_triplet", 200);
 	// add_topic("rate_ctrl_status", 30);  // NOTE(YUNEEC): Saving memory
 	// add_topic("safety");  // NOTE(YUNEEC): Saving memory
@@ -644,6 +646,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);  // NOTE(YUNEEC): Saving memory
 	add_topic("wind_estimate", 200);
+	add_topic("timesync_status");
 	add_topic("trajectory_waypoint", 20);
 	add_topic("trajectory_waypoint_desired", 20);
 	add_topic("obstacle_distance", 20);
@@ -1821,9 +1824,8 @@ void Logger::write_header()
 	write_message(&header, sizeof(header));
 
 	// write the Flags message: this MUST be written right after the ulog header
-	ulog_message_flag_bits_s flag_bits;
+	ulog_message_flag_bits_s flag_bits{};
 
-	memset(&flag_bits, 0, sizeof(flag_bits));
 	flag_bits.msg_size = sizeof(flag_bits) - ULOG_MSG_HEADER_LEN;
 	flag_bits.msg_type = static_cast<uint8_t>(ULogMessageType::FLAG_BITS);
 

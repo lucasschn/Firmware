@@ -48,6 +48,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <parameters/param.h>
 #include <systemlib/pid/pid.h>
 #include <perf/perf_counter.h>
@@ -136,7 +137,7 @@ private:
 	void		vehicle_attitude_setpoint_poll();
 	void		battery_status_poll();
 
-	static void	task_main_trampoline(int argc, char *argv[]);
+	static int	task_main_trampoline(int argc, char *argv[]);
 	void		task_main();
 
 };

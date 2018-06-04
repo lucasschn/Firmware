@@ -42,6 +42,7 @@
 #include "battery.h"
 #include <float.h>
 #include <mathlib/mathlib.h>
+#include <cstring>
 
 Battery::Battery() :
 	ModuleParams(nullptr),

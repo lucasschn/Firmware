@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__srf02_i2c
-	MAIN srf02_i2c
-	COMPILE_FLAGS
-		-Wno-sign-compare
-	SRCS
-		srf02_i2c.cpp
-	DEPENDS
-	)
 
+px4_add_library(drivers_board
+	init.c
+	led.c
+	spi.c
+	timer_config.c
+	usb.c
+)
+
+target_link_libraries(drivers_board
+	PRIVATE
+		drivers__led # drv_led_start
+		nuttx_apps # up_cxxinitialize
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		parameters # param_init
+)

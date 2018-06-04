@@ -50,5 +50,7 @@ px4_add_module(
 		output_serial.cpp
 		vmount.cpp
 	DEPENDS
+		git_ecl
+		ecl_geo
 	)
  

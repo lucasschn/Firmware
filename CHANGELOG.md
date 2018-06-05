@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 * ROI: New waypoint types for Region of Interest (#1819)
 * Structure scan (#1819)
 * Yaw stick deadzone and exponential curve (#1910)
+* RTL to ground control station (#1879)
 
 ### Changed
 * Yaw P gain lowered from 6.0 to 3.5 because of upstream merge (#1872)

@@ -248,7 +248,6 @@ enum class power_state_e : uint8_t
 	wait_for_poweroff
 };
 
-
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the

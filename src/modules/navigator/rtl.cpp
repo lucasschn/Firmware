@@ -85,6 +85,16 @@ RTL::on_activation()
 	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->next.valid = false;
 
+	// set home position
+	// default home is where takeoff location was
+	_return_location = *_navigator->get_home_position();
+	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
+
+	if (_param_home_at_gcs.get()) {
+		// land location is where GCS is located
+		set_GCS_to_home(_return_location, gpos);
+	}
+
 	// go directly to home if obstacle avoidance is used
 	const bool obstacle_avoidance_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
 			manual_control_setpoint_s::SWITCH_POS_ON;
@@ -169,23 +179,15 @@ RTL::set_rtl_item()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	// default home is where takeoff location was
-	home_position_s home = *_navigator->get_home_position();
-
-	if (_param_home_at_gcs.get()) {
-		// land location is where GCS is located
-		set_GCS_to_home(home, pos_sp_triplet);
-	}
-
 	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
 	// use home yaw if close to home
-	float home_dist = get_distance_to_next_waypoint(_navigator->get_home_position()->lat,
-			  _navigator->get_home_position()->lon,
+	float home_dist = get_distance_to_next_waypoint(_return_location.lat,
+			  _return_location.lon,
 			  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 
 	bool home_close = (home_dist < _param_rtl_min_dist.get());
-	bool home_altitude_close = (fabsf(_navigator->get_home_position()->alt - _navigator->get_global_position()->alt) <
+	bool home_altitude_close = (fabsf(_return_location.alt - _navigator->get_global_position()->alt) <
 				    _param_rtl_min_dist.get());
 
 	switch (_rtl_state) {
@@ -214,7 +216,7 @@ RTL::set_rtl_item()
 			_mission_item.force_velocity = false;
 
 			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above home)",
-						     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _navigator->get_home_position()->alt));
+						     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _return_location.alt));
 			break;
 		}
 
@@ -224,13 +226,13 @@ RTL::set_rtl_item()
 			_mission_item.lon = gpos.lon;
 
 			if (home_close) {
-				_mission_item.yaw = _navigator->get_home_position()->yaw;
+				_mission_item.yaw = _return_location.yaw;
 
 			} else {
 				// use current heading to home
 				_mission_item.yaw = get_bearing_to_next_waypoint(
 							    gpos.lat, gpos.lon,
-							    home.lat, home.lon);
+							    _return_location.lat, _return_location.lon);
 
 			}
 
@@ -248,18 +250,18 @@ RTL::set_rtl_item()
 
 			// don't change altitude
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = home.lat;
-			_mission_item.lon = home.lon;
+			_mission_item.lat = _return_location.lat;
+			_mission_item.lon = _return_location.lon;
 			_mission_item.altitude = gpos.alt;
 			_mission_item.altitude_is_relative = false;
 
 			// use home yaw if close to home
 			if (home_close) {
-				_mission_item.yaw = home.yaw;
+				_mission_item.yaw = _return_location.yaw;
 
 			} else {
 				// use current heading to home
-				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, home.lat, home.lon);
+				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _return_location.lat, _return_location.lon);
 			}
 
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
@@ -269,16 +271,16 @@ RTL::set_rtl_item()
 			_mission_item.deploy_gear = home_close && home_altitude_close;
 
 			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above home)",
-						     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - home.alt));
+						     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _return_location.alt));
 
 			break;
 		}
 
 	case RTL_STATE_AFTER_RETURN: {
-			_mission_item.lat = home.lat;
-			_mission_item.lon = home.lon;
+			_mission_item.lat = _return_location.lat;
+			_mission_item.lon = _return_location.lon;
 			// don't change altitude
-			_mission_item.yaw = home.yaw;
+			_mission_item.yaw = _return_location.yaw;
 
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -298,9 +300,9 @@ RTL::set_rtl_item()
 
 	case RTL_STATE_DESCEND: {
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = home.lat;
-			_mission_item.lon = home.lon;
-			_mission_item.altitude = min(home.alt + _param_descend_alt.get(), gpos.alt);
+			_mission_item.lat = _return_location.lat;
+			_mission_item.lon = _return_location.lon;
+			_mission_item.altitude = min(_return_location.alt + _param_descend_alt.get(), gpos.alt);
 			_mission_item.altitude_is_relative = false;
 
 			// except for vtol which might be still off here and should point towards this location
@@ -310,7 +312,7 @@ RTL::set_rtl_item()
 				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _mission_item.lat, _mission_item.lon);
 
 			} else {
-				_mission_item.yaw = home.yaw;
+				_mission_item.yaw = _return_location.yaw;
 			}
 
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
@@ -328,11 +330,11 @@ RTL::set_rtl_item()
 			const bool autoland = (_param_land_delay.get() > FLT_EPSILON);
 
 			// don't change altitude
-			_mission_item.lat = home.lat;
-			_mission_item.lon = home.lon;
+			_mission_item.lat = _return_location.lat;
+			_mission_item.lon = _return_location.lon;
 			_mission_item.altitude = gpos.alt;
 			_mission_item.altitude_is_relative = false;
-			_mission_item.yaw = home.yaw;
+			_mission_item.yaw = _return_location.yaw;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 
@@ -379,10 +381,10 @@ RTL::set_rtl_item()
 	case RTL_STATE_LAND: {
 			// land at home position
 			_mission_item.nav_cmd = NAV_CMD_LAND;
-			_mission_item.lat = home.lat;
-			_mission_item.lon = home.lon;
-			_mission_item.yaw = home.yaw;
-			_mission_item.altitude = home.alt;
+			_mission_item.lat = _return_location.lat;
+			_mission_item.lon = _return_location.lon;
+			_mission_item.yaw = _return_location.yaw;
+			_mission_item.altitude = _return_location.alt;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = 0.0f;
@@ -402,8 +404,8 @@ RTL::set_rtl_item()
 
 	case RTL_STATE_HOME: {
 
-			_mission_item.lat = _navigator->get_home_position()->lat;
-			_mission_item.lon = _navigator->get_home_position()->lon;
+			_mission_item.lat = _return_location.lat;
+			_mission_item.lon = _return_location.lon;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.altitude = get_rtl_altitude();
 			_mission_item.yaw = NAN;
@@ -520,23 +522,23 @@ RTL::get_rtl_altitude()
 {
 
 	// climb to at least a 45 degree cone
-	float climb_alt = _navigator->get_home_position()->alt
+	float climb_alt = _return_location.alt
 			  + get_distance_to_next_waypoint(
-				  _navigator->get_home_position()->lat,
-				  _navigator->get_home_position()->lon,
+				  _return_location.lat,
+				  _return_location.lon,
 				  _navigator->get_global_position()->lat,
 				  _navigator->get_global_position()->lon);
 
 	/* limit altitude to rtl max */
 	climb_alt = math::min(
-			    _navigator->get_home_position()->alt + _param_return_alt.get(),
+			    _return_location.alt + _param_return_alt.get(),
 			    climb_alt);
 	// do also not reduce altitude if already higher
 	climb_alt = math::max(climb_alt, _navigator->get_global_position()->alt);
 
 	// and also make sure that an absolute minimum altitude is obeyed so the landing gear does not catch.
 	climb_alt = math::max(climb_alt,
-			      _navigator->get_home_position()->alt + _param_min_loiter_alt.get());
+			      _return_location.alt + _param_min_loiter_alt.get());
 
 	// if RTL altitude is greater than the maximum allowed altitude, change RTL climb altitude to be inside the geofence
 	if ((_param_return_alt.get() > _param_gf_alt.get()
@@ -544,17 +546,17 @@ RTL::get_rtl_altitude()
 	    && ((uint8_t) _param_gf_actions.get()
 		!= geofence_result_s::GF_ACTION_NONE)) {
 		climb_alt = math::min(climb_alt,
-				      _navigator->get_home_position()->alt + _param_gf_alt.get());
+				      _return_location.alt + _param_gf_alt.get());
 		/* This is a safety check to stay higher than people's heads. */
 		float safe_altitude = 5.0f;
 		climb_alt = math::max(climb_alt,
-				      _navigator->get_home_position()->alt + safe_altitude);
+				      _return_location.alt + safe_altitude);
 	}
 
 	return climb_alt;
 }
 
-void RTL::set_GCS_to_home(home_position_s &hpos, const position_setpoint_triplet_s *triplet)
+void RTL::set_GCS_to_home(home_position_s &hpos, const vehicle_global_position_s &pos)
 {
 	const follow_target_s &target = *_navigator->get_target_motion();
 
@@ -564,10 +566,10 @@ void RTL::set_GCS_to_home(home_position_s &hpos, const position_setpoint_triplet
 	}
 
 	// keep a safe distance to GCS
-	float safe_distance = 2.0f;
+	float safe_distance = 3.0f;
 
 	// get bearing from GCS to current target
-	float bearing = get_bearing_to_next_waypoint(target.lat, target.lon, triplet->current.lat, triplet->current.lon);
+	float bearing = get_bearing_to_next_waypoint(target.lat, target.lon, pos.lat, pos.lon);
 
 	// set home position a safe distance away but on the flight path
 	waypoint_from_heading_and_distance(target.lat, target.lon,

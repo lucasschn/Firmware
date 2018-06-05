@@ -84,8 +84,14 @@ private:
 	 */
 	float 		get_rtl_altitude();
 
-	void set_GCS_to_home(home_position_s &home_position, const position_setpoint_triplet_s *triplet);
+	void set_GCS_to_home(home_position_s &home_position, const vehicle_global_position_s &pos);
 
+	/**
+	 * Return location.
+	 * The location can be the takeoff position or the position
+	 * of the remote controller.
+	 */
+	home_position_s _return_location{};
 
 	enum RTLState {
 		RTL_STATE_NONE = 0,

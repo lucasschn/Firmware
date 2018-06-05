@@ -84,6 +84,11 @@ private:
 	 */
 	float 		get_rtl_altitude();
 
+	/**
+	 * Set return location.
+	 * @param home_position that gets set to ground control station
+	 * @param pos that represents the vehicle current pose
+	 */
 	void set_GCS_to_home(home_position_s &home_position, const vehicle_global_position_s &pos);
 
 	/**

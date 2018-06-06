@@ -39,6 +39,7 @@
 
 #define ADDR_RESET_CMD		0x0C	/* write to this address to reset chip */
 
+// Register map:
 #define MPC2520_PSR_B2		0x00    /*the highest byte of three bytes measured pressure value*/
 #define MPC2520_PSR_B1		0x01    /*the middle byte of three bytes measured pressure value*/
 #define MPC2520_PSR_B0		0x02    /*the lowest byte of three bytes measured pressure value*/
@@ -61,6 +62,16 @@ enum class MPC2520_SAMPLING_RATE{
 	RATE_64_HZ,
 	RATE_128_HZ
 };
+
+// Temperature scale factors for various oversampling rates
+constexpr uint32_t MPC2520_1_HZ_SCALE_FACTOR   = 524288;
+constexpr uint32_t MPC2520_2_HZ_SCALE_FACTOR   = 1572864;
+constexpr uint32_t MPC2520_4_HZ_SCALE_FACTOR   = 3670016;
+constexpr uint32_t MPC2520_8_HZ_SCALE_FACTOR   = 7864320;
+constexpr uint32_t MPC2520_16_HZ_SCALE_FACTOR  = 253952;
+constexpr uint32_t MPC2520_32_HZ_SCALE_FACTOR  = 516096;
+constexpr uint32_t MPC2520_64_HZ_SCALE_FACTOR  = 1040384;
+constexpr uint32_t MPC2520_128_HZ_SCALE_FACTOR = 2088960;
 
 /* interface ioctls */
 #define IOCTL_RESET		2

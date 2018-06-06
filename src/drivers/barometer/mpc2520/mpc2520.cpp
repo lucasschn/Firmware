@@ -341,8 +341,8 @@ int MPC2520::read_reg(uint8_t reg, uint8_t &val)
 
 int MPC2520::set_sampling_rate(uint8_t iSensor, MPC2520_SAMPLING_RATE u8SmplRate, uint8_t u8OverSmpl)
 {
-	uint8_t reg = 0;
-	int32_t i32kPkT = 0;
+	uint8_t reg = 0;  // Register for sensor configuration
+	int32_t i32kPkT = 0;  // Scale Factor (kP or kT), depending on oversampling rate
 
 	// TODO: document what's going on
 	switch (u8SmplRate) {
@@ -379,46 +379,46 @@ int MPC2520::set_sampling_rate(uint8_t iSensor, MPC2520_SAMPLING_RATE u8SmplRate
 		break;
 	}
 
-	// TODO: Mention source PDF
+	// Compensation scale factor for the different oversampling rates
 	switch (u8OverSmpl) {
 	case 2:
 		reg |= 1;
-		i32kPkT = 1572864;
+		i32kPkT = MPC2520_2_HZ_SCALE_FACTOR;
 		break;
 
 	case 4:
 		reg |= 2;
-		i32kPkT = 3670016;
+		i32kPkT = MPC2520_4_HZ_SCALE_FACTOR;
 		break;
 
 	case 8:
 		reg |= 3;
-		i32kPkT = 7864320;
+		i32kPkT = MPC2520_8_HZ_SCALE_FACTOR;
 		break;
 
 	case 16:
-		i32kPkT = 253952;
+		i32kPkT = MPC2520_16_HZ_SCALE_FACTOR;
 		reg |= 4;
 		break;
 
 	case 32:
-		i32kPkT = 516096;
+		i32kPkT = MPC2520_32_HZ_SCALE_FACTOR;
 		reg |= 5;
 		break;
 
 	case 64:
-		i32kPkT = 1040384;
+		i32kPkT = MPC2520_64_HZ_SCALE_FACTOR;
 		reg |= 6;
 		break;
 
 	case 128:
-		i32kPkT = 2088960;
+		i32kPkT = MPC2520_128_HZ_SCALE_FACTOR;
 		reg |= 7;
 		break;
 
 	case 1:
 	default:
-		i32kPkT = 524288;
+		i32kPkT = MPC2520_1_HZ_SCALE_FACTOR;
 		break;
 	}
 

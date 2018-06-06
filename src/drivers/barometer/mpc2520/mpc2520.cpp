@@ -102,11 +102,6 @@ public:
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void			print_info();
-
 protected:
 	Device			*_interface;
 
@@ -1059,7 +1054,7 @@ int mpc2520_main(int argc, char *argv[])
 		mpc2520::test(busid);
 	}
 
-	errx(1, "unrecognised command, try 'start', 'test' or 'info'");
+	errx(1, "unrecognised command, try 'start', 'test'");
 
 	return 0;
 }

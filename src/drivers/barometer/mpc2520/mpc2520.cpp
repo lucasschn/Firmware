@@ -192,7 +192,9 @@ protected:
 	int			read_reg(uint8_t reg, uint8_t &val);
 
 
-	int	 		set_sampling_rate(uint8_t iSensor, MPC2520_SAMPLING_RATE u8SmplRate, uint8_t u8OverSmpl);
+	int	 		set_sampling_rate(uint8_t iSensor,
+		MPC2520_SAMPLING_RATE u8SmplRate,
+		MPC2520_OVERSAMPLING_RATE u8OverSmpl);
 
 	int	 		set_measure_mode(MPC2520_MEAS_MODE mode);
 
@@ -287,10 +289,14 @@ int MPC2520::init()
 	/* this do..while is goto without goto */
 	do {
 		// sampling rate = 1Hz; Pressure oversample = 2;
-		set_sampling_rate(PRESSURE_SENSOR, MPC2520_SAMPLING_RATE::RATE_32_HZ, 8);
+		set_sampling_rate(PRESSURE_SENSOR,
+			MPC2520_SAMPLING_RATE::RATE_32_HZ,
+			MPC2520_OVERSAMPLING_RATE::RATE_8_HZ);
 
 		// sampling rate = 1Hz; Temperature oversample = 1;
-		set_sampling_rate(TEMPERATURE_SENSOR, MPC2520_SAMPLING_RATE::RATE_32_HZ, 8);
+		set_sampling_rate(TEMPERATURE_SENSOR,
+			MPC2520_SAMPLING_RATE::RATE_32_HZ,
+			MPC2520_OVERSAMPLING_RATE::RATE_8_HZ);
 
 		set_measure_mode(MPC2520_MEAS_MODE::CONTINUOUS_P_AND_T);
 
@@ -334,7 +340,9 @@ int MPC2520::read_reg(uint8_t reg, uint8_t &val)
 	return ret;
 }
 
-int MPC2520::set_sampling_rate(uint8_t iSensor, MPC2520_SAMPLING_RATE u8SmplRate, uint8_t u8OverSmpl)
+int MPC2520::set_sampling_rate(uint8_t iSensor,
+	MPC2520_SAMPLING_RATE u8SmplRate,
+	MPC2520_OVERSAMPLING_RATE u8OverSmpl)
 {
 	uint8_t reg = 0;  // Register for sensor configuration
 	int32_t i32kPkT = 0;  // Scale Factor (kP or kT), depending on oversampling rate
@@ -376,42 +384,42 @@ int MPC2520::set_sampling_rate(uint8_t iSensor, MPC2520_SAMPLING_RATE u8SmplRate
 
 	// Compensation scale factor for the different oversampling rates
 	switch (u8OverSmpl) {
-	case 2:
+	case MPC2520_OVERSAMPLING_RATE::RATE_2_HZ:
 		reg |= 1;
 		i32kPkT = MPC2520_2_HZ_SCALE_FACTOR;
 		break;
 
-	case 4:
+	case MPC2520_OVERSAMPLING_RATE::RATE_4_HZ:
 		reg |= 2;
 		i32kPkT = MPC2520_4_HZ_SCALE_FACTOR;
 		break;
 
-	case 8:
+	case MPC2520_OVERSAMPLING_RATE::RATE_8_HZ:
 		reg |= 3;
 		i32kPkT = MPC2520_8_HZ_SCALE_FACTOR;
 		break;
 
-	case 16:
+	case MPC2520_OVERSAMPLING_RATE::RATE_16_HZ:
 		i32kPkT = MPC2520_16_HZ_SCALE_FACTOR;
 		reg |= 4;
 		break;
 
-	case 32:
+	case MPC2520_OVERSAMPLING_RATE::RATE_32_HZ:
 		i32kPkT = MPC2520_32_HZ_SCALE_FACTOR;
 		reg |= 5;
 		break;
 
-	case 64:
+	case MPC2520_OVERSAMPLING_RATE::RATE_64_HZ:
 		i32kPkT = MPC2520_64_HZ_SCALE_FACTOR;
 		reg |= 6;
 		break;
 
-	case 128:
+	case MPC2520_OVERSAMPLING_RATE::RATE_128_HZ:
 		i32kPkT = MPC2520_128_HZ_SCALE_FACTOR;
 		reg |= 7;
 		break;
 
-	case 1:
+	case MPC2520_OVERSAMPLING_RATE::RATE_1_HZ:
 	default:
 		i32kPkT = MPC2520_1_HZ_SCALE_FACTOR;
 		break;
@@ -422,7 +430,7 @@ int MPC2520::set_sampling_rate(uint8_t iSensor, MPC2520_SAMPLING_RATE u8SmplRate
 
 		write_reg(MPC2520_PRS_CFG, reg);
 
-		if (u8OverSmpl > 8) {
+		if (u8OverSmpl > MPC2520_OVERSAMPLING_RATE::RATE_8_HZ) {
 			read_reg(MPC2520_CFG_REG, reg);
 
 			reg = reg | 0x04;  // TODO: what's 0x04 magic?
@@ -442,7 +450,7 @@ int MPC2520::set_sampling_rate(uint8_t iSensor, MPC2520_SAMPLING_RATE u8SmplRate
 		reg = reg | 0x80;  // TODO: magic
 		write_reg(MPC2520_TMP_CFG, reg);
 
-		if (u8OverSmpl > 8) {
+		if (u8OverSmpl > MPC2520_OVERSAMPLING_RATE::RATE_8_HZ) {
 			read_reg(MPC2520_CFG_REG, reg);
 
 			reg = reg | 0x08;  // TODO: magic

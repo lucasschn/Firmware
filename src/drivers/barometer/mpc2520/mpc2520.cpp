@@ -78,7 +78,7 @@ enum MPC2520_BUS {
 	MPC2520_BUS_SPI_EXTERNAL
 };
 
-enum MPC2520_MODE {
+enum class MPC2520_MEAS_MODE {
 	CONTINUOUS_PRESSURE = 0,
 	CONTINUOUS_TEMPERATURE,
 	CONTINUOUS_P_AND_T
@@ -199,7 +199,7 @@ protected:
 
 	int	 		set_sampling_rate(uint8_t iSensor, MPC2520_SAMPLING_RATE u8SmplRate, uint8_t u8OverSmpl);
 
-	int	 		set_measure_mode(uint8_t mode);
+	int	 		set_measure_mode(MPC2520_MEAS_MODE mode);
 
 	/**
 	 * Collect the result of the most recent measurement.
@@ -297,7 +297,7 @@ int MPC2520::init()
 		// sampling rate = 1Hz; Temperature oversample = 1;
 		set_sampling_rate(TEMPERATURE_SENSOR, MPC2520_SAMPLING_RATE::RATE_32_HZ, 8);
 
-		set_measure_mode(CONTINUOUS_P_AND_T);
+		set_measure_mode(MPC2520_MEAS_MODE::CONTINUOUS_P_AND_T);
 
 		usleep(MPC2520_CONVERSION_INTERVAL);
 
@@ -465,25 +465,26 @@ int MPC2520::set_sampling_rate(uint8_t iSensor, MPC2520_SAMPLING_RATE u8SmplRate
 }
 
 int
-MPC2520::set_measure_mode(uint8_t mode)
+MPC2520::set_measure_mode(MPC2520_MEAS_MODE mode)
 {
-	uint8_t mearsure_mode = 0x00;
+	uint8_t mearsure_mode;
 
 	// TODO: Define and document measure modes
 	switch (mode) {
-	case 0:
+	case MPC2520_MEAS_MODE::CONTINUOUS_PRESSURE:
 		mearsure_mode = 0x01;
 		break;
 
-	case 1:
+	case MPC2520_MEAS_MODE::CONTINUOUS_TEMPERATURE:
 		mearsure_mode = 0x02;
 		break;
 
-	case 2:
+	case MPC2520_MEAS_MODE::CONTINUOUS_P_AND_T:
 		mearsure_mode = 0x07;
 		break;
 
 	default:
+		mearsure_mode = 0x00;
 		break;
 	}
 

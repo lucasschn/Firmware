@@ -107,27 +107,27 @@ protected:
 
 	mpc2520::prom_s		_prom;
 
-	struct work_s		_work;
-	unsigned		_measure_ticks;
+	struct work_s		_work = {};
+	unsigned		_measure_ticks = 0;
 
-	ringbuffer::RingBuffer	*_reports;
-	bool			_collect_phase;
-	unsigned		_measure_phase;
+	ringbuffer::RingBuffer	*_reports = nullptr;
+	bool			_collect_phase = false;
+	unsigned		_measure_phase;  // TODO: is never initialized!
 
 	/* altitude conversion calibration */
-	unsigned		_msl_pressure;	/* in Pa */
+	unsigned		_msl_pressure = 101325;	/* in Pa */
 
-	orb_advert_t		_baro_topic;
-	int			_orb_class_instance;
-	int			_class_instance;
+	orb_advert_t		_baro_topic = nullptr;
+	int			_orb_class_instance = -1;
+	int			_class_instance = -1;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
 
-	int32_t _kP;
-	int32_t _kT;
+	int32_t _kP = 0;
+	int32_t _kT = 0;
 	/**
 	 * Initialize the automatic measurement state machine and start it.
 	 *
@@ -213,22 +213,10 @@ MPC2520::MPC2520(device::Device *interface, mpc2520::prom_s &prom_buf, const cha
 	CDev("MPC2520", path),
 	_interface(interface),
 	_prom(prom_buf),
-	_measure_ticks(0),
-	_reports(nullptr),
-	_collect_phase(false),
-	_msl_pressure(101325),
-	_baro_topic(nullptr),
-	_orb_class_instance(-1),
-	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpc2520_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "mpc2520_com_err")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "mpc2520_buf_of")),
-	_kP(0),
-	_kT(0)
+	_buffer_overflows(perf_alloc(PC_COUNT, "mpc2520_buf_of"))
 {
-	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
-
 	// set the device type from the interface
 	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
 	_device_id.devid_s.bus = _interface->get_device_bus();

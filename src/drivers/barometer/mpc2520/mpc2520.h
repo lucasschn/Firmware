@@ -50,6 +50,18 @@
 #define MPC2520_MEAS_CFG	0x08    /*setup measurement mode*/
 #define MPC2520_CFG_REG		0x09    /*configuration of interrupts, measurement data shift, and FIFO enable*/
 
+// All supported oversampling rates
+enum class MPC2520_SAMPLING_RATE{
+	RATE_1_HZ,
+	RATE_2_HZ,
+	RATE_4_HZ,
+	RATE_8_HZ,
+	RATE_16_HZ,
+	RATE_32_HZ,
+	RATE_64_HZ,
+	RATE_128_HZ
+};
+
 /* interface ioctls */
 #define IOCTL_RESET		2
 #define IOCTL_MEASURE		3

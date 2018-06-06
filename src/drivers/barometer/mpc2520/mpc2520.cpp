@@ -84,6 +84,7 @@ enum MPC2520_MODE {
 	CONTINUOUS_P_AND_T
 };
 
+
 /* internal conversion time is 9.17 ms, so sensor should not be polled at rates higher than 100 Hz */
 #define MPC2520_CONVERSION_INTERVAL	25000	/* microseconds */
 #define MPC2520_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
@@ -196,7 +197,7 @@ protected:
 	int			read_reg(uint8_t reg, uint8_t &val);
 
 
-	int	 		set_sampling_rate(uint8_t iSensor, uint8_t u8SmplRate, uint8_t u8OverSmpl);
+	int	 		set_sampling_rate(uint8_t iSensor, MPC2520_SAMPLING_RATE u8SmplRate, uint8_t u8OverSmpl);
 
 	int	 		set_measure_mode(uint8_t mode);
 
@@ -291,10 +292,10 @@ int MPC2520::init()
 	/* this do..while is goto without goto */
 	do {
 		// sampling rate = 1Hz; Pressure oversample = 2;
-		set_sampling_rate(PRESSURE_SENSOR, 32, 8);
+		set_sampling_rate(PRESSURE_SENSOR, MPC2520_SAMPLING_RATE::RATE_32_HZ, 8);
 
 		// sampling rate = 1Hz; Temperature oversample = 1;
-		set_sampling_rate(TEMPERATURE_SENSOR, 32, 8);
+		set_sampling_rate(TEMPERATURE_SENSOR, MPC2520_SAMPLING_RATE::RATE_32_HZ, 8);
 
 		set_measure_mode(CONTINUOUS_P_AND_T);
 
@@ -338,42 +339,42 @@ int MPC2520::read_reg(uint8_t reg, uint8_t &val)
 	return ret;
 }
 
-int MPC2520::set_sampling_rate(uint8_t iSensor, uint8_t u8SmplRate, uint8_t u8OverSmpl)
+int MPC2520::set_sampling_rate(uint8_t iSensor, MPC2520_SAMPLING_RATE u8SmplRate, uint8_t u8OverSmpl)
 {
 	uint8_t reg = 0;
 	int32_t i32kPkT = 0;
 
 	// TODO: document what's going on
 	switch (u8SmplRate) {
-	case 2:
+	case MPC2520_SAMPLING_RATE::RATE_2_HZ:
 		reg |= (1 << 4);
 		break;
 
-	case 4:
+	case MPC2520_SAMPLING_RATE::RATE_4_HZ:
 		reg |= (2 << 4);
 		break;
 
-	case 8:
+	case MPC2520_SAMPLING_RATE::RATE_8_HZ:
 		reg |= (3 << 4);
 		break;
 
-	case 16:
+	case MPC2520_SAMPLING_RATE::RATE_16_HZ:
 		reg |= (4 << 4);
 		break;
 
-	case 32:
+	case MPC2520_SAMPLING_RATE::RATE_32_HZ:
 		reg |= (5 << 4);
 		break;
 
-	case 64:
+	case MPC2520_SAMPLING_RATE::RATE_64_HZ:
 		reg |= (6 << 4);
 		break;
 
-	case 128:
+	case MPC2520_SAMPLING_RATE::RATE_128_HZ:
 		reg |= (7 << 4);
 		break;
 
-	case 1:
+	case MPC2520_SAMPLING_RATE::RATE_1_HZ:
 	default:
 		break;
 	}

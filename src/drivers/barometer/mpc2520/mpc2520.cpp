@@ -537,8 +537,7 @@ MPC2520::read(struct file *filp, char *buffer, size_t buflen)
 	return ret;
 }
 
-int
-MPC2520::ioctl(struct file *filp, int cmd, unsigned long arg)
+int MPC2520::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -674,14 +673,9 @@ void MPC2520::cycle()
 	ret = collect();
 
 	if (ret != OK) {
-		if (ret == -6) {  // TODO: magic number. Also, the if-statement does absolutely nothing
-
-		} else {
-			//DEVICE_LOG("collection error %d", ret);
-		}
-
 		/* issue a reset command to the sensor */
 		_interface->ioctl(IOCTL_RESET, dummy);
+
 		/* reset the collection state machine and try again - we need
 		 * to wait 2.8 ms after issuing the sensor reset command
 		 */

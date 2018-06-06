@@ -849,12 +849,6 @@ MulticopterPositionControl::poll_subscriptions()
 		_att_sp.yaw_body = yaw_prev_sp;
 	}
 
-	orb_check(_sonar_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(distance_sensor), _sonar_sub, &_sonar_measurement);
-	}
-
 	/* --- */
 
 	orb_check(_vehicle_status_sub, &updated);

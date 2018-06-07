@@ -102,6 +102,11 @@ private:
 			     const follow_target_s &target);
 
 	/**
+	 * Compute and publish the estimated time to perform RTL from the current location.
+	 */
+	void		publish_rtl_time_estimate();
+
+	/**
 	 * Return location.
 	 * The location can be the takeoff position or the position
 	 * of the remote controller.

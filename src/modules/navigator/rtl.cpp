@@ -69,47 +69,7 @@ RTL::on_inactive()
 	// Limit calculation and publishing frequency
 	if ((hrt_absolute_time() - rtl_time_estimate.timestamp) >
 	    1000000 / _RTL_TIME_ESTIMATE_FREQUENCY) {
-
-		// Advertise uORB topic the first time
-		if (_rtl_time_estimate_pub == nullptr) {
-			_rtl_time_estimate_pub = orb_advertise(ORB_ID(rtl_time_estimate),
-							       &rtl_time_estimate);
-		}
-
-		// Calculate RTL time estimate
-		home_position_s *h = _navigator->get_home_position();
-		vehicle_local_position_s *p = _navigator->get_local_position();
-
-		rtl_time_estimate.time_estimate = 0;
-
-		// Add first segment: Ascending to the RTL travel altitude
-		// Note that if the vehicle is abofe the RTL travel altitude, it will not
-		// descend. But the math still holds since for the landing phase we assume
-		// that the vehicle is always at the travel distance initially.
-		rtl_time_estimate.time_estimate += fabsf(p->z - (h->z + _param_return_alt.get())) /
-						   _param_mpc_vel_z_auto.get();
-
-		// Add cruise segment to home
-		float dist_x = p->x - h->x;
-		float dist_y = p->y - h->y;
-		rtl_time_estimate.time_estimate += sqrtf(dist_x * dist_x + dist_y * dist_y) /
-						   _param_mpc_xy_cruise.get();
-
-		// Add descend segment (first landing phase)
-		rtl_time_estimate.time_estimate += fabsf(_param_return_alt.get() -
-						   _param_descend_alt.get()) /
-						   _param_mpc_vel_z_auto.get();
-
-		// Add land delay (the short pause for deploying landing gear)
-		rtl_time_estimate.time_estimate += _param_land_delay.get();
-
-		// Add land segment (second landing phase)
-		rtl_time_estimate.time_estimate += _param_descend_alt.get() /
-						   _param_mpc_land_speed.get();
-
-		// Publish message
-		rtl_time_estimate.timestamp = hrt_absolute_time();
-		orb_publish(ORB_ID(rtl_time_estimate), _rtl_time_estimate_pub, &rtl_time_estimate);
+		publish_rtl_time_estimate();
 	}
 }
 
@@ -201,6 +161,12 @@ RTL::on_active()
 	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
 		advance_rtl();
 		set_rtl_item();
+	}
+
+	// Limit calculation and publishing frequency
+	if ((hrt_absolute_time() - rtl_time_estimate.timestamp) >
+	    1000000 / _RTL_TIME_ESTIMATE_FREQUENCY) {
+		publish_rtl_time_estimate();
 	}
 }
 
@@ -625,7 +591,8 @@ RTL::get_rtl_altitude()
 	return climb_alt;
 }
 
-void RTL::set_GCS_to_home(home_position_s &hpos, const vehicle_global_position_s &pos, const follow_target_s &target)
+void
+RTL::set_GCS_to_home(home_position_s &hpos, const vehicle_global_position_s &pos, const follow_target_s &target)
 {
 	// keep a safe distance to GCS
 	constexpr float safe_distance = 3.0f;
@@ -637,4 +604,49 @@ void RTL::set_GCS_to_home(home_position_s &hpos, const vehicle_global_position_s
 	waypoint_from_heading_and_distance(target.lat, target.lon,
 					   bearing, safe_distance,
 					   &hpos.lat, &hpos.lon);
+}
+
+void
+RTL::publish_rtl_time_estimate()
+{
+	// Advertise uORB topic the first time
+	if (_rtl_time_estimate_pub == nullptr) {
+		_rtl_time_estimate_pub = orb_advertise(ORB_ID(rtl_time_estimate),
+						       &rtl_time_estimate);
+	}
+
+	// Calculate RTL time estimate
+	home_position_s *h = _navigator->get_home_position();
+	vehicle_local_position_s *p = _navigator->get_local_position();
+
+	rtl_time_estimate.time_estimate = 0;
+
+	// Add first segment: Ascending to the RTL travel altitude
+	// Note that if the vehicle is abofe the RTL travel altitude, it will not
+	// descend. But the math still holds since for the landing phase we assume
+	// that the vehicle is always at the travel distance initially.
+	rtl_time_estimate.time_estimate += fabsf(p->z - (h->z + _param_return_alt.get())) /
+					   _param_mpc_vel_z_auto.get();
+
+	// Add cruise segment to home
+	float dist_x = p->x - h->x;
+	float dist_y = p->y - h->y;
+	rtl_time_estimate.time_estimate += sqrtf(dist_x * dist_x + dist_y * dist_y) /
+					   _param_mpc_xy_cruise.get();
+
+	// Add descend segment (first landing phase)
+	rtl_time_estimate.time_estimate += fabsf(_param_return_alt.get() -
+					   _param_descend_alt.get()) /
+					   _param_mpc_vel_z_auto.get();
+
+	// Add land delay (the short pause for deploying landing gear)
+	rtl_time_estimate.time_estimate += _param_land_delay.get();
+
+	// Add land segment (second landing phase)
+	rtl_time_estimate.time_estimate += _param_descend_alt.get() /
+					   _param_mpc_land_speed.get();
+
+	// Publish message
+	rtl_time_estimate.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(rtl_time_estimate), _rtl_time_estimate_pub, &rtl_time_estimate);
 }

@@ -130,7 +130,7 @@ private:
 
 	bool _rtl_alt_min{false};
 	orb_advert_t _rtl_time_estimate_pub = nullptr;
-	rtl_time_estimate_s rtl_time_estimate  {};
+	rtl_time_estimate_s _rtl_time_estimate {};
 	const unsigned int _RTL_TIME_ESTIMATE_FREQUENCY = 1;  // Hz
 
 	DEFINE_PARAMETERS(

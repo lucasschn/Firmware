@@ -646,6 +646,12 @@ RTL::publish_rtl_time_estimate()
 	rtl_time_estimate.time_estimate += _param_descend_alt.get() /
 					   _param_mpc_land_speed.get();
 
+	// Use actual time estimate to compute the safer time estiamte with additional
+	// scale factor and a margin
+	rtl_time_estimate.safe_time_estimate =
+		_param_rtl_time_factor.get() * rtl_time_estimate.time_estimate +
+		_param_rtl_time_margin.get();
+
 	// Publish message
 	rtl_time_estimate.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(rtl_time_estimate), _rtl_time_estimate_pub, &rtl_time_estimate);

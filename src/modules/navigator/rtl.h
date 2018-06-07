@@ -146,6 +146,8 @@ private:
 		(ParamFloat<px4::params::RTL_CONE_DIST>) _param_cone_dist,
 		(ParamFloat<px4::params::MPC_VEL_Z_AUTO>) _param_mpc_vel_z_auto,
 		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
-		(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed
+		(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
+		(ParamFloat<px4::params::RTL_TIME_FACTOR>) _param_rtl_time_factor,
+		(ParamInt<px4::params::RTL_TIME_MARGIN>) _param_rtl_time_margin
 	)
 };

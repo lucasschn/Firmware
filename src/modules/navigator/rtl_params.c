@@ -141,3 +141,33 @@ PARAM_DEFINE_INT32(RTL_TO_GCS, 0);
  * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_CONE_DIST, 5.0f);
+
+/**
+ * RTL time estimate safety factor
+ *
+ * Safety factor that is used to scale the actual RTL time estiamte.
+ *
+ *
+ * @unit s
+ * @min 1.0
+ * @max 2.0
+ * @decimal 1
+ * @increment 0.1
+ * @group Return To Land
+ */
+PARAM_DEFINE_FLOAT(RTL_TIME_FACTOR, 1.2f);
+
+/**
+ * RTL time estimate safety margin
+ *
+ * Margin that is added to the time estimate, after it has already been scaled
+ * with RTL_TIME_ESTIMATE_SAFETY_FACTOR
+ *
+ * @unit s
+ * @min 0
+ * @max 300
+ * @decimal 1
+ * @increment 1
+ * @group Return To Land
+ */
+PARAM_DEFINE_INT32(RTL_TIME_MARGIN, 60);

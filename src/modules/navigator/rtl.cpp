@@ -615,8 +615,6 @@ RTL::publish_rtl_time_estimate()
 						       &_rtl_time_estimate);
 	}
 
-
-
 	// Calculate RTL time estimate only when there is a valid home position
 	// TODO: Also check if vehicle position is valid
 	if (!_navigator->home_position_valid()) {
@@ -626,33 +624,80 @@ RTL::publish_rtl_time_estimate()
 
 	} else {
 		_rtl_time_estimate.valid = true;
+		_rtl_time_estimate.time_estimate = 0;
+		_rtl_time_estimate.safe_time_estimate = 0;
 
-		// Add first segment: Ascending to the RTL travel altitude
-		// Note that if the vehicle is abofe the RTL travel altitude, it will not
-		// descend. But the math still holds since for the landing phase we assume
-		// that the vehicle is always at the travel distance initially.
-		_rtl_time_estimate.time_estimate = fabsf(_navigator->get_global_position()->alt -
-						   (_navigator->get_home_position()->alt + _param_return_alt.get())) /
-						   _param_mpc_vel_z_auto.get();
+		switch (_rtl_state) {
+		case RTL_STATE_NONE:
 
-		// Add cruise segment to home
-		_rtl_time_estimate.time_estimate += get_distance_to_next_waypoint(
-				_navigator->get_home_position()->lat,
-				_navigator->get_home_position()->lon,
-				_navigator->get_global_position()->lat,
-				_navigator->get_global_position()->lon) / _param_mpc_xy_cruise.get();
+		// Fallthrough intented
+		case RTL_STATE_BRAKE:
 
-		// Add descend segment (first landing phase)
-		_rtl_time_estimate.time_estimate += fabsf(_param_return_alt.get() -
-						    _param_descend_alt.get()) /
-						    _param_mpc_vel_z_auto.get();
+		// Fallthrough intented
+		case RTL_STATE_CLIMB:
+			// Add first segment: Ascending to the RTL travel altitude
+			// Note that if the vehicle is abofe the RTL travel altitude, it will not
+			// descend. But the math still holds since for the landing phase we assume
+			// that the vehicle is always at the travel distance initially.
+			_rtl_time_estimate.time_estimate += fabsf(_navigator->get_global_position()->alt -
+							    (_navigator->get_home_position()->alt + _param_return_alt.get())) /
+							    _param_mpc_vel_z_auto.get();
 
-		// Add land delay (the short pause for deploying landing gear)
-		_rtl_time_estimate.time_estimate += _param_land_delay.get();
+		// Fallthrough intented
+		case RTL_STATE_PRE_RETURN:
 
-		// Add land segment (second landing phase)
-		_rtl_time_estimate.time_estimate += _param_descend_alt.get() /
-						    _param_mpc_land_speed.get();
+		// Fallthrough intented
+		case RTL_STATE_RETURN:
+			// Add cruise segment to home
+			_rtl_time_estimate.time_estimate += get_distance_to_next_waypoint(
+					_navigator->get_home_position()->lat,
+					_navigator->get_home_position()->lon,
+					_navigator->get_global_position()->lat,
+					_navigator->get_global_position()->lon) / _param_mpc_xy_cruise.get();
+
+		// Fallthrough intented
+		case RTL_STATE_AFTER_RETURN:
+
+		// Fallthrough intented
+		case RTL_STATE_TRANSITION_TO_MC:
+
+		// Fallthrough intented
+		case RTL_STATE_DESCEND:
+			// Add descend segment (first landing phase)
+			_rtl_time_estimate.time_estimate += fabsf(_param_return_alt.get() -
+							    _param_descend_alt.get()) /
+							    _param_mpc_vel_z_auto.get();
+
+		// Fallthrough intented
+		case RTL_STATE_LOITER:
+			// Add land delay (the short pause for deploying landing gear)
+			_rtl_time_estimate.time_estimate += _param_land_delay.get();
+
+			// Add land segment (second landing phase)
+			_rtl_time_estimate.time_estimate += _param_descend_alt.get() /
+							    _param_mpc_land_speed.get();
+			break;
+
+		case RTL_STATE_LAND:
+			// Since during final land phase the vehicle is below
+			// _param_descend_alt, take the actual vehicle altitude instead of param.
+			_rtl_time_estimate.time_estimate +=
+				(_navigator->get_global_position()->alt - _navigator->get_home_position()->alt)
+				/ _param_mpc_land_speed.get();
+			break;
+
+		case RTL_STATE_LANDED:
+			break;
+
+		case RTL_STATE_HOME:
+			break;
+		}
+
+		// Prevent negative durations as phyiscally they make no sense. These can
+		// occur during the last phase of landing when close to the ground.
+		if (_rtl_time_estimate.time_estimate < 0) {
+			_rtl_time_estimate.time_estimate = 0;
+		}
 
 		// Use actual time estimate to compute the safer time estimate with additional
 		// scale factor and a margin

@@ -615,17 +615,19 @@ RTL::publish_rtl_time_estimate()
 						       &_rtl_time_estimate);
 	}
 
+	_rtl_time_estimate.time_estimate = 0;
+	_rtl_time_estimate.safe_time_estimate = 0;
+
 	// Calculate RTL time estimate only when there is a valid home position
 	// TODO: Also check if vehicle position is valid
 	if (!_navigator->home_position_valid()) {
 		_rtl_time_estimate.valid = false;
-		_rtl_time_estimate.time_estimate = 0;
-		_rtl_time_estimate.safe_time_estimate = 0;
 
 	} else {
 		_rtl_time_estimate.valid = true;
-		_rtl_time_estimate.time_estimate = 0;
-		_rtl_time_estimate.safe_time_estimate = 0;
+
+		const home_position_s &home = *_navigator->get_home_position();
+		const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
 		switch (_rtl_state) {
 		case RTL_STATE_NONE:
@@ -639,8 +641,8 @@ RTL::publish_rtl_time_estimate()
 			// Note that if the vehicle is abofe the RTL travel altitude, it will not
 			// descend. But the math still holds since for the landing phase we assume
 			// that the vehicle is always at the travel distance initially.
-			_rtl_time_estimate.time_estimate += fabsf(_navigator->get_global_position()->alt -
-							    (_navigator->get_home_position()->alt + _param_return_alt.get())) /
+			_rtl_time_estimate.time_estimate += fabsf(gpos.alt -
+							    (home.alt + _param_return_alt.get())) /
 							    _param_mpc_vel_z_auto.get();
 
 		// Fallthrough intented
@@ -650,10 +652,7 @@ RTL::publish_rtl_time_estimate()
 		case RTL_STATE_RETURN:
 			// Add cruise segment to home
 			_rtl_time_estimate.time_estimate += get_distance_to_next_waypoint(
-					_navigator->get_home_position()->lat,
-					_navigator->get_home_position()->lon,
-					_navigator->get_global_position()->lat,
-					_navigator->get_global_position()->lon) / _param_mpc_xy_cruise.get();
+					home.lat, home.lon,	gpos.lat, gpos.lon) / _param_mpc_xy_cruise.get();
 
 		// Fallthrough intented
 		case RTL_STATE_AFTER_RETURN:
@@ -682,8 +681,7 @@ RTL::publish_rtl_time_estimate()
 			// Since during final land phase the vehicle is below
 			// _param_descend_alt, take the actual vehicle altitude instead of param.
 			_rtl_time_estimate.time_estimate +=
-				(_navigator->get_global_position()->alt - _navigator->get_home_position()->alt)
-				/ _param_mpc_land_speed.get();
+				(gpos.alt - home.alt) / _param_mpc_land_speed.get();
 			break;
 
 		case RTL_STATE_LANDED:

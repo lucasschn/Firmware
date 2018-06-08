@@ -618,26 +618,29 @@ RTL::publish_rtl_time_estimate()
 
 
 	// Calculate RTL time estimate only when there is a valid home position
+	// TODO: Also check if vehicle position is valid
 	if (!_navigator->home_position_valid()) {
 		_rtl_time_estimate.valid = false;
+		_rtl_time_estimate.time_estimate = 0;
+		_rtl_time_estimate.safe_time_estimate = 0;
 
 	} else {
 		_rtl_time_estimate.valid = true;
-		home_position_s *h = _navigator->get_home_position();
-		vehicle_local_position_s *p = _navigator->get_local_position();
 
 		// Add first segment: Ascending to the RTL travel altitude
 		// Note that if the vehicle is abofe the RTL travel altitude, it will not
 		// descend. But the math still holds since for the landing phase we assume
 		// that the vehicle is always at the travel distance initially.
-		_rtl_time_estimate.time_estimate += fabsf(p->z - (h->z + _param_return_alt.get())) /
-						    _param_mpc_vel_z_auto.get();
+		_rtl_time_estimate.time_estimate = fabsf(_navigator->get_global_position()->alt -
+						   (_navigator->get_home_position()->alt + _param_return_alt.get())) /
+						   _param_mpc_vel_z_auto.get();
 
 		// Add cruise segment to home
-		float dist_x = p->x - h->x;
-		float dist_y = p->y - h->y;
-		_rtl_time_estimate.time_estimate += sqrtf(dist_x * dist_x + dist_y * dist_y) /
-						    _param_mpc_xy_cruise.get();
+		_rtl_time_estimate.time_estimate += get_distance_to_next_waypoint(
+				_navigator->get_home_position()->lat,
+				_navigator->get_home_position()->lon,
+				_navigator->get_global_position()->lat,
+				_navigator->get_global_position()->lon) / _param_mpc_xy_cruise.get();
 
 		// Add descend segment (first landing phase)
 		_rtl_time_estimate.time_estimate += fabsf(_param_return_alt.get() -
@@ -651,7 +654,7 @@ RTL::publish_rtl_time_estimate()
 		_rtl_time_estimate.time_estimate += _param_descend_alt.get() /
 						    _param_mpc_land_speed.get();
 
-		// Use actual time estimate to compute the safer time estiamte with additional
+		// Use actual time estimate to compute the safer time estimate with additional
 		// scale factor and a margin
 		_rtl_time_estimate.safe_time_estimate =
 			_param_rtl_time_factor.get() * _rtl_time_estimate.time_estimate +

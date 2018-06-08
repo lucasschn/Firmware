@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
+* Time estiamte for RTL (#2560, #2076)
 * RTL to ground control station (#1879)
 * ESC firmware version logging (#1786)
 * ROI: New waypoint types for Region of Interest (missing in DataPilot) (#1819)

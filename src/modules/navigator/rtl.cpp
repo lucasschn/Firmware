@@ -613,6 +613,7 @@ RTL::publish_rtl_time_estimate()
 	if (_rtl_time_estimate_pub == nullptr) {
 		_rtl_time_estimate_pub = orb_advertise(ORB_ID(rtl_time_estimate),
 						       &_rtl_time_estimate);
+		return;
 	}
 
 	_rtl_time_estimate.time_estimate = 0;

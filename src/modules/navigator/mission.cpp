@@ -149,9 +149,7 @@ void
 Mission::on_activation()
 {
 	if (_mission_waypoints_changed) {
-		// HOTFIX for https://github.com/PX4/Firmware/issues/9606
-		// Do NOT change current mission item to the closest one:
-		// _current_offboard_mission_index = index_closest_mission_item();
+		_current_offboard_mission_index = index_closest_mission_item();
 		_mission_waypoints_changed = false;
 	}
 
@@ -187,9 +185,7 @@ Mission::on_active()
 	/* reset mission items if needed */
 	if (offboard_updated || _mission_waypoints_changed || _execution_mode_changed) {
 		if (_mission_waypoints_changed) {
-			// HOTFIX for https://github.com/PX4/Firmware/issues/9606
-			// Do NOT change current mission item to the closest one:
-			// _current_offboard_mission_index = index_closest_mission_item();
+			_current_offboard_mission_index = index_closest_mission_item();
 			_mission_waypoints_changed = false;
 		}
 

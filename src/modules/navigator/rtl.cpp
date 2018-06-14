@@ -48,7 +48,6 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/follow_target.h>
 
 using math::max;
 using math::min;
@@ -91,8 +90,14 @@ RTL::on_activation()
 	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
 	if (_param_home_at_gcs.get()) {
-		// land location is where GCS is located
-		set_GCS_to_home(_return_location, gpos);
+
+		const follow_target_s &target = *_navigator->get_target_motion();
+
+		// only replace landing pose if target is finite
+		if (PX4_ISFINITE(target.lat) && PX4_ISFINITE(target.lon) && PX4_ISFINITE(target.alt)) {
+			set_GCS_to_home(_return_location, gpos, target);
+		}
+
 	}
 
 	// go directly to home if obstacle avoidance is used
@@ -556,24 +561,16 @@ RTL::get_rtl_altitude()
 	return climb_alt;
 }
 
-void RTL::set_GCS_to_home(home_position_s &hpos, const vehicle_global_position_s &pos)
+void RTL::set_GCS_to_home(home_position_s &hpos, const vehicle_global_position_s &pos, const follow_target_s &target)
 {
-	const follow_target_s &target = *_navigator->get_target_motion();
-
-	if (!PX4_ISFINITE(target.lat) || !PX4_ISFINITE(target.lon) || !PX4_ISFINITE(target.alt)) {
-		// don't do anything since not all components are valid
-		return;
-	}
-
 	// keep a safe distance to GCS
-	float safe_distance = 3.0f;
+	constexpr float safe_distance = 3.0f;
 
 	// get bearing from GCS to current target
-	float bearing = get_bearing_to_next_waypoint(target.lat, target.lon, pos.lat, pos.lon);
+	const float bearing = get_bearing_to_next_waypoint(target.lat, target.lon, pos.lat, pos.lon);
 
 	// set home position a safe distance away but on the flight path
 	waypoint_from_heading_and_distance(target.lat, target.lon,
 					   bearing, safe_distance,
 					   &hpos.lat, &hpos.lon);
-
 }

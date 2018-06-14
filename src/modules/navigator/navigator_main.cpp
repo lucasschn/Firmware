@@ -287,8 +287,6 @@ Navigator::params_update()
 	updateParams();
 }
 
-
-
 void
 Navigator::run()
 {

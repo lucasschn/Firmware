@@ -45,6 +45,7 @@
 
 #include <uORB/topics/geofence_result.h>
 #include "uORB/topics/home_position.h"
+#include <uORB/topics/follow_target.h>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -89,7 +90,8 @@ private:
 	 * @param home_position that gets set to ground control station
 	 * @param pos that represents the vehicle current pose
 	 */
-	void set_GCS_to_home(home_position_s &home_position, const vehicle_global_position_s &pos);
+	void set_GCS_to_home(home_position_s &home_position, const vehicle_global_position_s &pos,
+			     const follow_target_s &target);
 
 	/**
 	 * Return location.

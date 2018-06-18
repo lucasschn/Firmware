@@ -604,11 +604,12 @@ then
 	fi
 
 	# Load mixer and configure outputs
-	# NOTE: Removing this for testing HITL with tap_esc
-	# if [ $HITL_ON == no ]
-	# then
-		sh /etc/init.d/rc.interface
-	# fi
+	if [ $HITL_ON == yes ]
+	then
+		# Override mixer to quad_x for HITL simulation
+		set MIXER quad_x
+	fi
+	sh /etc/init.d/rc.interface
 
 
 	if [ $DO_TEMP_CALIB == 0 ]

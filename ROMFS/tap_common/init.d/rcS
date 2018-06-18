@@ -292,10 +292,11 @@ fi
 
 
 
-if [ $HITL_ON == yes ]
-then
-	set OUTPUT_MODE hil
-fi
+# NOTE: Removing this for testing HITL directly with tap_esc driver
+# if [ $HITL_ON == yes ]
+# then
+# 	set OUTPUT_MODE hil
+# fi
 
 #
 # Set default output if not set
@@ -603,10 +604,11 @@ then
 	fi
 
 	# Load mixer and configure outputs
-	if [ $HITL_ON == no ]
-	then
+	# NOTE: Removing this for testing HITL with tap_esc
+	# if [ $HITL_ON == no ]
+	# then
 		sh /etc/init.d/rc.interface
-	fi
+	# fi
 
 
 	if [ $DO_TEMP_CALIB == 0 ]
@@ -616,11 +618,11 @@ then
 	fi
 fi
 
-if [ $OUTPUT_MODE == hil ]
+if [ $HITL_ON == yes ]
 then
 	if pwm_out_sim mode_pwm16
 	then
-		mixer load /dev/pwm_output0 /etc/mixers/quad_x.main.mix
+		# Required in HITL for the RC to work:
 		fmu mode_pwm3
 	fi
 fi

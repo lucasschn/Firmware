@@ -625,7 +625,7 @@ void TAP_ESC::cycle()
 			for (unsigned i = 0; i < num_outputs; i++) {
 				/* last resort: catch NaN, INF and out-of-band errors */
 				if (i < _outputs.noutputs && PX4_ISFINITE(_outputs.output[i])
-				    && !_armed.lockdown && !_armed.manual_lockdown) {
+				    && (_hitl || !_armed.lockdown) && !_armed.manual_lockdown) {
 					/* scale for PWM output 1200 - 1900us */
 					_outputs.output[i] = (RPMMAX + RPMMIN) / 2 + ((RPMMAX - RPMMIN) / 2) * _outputs.output[i];
 					math::constrain(_outputs.output[i], (float)RPMMIN, (float)RPMMAX);
@@ -749,50 +749,59 @@ void TAP_ESC::cycle()
 
 	uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM];
 
-	// We need to remap from the system default to what PX4's normal
-	// scheme is
+	// Never let motors spin in HITL
+	if (_hitl) {
+		for (uint8_t i = 0; i < _channels_count; ++i) {
+			motor_out[i] = RPMSTOPPED;
+		}
+
+	} else {
+
+		// We need to remap from the system default to what PX4's normal
+		// scheme is
 #ifdef BOARD_MAP_ESC_TO_PX4_OUT
 
-	// Loop over 0 to 5 in case of hex configuration
-	for (uint8_t num = 0; num < _channels_count; num++) {
-		motor_out[num] = _outputs.output[_device_out_map[num]];
-	}
+		// Loop over 0 to 5 in case of hex configuration
+		for (uint8_t num = 0; num < _channels_count; num++) {
+			motor_out[num] = _outputs.output[_device_out_map[num]];
+		}
 
-	// Loop over 6,7 in case of hex configuration
-	for (uint8_t num = _channels_count; num < TAP_ESC_MAX_MOTOR_NUM; num++) {
-		motor_out[num] = RPMSTOPPED;
-	}
+		// Loop over 6,7 in case of hex configuration
+		for (uint8_t num = _channels_count; num < TAP_ESC_MAX_MOTOR_NUM; num++) {
+			motor_out[num] = RPMSTOPPED;
+		}
 
 #else
 
-	switch (_channels_count) {
-	case 4:
-		motor_out[0] = (uint16_t)_outputs.output[2];
-		motor_out[1] = (uint16_t)_outputs.output[1];
-		motor_out[2] = (uint16_t)_outputs.output[0];
-		motor_out[3] = (uint16_t)_outputs.output[3];
-		break;
+		switch (_channels_count) {
+		case 4:
+			motor_out[0] = (uint16_t)_outputs.output[2];
+			motor_out[1] = (uint16_t)_outputs.output[1];
+			motor_out[2] = (uint16_t)_outputs.output[0];
+			motor_out[3] = (uint16_t)_outputs.output[3];
+			break;
 
-	case 6:
-		motor_out[0] = (uint16_t)_outputs.output[3];
-		motor_out[1] = (uint16_t)_outputs.output[0];
-		motor_out[2] = (uint16_t)_outputs.output[4];
-		motor_out[3] = (uint16_t)_outputs.output[2];
-		motor_out[4] = (uint16_t)_outputs.output[1];
-		motor_out[5] = (uint16_t)_outputs.output[5];
-		break;
+		case 6:
+			motor_out[0] = (uint16_t)_outputs.output[3];
+			motor_out[1] = (uint16_t)_outputs.output[0];
+			motor_out[2] = (uint16_t)_outputs.output[4];
+			motor_out[3] = (uint16_t)_outputs.output[2];
+			motor_out[4] = (uint16_t)_outputs.output[1];
+			motor_out[5] = (uint16_t)_outputs.output[5];
+			break;
 
-	default:
+		default:
 
-		// Use the system defaults
-		for (uint8_t i = 0; i < _channels_count; ++i) {
-			motor_out[i] = (uint16_t)_outputs.output[i];
+			// Use the system defaults
+			for (uint8_t i = 0; i < _channels_count; ++i) {
+				motor_out[i] = (uint16_t)_outputs.output[i];
+			}
+
+			break;
 		}
 
-		break;
-	}
-
 #endif
+	}
 
 	// Kill switch is enabled, emergency stop. Also in HITL the motors should never turn
 	// TODO: Also stop for _armed.lockdown

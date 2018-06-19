@@ -985,7 +985,7 @@ MulticopterPositionControl::poll_subscriptions()
 
 int MulticopterPositionControl::getSonarSubIndex(const int *subs)
 {
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	for (unsigned int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		bool updated = false;
 		orb_check(subs[i], &updated);
 
@@ -3267,7 +3267,7 @@ MulticopterPositionControl::task_main()
 	/* --- tap specific subscription initializations */
 	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	for (unsigned int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		_sonar_sub[i] = orb_subscribe_multi(ORB_ID(distance_sensor), i);
 	}
 

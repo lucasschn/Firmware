@@ -367,18 +367,18 @@ then
 
 fi
 
+#
+# Start the RC input driver and allocated the 3 PWM
+# one for landing gear in group 0 chan 0
+# two for Sonar in group 1 chan 0 and 1.
+# chan 1 will be reconfigured as capture, but ONLY
+# after the PWM rates are set because rates can only
+# be set on all channels in a group.
+#
+fmu mode_pwm3
+
 if [ $HITL_ON == no ]
 then
-	#
-	# Start the RC input driver and allocated the 3 PWM
-	# one for landing gear in group 0 chan 0
-	# two for Sonar in group 1 chan 0 and 1.
-	# chan 1 will be reconfigured as capture, but ONLY
-	# after the PWM rates are set because rates can only
-	# be set on all channels in a group.
-	#
-	fmu mode_pwm3
-
 	if ver hwcmp TAP_V1
 	then
 	# On TAP-V1 use 400 Hz PWM output for landing gear
@@ -616,15 +616,6 @@ then
 	then
 		# Start standard multicopter apps
 		sh /etc/init.d/rc.mc_apps
-	fi
-fi
-
-if [ $HITL_ON == yes ]
-then
-	if pwm_out_sim mode_pwm16
-	then
-		# Required in HITL for the RC to work:
-		fmu mode_pwm3
 	fi
 fi
 

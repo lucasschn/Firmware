@@ -3,11 +3,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
+* RTL to ground control station (#1879)
+
+### Changed
+
+### Fixed
+* Connecting to drone after startup is now significantly faster (#2049)
+* Multi-battery missions now resumable after low-battery emergency landing (#1999)
+
+
+### [v1.7.3-1.5.0]
+### Added
 * ESC firmware version logging (#1786)
-* ROI: New waypoint types for Region of Interest (#1819)
+* ROI: New waypoint types for Region of Interest (missing in DataPilot) (#1819)
 * Structure scan (#1819)
 * Yaw stick deadzone and exponential curve (#1910)
-* RTL to ground control station (#1879)
 
 ### Changed
 * Yaw P gain lowered from 6.0 to 3.5 because of upstream merge (#1872)
@@ -16,8 +26,6 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 * Compass calibration uses less memory, now also works after a flight (#1884)
-* Connecting to drone after startup is now significantly faster (#2049)
-* Multi-battery missions now resumable after low-battery emergency landing (#1999)
 
 ## [v1.7.3-1.4.0beta1]
 ### Changed

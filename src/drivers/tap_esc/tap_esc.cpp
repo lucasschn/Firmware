@@ -869,11 +869,9 @@ void TAP_ESC::cycle()
 
 	}
 
-	/* and publish for anyone that cares to see */
 	orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
 	bool updated;
-
 	orb_check(_armed_sub, &updated);
 
 	if (updated) {

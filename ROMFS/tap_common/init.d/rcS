@@ -290,14 +290,6 @@ then
 	reboot
 fi
 
-
-
-# NOTE: Removing this for testing HITL directly with tap_esc driver
-# if [ $HITL_ON == yes ]
-# then
-# 	set OUTPUT_MODE hil
-# fi
-
 #
 # Set default output if not set
 #

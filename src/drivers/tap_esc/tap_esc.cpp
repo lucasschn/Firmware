@@ -685,7 +685,7 @@ void TAP_ESC::cycle()
 
 #else
 
-		switch (num_outputs) {
+		switch (_channels_count) {
 		case 4:
 			motor_out[0] = (uint16_t)_outputs.output[2];
 			motor_out[1] = (uint16_t)_outputs.output[1];
@@ -705,7 +705,7 @@ void TAP_ESC::cycle()
 		default:
 
 			// Use the system defaults
-			for (uint8_t i = 0; i < num_outputs; ++i) {
+			for (uint8_t i = 0; i < _channels_count; ++i) {
 				motor_out[i] = (uint16_t)_outputs.output[i];
 			}
 

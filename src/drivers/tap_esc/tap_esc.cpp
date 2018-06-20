@@ -806,7 +806,7 @@ void TAP_ESC::cycle()
 
 		_outputs.timestamp = hrt_absolute_time();
 
-		send_esc_outputs(motor_out, num_outputs);
+		send_esc_outputs(motor_out, _channels_count);
 		tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
 		if (tap_esc_common::parse_tap_esc_feedback(&_uartbuf, &_packet) == 0) {
@@ -832,7 +832,7 @@ void TAP_ESC::cycle()
 					_esc_feedback.esc[feed_back_data.channelID].esc_setpoint = (float)motor_out[feed_back_data.channelID] * 8.43f - 8514.3f;
 					_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 					_esc_feedback.counter++;
-					_esc_feedback.esc_count = num_outputs;
+					_esc_feedback.esc_count = _channels_count;
 
 					_esc_feedback.timestamp = hrt_absolute_time();
 

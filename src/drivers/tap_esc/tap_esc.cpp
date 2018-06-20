@@ -652,9 +652,15 @@ void TAP_ESC::cycle()
 			if (test_motor_updated) {
 				struct test_motor_s test_motor;
 				orb_copy(ORB_ID(test_motor), _test_motor_sub, &test_motor);
-				_outputs.output[test_motor.motor_number] = RPMSTOPPED + ((RPMMAX - RPMSTOPPED) * test_motor.value);
-				PX4_INFO("setting motor %i to %.1lf", test_motor.motor_number,
-					 (double)_outputs.output[test_motor.motor_number]);
+
+				if (_hitl) {
+					PX4_WARN("Motor outputs are disabled in HITL, motor tests not working!");
+
+				} else {
+					_outputs.output[test_motor.motor_number] = RPMSTOPPED + ((RPMMAX - RPMSTOPPED) * test_motor.value);
+					PX4_INFO("setting motor %i to %.1lf", test_motor.motor_number,
+						 (double)_outputs.output[test_motor.motor_number]);
+				}
 			}
 
 			/* set the invalid values to the minimum */

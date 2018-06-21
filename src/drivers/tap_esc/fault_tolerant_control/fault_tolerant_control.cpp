@@ -71,9 +71,9 @@ void FaultTolerantControl::parameter_update_poll()
  */
 float FaultTolerantControl::s_curve_gain(float x)
 {
-	float K = 2.0f;
-	float a = 2.0f;
-	float b = 0.6f;
+	const float K = 2.0f;
+	const float a = 2.0f;
+	const float b = 0.6f;
 	return K * (1 / (1.0f + b * expf(-a * x * x)) - 0.5f);
 }
 

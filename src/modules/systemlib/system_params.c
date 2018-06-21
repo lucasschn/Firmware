@@ -130,6 +130,7 @@ PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
  * @value 538400 Minimal Telemetry (38400 baud, 8N1)
  * @value 557600 Minimal Telemetry (57600 baud, 8N1)
  * @value 5115200 Minimal Telemetry (115200 baud, 8N1)
+ * @value 6460800 RTPS Client (460800 baud)
  * @value 1921600 ESP8266 (921600 baud, 8N1)
  *
  * @min 0
@@ -250,6 +251,36 @@ PARAM_DEFINE_INT32(SYS_CAL_TMIN, 5);
 PARAM_DEFINE_INT32(SYS_CAL_TMAX, 10);
 
 /**
+ * Control if the vehicle has a magnetometer
+ *
+ * Disable this if the board has no magnetometer, such as the Omnibus F4 SD.
+ * If disabled, the preflight checks will not check for the presence of a
+ * magnetometer.
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
+
+/**
+ * Control if the vehicle has a barometer
+ *
+ * Disable this if the board has no barometer, such as some of the the Omnibus
+ * F4 SD variants.
+ * If disabled, the preflight checks will not check for the presence of a
+ * barometer.
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
+
+/**
+ * // NOTE: Yuneec-specific
  * Accel value readout tolerance for thermal calibration.
  *
  * If > 0, this defines the maximum readout tolerance for sensor values (one G is used in z direction).
@@ -263,6 +294,7 @@ PARAM_DEFINE_FLOAT(SYS_CAL_ACC_TOL, -1);
 
 
 /**
+ * // NOTE: Yuneec-specific
  * Gyro value readout tolerance for thermal calibration.
  *
  * If > 0, this defines the maximum readout tolerance for sensor values.

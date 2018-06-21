@@ -312,6 +312,11 @@ then
 	param set SYS_CAL_ACC_TOL 1
 	param set SYS_CAL_GYRO_TOL 0.1
 
+	# Enable power circuit breaker
+	# HOTFIX: This disables the preflight checks for 5v and 3.3v power rails
+	# which are not available on TAP_V2. Should find a better solution.
+	param set CBRK_SUPPLY_CHK 894281
+
 	# Fault tolerant control
 	# 0: disabled
 	# 1: enabled

@@ -55,7 +55,14 @@ class Navigator;
 class RTL : public MissionBlock, public ModuleParams
 {
 public:
+	enum RTLType {
+		RTL_HOME = 0,
+		RTL_LAND,
+		RTL_MISSION,
+	};
+
 	RTL(Navigator *navigator);
+
 	~RTL() = default;
 
 	void on_inactive() override;
@@ -64,7 +71,7 @@ public:
 
 	void set_return_alt_min(bool min);
 
-	bool mission_landing_required();
+	int rtl_type() const;
 
 private:
 	/**
@@ -125,7 +132,7 @@ private:
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_descend_alt,
 		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_land_delay,
 		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
-		(ParamInt<px4::params::RTL_LAND_TYPE>) _param_rtl_land_type,
+		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type,
 		(ParamInt<px4::params::RTL_TO_GCS>) _param_home_at_gcs // home position is where GCS is located
 	)
 };

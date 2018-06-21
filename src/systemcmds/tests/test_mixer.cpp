@@ -37,22 +37,11 @@
  * Mixer load test
  */
 
-#include <px4_config.h>
-
-#include <sys/types.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <limits>
 #include <dirent.h>
-#include <errno.h>
 #include <string.h>
-#include <time.h>
-#include <limits.h>
-#include <math.h>
 
-#include <systemlib/err.h>
+#include <px4_config.h>
 #include <lib/mixer/mixer.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <drivers/drv_hrt.h>
@@ -74,8 +63,6 @@ static int	mixer_callback(uintptr_t handle,
 const unsigned output_max = 8;
 static float actuator_controls[output_max];
 static bool should_prearm = false;
-
-#define NAN_VALUE (0.0f/0.0f)
 
 #ifdef __PX4_DARWIN
 #define MIXER_DIFFERENCE_THRESHOLD 30
@@ -209,11 +196,11 @@ bool MixerTest::loadAllTest()
 			if (strncmp(result->d_name, ".", 1) != 0) {
 
 				char buf[PATH_MAX];
-				(void)strncpy(&buf[0], MIXER_ONBOARD_PATH, sizeof(buf) - 1);
-				/* enforce null termination */
-				buf[sizeof(buf) - 1] = '\0';
-				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH)], "/", 1);
-				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH) + 1], result->d_name, sizeof(buf) - strlen(MIXER_ONBOARD_PATH) - 1);
+
+				if (snprintf(buf, PATH_MAX, "%s/%s", MIXER_ONBOARD_PATH, result->d_name) >= PATH_MAX) {
+					PX4_ERR("mixer path too long %s", result->d_name);
+					return false;
+				}
 
 				bool ret = load_mixer(buf, 0);
 
@@ -604,7 +591,7 @@ mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, f
 
 	if (should_prearm && control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
 	    control_index == actuator_controls_s::INDEX_THROTTLE) {
-		control = NAN_VALUE;
+		control = std::numeric_limits<float>::quiet_NaN();
 	}
 
 	return 0;

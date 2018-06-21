@@ -498,7 +498,7 @@ private:
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
+	static int	task_main_trampoline(int argc, char *argv[]);
 
 	/**
 	 * Main sensor collection task.
@@ -1016,10 +1016,11 @@ MulticopterPositionControl::throttle_curve(float ctl, float ctr)
 	}
 }
 
-void
+int
 MulticopterPositionControl::task_main_trampoline(int argc, char *argv[])
 {
 	pos_control::g_control->task_main();
+	return 0;
 }
 
 void
@@ -1228,7 +1229,6 @@ MulticopterPositionControl::get_cruising_speed_xy()
 	/*
 	 * in mission the user can choose cruising speed different to default
 	 */
-
 	float vel_cruise_xy = _vel_cruise_xy.get();
 
 	if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) && !(_pos_sp_triplet.current.cruising_speed < 0.0f)) {

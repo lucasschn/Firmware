@@ -4,13 +4,10 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
-	drivers/led
 	drivers/px4fmu
-	drivers/boards
 	drivers/rgbled_pwm
 	drivers/tap_esc
 	drivers/imu/mpu6000
@@ -20,7 +17,6 @@ set(config_module_list
 	drivers/magnetometer/ist8310
 	drivers/distance_sensor/hc_sr04
 	drivers/gps
-	drivers/airspeed
 	# drivers/realsense
 	modules/sensors
 	drivers/vmount
@@ -83,24 +79,5 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/mathlib
-	lib/ecl
-	lib/conversion
-	lib/led
-	lib/mixer
-	lib/terrain_estimation
-	lib/version
-	lib/DriverFramework/framework
-	lib/rc
-	lib/tunes
-	lib/FlightTasks
 )

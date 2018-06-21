@@ -41,11 +41,13 @@
 #include <errno.h>
 
 #include <cmath>	// NAN
+#include <cstring>
 
 #include <lib/mathlib/mathlib.h>
 #include <lib/led/led.h>
 #include <lib/tunes/tunes.h>
 #include <drivers/device/device.h>
+#include <perf/perf_counter.h>
 #include <px4_module_params.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
@@ -123,6 +125,8 @@ private:
 	actuator_outputs_s      _outputs = {};
 	actuator_armed_s	_armed = {};
 
+	perf_counter_t	_perf_control_latency;
+
 	int			_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	actuator_controls_s 	_controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	orb_id_t		_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -181,6 +185,7 @@ const uint8_t TAP_ESC::_device_out_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_OUT;
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count, bool hitl):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
 	ModuleParams(nullptr),
+	_perf_control_latency(perf_alloc(PC_ELAPSED, "tap_esc control latency")),
 	_channels_count(channels_count),
 	_tunes(120, 2, 4, Tunes::NoteMode::NORMAL),
 	_hitl(hitl)
@@ -242,6 +247,8 @@ TAP_ESC::~TAP_ESC()
 	tap_esc_common::deinitialise_uart(_uart_fd);
 
 	DEVICE_LOG("stopping");
+
+	perf_free(_perf_control_latency);
 
 	// clean up the alternate device node
 	//unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
@@ -453,7 +460,6 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 
 	rpm[_responding_esc] |= RUN_FEEDBACK_ENABLE_MASK;
 
-
 	EscPacket packet = {PACKET_HEAD, _channels_count, ESCBUS_MSG_ID_RUN};
 	packet.len *= sizeof(packet.d.reqRun.rpm_flags[0]);
 
@@ -523,7 +529,6 @@ void TAP_ESC::cycle()
 	if (_groups_subscribed != _groups_required) {
 		subscribe();
 		_groups_subscribed = _groups_required;
-
 
 		/* Set uorb update rate */
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -598,7 +603,6 @@ void TAP_ESC::cycle()
 			/* do mixing */
 			num_outputs = _mixers->mix(&_outputs.output[0], num_outputs);
 			_outputs.noutputs = num_outputs;
-			_outputs.timestamp = hrt_absolute_time();
 
 			/* publish mixer status */
 			multirotor_motor_limits_s multirotor_motor_limits = {};
@@ -800,6 +804,8 @@ void TAP_ESC::cycle()
 			}
 		}
 
+		_outputs.timestamp = hrt_absolute_time();
+
 		send_esc_outputs(motor_out, num_outputs);
 		tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
@@ -843,6 +849,17 @@ void TAP_ESC::cycle()
 		/* and publish for anyone that cares to see */
 		if (!_hitl) {
 			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
+		}
+
+		// use first valid timestamp_sample for latency tracking
+		for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			const bool required = _groups_required & (1 << i);
+			const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+			if (required && (timestamp_sample > 0)) {
+				perf_set_elapsed(_perf_control_latency, _outputs.timestamp - timestamp_sample);
+				break;
+			}
 		}
 
 	}
@@ -938,18 +955,6 @@ int TAP_ESC::control_callback(uint8_t control_group, uint8_t control_index, floa
 	} else if (input < -1.0f) {
 		input = -1.0f;
 	}
-
-	/* motor spinup phase - lock throttle to zero */
-	// if (_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
-	// 	if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-	// 	     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-	// 	    control_index == actuator_controls_s::INDEX_THROTTLE) {
-	// 		/* limit the throttle output to zero during motor spinup,
-	// 		 * as the motors cannot follow any demand yet
-	// 		 */
-	// 		input = 0.0f;
-	// 	}
-	// }
 
 	/* throttle not arming - mark throttle input as invalid */
 	if (_armed.prearmed && !_armed.armed) {
@@ -1064,12 +1069,14 @@ int TAP_ESC::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This module controls the ESCs as well as the LEDs via UART. It listens on the actuator_controls topics, does the mixing and writes the PWM outputs.
+This module controls the ESCs as well as the LEDs via UART. It listens on the
+actuator_controls topics, does the mixing and writes the PWM outputs.
 
 Additionally it offers commands for flashing the ESC firmware.
 
 ### Implementation
-Currently the module is implementd as a threaded version only, meaning that it runs in its own thread instead of on the work queue.
+Currently the module is implementd as a threaded version only, meaning that it
+runs in its own thread instead of on the work queue.
 
 ### Example
 The module is typically started with:

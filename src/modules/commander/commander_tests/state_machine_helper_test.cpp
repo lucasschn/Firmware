@@ -46,8 +46,8 @@
 class StateMachineHelperTest : public UnitTest
 {
 public:
-	StateMachineHelperTest();
-	virtual ~StateMachineHelperTest();
+	StateMachineHelperTest() = default;
+	virtual ~StateMachineHelperTest() = default;
 
 	virtual bool run_tests();
 
@@ -56,12 +56,6 @@ private:
 	bool mainStateTransitionTest();
 	bool isSafeTest();
 };
-
-StateMachineHelperTest::StateMachineHelperTest() {
-}
-
-StateMachineHelperTest::~StateMachineHelperTest() {
-}
 
 bool StateMachineHelperTest::armingStateTransitionTest()
 {
@@ -265,7 +259,6 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 				false /* no pre-arm checks */,
 				nullptr /* no mavlink_log_pub */,
 				&status_flags,
-				5.0f, /* avionics rail voltage */
 				(check_gps ? ARM_REQ_GPS_BIT : 0),
 				2e6 /* 2 seconds after boot, everything should be checked */
 				);

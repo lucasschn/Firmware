@@ -35,12 +35,13 @@
 #include <px4_workqueue.h>
 #include <termios.h>
 #include <lib/mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <drivers/device/device.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <lib/rc/st24.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -324,10 +325,8 @@ REALSENSE::poll_subscriptions()				 // update all msg
 		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_attitude);
 
 		/* get current rotation matrix and euler angles from control state quaternions */
-		math::Quaternion q_att(_attitude.q[0], _attitude.q[1], _attitude.q[2], _attitude.q[3]);
-		math::Matrix<3, 3> R = q_att.to_dcm();
-		math::Vector<3> euler_angles;
-		euler_angles = R.to_euler();
+		matrix::Dcmf R(matrix::Quatf(_attitude.q));
+		matrix::Eulerf euler_angles(R);
 		_yaw = euler_angles(2);
 	}
 

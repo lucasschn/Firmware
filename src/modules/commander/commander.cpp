@@ -194,6 +194,7 @@ static struct vehicle_land_detected_s land_detector = {};
 bool low_battery_voltage_actions_done = false;
 bool critical_battery_voltage_actions_done = false;
 bool emergency_battery_voltage_actions_done = false;
+bool dangerous_battery_level_requests_poweroff = false;
 int32_t low_bat_action = 0;
 
 // Geofence actions
@@ -1399,11 +1400,6 @@ Commander::run()
 	unsigned counter = 0;
 	unsigned stick_off_counter = 0;
 	unsigned stick_on_counter = 0;
-
-	// bool low_battery_voltage_actions_done = false;
-	// bool critical_battery_voltage_actions_done = false;
-	// bool emergency_battery_voltage_actions_done = false;
-	bool dangerous_battery_level_requests_poweroff = false;
 
 	bool status_changed = true;
 	bool param_init_forced = true;
@@ -3108,18 +3104,17 @@ Commander::run()
 
 		arm_auth_update(now, params_updated || param_init_forced);
 
-		// Handle shutdown request from emergency battery action
-		if(!armed.armed && dangerous_battery_level_requests_poweroff){
-			mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
-			usleep(200000);
-			int ret_val = px4_shutdown_request(false, false);
 
+		// Handle shutdown request from emergency battery action
+		if (!armed.armed && dangerous_battery_level_requests_poweroff){
+			mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN.");
+			usleep(3000000); // 3 seconds
+			int ret_val = px4_shutdown_request(false, false);
 			if (ret_val) {
 				mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
 				dangerous_battery_level_requests_poweroff = false;
-
 			} else {
-				while (1) { usleep(1); }
+				while(1) { usleep(1); }
 			}
 		}
 

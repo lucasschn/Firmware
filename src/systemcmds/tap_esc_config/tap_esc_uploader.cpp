@@ -395,7 +395,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 		if (ret != OK) {
 			/* this is immediately fatal */
 			PX4_LOG("esc_id %d bootloader not responding", esc_id);
-			continue;
+			return -EIO;
 		}
 
 		uint32_t temp_revision;

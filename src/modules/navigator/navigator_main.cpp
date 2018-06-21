@@ -76,7 +76,8 @@
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 
-#define GEOFENCE_CHECK_INTERVAL 200000
+#define GEOFENCE_CHECK_INTERVAL 200000 // 0.2 second
+#define TARGET_MOTION_CHECK_INTERVAL 1000000 // 1 second
 
 namespace navigator
 {
@@ -266,6 +267,12 @@ Navigator::manual_update()
 }
 
 void
+Navigator::target_motion_update()
+{
+	orb_copy(ORB_ID(follow_target), _target_motion_sub, &_target_motion);
+}
+
+void
 Navigator::params_update()
 {
 	parameter_update_s param_update;
@@ -297,6 +304,7 @@ Navigator::run()
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(trajectory_waypoint));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_target_motion_sub = orb_subscribe(ORB_ID(follow_target));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -319,6 +327,7 @@ Navigator::run()
 	fw_pos_ctrl_status_update(true);
 	obstacle_avoidance_update();
 	manual_update();
+	target_motion_update();
 	params_update();
 
 	/* wakeup source(s) */
@@ -332,6 +341,8 @@ Navigator::run()
 	orb_set_interval(_local_pos_sub, 50);
 
 	hrt_abstime last_geofence_check = 0;
+
+	reset_target_motion();
 
 	while (!should_exit()) {
 
@@ -446,6 +457,17 @@ Navigator::run()
 
 		if (updated) {
 			manual_update();
+		}
+
+		// follow target updated
+		orb_check(_target_motion_sub, &updated);
+
+		if (updated) {
+			target_motion_update();
+
+		} else if (hrt_elapsed_time(&_target_motion.timestamp) > TARGET_MOTION_CHECK_INTERVAL) {
+			// Too much time passed since the last update. Don't use target motion.
+			reset_target_motion();
 		}
 
 		/* vehicle_command updated */
@@ -949,6 +971,7 @@ Navigator::run()
 	orb_unsubscribe(_home_pos_sub);
 	orb_unsubscribe(_traj_wp_avoidance_sub);
 	orb_unsubscribe(_manual_sub);
+	orb_unsubscribe(_target_motion_sub);
 	orb_unsubscribe(_offboard_mission_sub);
 	orb_unsubscribe(_param_update_sub);
 	orb_unsubscribe(_vehicle_command_sub);
@@ -1070,6 +1093,13 @@ Navigator::reset_cruising_speed()
 {
 	_mission_cruising_speed_mc = -1.0f;
 	_mission_cruising_speed_fw = -1.0f;
+}
+
+void
+Navigator::reset_target_motion()
+{
+	_target_motion.lat = _target_motion.lon = _target_motion.alt = NAN;
+	_target_motion.vx = _target_motion.vy = _target_motion.vz = NAN;
 }
 
 void

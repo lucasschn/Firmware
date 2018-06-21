@@ -164,6 +164,8 @@ public:
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
+	struct follow_target_s *get_target_motion() { return &_target_motion; }
+
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 
 	struct trajectory_waypoint_s *get_trajectory_waypoint() { return &_traj_wp_avoidance;}
@@ -240,6 +242,11 @@ public:
 	void 		reset_triplets();
 
 	/**
+	 *  Set target motion to invalid
+	 */
+	void		reset_target_motion();
+
+	/**
 	 * Get the target throttle
 	 *
 	 * @return the desired throttle for this mission
@@ -307,8 +314,9 @@ private:
 	int		_esc_report_sub{-1};		/**< esc report subscription */
 	int		_vehicle_att_sp_sub{-1};	/**< attitude contain gear flag */
 	int 	_traj_wp_avoidance_sub{-1}; /**< obstacle avoidance subscription */
-	int 	_manual_sub{-1}; /** manual setpoint subscription */
+	int 	_manual_sub{-1}; /**< manual setpoint subscription */
 	/* --- */
+	int 	_target_motion_sub{-1}; /**< target subscription */
 
 
 	orb_advert_t	_geofence_result_pub{nullptr};
@@ -331,6 +339,7 @@ private:
 	uint8_t					_previous_nav_state{}; /**< nav_state of the previous iteration*/
 	trajectory_waypoint_s			_traj_wp_avoidance{}; /** < obstacle avoidance >*/
 	manual_control_setpoint_s		_manual{};		/**< r/c channel data */
+	follow_target_s _target_motion = {}; /**< motion and location of an offboard target */
 
 	/* --- tap specific subsciption variables */
 	esc_status_s 					_esc_report{};/**< esc status report include engine failure report */
@@ -412,6 +421,7 @@ private:
 	void		vehicle_status_update();
 	void 		obstacle_avoidance_update();
 	void		manual_update();
+	void		target_motion_update();
 
 	/* --- tap specific update subscription */
 	void		vehicle_att_sp_update();
@@ -419,6 +429,14 @@ private:
 	/* --- */
 
 	void 		local_reference_update();
+
+	/**
+	 *  The subscription of the target has to be
+	 *  within a certain interval.
+	 *  Set to NAN if update exceeded interval.
+	 */
+	void 		target_motion_check_interval();
+
 
 	/**
 	 * Publish a new position setpoint triplet for position controllers

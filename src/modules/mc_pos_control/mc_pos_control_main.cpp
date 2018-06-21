@@ -135,7 +135,8 @@ private:
 	void apply_gear_switch(); /* execute RC landing gear switch command */
 
 	/* sonar obstacle avoidance */
-	int 	_sonar_sub;				/**< sonar data */
+	int _sonar_sub[ORB_MULTI_MAX_INSTANCES];		/**< sonar data */
+	int _sonar_sub_index = -1; /** index of the sonar instance facing forward */
 	struct distance_sensor_s _sonar_measurement; /**<sonar measurement message>*/
 	systemlib::Hysteresis _obstacle_lock_hysteresis;
 	float _yaw_obstacle_lock; /**< the yaw angle at which the vehicle exits obstacle avoidance */
@@ -492,6 +493,8 @@ private:
 
 	void stop_in_front_obstacle(float altitude_above_home);
 
+	int getSonarSubIndex(const int *subs);
+
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
@@ -517,7 +520,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_att_sp_sub(-1),
 	_arming_sub(-1),
 	_arming{},
-	_sonar_sub(-1),
 	_sonar_measurement{},
 	_obstacle_lock_hysteresis(false),
 	_yaw_obstacle_lock(0.0f),
@@ -849,12 +851,6 @@ MulticopterPositionControl::poll_subscriptions()
 		_att_sp.yaw_body = yaw_prev_sp;
 	}
 
-	orb_check(_sonar_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(distance_sensor), _sonar_sub, &_sonar_measurement);
-	}
-
 	/* --- */
 
 	orb_check(_vehicle_status_sub, &updated);
@@ -974,12 +970,37 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(obstacle_distance), _obstacle_distance_sub, &_obstacle_distance);
 	}
 
-	orb_check(_sonar_sub, &updated);
+	if (_sonar_sub_index >= 0) {
+		orb_check(_sonar_sub[_sonar_sub_index], &updated);
 
-	if (updated) {
-		orb_copy(ORB_ID(distance_sensor), _sonar_sub, &_sonar_measurement);
+		if (updated) {
+			orb_copy(ORB_ID(distance_sensor), _sonar_sub[_sonar_sub_index], &_sonar_measurement);
+		}
+
+	} else {
+		_sonar_sub_index = getSonarSubIndex(_sonar_sub);
 	}
 
+}
+
+int MulticopterPositionControl::getSonarSubIndex(const int *subs)
+{
+	for (unsigned int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		bool updated = false;
+		orb_check(subs[i], &updated);
+
+		if (updated) {
+			distance_sensor_s report;
+			orb_copy(ORB_ID(distance_sensor), subs[i], &report);
+
+			// only use the instace which has the correct forward orientation
+			if (report.orientation == distance_sensor_s::ROTATION_FORWARD_FACING) {
+				return i;
+			}
+		}
+	}
+
+	return -1;
 }
 
 float
@@ -3245,7 +3266,11 @@ MulticopterPositionControl::task_main()
 
 	/* --- tap specific subscription initializations */
 	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
-	_sonar_sub = orb_subscribe(ORB_ID(distance_sensor));
+
+	for (unsigned int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		_sonar_sub[i] = orb_subscribe_multi(ORB_ID(distance_sensor), i);
+	}
+
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 
 	/* initialize values of critical structs until first regular update */
@@ -3740,6 +3765,9 @@ MulticopterPositionControl::execute_avoidance_velocity_waypoint()
 
 	/* we always constrain velocity since we do not know what the avoidance module sends out */
 	constrain_velocity_setpoint();
+
+	/* reset position setpoint to current position so that there are no jumps when switching off obstacle avoidance */
+	_pos_sp = _pos;
 }
 
 bool

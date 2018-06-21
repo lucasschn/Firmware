@@ -83,6 +83,22 @@ RTL::on_activation()
 	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->next.valid = false;
 
+	// set home position
+	// default home is where takeoff location was
+	_return_location = *_navigator->get_home_position();
+	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
+
+	if (_param_home_at_gcs.get()) {
+
+		const follow_target_s &target = *_navigator->get_target_motion();
+
+		// only replace landing pose if target is finite
+		if (PX4_ISFINITE(target.lat) && PX4_ISFINITE(target.lon) && PX4_ISFINITE(target.alt)) {
+			set_GCS_to_home(_return_location, gpos, target);
+		}
+
+	}
+
 	// go directly to home if obstacle avoidance is used
 	const bool obstacle_avoidance_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
 			manual_control_setpoint_s::SWITCH_POS_ON;
@@ -164,7 +180,7 @@ RTL::set_rtl_item()
 
 	_navigator->set_can_loiter_at_sp(false);
 
-	const home_position_s &home = *_navigator->get_home_position();
+	const home_position_s home = _return_location;
 	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -212,7 +228,7 @@ RTL::set_rtl_item()
 			_mission_item.force_velocity = false;
 
 			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above home)",
-						     (int)ceilf(return_alt), (int)ceilf(return_alt - _navigator->get_home_position()->alt));
+						     (int)ceilf(return_alt), (int)ceilf(return_alt - home.alt));
 			break;
 		}
 
@@ -222,7 +238,7 @@ RTL::set_rtl_item()
 			_mission_item.lon = gpos.lon;
 
 			if (home_close) {
-				_mission_item.yaw = _navigator->get_home_position()->yaw;
+				_mission_item.yaw = home.yaw;
 
 			} else {
 				// use current heading to home
@@ -297,7 +313,7 @@ RTL::set_rtl_item()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.lat = home.lat;
 			_mission_item.lon = home.lon;
-			_mission_item.altitude = loiter_altitude;
+			_mission_item.altitude = loiter_altitude;  // << Soetti return_location beinhalte
 			_mission_item.altitude_is_relative = false;
 
 			// except for vtol which might be still off here and should point towards this location
@@ -399,8 +415,8 @@ RTL::set_rtl_item()
 
 	case RTL_STATE_HOME: {
 
-			_mission_item.lat = _navigator->get_home_position()->lat;
-			_mission_item.lon = _navigator->get_home_position()->lon;
+			_mission_item.lat = home.lat;
+			_mission_item.lon = home.lon;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.altitude = return_alt;
 			_mission_item.yaw = NAN;
@@ -424,7 +440,6 @@ RTL::set_rtl_item()
 	// it will not set mission yaw setpoint when the vehicle enter fault tolerant control(yaw control tracking is not good)
 	if (_navigator->get_esc_report()->engine_failure_report.motor_state != OK) {
 		_mission_item.yaw = NAN;
-
 	}
 
 	reset_mission_item_reached();
@@ -518,23 +533,23 @@ RTL::get_rtl_altitude()
 {
 
 	// climb to at least a 45 degree cone
-	float climb_alt = _navigator->get_home_position()->alt
+	float climb_alt = _return_location.alt
 			  + get_distance_to_next_waypoint(
-				  _navigator->get_home_position()->lat,
-				  _navigator->get_home_position()->lon,
+				  _return_location.lat,
+				  _return_location.lon,
 				  _navigator->get_global_position()->lat,
 				  _navigator->get_global_position()->lon);
 
 	/* limit altitude to rtl max */
 	climb_alt = math::min(
-			    _navigator->get_home_position()->alt + _param_return_alt.get(),
+			    _return_location.alt + _param_return_alt.get(),
 			    climb_alt);
 	// do also not reduce altitude if already higher
 	climb_alt = math::max(climb_alt, _navigator->get_global_position()->alt);
 
 	// and also make sure that an absolute minimum altitude is obeyed so the landing gear does not catch.
 	climb_alt = math::max(climb_alt,
-			      _navigator->get_home_position()->alt + _param_min_loiter_alt.get());
+			      _return_location.alt + _param_min_loiter_alt.get());
 
 	// if RTL altitude is greater than the maximum allowed altitude, change RTL climb altitude to be inside the geofence
 	if ((_param_return_alt.get() > _param_gf_alt.get()
@@ -542,13 +557,26 @@ RTL::get_rtl_altitude()
 	    && ((uint8_t) _param_gf_actions.get()
 		!= geofence_result_s::GF_ACTION_NONE)) {
 		climb_alt = math::min(climb_alt,
-				      _navigator->get_home_position()->alt + _param_gf_alt.get());
+				      _return_location.alt + _param_gf_alt.get());
 		/* This is a safety check to stay higher than people's heads. */
 		float safe_altitude = 5.0f;
 		climb_alt = math::max(climb_alt,
-				      _navigator->get_home_position()->alt + safe_altitude);
+				      _return_location.alt + safe_altitude);
 	}
 
 	return climb_alt;
+}
 
+void RTL::set_GCS_to_home(home_position_s &hpos, const vehicle_global_position_s &pos, const follow_target_s &target)
+{
+	// keep a safe distance to GCS
+	constexpr float safe_distance = 3.0f;
+
+	// get bearing from GCS to current target
+	const float bearing = get_bearing_to_next_waypoint(target.lat, target.lon, pos.lat, pos.lon);
+
+	// set home position a safe distance away but on the flight path
+	waypoint_from_heading_and_distance(target.lat, target.lon,
+					   bearing, safe_distance,
+					   &hpos.lat, &hpos.lon);
 }

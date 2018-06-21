@@ -42,6 +42,7 @@ px4_add_library(flight_tasks
 	tasks/FlightTaskManualPositionSmooth.cpp
 	tasks/Utility/ManualSmoothingZ.cpp
 	tasks/Utility/ManualSmoothingXY.cpp
+	tasks/Utility/GimbalControl.cpp
 	SubscriptionArray.cpp
 	FlightTasks.cpp
 )

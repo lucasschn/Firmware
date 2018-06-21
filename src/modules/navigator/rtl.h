@@ -44,6 +44,8 @@
 #include <px4_module_params.h>
 
 #include <uORB/topics/geofence_result.h>
+#include "uORB/topics/home_position.h"
+#include <uORB/topics/follow_target.h>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -90,6 +92,20 @@ private:
 	 */
 	float 		get_rtl_altitude();
 
+	/**
+	 * Set return location.
+	 * @param home_position that gets set to ground control station
+	 * @param pos that represents the vehicle current pose
+	 */
+	void set_GCS_to_home(home_position_s &home_position, const vehicle_global_position_s &pos,
+			     const follow_target_s &target);
+
+	/**
+	 * Return location.
+	 * The location can be the takeoff position or the position
+	 * of the remote controller.
+	 */
+	home_position_s _return_location{};
 
 	enum RTLState {
 		RTL_STATE_NONE = 0,
@@ -116,6 +132,7 @@ private:
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_descend_alt,
 		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_land_delay,
 		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
-		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type
+		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type,
+		(ParamInt<px4::params::RTL_TO_GCS>) _param_home_at_gcs // home position is where GCS is located
 	)
 };

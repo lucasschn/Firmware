@@ -47,7 +47,6 @@
 
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_pwm_output.h>
-#include <drivers/drv_rc_input.h>
 #include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
@@ -72,6 +71,7 @@
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/input_rc.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
@@ -2952,7 +2952,7 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		rc_input_values rc;
+		input_rc_s rc;
 
 		if (_rc_sub->update(&_rc_time, &rc)) {
 

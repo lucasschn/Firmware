@@ -241,7 +241,7 @@ private:
 	int		_armed_sub;
 	int		_param_sub;
 	int		_adc_sub;
-	struct rc_input_values	_rc_in;
+	input_rc_s _rc_in;
 	float		_analog_rc_rssi_volt;
 	bool		_analog_rc_rssi_stable;
 	orb_advert_t	_to_input_rc;

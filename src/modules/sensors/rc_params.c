@@ -2306,3 +2306,23 @@ PARAM_DEFINE_FLOAT(RC_FLT_SMP_RATE, 50.0f);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC_FLT_CUTOFF, 10.0f);
+
+/**
+ * RC Data link mode
+ *
+ * RC input data can enter the system over different datalinks such as input over Mavlink or RC.
+ * The RC_LINK_MODE defines how the different links are handled.
+ * RC only: only remote control inputs over RC is considered.
+ * Mavlink override: remote control inputs over Mavlink as precedence
+ * Mavlink backup: Mavlink data will replace the remote control inputs over RC if lost
+ * Team Mode: Primary remote controller controls vehicle, secondary controls gimbal
+ *
+ * @min 0
+ * @max 3
+ * @value 0 RC only
+ * @value 1 Mavlink override
+ * @value 2 Mavlink backup
+ * @value 3 Team Mode
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_LINK_MODE, 0);

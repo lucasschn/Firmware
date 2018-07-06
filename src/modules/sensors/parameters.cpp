@@ -84,6 +84,9 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 
 	parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
 
+	/* link mode */
+	parameter_handles.rc_link_mode = param_find("RC_LINK_MODE");
+
 	/* optional mode switches, not mapped per default */
 	parameter_handles.rc_map_rattitude_sw = param_find("RC_MAP_RATT_SW");
 	parameter_handles.rc_map_posctl_sw = param_find("RC_MAP_POSCTL_SW");

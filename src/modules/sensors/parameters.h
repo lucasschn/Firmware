@@ -106,6 +106,7 @@ struct Parameters {
 	int32_t rc_map_flightmode;
 
 	int32_t rc_fails_thr;
+	int32_t rc_link_mode;
 	float rc_assist_th;
 	float rc_auto_th;
 	float rc_rattitude_th;
@@ -208,6 +209,7 @@ struct ParameterHandles {
 	param_t rc_map_flightmode;
 
 	param_t rc_fails_thr;
+	param_t rc_link_mode;
 	param_t rc_assist_th;
 	param_t rc_auto_th;
 	param_t rc_rattitude_th;

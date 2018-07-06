@@ -45,7 +45,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/input_rc.h>
 
 using namespace sensors;
@@ -65,6 +64,7 @@ RCUpdate::RCUpdate(const Parameters &parameters)
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
 	memset(&_param_rc_values, 0, sizeof(_param_rc_values));
+	memset(&_manual_sp, 0, sizeof(_manual_sp));
 }
 
 int RCUpdate::init()
@@ -396,8 +396,7 @@ RCUpdate::map_from_rc_channel_functions(input_rc_s &rc_input, const ParameterHan
 	_rc.frame_drop_count = rc_input.rc_lost_frame_count;
 
 	/* publish rc_channels topic even if signal is invalid, for debug */
-	int instance;
-	orb_publish_auto(ORB_ID(rc_channels), &_rc_pub, &_rc, &instance, ORB_PRIO_DEFAULT);
+	publish_rc_channels();
 
 	/* only publish manual control if the signal is still present and was present once */
 	if (!signal_lost && rc_input.timestamp_last_signal > 0) {
@@ -405,28 +404,28 @@ RCUpdate::map_from_rc_channel_functions(input_rc_s &rc_input, const ParameterHan
 		/* initialize manual setpoint */
 		struct manual_control_setpoint_s manual = {};
 		/* set mode slot to unassigned */
-		manual.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
+		_manual_sp.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
 		/* set the timestamp to the last signal time */
-		manual.timestamp = rc_input.timestamp_last_signal;
-		manual.data_source = manual_control_setpoint_s::SOURCE_RC;
+		_manual_sp.timestamp = rc_input.timestamp_last_signal;
+		_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 		/* limit controls */
-		manual.y = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
-		manual.x = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
-		manual.r = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
-		manual.z = (get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, -1.0, 1.0) + 1.f) / 2.f;
-		manual.flaps = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
-		manual.aux1 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
-		manual.aux2 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
-		manual.aux3 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
-		manual.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
-		manual.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
+		_manual_sp.y = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
+		_manual_sp.x = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
+		_manual_sp.r = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
+		_manual_sp.z = (get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, -1.0, 1.0) + 1.f) / 2.f;
+		_manual_sp.flaps = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
+		_manual_sp.aux1 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
+		_manual_sp.aux2 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
+		_manual_sp.aux3 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
+		_manual_sp.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
+		_manual_sp.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
 
 		/* filter controls */
-		manual.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
-		manual.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
-		manual.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
-		manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
+		_manual_sp.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
+		_manual_sp.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
+		_manual_sp.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
+		_manual_sp.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
 
 		if (_parameters.rc_map_flightmode > 0) {
 
@@ -447,67 +446,49 @@ RCUpdate::map_from_rc_channel_functions(input_rc_s &rc_input, const ParameterHan
 			 * slots. And finally we add half a slot width to ensure that integer rounding
 			 * will take us to the correct final index.
 			 */
-			manual.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
-					     (slot_max - slot_min)) + (1.0f / num_slots));
+			_manual_sp.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) +
+						  slot_width_half) /
+						 (slot_max - slot_min)) + (1.0f / num_slots));
 
-			if (manual.mode_slot >= num_slots) {
-				manual.mode_slot = num_slots - 1;
+			if (_manual_sp.mode_slot >= num_slots) {
+				_manual_sp.mode_slot = num_slots - 1;
 			}
 		}
 
 		/* mode switches */
-		manual.mode_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th,
-				     _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
-		manual.rattitude_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RATTITUDE,
-					  _parameters.rc_rattitude_th,
-					  _parameters.rc_rattitude_inv);
-		manual.posctl_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL, _parameters.rc_posctl_th,
-				       _parameters.rc_posctl_inv);
-		manual.return_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RETURN, _parameters.rc_return_th,
-				       _parameters.rc_return_inv);
-		manual.loiter_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_LOITER, _parameters.rc_loiter_th,
-				       _parameters.rc_loiter_inv);
-		manual.acro_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_ACRO, _parameters.rc_acro_th,
-				     _parameters.rc_acro_inv);
-		manual.offboard_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD,
-					 _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
-		manual.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
-				     _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
-		manual.arm_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_ARMSWITCH,
-				    _parameters.rc_armswitch_th, _parameters.rc_armswitch_inv);
-		manual.transition_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION,
-					   _parameters.rc_trans_th, _parameters.rc_trans_inv);
-		manual.gear_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_GEAR,
-				     _parameters.rc_gear_th, _parameters.rc_gear_inv);
-		manual.stab_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_STAB,
-				     _parameters.rc_stab_th, _parameters.rc_stab_inv);
-		manual.man_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MAN,
-				    _parameters.rc_man_th, _parameters.rc_man_inv);
-		manual.obsavoid_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OBSAVOIDSWITCH,
-					 _parameters.rc_obsavoid_th, _parameters.rc_obsavoid_inv,
-					 _parameters.rc_obsavoid_mid_th, _parameters.rc_obsavoid_mid_inv);
+		_manual_sp.mode_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th,
+					 _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
+		_manual_sp.rattitude_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RATTITUDE,
+					      _parameters.rc_rattitude_th,
+					      _parameters.rc_rattitude_inv);
+		_manual_sp.posctl_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL, _parameters.rc_posctl_th,
+					   _parameters.rc_posctl_inv);
+		_manual_sp.return_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RETURN, _parameters.rc_return_th,
+					   _parameters.rc_return_inv);
+		_manual_sp.loiter_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_LOITER, _parameters.rc_loiter_th,
+					   _parameters.rc_loiter_inv);
+		_manual_sp.acro_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_ACRO, _parameters.rc_acro_th,
+					 _parameters.rc_acro_inv);
+		_manual_sp.offboard_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD,
+					     _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
+		_manual_sp.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
+					 _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
+		_manual_sp.arm_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_ARMSWITCH,
+					_parameters.rc_armswitch_th, _parameters.rc_armswitch_inv);
+		_manual_sp.transition_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION,
+					       _parameters.rc_trans_th, _parameters.rc_trans_inv);
+		_manual_sp.gear_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_GEAR,
+					 _parameters.rc_gear_th, _parameters.rc_gear_inv);
+		_manual_sp.stab_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_STAB,
+					 _parameters.rc_stab_th, _parameters.rc_stab_inv);
+		_manual_sp.man_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MAN,
+					_parameters.rc_man_th, _parameters.rc_man_inv);
+		_manual_sp.obsavoid_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OBSAVOIDSWITCH,
+					     _parameters.rc_obsavoid_th, _parameters.rc_obsavoid_inv,
+					     _parameters.rc_obsavoid_mid_th, _parameters.rc_obsavoid_mid_inv);
 
-		/* publish manual_control_setpoint topic */
-		orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance,
-				 ORB_PRIO_HIGH);
-
-		/* copy from mapped manual control to control group 3 */
-		struct actuator_controls_s actuator_group_3 = {};
-
-		actuator_group_3.timestamp = rc_input.timestamp_last_signal;
-
-		actuator_group_3.control[0] = manual.y;
-		actuator_group_3.control[1] = manual.x;
-		actuator_group_3.control[2] = manual.r;
-		actuator_group_3.control[3] = manual.z;
-		actuator_group_3.control[4] = manual.flaps;
-		actuator_group_3.control[5] = manual.aux1;
-		actuator_group_3.control[6] = manual.aux2;
-		actuator_group_3.control[7] = manual.aux3;
-
-		/* publish actuator_controls_3 topic */
-		orb_publish_auto(ORB_ID(actuator_controls_3), &_actuator_group_3_pub, &actuator_group_3, &instance,
-				 ORB_PRIO_DEFAULT);
+		// publish actua
+		publish_manual_inputs();
 
 		/* Update parameters from RC Channels (tuning with RC) if activated */
 		if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1e6) {
@@ -515,4 +496,38 @@ RCUpdate::map_from_rc_channel_functions(input_rc_s &rc_input, const ParameterHan
 			_last_rc_to_param_map_time = hrt_absolute_time();
 		}
 	}
+}
+
+void
+RCUpdate::publish_manual_inputs()
+{
+	int instance;
+
+	/* publish manual_control_setpoint topic */
+	orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &_manual_sp, &instance,
+			 ORB_PRIO_HIGH);
+
+	/* copy from mapped manual control to control group 3 */
+	struct actuator_controls_s actuator_group_3 = {};
+
+	actuator_group_3.timestamp = _manual_sp.timestamp;
+	actuator_group_3.control[0] = _manual_sp.y;
+	actuator_group_3.control[1] = _manual_sp.x;
+	actuator_group_3.control[2] = _manual_sp.r;
+	actuator_group_3.control[3] = _manual_sp.z;
+	actuator_group_3.control[4] = _manual_sp.flaps;
+	actuator_group_3.control[5] = _manual_sp.aux1;
+	actuator_group_3.control[6] = _manual_sp.aux2;
+	actuator_group_3.control[7] = _manual_sp.aux3;
+
+	/* publish actuator_controls_3 topic */
+	orb_publish_auto(ORB_ID(actuator_controls_3), &_actuator_group_3_pub, &actuator_group_3, &instance,
+			 ORB_PRIO_DEFAULT);
+}
+
+void
+RCUpdate::publish_rc_channels()
+{
+	int instance;
+	orb_publish_auto(ORB_ID(rc_channels), &_rc_pub, &_rc, &instance, ORB_PRIO_DEFAULT);
 }

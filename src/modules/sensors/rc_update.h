@@ -45,7 +45,7 @@
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <uORB/topics/rc_channels.h>
-
+#include <uORB/topics/manual_control_setpoint.h>
 namespace sensors
 {
 
@@ -96,6 +96,16 @@ private:
 	 */
 	void map_from_rc_channel_functions(input_rc_s &rc_input, const ParameterHandles &parameter_handles);
 
+	/**
+	 * Publish setpoints
+	 */
+	void publish_manual_inputs();
+
+	/**
+	 * Publish rc_channels
+	 */
+	void publish_rc_channels();
+
 
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
@@ -126,6 +136,7 @@ private:
 
 	struct rc_channels_s _rc;			/**< r/c channel data */
 	struct input_rc_s _inputs_rc[ORB_MULTI_MAX_INSTANCES]; /**< rc input data */
+	struct manual_control_setpoint_s _manual_sp;
 
 	struct rc_parameter_map_s _rc_parameter_map;
 	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */

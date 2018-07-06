@@ -92,6 +92,12 @@ public:
 private:
 
 	/**
+	 * The mapping is based on rc_channels_s structure
+	 */
+	void map_from_rc_channel_functions(input_rc_s &rc_input, const ParameterHandles &parameter_handles);
+
+
+	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
 	 */
 	float		get_rc_value(uint8_t func, float min_value, float max_value);
@@ -111,7 +117,7 @@ private:
 	void set_params_from_rc(const ParameterHandles &parameter_handles);
 
 
-	int		_rc_sub = -1;			/**< raw rc channels data subscription */
+	int		_rc_subs[ORB_MULTI_MAX_INSTANCES];	/**< raw rc channels data subscription */
 	int		_rc_parameter_map_sub = -1;		/**< rc parameter map subscription */
 
 	orb_advert_t	_rc_pub = nullptr;		/**< raw r/c control topic */
@@ -119,6 +125,7 @@ private:
 	orb_advert_t	_actuator_group_3_pub = nullptr;/**< manual control as actuator topic */
 
 	struct rc_channels_s _rc;			/**< r/c channel data */
+	struct input_rc_s _inputs_rc[ORB_MULTI_MAX_INSTANCES]; /**< rc input data */
 
 	struct rc_parameter_map_s _rc_parameter_map;
 	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */

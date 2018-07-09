@@ -57,8 +57,8 @@ RCUpdate::RCUpdate(const Parameters &parameters)
 	  _filter_throttle(50.0f, 10.f)
 {
 	// iniitalized subscription
-	for (int &sub : _rc_subs) {
-		sub = -1;
+	for (InputRCset  &e : _inputs_rc) {
+		e.sub = -1;
 	}
 
 	memset(&_rc, 0, sizeof(_rc));
@@ -72,9 +72,9 @@ int RCUpdate::init()
 	bool init_success = false;
 
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		_rc_subs[i] = orb_subscribe_multi(ORB_ID(input_rc), i);
+		_inputs_rc[i].sub = orb_subscribe_multi(ORB_ID(input_rc), i);
 
-		if (_rc_subs[i] >= 0) {
+		if (_inputs_rc[i].sub >= 0) {
 			init_success = true;
 		}
 	}
@@ -95,8 +95,8 @@ int RCUpdate::init()
 void RCUpdate::deinit()
 {
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		orb_unsubscribe(_rc_subs[i]);
-		_rc_subs[i] = -1;
+		orb_unsubscribe(_inputs_rc[i].sub);
+		_inputs_rc[i].sub = -1;
 	}
 
 	orb_unsubscribe(_rc_parameter_map_sub);
@@ -280,59 +280,80 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 
 		// check if subscriber has updated
-		orb_check(_rc_subs[i], &rc_updated);
+		orb_check(_inputs_rc[i].sub, &rc_updated);
 
 		// copy message into struct
 		if (rc_updated) {
-			orb_copy(ORB_ID(input_rc), _rc_subs[i], &_inputs_rc[i]);
+			orb_copy(ORB_ID(input_rc), _inputs_rc[i].sub, &_inputs_rc[i].input);
 
 			// get priority
 			int32_t priority;
-			orb_priority(_rc_subs[i], &priority);
+			orb_priority(_inputs_rc[i].sub, &priority);
 
-			// normal RC mode
-			if (_parameters.rc_link_mode == 0 && priority == ORB_PRIO_DEFAULT) {
-				// map rc based on mapping function
-				map_from_rc_channel_functions(_inputs_rc[i], parameter_handles);
+			// from rc channel functions
+			if (priority == ORB_PRIO_DEFAULT) {
+				set_signal_validity(_inputs_rc[i], _rc);
+			}
+		}
+	}
 
+	int32_t priority;
+
+	// generate manual setpoints based on link mode
+	if (_parameters.rc_link_mode == 0) {
+
+		// RC only is required. Search for a valid RC signal
+		for (InputRCset &e : _inputs_rc) {
+			orb_priority(e.sub, &priority);
+
+			// RC only has default priority
+			if (e.signal_valid && priority == ORB_PRIO_DEFAULT) {
+				map_from_rc_channel_functions(e, parameter_handles);
+				break;
 			}
 		}
 	}
 }
 
 void
-RCUpdate::map_from_rc_channel_functions(input_rc_s &rc_input, const ParameterHandles &parameter_handles)
+RCUpdate::set_signal_validity(InputRCset &input_set)
 {
-	/* detect RC signal loss */
-	bool signal_lost;
+	// detect RC signal loss
+	input_set.signal_valid = true;
 
-	/* check flags and require at least four channels to consider the signal valid */
-	if (rc_input.rc_lost || rc_input.rc_failsafe || rc_input.channel_count < 4) {
-		/* signal is lost or no enough channels */
-		signal_lost = true;
+	// check flags and require at least four channels to consider the signal valid
+	if (input_set.input.rc_lost || input_set.input.rc_failsafe || input_set.input.channel_count < 4) {
+		// signal is lost or no enough channels
+		input_set.signal_valid = false;
+	}
+}
 
-	} else {
-		/* signal looks good */
-		signal_lost = false;
+void
+RCUpdate::set_signal_validity(InputRCset &input_set, const rc_channels_s &channels)
+{
+	set_signal_validity(input_set);
 
-		/* check failsafe */
-		int8_t fs_ch = _rc.function[_parameters.rc_map_failsafe]; // get channel mapped to throttle
+	// check failsafe
+	int8_t fs_ch = channels.function[_parameters.rc_map_failsafe]; // get channel mapped to throttle
 
-		if (_parameters.rc_map_failsafe > 0) { // if not 0, use channel number instead of rc.function mapping
-			fs_ch = _parameters.rc_map_failsafe - 1;
-		}
-
-		if (_parameters.rc_fails_thr > 0 && fs_ch >= 0) {
-			/* failsafe configured */
-			if ((_parameters.rc_fails_thr < _parameters.min[fs_ch] && rc_input.values[fs_ch] < _parameters.rc_fails_thr) ||
-			    (_parameters.rc_fails_thr > _parameters.max[fs_ch] && rc_input.values[fs_ch] > _parameters.rc_fails_thr)) {
-				/* failsafe triggered, signal is lost by receiver */
-				signal_lost = true;
-			}
-		}
+	if (_parameters.rc_map_failsafe > 0) { // if not 0, use channel number instead of rc.function mapping
+		fs_ch = _parameters.rc_map_failsafe - 1;
 	}
 
-	unsigned channel_limit = rc_input.channel_count;
+	if (_parameters.rc_fails_thr > 0 && fs_ch >= 0) {
+		// failsafe configured
+		if ((_parameters.rc_fails_thr < _parameters.min[fs_ch] && input_set.input.values[fs_ch] < _parameters.rc_fails_thr) ||
+		    (_parameters.rc_fails_thr > _parameters.max[fs_ch] && input_set.input.values[fs_ch] > _parameters.rc_fails_thr)) {
+			// failsafe triggered, signal is lost by receiver
+			input_set.signal_valid = true;
+		}
+	}
+}
+
+void
+RCUpdate::map_from_rc_channel_functions(InputRCset &input_set, const ParameterHandles &parameter_handles)
+{
+	unsigned channel_limit = input_set.input.channel_count;
 
 	if (channel_limit > RC_MAX_CHAN_COUNT) {
 		channel_limit = RC_MAX_CHAN_COUNT;
@@ -344,12 +365,12 @@ RCUpdate::map_from_rc_channel_functions(input_rc_s &rc_input, const ParameterHan
 		/*
 		 * 1) Constrain to min/max values, as later processing depends on bounds.
 		 */
-		if (rc_input.values[i] < _parameters.min[i]) {
-			rc_input.values[i] = _parameters.min[i];
+		if (input_set.input.values[i] < _parameters.min[i]) {
+			input_set.input.values[i] = _parameters.min[i];
 		}
 
-		if (rc_input.values[i] > _parameters.max[i]) {
-			rc_input.values[i] = _parameters.max[i];
+		if (input_set.input.values[i] > _parameters.max[i]) {
+			input_set.input.values[i] = _parameters.max[i];
 		}
 
 		/*
@@ -368,12 +389,12 @@ RCUpdate::map_from_rc_channel_functions(input_rc_s &rc_input, const ParameterHan
 		 *
 		 * DO NOT REMOVE OR ALTER STEP 1!
 		 */
-		if (rc_input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
-			_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(
+		if (input_set.input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
+			_rc.channels[i] = (input_set.input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(
 						  _parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
 
-		} else if (rc_input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
-			_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(
+		} else if (input_set.input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
+			_rc.channels[i] = (input_set.input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(
 						  _parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
 
 		} else {
@@ -389,24 +410,24 @@ RCUpdate::map_from_rc_channel_functions(input_rc_s &rc_input, const ParameterHan
 		}
 	}
 
-	_rc.channel_count = rc_input.channel_count;
-	_rc.rssi = rc_input.rssi;
-	_rc.signal_lost = signal_lost;
-	_rc.timestamp = rc_input.timestamp_last_signal;
-	_rc.frame_drop_count = rc_input.rc_lost_frame_count;
+	_rc.channel_count = input_set.input.channel_count;
+	_rc.rssi = input_set.input.rssi;
+	_rc.signal_lost = !input_set.signal_valid;
+	_rc.timestamp = input_set.input.timestamp_last_signal;
+	_rc.frame_drop_count = input_set.input.rc_lost_frame_count;
 
 	/* publish rc_channels topic even if signal is invalid, for debug */
 	publish_rc_channels();
 
 	/* only publish manual control if the signal is still present and was present once */
-	if (!signal_lost && rc_input.timestamp_last_signal > 0) {
+	if (input_set.signal_valid && input_set.input.timestamp_last_signal > 0) {
 
 		/* initialize manual setpoint */
 		struct manual_control_setpoint_s manual = {};
 		/* set mode slot to unassigned */
 		_manual_sp.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
 		/* set the timestamp to the last signal time */
-		_manual_sp.timestamp = rc_input.timestamp_last_signal;
+		_manual_sp.timestamp = input_set.input.timestamp_last_signal;
 		_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 		/* limit controls */

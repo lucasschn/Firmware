@@ -91,10 +91,34 @@ public:
 
 private:
 
-	/**
-	 * The mapping is based on rc_channels_s structure
-	 */
-	void map_from_rc_channel_functions(input_rc_s &rc_input, const ParameterHandles &parameter_handles);
+	int		_rc_parameter_map_sub = -1;		/**< rc parameter map subscription */
+
+	orb_advert_t	_rc_pub = nullptr;		/**< raw r/c control topic */
+	orb_advert_t	_manual_control_pub = nullptr;	/**< manual control signal topic */
+	orb_advert_t	_actuator_group_3_pub = nullptr;/**< manual control as actuator topic */
+
+	struct rc_channels_s _rc;			/**< r/c channel data */
+
+	struct InputRCset {
+		int sub = -1; //input_rc_s subscription
+		input_rc_s input = {}; //input_rc_s data
+		bool signal_valid = false; //indicates if requirements are met for a valid signal
+	} _inputs_rc[ORB_MULTI_MAX_INSTANCES];
+
+	struct manual_control_setpoint_s _manual_sp;
+
+	struct rc_parameter_map_s _rc_parameter_map;
+	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
+
+	const Parameters &_parameters;
+
+	hrt_abstime _last_rc_to_param_map_time = 0;
+
+	math::LowPassFilter2p _filter_roll; /**< filters for the main 4 stick inputs */
+	math::LowPassFilter2p _filter_pitch; /** we want smooth setpoints as inputs to the controllers */
+	math::LowPassFilter2p _filter_yaw;
+	math::LowPassFilter2p _filter_throttle;
+
 
 	/**
 	 * Publish setpoints
@@ -105,7 +129,6 @@ private:
 	 * Publish rc_channels
 	 */
 	void publish_rc_channels();
-
 
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
@@ -126,29 +149,20 @@ private:
 	 */
 	void set_params_from_rc(const ParameterHandles &parameter_handles);
 
+	/**
+	 * The mapping is based on rc_channels_s structure
+	 */
+	void map_from_rc_channel_functions(InputRCset &input_set, const ParameterHandles &parameter_handles);
 
-	int		_rc_subs[ORB_MULTI_MAX_INSTANCES];	/**< raw rc channels data subscription */
-	int		_rc_parameter_map_sub = -1;		/**< rc parameter map subscription */
+	/**
+	 * Check and set validity of signal
+	 */
+	void set_signal_validity(InputRCset &input_set);
 
-	orb_advert_t	_rc_pub = nullptr;		/**< raw r/c control topic */
-	orb_advert_t	_manual_control_pub = nullptr;	/**< manual control signal topic */
-	orb_advert_t	_actuator_group_3_pub = nullptr;/**< manual control as actuator topic */
-
-	struct rc_channels_s _rc;			/**< r/c channel data */
-	struct input_rc_s _inputs_rc[ORB_MULTI_MAX_INSTANCES]; /**< rc input data */
-	struct manual_control_setpoint_s _manual_sp;
-
-	struct rc_parameter_map_s _rc_parameter_map;
-	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */
-
-	const Parameters &_parameters;
-
-	hrt_abstime _last_rc_to_param_map_time = 0;
-
-	math::LowPassFilter2p _filter_roll; /**< filters for the main 4 stick inputs */
-	math::LowPassFilter2p _filter_pitch; /** we want smooth setpoints as inputs to the controllers */
-	math::LowPassFilter2p _filter_yaw;
-	math::LowPassFilter2p _filter_throttle;
+	/**
+	 * Check and set validity of signal if channel function is used for mapping.
+	 */
+	void set_signal_validity(InputRCset &input_set, const rc_channels_s &channels);
 
 };
 

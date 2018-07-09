@@ -45,7 +45,10 @@
 #include <matrix/math.hpp>
 #include <drivers/drv_led.h>
 
-using namespace status;
+namespace events
+{
+namespace status
+{
 
 void StatusDisplay::set_leds()
 {
@@ -159,3 +162,6 @@ void StatusDisplay::set_leds()
 	_old_home_position_valid = home_position_valid;
 	_old_battery_status_warning = _battery_status.warning;
 }
+
+} /* namespace status */
+} /* namespace events */

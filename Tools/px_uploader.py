@@ -339,7 +339,7 @@ class uploader(object):
 
         except NotImplementedError:
             raise RuntimeError("Programing not supported for this version of silicon!\n"
-                               "See https://pixhawk.org/help/errata")
+                               "See https://docs.px4.io/en/flight_controller/silicon_errata.html")
         except RuntimeError:
             # timeout, no response yet
             return False
@@ -542,8 +542,8 @@ class uploader(object):
         print("\n", end='')
         self.__drawProgressBar(label, 1, 100)
         expect_crc = fw.crc(self.fw_maxsize)
-        self.__send(self.__command(self.CMD_GET_CRC) +
-                    self.__command(self.CMD_EOC))
+        self.__send(uploader.CMD_GET_CRC + uploader.CMD_EOC)
+        time.sleep(0.5)
         report_crc = self.__recv_int()
         self.__getSync()
         if report_crc != expect_crc:
@@ -664,11 +664,6 @@ class uploader(object):
             self.otp_coa = self.otp[32:160]
             # show user:
             try:
-                print("type: " + self.otp_id.decode('Latin-1'))
-                print("idtype: " + binascii.b2a_qp(self.otp_idtype).decode('Latin-1'))
-                print("vid: " + binascii.hexlify(self.otp_vid).decode('Latin-1'))
-                print("pid: " + binascii.hexlify(self.otp_pid).decode('Latin-1'))
-                print("coa: " + binascii.b2a_base64(self.otp_coa).decode('Latin-1'))
                 print("sn: ", end='')
                 for byte in range(0, 12, 4):
                     x = self.__getSN(byte)
@@ -677,6 +672,15 @@ class uploader(object):
                     print(binascii.hexlify(x).decode('Latin-1'), end='')  # show user
                 print('')
                 print("chip: %08x" % self.__getCHIP())
+
+                otp_id = self.otp_id.decode('Latin-1')
+                if ("PX4" in otp_id):
+                    print("OTP id: " + otp_id)
+                    print("OTP idtype: " + binascii.b2a_qp(self.otp_idtype).decode('Latin-1'))
+                    print("OTP vid: " + binascii.hexlify(self.otp_vid).decode('Latin-1'))
+                    print("OTP pid: " + binascii.hexlify(self.otp_pid).decode('Latin-1'))
+                    print("OTP coa: " + binascii.b2a_base64(self.otp_coa).decode('Latin-1'))
+
             except Exception:
                 # ignore bad character encodings
                 pass
@@ -694,7 +698,7 @@ class uploader(object):
             if (len(des) == 2):
                 print("family: %s" % des[0])
                 print("revision: %s" % des[1])
-                print("flash %d" % self.fw_maxsize)
+                print("flash: %d bytes" % self.fw_maxsize)
 
                 # Prevent uploads where the maximum image size of the board config is smaller than the flash
                 # of the board. This is a hint the user chose the wrong config and will lack features
@@ -719,7 +723,8 @@ class uploader(object):
                                    "high that it is not safe! If unsure, use px4fmu-v2_default.\n"
                                    "\n"
                                    "If you know you that the board does not have the silicon errata, use\n"
-                                   "this script with --force, or update the bootloader.\n")
+                                   "this script with --force, or update the bootloader. If you are invoking\n"
+                                   "upload using make, you can use force-upload target to force the upload.\n")
 
         self.__erase("Erase  ")
         if not fw.is_encrypted:
@@ -803,7 +808,14 @@ def main():
 
     # Load the firmware file
     fw = firmware(args.firmware)
-    print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size')))
+
+    percent = fw.property('image_size') / fw.property('image_maxsize')
+    binary_size = float(fw.property('image_size'))
+    binary_max_size = float(fw.property('image_maxsize'))
+    percent = (binary_size / binary_max_size) * 100
+
+    print("Loaded firmware for board id: %s,%s size: %d bytes (%.2f%%), waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size'), percent))
+    print()
 
 
     # Spin waiting for a device to show up
@@ -861,7 +873,8 @@ def main():
                         # identify the bootloader
                         up.identify()
                         found_bootloader = True
-                        print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
+                        print()
+                        print("Found board id: %s,%s bootloader version: %s on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
                         break
 
                     except Exception:

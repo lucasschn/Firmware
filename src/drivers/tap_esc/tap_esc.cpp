@@ -63,9 +63,9 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/mixer.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <mixer/mixer.h>
+#include <pwm_limit/pwm_limit.h>
 #include "tap_esc_common.h"
 #include "fault_tolerant_control/fault_tolerant_control.h"
 

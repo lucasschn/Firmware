@@ -403,7 +403,7 @@ RTL::set_rtl_item()
 			_mission_item.origin = ORIGIN_ONBOARD;
 			_mission_item.deploy_gear = true;
 
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: land at home");
+			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at home");
 			break;
 		}
 

@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/esc_status.h>
 
 /**
@@ -100,6 +101,7 @@ private:
 	void		battery_status_poll();
 	void		parameter_update_poll();
 	void		sensor_bias_poll();
+	void		vehicle_land_detected_poll();
 	void		sensor_correction_poll();
 	void		vehicle_attitude_poll();
 	void		vehicle_attitude_setpoint_poll();
@@ -138,6 +140,7 @@ private:
 	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
 	int		_sensor_correction_sub{-1};	/**< sensor thermal correction subscription */
 	int		_sensor_bias_sub{-1};		/**< sensor in-run bias correction subscription */
+	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
 	int		_esc_status_sub{-1};		/**< sensor in-run bias correction subscription */
 
 	unsigned _gyro_count{1};
@@ -163,6 +166,7 @@ private:
 	struct sensor_gyro_s			_sensor_gyro {};	/**< gyro data before thermal correctons and ekf bias estimates are applied */
 	struct sensor_correction_s		_sensor_correction {};	/**< sensor thermal corrections */
 	struct sensor_bias_s			_sensor_bias {};	/**< sensor in-run bias corrections */
+	struct vehicle_land_detected_s		_vehicle_land_detected {};
 	struct esc_status_s			_esc_status_report {};
 
 	MultirotorMixer::saturation_status _saturation_status{};

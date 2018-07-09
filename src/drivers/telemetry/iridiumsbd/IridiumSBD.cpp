@@ -45,7 +45,6 @@
 #include <pthread.h>
 
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
 
 #include "drivers/drv_iridiumsbd.h"
@@ -78,7 +77,7 @@ int IridiumSBD::start(int argc, char *argv[])
 	IridiumSBD::instance = new IridiumSBD();
 
 	IridiumSBD::task_handle = px4_task_spawn_cmd("iridiumsbd", SCHED_DEFAULT,
-				  SCHED_PRIORITY_SLOW_DRIVER, 1300, (main_t)&IridiumSBD::main_loop_helper, argv);
+				  SCHED_PRIORITY_SLOW_DRIVER, 1350, (main_t)&IridiumSBD::main_loop_helper, argv);
 
 	return OK;
 }
@@ -1076,6 +1075,10 @@ int	IridiumSBD::close_last(struct file *filep)
 
 int iridiumsbd_main(int argc, char *argv[])
 {
+	if (argc < 2) {
+		goto out_error;
+	}
+
 	if (!strcmp(argv[1], "start")) {
 		return IridiumSBD::start(argc, argv);
 
@@ -1091,6 +1094,7 @@ int iridiumsbd_main(int argc, char *argv[])
 		return OK;
 	}
 
+out_error:
 	PX4_INFO("usage: iridiumsbd {start|stop|status|test} [-d uart_device]");
 
 	return PX4_ERROR;

@@ -116,7 +116,7 @@ void LandDetector::_cycle()
 	const bool ground_contactDetected = (_state == LandDetectionState::GROUND_CONTACT);
 	const bool crashDetected = (_state == LandDetectionState::CRASH);
 	const bool invertedDetected = (_state == LandDetectionState::INVERTED);
-	const float alt_max = _get_max_altitude();
+	const float alt_max = _get_max_altitude() > 0.0f ? _get_max_altitude() : INFINITY;
 
 	const hrt_abstime now = hrt_absolute_time();
 

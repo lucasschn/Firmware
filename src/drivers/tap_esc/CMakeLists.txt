@@ -41,6 +41,8 @@ px4_add_module(
 		tap_esc_common.cpp
 		fault_tolerant_control/fault_tolerant_control.cpp
 	DEPENDS
+		mixer
+		pwm_limit
 		led
 		tunes
 	)

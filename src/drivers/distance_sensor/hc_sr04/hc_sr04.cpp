@@ -78,7 +78,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/manual_control_setpoint.h>
 
@@ -184,7 +183,6 @@ private:
 	bool 				_enable_obsavoid_switch;
 
 	uint8_t 		_rotation;
-	orb_advert_t		_sensor_info_pub;
 	orb_advert_t		_distance_sensor_topic;
 
 	perf_counter_t		_sample_perf;
@@ -288,7 +286,6 @@ HC_SR04::HC_SR04(uint8_t rotation, bool enable_median_filter, bool enable_obsavo
 	_enable_median_filter(enable_median_filter),
 	_enable_obsavoid_switch(enable_obsavoid_switch),
 	_rotation(rotation),
-	_sensor_info_pub(nullptr),
 	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hc_sr04_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hc_sr04_comms_errors")),
@@ -594,21 +591,6 @@ HC_SR04::start()
 	/* reset the report ring */
 	_reports->flush();
 
-	/* notify about state change */
-	struct subsystem_info_s info = {};
-	info.timestamp = hrt_absolute_time();
-	info.present = true;
-	info.enabled = true;
-	info.ok = true;
-	info.subsystem_type = SUBSYSTEM_TYPE_RANGEFINDER;
-
-	if (_sensor_info_pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), _sensor_info_pub, &info);
-
-	} else {
-		_sensor_info_pub = orb_advertise(ORB_ID(subsystem_info), &info);
-	}
-
 	_thread_state = thread_run;
 	work_queue(HPWORK, &_work, (worker_t)&HC_SR04::cycle_trampoline, this, 0);
 }
@@ -651,7 +633,6 @@ HC_SR04::stop()
 	::close(fd_fmu);
 
 	/* unadvertise publishing topics */
-	orb_unadvertise(_sensor_info_pub);
 	orb_unadvertise(_distance_sensor_topic);
 }
 

@@ -235,7 +235,7 @@ bool OutputSerial::_send_packet(uint8_t *payload, int payload_len, int msg_id)
 	uint8_t *p = (uint8_t *)&packet_header;
 	++p;
 
-	for (int i = 1; i < sizeof(packet_header); ++i) {
+	for (size_t i = 1; i < sizeof(packet_header); ++i) {
 		crc_accumulate(*p++, &checksum);
 	}
 

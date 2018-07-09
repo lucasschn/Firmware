@@ -3117,6 +3117,11 @@ MulticopterPositionControl::generate_attitude_setpoint()
 
 		_att_sp.yaw_sp_move_rate = yaw_rate_max * math::expo_deadzone(_manual.r, _yaw_expo.get(), _hold_dz.get());
 
+		// Yuneec specific: support an RC slider directly scaling maximal yaw speed if it is mapped
+		if (_RC_MAP_AUX5.get() > 0) {
+			_att_sp.yaw_sp_move_rate *= math::gradual(_manual.aux5, -1.f, 1.f, 0.1f, 1.f);
+		}
+
 		/* check if obstacle avoidance is on */
 		if (use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED])) {
 			_att_sp.yaw_sp_move_rate = _traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED];

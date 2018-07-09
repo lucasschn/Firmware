@@ -2099,7 +2099,7 @@ void MulticopterPositionControl::control_auto()
 		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
 		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
 
-			float yaw_diff = _wrap_pi(_att_sp.yaw_body - _yaw);
+			float yaw_diff = wrap_pi(_att_sp.yaw_body - _yaw);
 
 			/* by default use current setpoint as is */
 			matrix::Vector3f pos_sp = _curr_pos_sp;

@@ -1577,7 +1577,7 @@ MulticopterPositionControl::control_manual()
 	float vel_mag = (_velocity_hor_manual.get() < _vel_max_xy) ? _velocity_hor_manual.get() : _vel_max_xy;
 	matrix::Vector3f vel_cruise_scale(vel_mag, vel_mag, (man_vel_sp(2) > 0.0f) ? _vel_z_down.get() : _vel_z_up.get());
 
-	// Yuneec specific: support an RC slider directly scaling maximal manual velocity if it is mapped
+	// Yuneec specific: if an RC slider is mapped use it to scale maximum manual velocity on the fly
 	if (_RC_MAP_AUX5.get() > 0) {
 		vel_cruise_scale *= math::gradual(_manual.aux5, -1.f, 1.f, 0.1f, 1.f);
 	}
@@ -3124,6 +3124,11 @@ MulticopterPositionControl::generate_attitude_setpoint()
 		const float yaw_rate_max = (_man_yaw_max < _global_yaw_max) ? _man_yaw_max : _global_yaw_max;
 
 		_att_sp.yaw_sp_move_rate = yaw_rate_max * math::expo_deadzone(_manual.r, _yaw_expo.get(), _hold_dz.get());
+
+		// Yuneec specific: if an RC slider is mapped use it to scale maximum yaw speed on the fly
+		if (_RC_MAP_AUX5.get() > 0) {
+			_att_sp.yaw_sp_move_rate *= math::gradual(_manual.aux5, -1.f, 1.f, 0.1f, 1.f);
+		}
 
 		/* check if obstacle avoidance is on */
 		if (use_obstacle_avoidance() && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED])) {

@@ -542,7 +542,7 @@ class uploader(object):
         print("\n", end='')
         self.__drawProgressBar(label, 1, 100)
         expect_crc = fw.crc(self.fw_maxsize)
-        self.__send(uploader.CMD_GET_CRC + uploader.CMD_EOC)
+        self.__send(self.__command(self.CMD_GET_CRC) + self.__command(self.CMD_EOC))
         time.sleep(0.5)
         report_crc = self.__recv_int()
         self.__getSync()

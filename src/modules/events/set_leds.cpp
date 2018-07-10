@@ -41,9 +41,28 @@
  */
 
 #include "status_display.h"
+
+// #include <system_config.h>
+#include <board_config.h>
 #include <px4_log.h>
 #include <matrix/math.hpp>
 #include <drivers/drv_led.h>
+
+#ifndef BOARD_FRONT_LED_MASK
+#define BOARD_FRONT_LED_MASK (0)
+#endif
+
+#ifndef BOARD_REAR_LED_MASK
+#define BOARD_REAR_LED_MASK  (0)
+#endif
+
+#ifndef BOARD_LEFT_LED_MASK
+#define BOARD_LEFT_LED_MASK  (0)
+#endif
+
+#ifndef BOARD_RIGHT_LED_MASK
+#define BOARD_RIGHT_LED_MASK (0)
+#endif
 
 namespace events
 {

@@ -47,6 +47,8 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/input_rc.h>
 
+#include "rc_mapping/rc_mapping.h"
+
 using namespace sensors;
 
 RCUpdate::RCUpdate(const Parameters &parameters)

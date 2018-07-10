@@ -45,7 +45,10 @@
 
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include "../parameters.h"
 
+namespace sensors
+{
 namespace RCmapping
 {
 enum class Error : int {
@@ -53,5 +56,6 @@ enum class Error : int {
 	Version
 };
 
-int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc);
-}
+int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const Parameters &parameters);
+} // namespace RCmapping
+} // namespace sensors

@@ -35,6 +35,8 @@
  * @file st16_map.h
  */
 
+namespace sensors
+{
 namespace RCmapping
 {
 namespace ST16
@@ -43,7 +45,9 @@ namespace ST16
 // M4 version
 const int M4_RAW_CHANNEL_MAPPING_VER = 0xA;
 const int MAX_VALUE = 4000; // 12 bits - offset due to calibration
-const int MIN_VAKUE = 95; // 0 + offset due to calibration
+const int MIN_VALUE = 95; // 0 + offset due to calibration
+const int KILL_HOTKEY_TIME_US = 1000000; // 1s time for kill-switch criteria
+const int KILL_SWITCH_TRIGGER_COUNT = 3; // three times needs the kill switch to be high to be considered complete
 
 // Channels
 const int CHANNEL_LEFT_STICK_UP = (1 - 1);
@@ -84,3 +88,4 @@ enum class Trim : int {
 };
 } //namespace ST16
 } //namespace RCmapping
+} // namespace sensors

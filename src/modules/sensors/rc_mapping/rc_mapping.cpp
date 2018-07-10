@@ -39,10 +39,13 @@
 #include "rc_mapping.h"
 #include "st16_map.h"
 #include <mathlib/mathlib.h>
+#include <drivers/drv_hrt.h>
 
+namespace sensors
+{
 namespace RCmapping
 {
-int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
+int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const Parameters &parameters)
 {
 	// check for the M4 raw output channel mapping version embedded in channel 9 to
 	// make sure change is compatible
@@ -58,9 +61,9 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 			      0.0f, 1.0f);
 
 	// map all other none-switch/trim channels to range [-1,1]
-	auto unit_range = [](uint16_t channel) {
-		return math::gradual((float)channel,
-				     0.0f, (float)ST16::MAX_VALUE,
+	auto unit_range = [](uint16_t value) {
+		return math::gradual((float)value,
+				     (float)ST16::MIN_VALUE, (float)ST16::MAX_VALUE,
 				     -1.0f, 1.0f);
 	};
 
@@ -71,6 +74,9 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 	man.aux2 = unit_range(input_rc.values[ST16::CHANNEL_TILT_SLIDER]); // tilt-slider / gimbal tilt
 	man.aux5 = unit_range(input_rc.values[ST16::CHANNEL_TORTOISE_SLIDER]); // turtle-mode
 
+	// apply rc-mode
+	math::convertRcMode(parameters.rc_mode, man.y, man.x, man.r, man.z);
+
 	// three way switches [0,1,2] -> [1, 2, 3]
 	auto three_way = [&input_rc](ST16::ThreeWay sw) {
 		return (((input_rc.values[ST16::CHANNEL_THREE_WAY_SWITCH] >> (int)sw * 2) & 0x3) + 1);
@@ -80,27 +86,61 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 	man.aux4 = three_way(ST16::ThreeWay::pan_switch);
 	man.aux3 = three_way(ST16::ThreeWay::tilt_switch);
 
-	// two way switches [0,1] -> [1,3]
+	// two way switches [1,0] -> [1,3]
 	auto two_way = [&input_rc](ST16::TwoWay sw, const int channel) {
 
 		if ((input_rc.values[channel] >> (int)sw) & 0x1) {
-			return manual_control_setpoint_s::SWITCH_POS_OFF;
+			return manual_control_setpoint_s::SWITCH_POS_ON;
 
 		} else {
-			return manual_control_setpoint_s::SWITCH_POS_ON;
+			return manual_control_setpoint_s::SWITCH_POS_OFF;
 		}
 	};
 	man.gear_switch = two_way(ST16::TwoWay::gear_switch, ST16::CHANNEL_TWO_WAY_SWITCH);
 	man.arm_switch = two_way(ST16::TwoWay::arm_button, ST16::CHANNEL_TWO_WAY_SWITCH);
-	// TODO: add remaining buttons
+
+	// Kill hotkey: pressing the arm button three times with low throttle within KILL_HOTKEY_TIME_US
+	// will trigger kill-switch.
+	static bool kill_state = false;
+	static hrt_abstime kill_hotkey_start_time = 0;
+	static int kill_hotkey_count = 0;
+	static bool arm_button_pressed_last = false;
+
+	const bool first_time = kill_hotkey_count == 0;
+	const bool hotkey_complete = kill_hotkey_count >= ST16::KILL_SWITCH_TRIGGER_COUNT;
+	const bool within_timeout = hrt_elapsed_time(&kill_hotkey_start_time) < ST16::KILL_HOTKEY_TIME_US;
+
+	if (hotkey_complete) {
+		kill_state = true;
+	}
+
+	if (man.z < 0.25f && (first_time || within_timeout) && !hotkey_complete) {
+		if (!arm_button_pressed_last && man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+			if (first_time) {
+				kill_hotkey_start_time = hrt_absolute_time();
+			}
+
+			kill_hotkey_count++;
+		}
+
+	}  else {
+		// reset
+		kill_hotkey_count = 0;
+		kill_hotkey_start_time = 0;
+	}
+
+	arm_button_pressed_last = man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+	man.kill_switch = kill_state;
+
+	//////// TODO: add remaining buttons
 	//=> man.aux_button = two_way(ST16::TwoWay::gear_switch, ST16::CHANNEL_TWO_WAY_SWITCH);
 	//man.photo_button
 	//man.video_button
 	// all trim buttons...
-
-	// TODO: kill switch todo
+	///////////////////////////////////////////////////////////////////////////////////////////////
 
 	// no errors
 	return (int)Error::None;
 }
-}
+} // namespace RCmapping
+} // namespace sensors

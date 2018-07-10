@@ -1097,7 +1097,8 @@ Navigator::reset_cruising_speed()
 void
 Navigator::reset_target_motion()
 {
-	_target_motion.lat = _target_motion.lon = _target_motion.alt = NAN;
+	_target_motion.lat = _target_motion.lon = (double)NAN;
+	_target_motion.alt = NAN;
 	_target_motion.vx = _target_motion.vy = _target_motion.vz = NAN;
 }
 

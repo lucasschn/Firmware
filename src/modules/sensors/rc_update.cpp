@@ -310,7 +310,9 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 
 			// RC only has default priority
 			if (e.signal_valid && priority == ORB_PRIO_DEFAULT) {
-				map_from_rc_channel_functions(e, parameter_handles);
+				RCmapping::st16_map(_manual_sp, e.input, _parameters);
+				publish_manual_inputs();
+				//map_from_rc_channel_functions(e, parameter_handles);
 				break;
 			}
 		}

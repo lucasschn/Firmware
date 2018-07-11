@@ -56,39 +56,12 @@ const char *decode_states[] = {"UNSYNCED",
 			       "GOT_DATA"
 			      };
 
-/* current M4 raw output channel mapping version to check compatibility */
-#define ST16_M4_RAW_CHANNEL_MAPPING_VER		0xA
-
-/* override unused channels with virtual channels that get handeled by the commander */
-#define ST16_CHANNEL_ARM_BUTTON   (8  -1) // set RC_MAP_ARM_SW = 8 and COM_ARM_SWISBTN = 1
-#define ST16_CHANNEL_GEAR_SWITCH  (9  -1) // set RC_MAP_GEAR_SW = 9
-#define ST16_CHANNEL_MODE_SWITCH  (10 -1) // set RC_MAP_FLTMODE = 10
-#define ST16_CHANNEL_AVOID_SWITCH (11 -1) // set RC_MAP_AVOID_SW = 11
-#define ST16_CHANNEL_PAN_SWITCH   (12 -1) // set RC_MAP_AUX4 = 12
-#define ST16_CHANNEL_TILT_SWITCH  (13 -1) // set RC_MAP_AUX3 = 13
-#define ST16_CHANNEL_KILL_SWITCH  (14 -1) // set RC_MAP_KILL_SW = 14
-
-#define ST24_TARGET_MIN 1000
-#define ST24_TARGET_MAX 2000
-#define ST24_TARGET_RANGE (ST24_TARGET_MAX - ST24_TARGET_MIN)
-
-#define KILL_HOTKEY_TIME 1000000
-
-/* pre-calculate the floating point stuff as far as possible at compile time */
-#define ST24_SCALE_FACTOR ((ST24_TARGET_MAX - ST24_TARGET_MIN) / (ST24_RANGE_MAX - ST24_RANGE_MIN))
-#define ST24_SCALE_OFFSET (ST24_TARGET_MIN - (ST24_SCALE_FACTOR * ST24_RANGE_MIN))
 
 static enum ST24_DECODE_STATE _decode_state = ST24_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
 
 orb_advert_t _mavlink_log_pub = nullptr; /**< mavlink message publication topic to send out error messages */
 hrt_abstime _last_error_time = 0; /**< timestamp of the last error to reduce the error rate */
-
-/* kill switch hotkey */
-static bool _arm_button_pressed_last = false; /* if the button was pressed last time to detect a transition */
-static hrt_abstime _kill_hotkey_start_time = 0; /* the time when the hotkey started to measure timeout */
-static int _kill_hotkey_button_count = 0; /* how many times the button was pressed during the hotkey timeout */
-static bool _kill_state = false; /* the kill state in which we lockdown the motors until restart */
 
 static ReceiverFcPacket _rxpacket;
 static ReceiverFcPacket _txpacket;
@@ -118,7 +91,6 @@ uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 
 	return (crc);
 }
-
 
 int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *channel_count, uint16_t *channels,
 		uint16_t max_chan_count)
@@ -219,103 +191,6 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 						channels[chan_index] |= (((uint16_t)(0x0F & d->channel[i + 1])) << 8);
 						chan_index++;
 					}
-
-					/* check for the M4 raw output channel mapping version embedded in channel 9
-					 * to make sure the mapping is compatible */
-					int mapping_version = (channels[9 - 1] >> 8) & 0xF;
-
-					if (mapping_version != ST16_M4_RAW_CHANNEL_MAPPING_VER) {
-						/* produce RC loss if the versions do not match */
-						*lost_count = 100;
-						/* inform user every 15 seconds */
-						hrt_abstime now = hrt_absolute_time();
-
-						if (hrt_absolute_time() - _last_error_time > 15000000) {
-							mavlink_log_critical(&_mavlink_log_pub, "Old remote control version, please update!");
-							_last_error_time = now;
-						}
-					}
-
-					/* decode all digital states from switches and buttons */
-					/* 3-way switches -> [0,1,2] */
-					int switch3[4];
-					enum switch3Index : int {
-						mode_switch = 0,
-						obs_switch,
-						pan_switch,
-						tilt_switch
-					};
-
-					for (int i = 0; i < 4; i++) {
-						switch3[i] = (channels[8 - 1] >> i * 2) & 0x3;
-					}
-
-					/* 2-state buttons/switch -> [0,1] */
-					bool button2[13];
-					enum button2Index : int {
-						gear_switch = 0,
-						arm_button,
-						aux_button,
-						photo_button,
-						video_button,
-						left_trim_up,
-						left_trim_down,
-						left_trim_left,
-						left_trim_right,
-						right_trim_up,
-						right_trim_down,
-						right_trim_left,
-						right_trim_right
-					};
-
-					for (int i = 0; i < 5; i++) {
-						button2[i] = (channels[9 - 1] >> i) & 0x1;
-					}
-
-					for (int i = 0; i < 8; i++) {
-						button2[5 + i] = (channels[10 - 1] >> i) & 0x1;
-					}
-
-					/* add virtual channels for converting bits to fake analog channels */
-					*channel_count += 2; // there are two more than 12
-
-					channels[ST16_CHANNEL_ARM_BUTTON] = button2[button2Index::arm_button] ? ST24_TARGET_MAX : ST24_TARGET_MIN;
-					channels[ST16_CHANNEL_GEAR_SWITCH] = button2[button2Index::gear_switch] ? ST24_TARGET_MAX : ST24_TARGET_MIN;
-					channels[ST16_CHANNEL_MODE_SWITCH] = ST24_TARGET_MIN + (switch3[switch3Index::mode_switch] * ST24_TARGET_RANGE / 2);
-					channels[ST16_CHANNEL_AVOID_SWITCH] = ST24_TARGET_MIN + (switch3[switch3Index::obs_switch] * ST24_TARGET_RANGE / 2);
-					channels[ST16_CHANNEL_PAN_SWITCH] = ST24_TARGET_MIN + (switch3[switch3Index::pan_switch] * ST24_TARGET_RANGE / 2);
-					channels[ST16_CHANNEL_TILT_SWITCH] = ST24_TARGET_MIN + (switch3[switch3Index::tilt_switch] * ST24_TARGET_RANGE / 2);
-					channels[ST16_CHANNEL_KILL_SWITCH] = _kill_state ? ST24_TARGET_MAX : ST24_TARGET_MIN;
-
-
-					/* Kill hotkey: pressing the arm button three times with low throttle within 1s
-					 * overrides a free channel with a virtual switch which has maximum value when kill was triggered
-					 * need to be used in combination with RC_MAP_KILL_SW mapped to the channel */
-					const bool arm_button_pressed = button2[button2Index::arm_button];
-					const bool first_time = _kill_hotkey_button_count == 0;
-					const bool within_timeout = hrt_elapsed_time(&_kill_hotkey_start_time) < KILL_HOTKEY_TIME;
-					const bool hotkey_complete = _kill_hotkey_button_count > 2;
-
-					if (hotkey_complete) {
-						_kill_state = true;
-					}
-
-					if (channels[0] < 1000 && (first_time || within_timeout) && !hotkey_complete) {
-						if (!_arm_button_pressed_last && arm_button_pressed) {
-							if (first_time) {
-								_kill_hotkey_start_time = hrt_absolute_time();
-							}
-
-							_kill_hotkey_button_count++;
-						}
-
-					} else {
-						_kill_hotkey_button_count = 0;
-						_kill_hotkey_start_time = 0;
-					}
-
-					_arm_button_pressed_last = arm_button_pressed;
-
 				}
 				break;
 

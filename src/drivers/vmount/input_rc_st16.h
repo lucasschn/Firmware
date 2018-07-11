@@ -67,7 +67,9 @@ protected:
 
 private:
 	bool _first_time = true;
-	float _last_set_aux_values[4] = {};
+	float _last_set_aux_values[2] = {};
+	uint8_t _last_gimbal_yaw_mode = 0;
+	uint8_t _last_gimbal_tilt_mode = 0;
 };
 
 

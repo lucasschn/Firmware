@@ -64,22 +64,26 @@ bool InputRCSt16::_read_control_data_from_subscription(ControlData &control_data
 	orb_copy(ORB_ID(manual_control_setpoint), _get_subscription_fd(), &manual_control_setpoint);
 	control_data.type = ControlData::Type::Angle;
 
-	float new_aux_values[4];
+	float new_aux_values[2];
 
 	new_aux_values[0] = -manual_control_setpoint.aux1;
 	new_aux_values[1] = -manual_control_setpoint.aux2;
-	new_aux_values[2] = manual_control_setpoint.aux3;
-	new_aux_values[3] = manual_control_setpoint.aux4;
 
 	// If we were already active previously, we just update normally. Otherwise, there needs to be
 	// a major stick movement to re-activate manual (or it's running for the very first time).
 	bool major_movement = false;
 
 	// Detect a big stick movement
-	for (int i = 0; i < 4; ++i) {
+	for (int i = 0; i < 2; ++i) {
 		if (fabsf(_last_set_aux_values[i] - new_aux_values[i]) > 0.25f) {
 			major_movement = true;
 		}
+	}
+
+	// Detect gimbal mode change
+	if (_last_gimbal_yaw_mode != manual_control_setpoint.gimbal_yaw_mode ||
+	    _last_gimbal_tilt_mode != manual_control_setpoint.gimbal_tilt_mode) {
+		major_movement = true;
 	}
 
 	if (already_active || major_movement || _first_time) {
@@ -92,7 +96,7 @@ bool InputRCSt16::_read_control_data_from_subscription(ControlData &control_data
 		control_data.stabilize_axis[0] = false;
 
 		//pitch
-		if (new_aux_values[2] > 0.5f) {
+		if (manual_control_setpoint.gimbal_tilt_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
 			control_data.type_data.angle.is_speed[1] = true;
 			control_data.type_data.angle.angles[1] = new_aux_values[1] * M_PI_F;
 
@@ -111,13 +115,13 @@ bool InputRCSt16::_read_control_data_from_subscription(ControlData &control_data
 		control_data.type_data.angle.is_speed[2] = true;
 		control_data.type_data.angle.angles[2] = new_aux_values[0] * M_PI_F;
 
-		if (new_aux_values[3] > 0.5f) {
+		if (manual_control_setpoint.gimbal_yaw_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
 			control_data.stabilize_axis[2] = true;
 
-		} else if (new_aux_values[3] > -0.5f) {
+		} else if (manual_control_setpoint.gimbal_yaw_mode == manual_control_setpoint_s::SWITCH_POS_MIDDLE) {
 			control_data.stabilize_axis[2] = false;
 
-		} else {
+		} else if (manual_control_setpoint.gimbal_yaw_mode == manual_control_setpoint_s::SWITCH_POS_OFF) {
 			control_data.stabilize_axis[2] = false;
 			control_data.type_data.angle.angles[2] = 0.f;
 			control_data.type_data.angle.is_speed[2] = false;
@@ -125,9 +129,12 @@ bool InputRCSt16::_read_control_data_from_subscription(ControlData &control_data
 
 		control_data.gimbal_shutter_retract = false;
 
-		for (int i = 0; i < 4; ++i) {
+		for (int i = 0; i < 2; ++i) {
 			_last_set_aux_values[i] = new_aux_values[i];
 		}
+
+		_last_gimbal_tilt_mode = manual_control_setpoint.gimbal_tilt_mode;
+		_last_gimbal_yaw_mode = manual_control_setpoint.gimbal_yaw_mode;
 
 		return true;
 

@@ -83,8 +83,8 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const P
 	};
 	man.mode_switch = three_way(ST16::ThreeWay::mode_switch);
 	man.obsavoid_switch = three_way(ST16::ThreeWay::obs_avoid_switch);
-	man.aux4 = three_way(ST16::ThreeWay::pan_switch);
-	man.aux3 = three_way(ST16::ThreeWay::tilt_switch);
+	man.gimbal_yaw_mode = three_way(ST16::ThreeWay::pan_switch);
+	man.gimbal_tilt_mode = three_way(ST16::ThreeWay::tilt_switch);
 
 	// two way switches [1,0] -> [1,3]
 	auto two_way = [&input_rc](ST16::TwoWay sw, const int channel) {

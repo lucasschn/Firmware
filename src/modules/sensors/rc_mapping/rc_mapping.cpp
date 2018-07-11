@@ -77,9 +77,9 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const P
 	// apply rc-mode
 	math::convertRcMode(parameters.rc_mode, man.y, man.x, man.r, man.z);
 
-	// three way switches [0,1,2] -> [1, 2, 3]
+	// three way switches [0,1,2] -> [3,2,1]
 	auto three_way = [&input_rc](ST16::ThreeWay sw) {
-		return (((input_rc.values[ST16::CHANNEL_THREE_WAY_SWITCH] >> (int)sw * 2) & 0x3) + 1);
+		return (3 - ((input_rc.values[ST16::CHANNEL_THREE_WAY_SWITCH] >> (int)sw * 2) & 0x3));
 	};
 	man.mode_switch = three_way(ST16::ThreeWay::mode_switch);
 	man.obsavoid_switch = three_way(ST16::ThreeWay::obs_avoid_switch);

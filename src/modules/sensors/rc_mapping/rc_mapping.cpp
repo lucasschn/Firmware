@@ -101,10 +101,10 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const P
 
 	// Kill hotkey: pressing the arm button three times with low throttle within KILL_HOTKEY_TIME_US
 	// will trigger kill-switch.
-	static bool kill_state = false;
-	static hrt_abstime kill_hotkey_start_time = 0;
-	static int kill_hotkey_count = 0;
-	static bool arm_button_pressed_last = false;
+	static bool kill_state = false; // the kill state in which we lockdown the motors until restart
+	static hrt_abstime kill_hotkey_start_time = 0; // the time when the hotkey started to measure timeout
+	static int kill_hotkey_count = 0; //  how many times the button was pressed during the hotkey timeout
+	static bool arm_button_pressed_last = false; //if the button was pressed last time to detect a transition
 
 	const bool first_time = kill_hotkey_count == 0;
 	const bool hotkey_complete = kill_hotkey_count >= ST16::KILL_SWITCH_TRIGGER_COUNT;

@@ -74,7 +74,7 @@ after_success:
       ./Tools/check_deploy.sh;
 
       mkdir -p s3autopilot;
-      ./Tools/generate_yuneec.py build/tap-v2_default/tap-v2_default.px4 s3autopilot/autopilot.yuneec ${AUTOPILOT_AES_KEY};
+      ./Tools/generate_yuneec.py build/nuttx_tap-v2_default/tap-v2_default.px4 s3autopilot/autopilot.yuneec ${AUTOPILOT_AES_KEY};
       fwversion=$(git describe --tags);
       echo "$fwversion" > s3autopilot/version;
       echo "$TRAVIS_COMMIT" > s3autopilot/git;

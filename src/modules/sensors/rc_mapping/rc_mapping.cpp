@@ -81,7 +81,30 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const P
 	auto three_way = [&input_rc](ST16::ThreeWay sw) {
 		return (3 - ((input_rc.values[ST16::CHANNEL_THREE_WAY_SWITCH] >> (int)sw * 2) & 0x3));
 	};
-	man.mode_switch = three_way(ST16::ThreeWay::mode_switch);
+
+	// Mode slots define the mode of the vehicle.
+	// - up (=OFF) is reserved for Altitude
+	// - middle is reserved for Position
+	// - down (=ON) is reserved for Return
+	//
+	int mode_switch = three_way(ST16::ThreeWay::mode_switch);
+
+	if (mode_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+		// switch is up
+		man.mode_slot = manual_control_setpoint_s::MODE_SLOT_1;
+
+	} else if (mode_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE) {
+		// switch is middle
+		man.mode_slot = manual_control_setpoint_s::MODE_SLOT_4;
+
+	} else if (mode_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		//switch is down
+		man.mode_slot = manual_control_setpoint_s::MODE_SLOT_6;
+	}
+
+	// mode switch needs to be set to None such that slots are considered
+	man.mode_switch = manual_control_setpoint_s::SWITCH_POS_NONE;
+	// remaining three way switches
 	man.obsavoid_switch = three_way(ST16::ThreeWay::obs_avoid_switch);
 	man.gimbal_yaw_mode = three_way(ST16::ThreeWay::pan_switch);
 	man.gimbal_tilt_mode = three_way(ST16::ThreeWay::tilt_switch);
@@ -138,6 +161,9 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const P
 	//man.video_button
 	// all trim buttons...
 	///////////////////////////////////////////////////////////////////////////////////////////////
+
+	man.timestamp = input_rc.timestamp_last_signal;
+
 
 	// no errors
 	return (int)Error::None;

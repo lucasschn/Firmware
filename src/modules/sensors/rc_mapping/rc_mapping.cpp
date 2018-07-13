@@ -208,7 +208,8 @@ int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 
 	man.timestamp = input_rc.timestamp_last_signal;
 
-	return true;
+	// no errors
+	return (int)Error::None;
 
 }
 } // namespace RCmapping

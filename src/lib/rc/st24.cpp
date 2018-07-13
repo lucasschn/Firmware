@@ -60,9 +60,6 @@ const char *decode_states[] = {"UNSYNCED",
 static enum ST24_DECODE_STATE _decode_state = ST24_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
 
-orb_advert_t _mavlink_log_pub = nullptr; /**< mavlink message publication topic to send out error messages */
-hrt_abstime _last_error_time = 0; /**< timestamp of the last error to reduce the error rate */
-
 static ReceiverFcPacket _rxpacket;
 static ReceiverFcPacket _txpacket;
 

@@ -2326,3 +2326,19 @@ PARAM_DEFINE_FLOAT(RC_FLT_CUTOFF, 10.0f);
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_LINK_MODE, 0);
+
+/**
+ * Remote Control station type
+ *
+ * Depending on the type of the remote control station, the remote control signals
+ * need to be calibrated and mapped according to the RC_CHANNELS_FUNCTION (see rc_channels.msg), or
+ * the remote control station has a predefined channel mapping. A remote control station with a predefined
+ * mapping is considered as supported if the mapping is known to the firmware.
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Calibration
+ * @value 1 ST16
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_TYPE, 0);

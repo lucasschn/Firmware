@@ -212,6 +212,9 @@ then
 	# ST16 RC channel configuration
 	#
 
+	# remote control station type set to ST16
+	param set RC_TYPE 1
+
 	# analog channels
 	param set RC_CHAN_CNT 14
 	param set RC_MAP_THROTTLE 1

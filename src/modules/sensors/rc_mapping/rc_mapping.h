@@ -57,5 +57,7 @@ enum class Error : int {
 };
 
 int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const Parameters &parameters);
+
+int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc);
 } // namespace RCmapping
 } // namespace sensors

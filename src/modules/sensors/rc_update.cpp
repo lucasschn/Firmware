@@ -348,6 +348,21 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 		}
 
 	} else if (_parameters.rc_link_mode == 3) {
+		// team-mode
+		if (map_from_team_mode(parameter_handles)) {
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
+			publish_manual_inputs();
+
+		} else {
+			// just stay in normal RC mode
+			// rc only mapping is required
+			if (map_to_control_setpoint(parameter_handles, ORB_PRIO_DEFAULT)) {
+				_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
+				publish_manual_inputs();
+				//always publish rc_channels
+				publish_rc_channels();
+			}
+		}
 
 	}
 }
@@ -386,7 +401,6 @@ RCUpdate::map_to_control_setpoint(const ParameterHandles &parameter_handles, con
 
 			} else if (_parameters.rc_type == 1) {
 
-
 				// map based on ST16 default
 				int failure = RCmapping::st16_map(_manual_sp, e.input, _parameters);
 
@@ -407,6 +421,53 @@ RCUpdate::map_to_control_setpoint(const ParameterHandles &parameter_handles, con
 	}
 
 	return success;
+}
+
+bool
+RCUpdate::map_from_team_mode(const ParameterHandles &parameter_handles)
+{
+
+	if (_parameters.rc_type != 1) {
+		print_rc_error_message("Team-mode is not supported for this remote controller");
+		return false;
+	}
+
+	// first apply default map
+	if (!map_to_control_setpoint(parameter_handles, ORB_PRIO_DEFAULT)) {
+		return false;
+	}
+
+	// check if there is a second link with high priority
+	input_rc_s gimbal_input{};
+	int32_t priority;
+	bool second_link = false;
+
+	for (InputRCset &e : _inputs_rc) {
+
+		// get priority
+		orb_priority(e.sub, &priority);
+
+		if (e.signal_valid && priority == ORB_PRIO_HIGH) {
+			gimbal_input = e.input;
+			second_link = true;
+			break;
+		}
+	}
+
+	if (!second_link) {
+		// no second link available
+		return false;
+	}
+
+	// overwrite stick inputs with st16 gimbal mapping
+	if (RCmapping::st16_gimbal_map(_manual_sp, gimbal_input)) {
+		// inform user that version does not match
+		print_rc_error_message("Old remote control version, please update!");
+		return false;
+
+	}
+
+	return true;
 }
 
 void

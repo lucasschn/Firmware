@@ -184,6 +184,11 @@ private:
 	 */
 	void print_rc_error_message(const char *str);
 
+	/**
+	 * Map rc-inputs to team-mode
+	 */
+	bool map_from_team_mode(const ParameterHandles &parameter_handles);
+
 };
 
 

@@ -164,9 +164,43 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const P
 
 	man.timestamp = input_rc.timestamp_last_signal;
 
-
 	// no errors
 	return (int)Error::None;
+}
+
+int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
+{
+
+	// check for the M4 raw output channel mapping version embedded in channel 9 to
+	// make sure change is compatible
+	int version = input_rc.values[9 - 1] >> 8 & 0xF;
+
+	if (version != ST16::M4_RAW_CHANNEL_MAPPING_VER) {
+		return (int)Error::Version;
+	}
+
+	// map stick inputs to [-1,1]
+	auto unit_range = [](uint16_t value) {
+		return math::gradual((float)value,
+				     (float)ST16::MIN_VALUE, (float)ST16::MAX_VALUE,
+				     -1.0f, 1.0f);
+	};
+
+	man.aux2 = unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_UP]); // camera tilt
+	man.aux1 = unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_RIGHT]); // camer pan (=yaw)
+
+	// three way switches [0,1,2] -> [3,2,1]
+	auto three_way = [&input_rc](ST16::ThreeWay sw) {
+		return (3 - ((input_rc.values[ST16::CHANNEL_THREE_WAY_SWITCH] >> (int)sw * 2) & 0x3));
+	};
+
+	man.gimbal_yaw_mode = three_way(ST16::ThreeWay::pan_switch); // controls type of gimbal yaw
+	man.gimbal_tilt_mode = three_way(ST16::ThreeWay::tilt_switch); // controls type of gimbal tilt
+
+	man.timestamp = input_rc.timestamp_last_signal;
+
+	return true;
+
 }
 } // namespace RCmapping
 } // namespace sensors

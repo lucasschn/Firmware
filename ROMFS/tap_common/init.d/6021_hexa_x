@@ -204,9 +204,9 @@ then
 	# Altitude hold
 	param set COM_FLTMODE1 1
 	# Position
-	param set COM_FLTMODE4 2
+	param set COM_FLTMODE2 2
 	# RTL
-	param set COM_FLTMODE6 5
+	param set COM_FLTMODE3 5
 
 	#
 	# ST16 RC channel configuration

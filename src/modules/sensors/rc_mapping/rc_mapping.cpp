@@ -95,11 +95,11 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const P
 
 	} else if (mode_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE) {
 		// switch is middle
-		man.mode_slot = manual_control_setpoint_s::MODE_SLOT_4;
+		man.mode_slot = manual_control_setpoint_s::MODE_SLOT_2;
 
 	} else if (mode_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 		//switch is down
-		man.mode_slot = manual_control_setpoint_s::MODE_SLOT_6;
+		man.mode_slot = manual_control_setpoint_s::MODE_SLOT_3;
 	}
 
 	// mode switch needs to be set to None such that slots are considered

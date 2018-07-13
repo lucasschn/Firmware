@@ -46,6 +46,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/input_rc.h>
+#include <drivers/drv_hrt.h>
+#include <systemlib/mavlink_log.h>
 
 #include "rc_mapping/rc_mapping.h"
 
@@ -292,30 +294,131 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			int32_t priority;
 			orb_priority(_inputs_rc[i].sub, &priority);
 
-			// from rc channel functions
+			// check signal validity
 			if (priority == ORB_PRIO_DEFAULT) {
+				// from rc
 				set_signal_validity(_inputs_rc[i], _rc);
+
+			} else {
+				// from non-rc
+				set_signal_validity(_inputs_rc[i]);
 			}
 		}
 	}
 
-	int32_t priority;
-
 	// generate manual setpoints based on link mode
 	if (_parameters.rc_link_mode == 0) {
 
-		// RC only is required. Search for a valid RC signal
-		for (InputRCset &e : _inputs_rc) {
-			orb_priority(e.sub, &priority);
+		// rc only mapping is required
+		if (map_to_control_setpoint(parameter_handles, ORB_PRIO_DEFAULT)) {
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
+			publish_manual_inputs();
+			//always publish rc_channels
+			publish_rc_channels();
+		}
 
-			// RC only has default priority
-			if (e.signal_valid && priority == ORB_PRIO_DEFAULT) {
-				RCmapping::st16_map(_manual_sp, e.input, _parameters);
-				publish_manual_inputs();
-				//map_from_rc_channel_functions(e, parameter_handles);
-				break;
+	} else if (_parameters.rc_link_mode == 1) {
+
+		// mavlink override is required
+		// check if there is input data with high priority
+		if (map_to_control_setpoint(parameter_handles, ORB_PRIO_HIGH)) {
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0;
+			publish_manual_inputs();
+
+		} else if (map_to_control_setpoint(parameter_handles, ORB_PRIO_DEFAULT)) {
+			// No mavlink message. Re-use RC if available
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
+			publish_manual_inputs();
+			//always publish rc_channels
+			publish_rc_channels();
+		}
+
+	} else if (_parameters.rc_link_mode == 2) {
+
+		// use mavlink as backup in case rc is lost
+		if (map_to_control_setpoint(parameter_handles, ORB_PRIO_DEFAULT)) {
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
+			publish_manual_inputs();
+			//always publish rc_channels
+			publish_rc_channels();
+
+		} else if (map_to_control_setpoint(parameter_handles, ORB_PRIO_HIGH)) {
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0;
+			publish_manual_inputs();
+		}
+
+	} else if (_parameters.rc_link_mode == 3) {
+
+	}
+}
+
+bool
+RCUpdate::map_to_control_setpoint(const ParameterHandles &parameter_handles, const int32_t desired_priority)
+{
+	int32_t priority;
+
+	bool success = false;
+
+	// RC only is required. Search for a valid RC signal
+	for (InputRCset &e : _inputs_rc) {
+
+		// get priority
+		orb_priority(e.sub, &priority);
+
+		// Search for default priorities
+		if (e.signal_valid && priority == ORB_PRIO_DEFAULT) {
+
+			if (_parameters.rc_type == 0) {
+				// map based on rc_channel functions
+
+				scale_raw_channels(e); //scale raw channels
+
+				if (map_from_rc_channel_functions(e)) {
+					// Update parameters from RC Channels (tuning with RC) if activated
+					if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1e6) {
+						set_params_from_rc(parameter_handles);
+						_last_rc_to_param_map_time = hrt_absolute_time();
+					}
+
+					success = true;
+
+				}
+
+			} else if (_parameters.rc_type == 1) {
+
+
+				// map based on ST16 default
+				int failure = RCmapping::st16_map(_manual_sp, e.input, _parameters);
+
+				if (failure == (int)RCmapping::Error::Version) {
+					// inform user that version does not match
+					print_rc_error_message("Old remote control version, please update!");
+
+				} else {
+					success = true;
+				}
+			}
+
+			// return if mapping succeeded, otherwise continue loop
+			if (success) {
+				return success;
 			}
 		}
+	}
+
+	return success;
+}
+
+void
+RCUpdate::print_rc_error_message(const char *str)
+{
+	static hrt_abstime _last_msg = 0;
+	hrt_abstime now = hrt_absolute_time();
+
+	// print every 15 seconds
+	if (now - _last_msg > 15000000) {
+		_last_msg = now;
+		mavlink_log_critical(&_mavlink_log_pub, str);
 	}
 }
 
@@ -355,7 +458,7 @@ RCUpdate::set_signal_validity(InputRCset &input_set, const rc_channels_s &channe
 }
 
 void
-RCUpdate::map_from_rc_channel_functions(InputRCset &input_set, const ParameterHandles &parameter_handles)
+RCUpdate::scale_raw_channels(InputRCset &input_set)
 {
 	unsigned channel_limit = input_set.input.channel_count;
 
@@ -419,108 +522,101 @@ RCUpdate::map_from_rc_channel_functions(InputRCset &input_set, const ParameterHa
 	_rc.signal_lost = !input_set.signal_valid;
 	_rc.timestamp = input_set.input.timestamp_last_signal;
 	_rc.frame_drop_count = input_set.input.rc_lost_frame_count;
+}
 
-	/* publish rc_channels topic even if signal is invalid, for debug */
-	publish_rc_channels();
 
+bool
+RCUpdate::map_from_rc_channel_functions(InputRCset &input_set)
+{
 	/* only publish manual control if the signal is still present and was present once */
-	if (input_set.signal_valid && input_set.input.timestamp_last_signal > 0) {
+	if (!(input_set.signal_valid && input_set.input.timestamp_last_signal > 0)) {
+		return false;
+	}
 
-		/* initialize manual setpoint */
-		struct manual_control_setpoint_s manual = {};
-		/* set mode slot to unassigned */
-		_manual_sp.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
-		/* set the timestamp to the last signal time */
-		_manual_sp.timestamp = input_set.input.timestamp_last_signal;
-		_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
+	_manual_sp.timestamp = input_set.input.timestamp_last_signal;
 
-		/* limit controls */
-		_manual_sp.y = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
-		_manual_sp.x = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
-		_manual_sp.r = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
-		_manual_sp.z = (get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, -1.0, 1.0) + 1.f) / 2.f;
-		_manual_sp.flaps = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
-		_manual_sp.aux1 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
-		_manual_sp.aux2 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
-		_manual_sp.aux3 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
-		_manual_sp.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
-		_manual_sp.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
+	/* set mode slot to unassigned */
+	_manual_sp.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
 
-		/* filter controls */
-		_manual_sp.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
-		_manual_sp.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
-		_manual_sp.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
-		_manual_sp.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
+	/* limit controls */
+	_manual_sp.y = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
+	_manual_sp.x = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
+	_manual_sp.r = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
+	_manual_sp.z = (get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, -1.0, 1.0) + 1.f) / 2.f;
+	_manual_sp.flaps = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
+	_manual_sp.aux1 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
+	_manual_sp.aux2 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
+	_manual_sp.aux3 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
+	_manual_sp.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
+	_manual_sp.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
 
-		if (_parameters.rc_map_flightmode > 0) {
+	/* filter controls */
+	_manual_sp.y = math::constrain(_filter_roll.apply(_manual_sp.y), -1.f, 1.f);
+	_manual_sp.x = math::constrain(_filter_pitch.apply(_manual_sp.x), -1.f, 1.f);
+	_manual_sp.r = math::constrain(_filter_yaw.apply(_manual_sp.r), -1.f, 1.f);
+	_manual_sp.z = math::constrain(_filter_throttle.apply(_manual_sp.z), 0.f, 1.f);
 
-			/* the number of valid slots equals the index of the max marker minus one */
-			const int num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
+	if (_parameters.rc_map_flightmode > 0) {
 
-			/* the half width of the range of a slot is the total range
-			 * divided by the number of slots, again divided by two
-			 */
-			const float slot_width_half = 2.0f / num_slots / 2.0f;
+		/* the number of valid slots equals the index of the max marker minus one */
+		const int num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
 
-			/* min is -1, max is +1, range is 2. We offset below min and max */
-			const float slot_min = -1.0f - 0.05f;
-			const float slot_max = 1.0f + 0.05f;
+		/* the half width of the range of a slot is the total range
+		 * divided by the number of slots, again divided by two
+		 */
+		const float slot_width_half = 2.0f / num_slots / 2.0f;
 
-			/* the slot gets mapped by first normalizing into a 0..1 interval using min
-			 * and max. Then the right slot is obtained by multiplying with the number of
-			 * slots. And finally we add half a slot width to ensure that integer rounding
-			 * will take us to the correct final index.
-			 */
-			_manual_sp.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) +
-						  slot_width_half) /
-						 (slot_max - slot_min)) + (1.0f / num_slots));
+		/* min is -1, max is +1, range is 2. We offset below min and max */
+		const float slot_min = -1.0f - 0.05f;
+		const float slot_max = 1.0f + 0.05f;
 
-			if (_manual_sp.mode_slot >= num_slots) {
-				_manual_sp.mode_slot = num_slots - 1;
-			}
-		}
+		/* the slot gets mapped by first normalizing into a 0..1 interval using min
+		 * and max. Then the right slot is obtained by multiplying with the number of
+		 * slots. And finally we add half a slot width to ensure that integer rounding
+		 * will take us to the correct final index.
+		 */
+		_manual_sp.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) +
+					  slot_width_half) /
+					 (slot_max - slot_min)) + (1.0f / num_slots));
 
-		/* mode switches */
-		_manual_sp.mode_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th,
-					 _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
-		_manual_sp.rattitude_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RATTITUDE,
-					      _parameters.rc_rattitude_th,
-					      _parameters.rc_rattitude_inv);
-		_manual_sp.posctl_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL, _parameters.rc_posctl_th,
-					   _parameters.rc_posctl_inv);
-		_manual_sp.return_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RETURN, _parameters.rc_return_th,
-					   _parameters.rc_return_inv);
-		_manual_sp.loiter_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_LOITER, _parameters.rc_loiter_th,
-					   _parameters.rc_loiter_inv);
-		_manual_sp.acro_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_ACRO, _parameters.rc_acro_th,
-					 _parameters.rc_acro_inv);
-		_manual_sp.offboard_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD,
-					     _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
-		_manual_sp.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
-					 _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
-		_manual_sp.arm_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_ARMSWITCH,
-					_parameters.rc_armswitch_th, _parameters.rc_armswitch_inv);
-		_manual_sp.transition_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION,
-					       _parameters.rc_trans_th, _parameters.rc_trans_inv);
-		_manual_sp.gear_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_GEAR,
-					 _parameters.rc_gear_th, _parameters.rc_gear_inv);
-		_manual_sp.stab_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_STAB,
-					 _parameters.rc_stab_th, _parameters.rc_stab_inv);
-		_manual_sp.man_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MAN,
-					_parameters.rc_man_th, _parameters.rc_man_inv);
-		_manual_sp.obsavoid_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OBSAVOIDSWITCH,
-					     _parameters.rc_obsavoid_th, _parameters.rc_obsavoid_inv,
-					     _parameters.rc_obsavoid_mid_th, _parameters.rc_obsavoid_mid_inv);
-
-		// publish actua
-		publish_manual_inputs();
-
-		/* Update parameters from RC Channels (tuning with RC) if activated */
-		if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1e6) {
-			set_params_from_rc(parameter_handles);
-			_last_rc_to_param_map_time = hrt_absolute_time();
+		if (_manual_sp.mode_slot >= num_slots) {
+			_manual_sp.mode_slot = num_slots - 1;
 		}
 	}
+
+	/* mode switches */
+	_manual_sp.mode_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th,
+				 _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
+	_manual_sp.rattitude_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RATTITUDE,
+				      _parameters.rc_rattitude_th,
+				      _parameters.rc_rattitude_inv);
+	_manual_sp.posctl_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL, _parameters.rc_posctl_th,
+				   _parameters.rc_posctl_inv);
+	_manual_sp.return_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RETURN, _parameters.rc_return_th,
+				   _parameters.rc_return_inv);
+	_manual_sp.loiter_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_LOITER, _parameters.rc_loiter_th,
+				   _parameters.rc_loiter_inv);
+	_manual_sp.acro_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_ACRO, _parameters.rc_acro_th,
+				 _parameters.rc_acro_inv);
+	_manual_sp.offboard_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD,
+				     _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
+	_manual_sp.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
+				 _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
+	_manual_sp.arm_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_ARMSWITCH,
+				_parameters.rc_armswitch_th, _parameters.rc_armswitch_inv);
+	_manual_sp.transition_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION,
+				       _parameters.rc_trans_th, _parameters.rc_trans_inv);
+	_manual_sp.gear_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_GEAR,
+				 _parameters.rc_gear_th, _parameters.rc_gear_inv);
+	_manual_sp.stab_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_STAB,
+				 _parameters.rc_stab_th, _parameters.rc_stab_inv);
+	_manual_sp.man_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MAN,
+				_parameters.rc_man_th, _parameters.rc_man_inv);
+	_manual_sp.obsavoid_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OBSAVOIDSWITCH,
+				     _parameters.rc_obsavoid_th, _parameters.rc_obsavoid_inv,
+				     _parameters.rc_obsavoid_mid_th, _parameters.rc_obsavoid_mid_inv);
+
+	return true;
 }
 
 void

@@ -87,7 +87,7 @@ public:
 	/**
 	 * Gather and publish RC input data.
 	 */
-	void		rc_poll(const ParameterHandles &parameter_handles);
+	void rc_poll(const ParameterHandles &parameter_handles);
 
 private:
 
@@ -114,6 +114,8 @@ private:
 
 	hrt_abstime _last_rc_to_param_map_time = 0;
 
+	orb_advert_t _mavlink_log_pub = nullptr; /**< mavlink message publication topic to send out error messages */
+
 	math::LowPassFilter2p _filter_roll; /**< filters for the main 4 stick inputs */
 	math::LowPassFilter2p _filter_pitch; /** we want smooth setpoints as inputs to the controllers */
 	math::LowPassFilter2p _filter_yaw;
@@ -133,7 +135,7 @@ private:
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
 	 */
-	float		get_rc_value(uint8_t func, float min_value, float max_value);
+	float get_rc_value(uint8_t func, float min_value, float max_value);
 
 	/**
 	 * Get switch position for specified function.
@@ -152,7 +154,7 @@ private:
 	/**
 	 * The mapping is based on rc_channels_s structure
 	 */
-	void map_from_rc_channel_functions(InputRCset &input_set, const ParameterHandles &parameter_handles);
+	bool map_from_rc_channel_functions(InputRCset &input_set);
 
 	/**
 	 * Check and set validity of signal
@@ -163,6 +165,24 @@ private:
 	 * Check and set validity of signal if channel function is used for mapping.
 	 */
 	void set_signal_validity(InputRCset &input_set, const rc_channels_s &channels);
+
+	/**
+	 * Map input_rc to manual_control_setpoints.
+	 *
+	 * @param parameter_handles used for update channel functions from rc
+	 * @param priority defines ORB priority request
+	 */
+	bool map_to_control_setpoint(const ParameterHandles &parameter_handles, int priority);
+
+	/**
+	 * For RC data source, scale rc_channels based on max and min
+	 */
+	void scale_raw_channels(InputRCset &input_set);
+
+	/**
+	 * Print error message every 15 seconds over mavlink
+	 */
+	void print_rc_error_message(const char *str);
 
 };
 

@@ -179,6 +179,14 @@ int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 		return (int)Error::Version;
 	}
 
+	// three way switches [0,1,2] -> [3,2,1]
+	auto three_way = [&input_rc](ST16::ThreeWay sw) {
+		return (3 - ((input_rc.values[ST16::CHANNEL_THREE_WAY_SWITCH] >> (int)sw * 2) & 0x3));
+	};
+
+	man.gimbal_yaw_mode = three_way(ST16::ThreeWay::pan_switch); // OFF: heading 0, MNIDDLE: angle, ON: angle stabilized
+	man.gimbal_tilt_mode = three_way(ST16::ThreeWay::tilt_switch); // OFF/MIDDLE: angle, ON: velocity
+
 	// map stick inputs to [-1,1]
 	auto unit_range = [](uint16_t value) {
 		return math::gradual((float)value,
@@ -186,16 +194,17 @@ int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 				     -1.0f, 1.0f);
 	};
 
-	man.aux2 = unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_UP]); // camera tilt
-	man.aux1 = unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_RIGHT]); // camer pan (=yaw)
+	if (man.gimbal_tilt_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
+		// tilt speed control: use stick inputs
+		man.aux2 = unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_UP]); // camera tilt
 
-	// three way switches [0,1,2] -> [3,2,1]
-	auto three_way = [&input_rc](ST16::ThreeWay sw) {
-		return (3 - ((input_rc.values[ST16::CHANNEL_THREE_WAY_SWITCH] >> (int)sw * 2) & 0x3));
-	};
+	} else {
+		// tilt angle control: use tilt slider
+		man.aux2 = unit_range(input_rc.values[ST16::CHANNEL_TILT_SLIDER]); // camera tilt
 
-	man.gimbal_yaw_mode = three_way(ST16::ThreeWay::pan_switch); // controls type of gimbal yaw
-	man.gimbal_tilt_mode = three_way(ST16::ThreeWay::tilt_switch); // controls type of gimbal tilt
+	}
+
+	man.aux1 = unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_RIGHT]); // camera pan (=yaw)
 
 	man.timestamp = input_rc.timestamp_last_signal;
 

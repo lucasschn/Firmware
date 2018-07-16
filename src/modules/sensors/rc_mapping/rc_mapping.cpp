@@ -55,18 +55,13 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const P
 		return (int)Error::Version;
 	}
 
-	// thrust map to range [0,1]
-	man.z = math::gradual((float)input_rc.values[ST16::CHANNEL_LEFT_STICK_UP],
-			      0.0f, (float)ST16::MAX_VALUE,
-			      0.0f, 1.0f);
-
-	// map all other none-switch/trim channels to range [-1,1]
+	// map all none-switch/trim channels to range [-1,1]
 	auto unit_range = [](uint16_t value) {
 		return math::gradual((float)value,
 				     (float)ST16::MIN_VALUE, (float)ST16::MAX_VALUE,
 				     -1.0f, 1.0f);
 	};
-
+	man.z = unit_range(input_rc.values[ST16::CHANNEL_LEFT_STICK_UP]); // thrust
 	man.r = unit_range(input_rc.values[ST16::CHANNEL_LEFT_STICK_RIGHT]); // yaw
 	man.x = unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_UP]); // pitch
 	man.y = unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_RIGHT]); // roll
@@ -74,8 +69,13 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const P
 	man.aux2 = unit_range(input_rc.values[ST16::CHANNEL_TILT_SLIDER]); // tilt-slider / gimbal tilt
 	man.aux5 = unit_range(input_rc.values[ST16::CHANNEL_TORTOISE_SLIDER]); // turtle-mode
 
-	// apply rc-mode
+	// apply rc-mode (-> swap sticks)
 	math::convertRcMode(parameters.rc_mode, man.y, man.x, man.r, man.z);
+
+	// re-map throttle from [-1,1] -> [0,1]
+	man.z = math::gradual(man.z,
+			      -1.0f, 1.0f,
+			      0.0f, 1.0f);
 
 	// three way switches [0,1,2] -> [3,2,1]
 	auto three_way = [&input_rc](ST16::ThreeWay sw) {

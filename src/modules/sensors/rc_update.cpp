@@ -382,7 +382,7 @@ RCUpdate::map_to_control_setpoint(const ParameterHandles &parameter_handles, con
 		orb_priority(e.sub, &priority);
 
 		// Search for default priorities
-		if (e.signal_valid && priority == ORB_PRIO_DEFAULT) {
+		if (e.signal_valid && priority == desired_priority) {
 
 			if (_parameters.rc_type == 0) {
 				// map based on rc_channel functions
@@ -416,7 +416,7 @@ RCUpdate::map_to_control_setpoint(const ParameterHandles &parameter_handles, con
 
 			// return if mapping succeeded, otherwise continue loop
 			if (success) {
-				return success;
+				return true;
 			}
 		}
 	}

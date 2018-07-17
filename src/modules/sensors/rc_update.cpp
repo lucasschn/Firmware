@@ -52,6 +52,7 @@
 #include "rc_mapping/rc_mapping.h"
 
 using namespace sensors;
+using namespace time_literals;
 
 RCUpdate::RCUpdate(const Parameters &parameters)
 	: _parameters(parameters),
@@ -477,7 +478,7 @@ RCUpdate::print_rc_error_message(const char *str)
 	hrt_abstime now = hrt_absolute_time();
 
 	// print every 15 seconds
-	if (now - _last_msg > 15000000) {
+	if (now - _last_msg > 15_s) {
 		_last_msg = now;
 		mavlink_log_critical(&_mavlink_log_pub, str);
 	}

@@ -472,8 +472,10 @@ REALSENSE::_send_obstacle_avoidance_data()
 	}
 
 	// set flag for Sense&Stop
-	if ((_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+	if ((_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON ||
+	     _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE)
 	    && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL)) {
+
 		flag |= ObstacleAvoidanceInputFlags::USE_SMALL_VEHICLE_SIZE;
 	}
 
@@ -675,7 +677,8 @@ REALSENSE::_read_obstacle_avoidance_data()
 					const float dist_to_home_xy =  matrix::Vector2f(_home_pos.x - _local_pos.x, _home_pos.y - _local_pos.y).length();
 					const bool close_to_home = dist_to_home_xy < _nav_rad;
 
-					const bool use_realsense = (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+					const bool use_realsense = (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON ||
+								    _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE)
 								   && (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)
 								   && !close_to_home;
 

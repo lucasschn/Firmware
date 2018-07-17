@@ -1,4 +1,5 @@
 
+
 uint8 SWITCH_POS_NONE = 0		# switch is not mapped
 uint8 SWITCH_POS_ON = 1			# switch activated (value = 1)
 uint8 SWITCH_POS_MIDDLE = 2		# middle position (value = 0)
@@ -64,5 +65,5 @@ int8 mode_slot			 # the slot a specific model selector is in
 uint8 data_source		 # where this input is coming from
 uint8 stab_switch 		 # stabilize switch (only relevant for fixed wings, optional): _MANUAL, STABILIZED
 uint8 man_switch		 # manual switch (only relevant for fixed wings, optional): _STABILIZED_, MANUAL
-uint8 gimbal_tilt_mode   # possible modes: velocity control along pitch, tilt control, ...
-uint8 gimbal_yaw_mode	 # possible modes: heading same as vehicle (yaw = 0), speed controlled, speed controlled + stabilized axis, ...
+uint8 gimbal_pitch_mode	 # possible modes: angle setpoint, angular velocity setpoint
+uint8 gimbal_yaw_mode	 # possible modes: heading same as vehicle (yaw = 0), angular velocity wrt vehicle frame, angular velocity wrt world frame

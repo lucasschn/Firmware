@@ -107,7 +107,7 @@ int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const P
 	// remaining three way switches
 	man.obsavoid_switch = three_way(ST16::ThreeWay::obs_avoid_switch);
 	man.gimbal_yaw_mode = three_way(ST16::ThreeWay::pan_switch);
-	man.gimbal_tilt_mode = three_way(ST16::ThreeWay::tilt_switch);
+	man.gimbal_pitch_mode = three_way(ST16::ThreeWay::tilt_switch);
 
 	// two way switches [1,0] -> [1,3]
 	auto two_way = [&input_rc](ST16::TwoWay sw, const int channel) {
@@ -185,7 +185,7 @@ int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 	};
 
 	man.gimbal_yaw_mode = three_way(ST16::ThreeWay::pan_switch); // OFF: heading 0, MNIDDLE: angle, ON: angle stabilized
-	man.gimbal_tilt_mode = three_way(ST16::ThreeWay::tilt_switch); // OFF/MIDDLE: angle, ON: velocity
+	man.gimbal_pitch_mode = three_way(ST16::ThreeWay::tilt_switch); // OFF/MIDDLE: angle, ON: velocity
 
 	// map stick inputs to [-1,1]
 	auto unit_range = [](uint16_t value) {
@@ -194,7 +194,7 @@ int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 				     -1.0f, 1.0f);
 	};
 
-	if (man.gimbal_tilt_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
+	if (man.gimbal_pitch_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
 		// tilt speed control: use stick inputs
 		man.aux2 = unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_UP]); // camera tilt
 

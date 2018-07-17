@@ -82,7 +82,7 @@ bool InputRCSt16::_read_control_data_from_subscription(ControlData &control_data
 
 	// Detect gimbal mode change
 	if (_last_gimbal_yaw_mode != manual_control_setpoint.gimbal_yaw_mode ||
-	    _last_gimbal_tilt_mode != manual_control_setpoint.gimbal_tilt_mode) {
+	    _last_gimbal_pitch_mode != manual_control_setpoint.gimbal_pitch_mode) {
 		major_movement = true;
 	}
 
@@ -96,7 +96,7 @@ bool InputRCSt16::_read_control_data_from_subscription(ControlData &control_data
 		control_data.stabilize_axis[0] = false;
 
 		//pitch
-		if (manual_control_setpoint.gimbal_tilt_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
+		if (manual_control_setpoint.gimbal_pitch_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
 			control_data.type_data.angle.is_speed[1] = true;
 			control_data.type_data.angle.angles[1] = new_aux_values[1] * M_PI_F;
 
@@ -133,7 +133,7 @@ bool InputRCSt16::_read_control_data_from_subscription(ControlData &control_data
 			_last_set_aux_values[i] = new_aux_values[i];
 		}
 
-		_last_gimbal_tilt_mode = manual_control_setpoint.gimbal_tilt_mode;
+		_last_gimbal_pitch_mode = manual_control_setpoint.gimbal_pitch_mode;
 		_last_gimbal_yaw_mode = manual_control_setpoint.gimbal_yaw_mode;
 
 		return true;

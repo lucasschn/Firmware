@@ -175,17 +175,18 @@ int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 	// make sure change is compatible
 	int version = input_rc.values[9 - 1] >> 8 & 0xF;
 
-	if (version != ST16::M4_RAW_CHANNEL_MAPPING_VER) {
+	// TEMPORARILY make sure it's not the correct raw channel mapping -> no vesion tag, == instead of !=
+	if (version == ST16::M4_RAW_CHANNEL_MAPPING_VER) {
 		return (int)Error::Version;
 	}
 
 	// three way switches [0,1,2] -> [3,2,1]
-	auto three_way = [&input_rc](ST16::ThreeWay sw) {
-		return (3 - ((input_rc.values[ST16::CHANNEL_THREE_WAY_SWITCH] >> (int)sw * 2) & 0x3));
+	auto three_way = [&input_rc](int sw) {
+		return (3 - ((input_rc.values[9] >> (int)sw * 2) & 0x3));
 	};
 
-	man.gimbal_yaw_mode = three_way(ST16::ThreeWay::pan_switch); // OFF: heading 0, MNIDDLE: angle, ON: angle stabilized
-	man.gimbal_pitch_mode = three_way(ST16::ThreeWay::tilt_switch); // OFF/MIDDLE: angle, ON: velocity
+	man.gimbal_yaw_mode = three_way(4); // OFF: heading 0, MNIDDLE: angle, ON: angle stabilized
+	man.gimbal_pitch_mode = three_way(5); // OFF/MIDDLE: angle, ON: velocity
 
 	// map stick inputs to [-1,1]
 	auto unit_range = [](uint16_t value) {
@@ -200,11 +201,11 @@ int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 
 	} else {
 		// tilt angle control: use tilt slider
-		man.aux2 = unit_range(input_rc.values[ST16::CHANNEL_TILT_SLIDER]); // camera tilt
+		man.aux2 = -unit_range(input_rc.values[ST16::CHANNEL_TILT_SLIDER]); // camera tilt
 
 	}
 
-	man.aux1 = unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_RIGHT]); // camera pan (=yaw)
+	man.aux1 = -unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_RIGHT]); // camera pan (=yaw)
 
 	man.timestamp = input_rc.timestamp_last_signal;
 

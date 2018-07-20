@@ -344,7 +344,7 @@ then
 		if param compare GPS_FIXPOS_RTK 1
 		then
 			# Start the Fixposition RTK GPS on Real Sense port
-			gps start -d /dev/ttyS1
+			gps start -d /dev/ttyS3
 		else
 			# Start GPS on normal port
 			gps start -d /dev/ttyS0

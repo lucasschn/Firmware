@@ -341,7 +341,14 @@ then
 
 	if [ $HITL_ON == no ]
 	then
-		gps start -d /dev/ttyS0
+		if [ $GPS_FIXPOS_RTK == yes ]
+		then
+			# Start the Fixposition RTK GPS on Real Sense port
+			gps start -d /dev/ttyS1
+		else
+			# Start GPS on normal port
+			gps start -d /dev/ttyS0
+		fi
 	fi
 
 	# waypoint storage

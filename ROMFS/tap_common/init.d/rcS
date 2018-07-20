@@ -341,7 +341,7 @@ then
 
 	if [ $HITL_ON == no ]
 	then
-		if [ $GPS_FIXPOS_RTK == yes ]
+		if param compare GPS_FIXPOS_RTK 1
 		then
 			# Start the Fixposition RTK GPS on Real Sense port
 			gps start -d /dev/ttyS1

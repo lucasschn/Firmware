@@ -50,6 +50,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_constraints.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include "SubscriptionArray.hpp"
 
 class FlightTask : public ModuleParams

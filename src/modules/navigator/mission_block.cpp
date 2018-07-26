@@ -130,7 +130,7 @@ MissionBlock::is_mission_item_reached()
 	/* Don't check for yaw and altitude if obstacle avoidance is used */
 	const bool obstacle_avoidance_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
 			manual_control_setpoint_s::SWITCH_POS_ON;
-	const bool obstacle_avoidance_running = _navigator->get_trajectory_waypoint()->point_valid[0] == true;
+	const bool obstacle_avoidance_running = _navigator->get_trajectory_waypoint()->point_valid == true;
 
 	if (!_navigator->get_land_detected()->landed && !_waypoint_position_reached) {
 

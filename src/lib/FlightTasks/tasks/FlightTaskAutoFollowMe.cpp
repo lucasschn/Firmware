@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,42 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file logbuffer.h
- *
- * Ring FIFO buffer for binary log data.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @file FlightTaskAutoFollowMe.cpp
  */
 
-#ifndef SDLOG2_RINGBUFFER_H_
-#define SDLOG2_RINGBUFFER_H_
+#include "FlightTaskAutoFollowMe.hpp"
+#include <mathlib/mathlib.h>
 
-#include <stdbool.h>
-#include <perf/perf_counter.h>
+using namespace matrix;
 
-struct logbuffer_s {
-	// pointers and size are in bytes
-	int write_ptr;
-	int read_ptr;
-	int size;
-	char *data;
-	perf_counter_t perf_dropped;
-};
-
-int logbuffer_init(struct logbuffer_s *lb, int size);
-
-int logbuffer_count(struct logbuffer_s *lb);
-
-int logbuffer_is_empty(struct logbuffer_s *lb);
-
-bool logbuffer_write(struct logbuffer_s *lb, void *ptr, int size);
-
-int logbuffer_get_ptr(struct logbuffer_s *lb, void **ptr, bool *is_part);
-
-void logbuffer_mark_read(struct logbuffer_s *lb, int n);
-
-void logbuffer_free(struct logbuffer_s *lb);
-
-void logbuffer_reset(struct logbuffer_s *lb);
-
-#endif
+bool FlightTaskAutoFollowMe::update()
+{
+	_position_setpoint = _target;
+	matrix::Vector2f vel_sp = _getTargetVelocityXY();
+	_velocity_setpoint = matrix::Vector3f(vel_sp(0), vel_sp(1), 0.0f);
+	return true;
+}

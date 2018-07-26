@@ -159,11 +159,11 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
 /**
  * Maximum vertical ascent velocity
  *
- * Maximum vertical velocity upwards for any altitude controlled mode.
+ * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (ALTCTRL, POSCTRL).
  *
  * @unit m/s
- * @min 1.0
- * @max 10.0
+ * @min 0.5
+ * @max 8.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -172,43 +172,14 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.0f);
 /**
  * Maximum vertical descent velocity
  *
- * Maximum vertical velocity downwards for any altitude controlled mode.
+ * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (ALTCTRL, POSCTRL).
  *
  * @unit m/s
- * @min 1.0
- * @max 6.0
- * @decimal 1
+ * @min 0.5
+ * @max 4.0
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
-
-/**
- * Vehicle vertical ascent velocity.
- *
- * Adjusting this parameter changes the velocity in upwards direction for any altitude controlled mode. However,
- * the vehicle can never go faster than the maximum vertical ascent velocity.
- *
- * @unit m/s
- * @min 1.0
- * @max 7.0
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_VEL_MAN_UP, 4.0f);
-
-/**
- * Vehicle vertical descent velocity.
- *
- * Adjusting this parameter changes the velocity in downwards direction for any altitude controlled mode. However,
- * the vehicle can never go faster than the maximum vertical descent velocity.
- *
- * @unit m/s
- * @min 1.0
- * @max 6.0
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_VEL_MAN_DN, 2.5f);
 
 /**
  * Proportional gain for horizontal position error
@@ -269,23 +240,6 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
- * Vertical speed for any auto mode
- *
- * Normal vertical speed in AUTO modes (includes
- * also RTL / hold / etc.)
- *
- * @unit m/s
- * @min 1.0
- * @max 5.0
- * @increment 1
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_VEL_Z_AUTO, 4.0f);
-
-/**
- * Maximum horizontal speed in auto at 90 degrees corners.
- *
  * Cruise speed when angle prev-current/current-next setpoint
  * is 90 degrees. It should be lower than MPC_XY_CRUISE.
  *
@@ -302,14 +256,13 @@ PARAM_DEFINE_FLOAT(MPC_VEL_Z_AUTO, 4.0f);
 PARAM_DEFINE_FLOAT(MPC_CRUISE_90, 3.0f);
 
 /**
- * Maximum horizontal speed for manual controlled mode.
- *
- * If MPC_VEL_MANUAL is set larger than MPC_XY_VEL_MAX, then
- * the horizontal speed will be capped to MPC_XY_VEL_MAX.
+ * Maximum horizontal velocity setpoint for manual controlled mode
+ * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
+ * the setpoint will be capped to MPC_XY_VEL_MAX
  *
  * @unit m/s
- * @min 1.0
- * @max 14.0
+ * @min 3.0
+ * @max 20.0
  * @increment 1
  * @decimal 2
  * @group Multicopter Position Control
@@ -319,8 +272,8 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.0f);
 /**
  * Maximum horizontal velocity
  *
- * Maximum global horizontal velocity in any mode. Any demanded speed will
- * be capped to MPC_XY_VEL_MAX.
+ * Maximum horizontal velocity in AUTO mode. If higher speeds
+ * are commanded in a mission they will be capped to this velocity.
  *
  * @unit m/s
  * @min 0.0
@@ -551,16 +504,21 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 1.0f);
 /**
  * Altitude control mode.
  *
- * Set to 1 to control height above ground instead of height above origin.
- * Note: If optical flow is being used as the only source of navigation then the height above ground
- * will be selected automatically and maximum height will be limited to the value set by MPC_MAX_FLOW_HGT.
- * Note: The height controller will revert to using height above origin if the distance to ground estimate
- * becomes invalid as indicated by the local_position.distance_bottom_valid message being false.
+ * Set to 0 to control height relative to the earth frame origin. This origin may move up and down in
+ * flight due to sensor drift.
+ * Set to 1 to control height relative to estimated distance to ground. The vehicle will move up and down
+ * with terrain height variation. Requires a distance to ground sensor. The height controller will
+ * revert to using height above origin if the distance to ground estimate becomes invalid as indicated
+ * by the local_position.distance_bottom_valid message being false.
+ * Set to 2 to control height relative to ground (requires a distance sensor) when stationary and relative
+ * to earth frame origin when moving horizontally.
+ * The speed threshold is controlled by the MPC_HOLD_MAX_XY parameter.
  *
  * @min 0
- * @max 1
+ * @max 2
  * @value 0 Altitude following
  * @value 1 Terrain following
+ * @value 2 Terrain hold
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
@@ -656,24 +614,46 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
 
 /**
- * Flag to test flight tasks instead of legacy functionality
- * Temporary Parameter during the transition to flight tasks
+ * Manual-Position control sub-mode.
+ *
+ * The supported sub-modes are:
+ * 0 Default position control where sticks map to position/velocity directly. Maximum speeds
+ * 	 is MPC_VEL_MANUAL.
+ * 1 Smooth position control where setpoints are adjusted based on acceleration limits
+ * 	 and jerk limits.
+ * 2 Sport mode that is the same Default position control but with velocity limits set to
+ * 	 the maximum allowed speeds (MPC_XY_VEL_MAX)
  *
  * @min 0
- * @max 1
- * @value 0 Legacy Functionality
- * @value 1 Test flight tasks
+ * @max 2
+ * @value 0 Default position control
+ * @value 1 Smooth position control
+ * @value 2 Sport position control
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_FLT_TSK, 0);
+PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
 
 /**
- * Distance at which the MAV starts to brake to stop
- * in front of obstacles
+ * Delay from idle state to arming state.
  *
- * @min 0.5
- * @max 10.0
- * @unit m
+ * For altitude controlled modes, the transition from
+ * idle to armed state is delayed by MPC_IDLE_TKO time to ensure
+ * that the propellers have reached idle speed before attempting a
+ * takeoff. This delay is particularly useful for vehicles with large
+ * propellers.
+ *
+ * @min 0
+ * @max 10
+ * @unit sec
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_DIST_BRAKE, 8.0f);
+PARAM_DEFINE_FLOAT(MPC_IDLE_TKO, 0.0f);
+
+/**
+ * Flag to enable obstacle avoidance
+ * Temporary Parameter to enable interface testing
+ *
+ * @boolean
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_OBS_AVOID, 0);

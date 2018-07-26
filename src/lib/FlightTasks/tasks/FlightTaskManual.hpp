@@ -51,9 +51,7 @@ public:
 	virtual ~FlightTaskManual() = default;
 
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
-
 	bool applyCommandParameters(const vehicle_command_s &command) override { return FlightTask::applyCommandParameters(command); };
-
 	bool updateInitialize() override;
 
 protected:
@@ -63,9 +61,11 @@ protected:
 	matrix::Vector<float, 4> _sticks_expo; /**< modified manual sticks using expo function*/
 
 	float stickDeadzone() const { return _stick_dz.get(); }
+
 private:
 
 	bool _evaluateSticks(); /**< checks and sets stick inputs */
+	void _applyGearSwitch(uint8_t gswitch); /**< Sets gears according to switch */
 
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
 
@@ -76,6 +76,6 @@ private:
 					(ParamFloat<px4::params::MPC_Z_MAN_EXPO>)
 					_z_vel_man_expo, /**< ratio of exponential curve for stick input in z direction */
 					(ParamFloat<px4::params::MPC_YAW_EXPO>)
-					_yaw_expo  /**< ratio of exponential curve for stick input in yaw for modes except acro */
+					_yaw_expo /**< ratio of exponential curve for stick input in yaw for modes except acro */
 				       )
 };

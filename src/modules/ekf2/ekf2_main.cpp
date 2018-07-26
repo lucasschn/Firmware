@@ -746,9 +746,6 @@ void Ekf2::run()
 			PX4_INFO("EKF fusion mode set to %i\n", _params->fusion_mode);
 		}
 
-		bool gps_updated = false;
-		orb_check(_gps_sub, &gps_updated);
-
 		orb_check(_status_sub, &vehicle_status_updated);
 
 		if (vehicle_status_updated) {
@@ -949,7 +946,7 @@ void Ekf2::run()
 		}
 
 		// read gps1 data if available
-		// bool gps1_updated = false;
+		bool gps1_updated = false;
 		orb_check(_gps_subs[0], &gps1_updated);
 
 		if (gps1_updated) {

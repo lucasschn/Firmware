@@ -311,7 +311,11 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 
 	// Send basic config to ESCs
 	usleep(500000);
-	EscPacket packet = {PACKET_HEAD, sizeof(ConfigInfoBasicRequest), ESCBUS_MSG_ID_CONFIG_BASIC};
+	EscPacket packet = {};
+	packet.head = PACKET_HEAD;
+	packet.len = sizeof(ConfigInfoBasicRequest);
+	packet.msg_id = ESCBUS_MSG_ID_CONFIG_BASIC;
+
 	ConfigInfoBasicRequest   &config = packet.d.reqConfigInfoBasic;
 	memset(&config, 0, sizeof(ConfigInfoBasicRequest));
 	config.maxChannelInUse = num_escs;
@@ -330,8 +334,10 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 
 	// To Unlock the ESC from the Power up state we need to issue 10
 	// ESCBUS_MSG_ID_RUN request with all the values 0;
-	EscPacket unlock_packet = {PACKET_HEAD, num_escs, ESCBUS_MSG_ID_RUN};
-	unlock_packet.len *= sizeof(unlock_packet.d.reqRun.rpm_flags[0]);
+	EscPacket unlock_packet = {};
+	unlock_packet.head = PACKET_HEAD;
+	unlock_packet.len = num_escs * sizeof(unlock_packet.d.reqRun.rpm_flags[0]);
+	unlock_packet.msg_id = ESCBUS_MSG_ID_RUN;
 	memset(unlock_packet.d.bytes, 0, sizeof(packet.d.bytes));
 
 	int unlock_times = 10;
@@ -361,7 +367,10 @@ static int configure_esc_id(const char * device, int8_t id, uint8_t num_escs)
 
 	for (uint8_t i_esc = first_esc; i_esc <= last_esc; i_esc++)
 	{
-		EscPacket id_config = {PACKET_HEAD, sizeof(EscbusConfigidPacket), ESCBUS_MSG_ID_DO_CMD};
+		EscPacket id_config = {};
+		id_config.head = PACKET_HEAD;
+		id_config.len = sizeof(EscbusConfigidPacket);
+		id_config.msg_id = ESCBUS_MSG_ID_DO_CMD;
 		id_config.d.configidPacket.id_mask = PACKET_ID_MASK;
 		id_config.d.configidPacket.child_cmd = DO_ID_ASSIGNMENT;
 		id_config.d.configidPacket.id = i_esc;
@@ -423,9 +432,10 @@ int send_basic_config(const char *device, uint8_t num_escs, bool verify_config){
 	}
 
 	// Prepare basic config packet
-	EscPacket packet{};
-	packet = {PACKET_HEAD, sizeof(ConfigInfoBasicRequest),
-			ESCBUS_MSG_ID_CONFIG_BASIC};
+	EscPacket packet = {};
+	packet.head = PACKET_HEAD;
+	packet.len = sizeof(ConfigInfoBasicRequest);
+	packet.msg_id = ESCBUS_MSG_ID_CONFIG_BASIC;
 	packet.d.reqConfigInfoBasic.maxChannelInUse = num_escs;
 
 	// Enable closed-loop control if supported by the board
@@ -469,8 +479,10 @@ int send_basic_config(const char *device, uint8_t num_escs, bool verify_config){
 		for (uint8_t cid = 0; cid < num_escs; cid++) {
 
 			// Send the InfoRequest querying CONFIG_BASIC
-			EscPacket packet_info = {PACKET_HEAD, sizeof(InfoRequest),
-					ESCBUS_MSG_ID_REQUEST_INFO};
+			EscPacket packet_info = {};
+			packet_info.head = PACKET_HEAD;
+			packet_info.len = sizeof(InfoRequest);
+			packet_info.msg_id = ESCBUS_MSG_ID_REQUEST_INFO;
 			InfoRequest &info_req = packet_info.d.reqInfo;
 			info_req.channelID = cid;
 			info_req.requestInfoType = REQUEST_INFO_BASIC;

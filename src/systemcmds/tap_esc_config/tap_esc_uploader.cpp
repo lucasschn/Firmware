@@ -676,7 +676,10 @@ TAP_ESC_UPLOADER::sync(uint8_t esc_id)
 	int ret;
 
 	/* send sync packet */
-	EscUploaderMessage sync_packet = {PACKET_HEAD, sizeof(EscbusBootSyncPacket), PROTO_GET_SYNC};
+	EscUploaderMessage sync_packet = {};
+	sync_packet.head = PACKET_HEAD;
+	sync_packet.len = sizeof(EscbusBootSyncPacket);
+	sync_packet.msg_id = PROTO_GET_SYNC;
 	sync_packet.d.sync_packet.myID = esc_id;
 	send_packet(sync_packet, esc_id);
 
@@ -728,7 +731,10 @@ TAP_ESC_UPLOADER::get_esc_versions(uint8_t esc_id, uint32_t &fw_ver, uint32_t &h
 	int ret;
 
 	/*prepare information request packet */
-	EscUploaderMessage device_info_packet = {PACKET_HEAD, sizeof(EscbusGetDevicePacket), ESCBUS_MSG_ID_REQUEST_INFO};
+	EscUploaderMessage device_info_packet = {};
+	device_info_packet.head = PACKET_HEAD;
+	device_info_packet.len = sizeof(EscbusGetDevicePacket);
+	device_info_packet.msg_id = ESCBUS_MSG_ID_REQUEST_INFO;
 	device_info_packet.d.device_info_packet.myID = esc_id;
 	device_info_packet.d.device_info_packet.deviceInfo = REQUEST_INFO_DEVICE;
 	send_packet(device_info_packet, esc_id);
@@ -775,7 +781,10 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 	int ret;
 
 	/*prepare information request packet */
-	EscUploaderMessage device_info_packet = {PACKET_HEAD, sizeof(EscbusGetDevicePacket), msg_id};
+	EscUploaderMessage device_info_packet = {};
+	device_info_packet.head = PACKET_HEAD;
+	device_info_packet.len = sizeof(EscbusGetDevicePacket);
+	device_info_packet.msg_id = msg_id;
 	device_info_packet.d.device_info_packet.myID = esc_id;
 	device_info_packet.d.device_info_packet.deviceInfo = msg_arg;
 	send_packet(device_info_packet, esc_id);
@@ -949,7 +958,10 @@ TAP_ESC_UPLOADER::erase(uint8_t esc_id)
 	PX4_LOG("erase...");
 
 	/* send erase packet */
-	EscUploaderMessage erase_packet = {PACKET_HEAD, sizeof(EscbusBootErasePacket), PROTO_CHIP_ERASE};
+	EscUploaderMessage erase_packet = {};
+	erase_packet.head = PACKET_HEAD;
+	erase_packet.len = sizeof(EscbusBootErasePacket);
+	erase_packet.msg_id = PROTO_CHIP_ERASE;
 	erase_packet.d.erase_packet.myID = esc_id;
 	send_packet(erase_packet, esc_id);
 
@@ -1065,7 +1077,10 @@ TAP_ESC_UPLOADER::program(uint8_t esc_id, size_t fw_size)
 		sent += count;
 
 		/* send program packet */
-		EscUploaderMessage program_packet = {PACKET_HEAD, sizeof(EscbusBootProgPacket), PROTO_PROG_MULTI};
+		EscUploaderMessage program_packet = {};
+		program_packet.head = PACKET_HEAD;
+		program_packet.len = sizeof(EscbusBootProgPacket);
+		program_packet.msg_id = PROTO_PROG_MULTI;
 		program_packet.d.program_packet.myID = esc_id;
 
 		for (uint8_t i = 0; i < PROG_MULTI_MAX; i++) {
@@ -1192,7 +1207,10 @@ TAP_ESC_UPLOADER::verify_crc(uint8_t esc_id, size_t fw_size_local)
 	}
 
 	/* send flash crc packet */
-	EscUploaderMessage flash_crc_packet = {PACKET_HEAD, sizeof(EscbusFlashCRCPacket), PROTO_GET_CRC};
+	EscUploaderMessage flash_crc_packet = {};
+	flash_crc_packet.head = PACKET_HEAD;
+	flash_crc_packet.len = sizeof(EscbusFlashCRCPacket);
+	flash_crc_packet.msg_id = PROTO_GET_CRC;
 	flash_crc_packet.d.flash_crc_packet.myID = esc_id;
 	send_packet(flash_crc_packet, esc_id);
 
@@ -1247,7 +1265,10 @@ TAP_ESC_UPLOADER::reboot(uint8_t esc_id)
 	int ret;
 
 	/* send reboot packet */
-	EscUploaderMessage reboot_packet = {PACKET_HEAD, sizeof(EscbusRebootPacket), PROTO_REBOOT};
+	EscUploaderMessage reboot_packet = {};
+	reboot_packet.head = PACKET_HEAD;
+	reboot_packet.len = sizeof(EscbusRebootPacket);
+	reboot_packet.msg_id = PROTO_REBOOT;
 	reboot_packet.d.reboot_packet.myID = esc_id;
 	send_packet(reboot_packet, esc_id);
 

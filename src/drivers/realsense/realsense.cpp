@@ -664,8 +664,8 @@ REALSENSE::_read_obstacle_avoidance_data()
 					_traj_wp_avoidance.acceleration[2] = NAN;
 					_traj_wp_avoidance.yaw = NAN; // yaw
 					_traj_wp_avoidance.yaw_speed = math::constrain(
-								packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F,
-								M_PI_F); //yawspeed
+									       packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F,
+									       M_PI_F); //yawspeed
 
 					if (PX4_ISFINITE(_traj_wp_avoidance.velocity[0]) &&
 					    PX4_ISFINITE(_traj_wp_avoidance.velocity[1])

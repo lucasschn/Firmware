@@ -394,11 +394,11 @@ REALSENSE::_send_obstacle_avoidance_data()
 	ObstacleAvoidanceInput tx = {};
 
 	// desired velocity - ENU
-	if (_traj_wp_avoidance_desired.point_valid[trajectory_waypoint_s::POINT_0] == false) {
+	if (_traj_wp_avoidance_desired.point_valid == false) {
 		return;
 	}
 
-	const float avoidance_input_z = _traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VZ];
+	const float avoidance_input_z = _traj_wp_avoidance_desired.velocity[2];
 	const float diff_xy = matrix::Vector2f((_local_pos_prev.x - _local_pos.x), (_local_pos_prev.y - _local_pos.y)).length();
 	const bool xy_lock = diff_xy < SIGMA_NORM;
 	const float diff_z = fabsf(_local_pos_prev.z - _local_pos.z);
@@ -407,8 +407,8 @@ REALSENSE::_send_obstacle_avoidance_data()
 	/* get velocity setpoint in heading frame */
 	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
 	matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(
-			_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VX],
-			_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VY],
+			_traj_wp_avoidance_desired.velocity[0],
+			_traj_wp_avoidance_desired.velocity[1],
 			0.0f));
 
 	if (!xy_lock && vel_sp_heading(0) < 0.0f && (fabsf(vel_sp_heading(1)) <  0.1f)) {
@@ -423,17 +423,17 @@ REALSENSE::_send_obstacle_avoidance_data()
 		 * and downwards if only z-direction maneuvers are requested. This is rather a hack to
 		 * fix realsense output for straight up and down maneuvers. */
 
-		vel_sp_heading(0) = 0.001f + 0.1f * fabsf(_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VZ]);
+		vel_sp_heading(0) = 0.001f + 0.1f * fabsf(_traj_wp_avoidance_desired.velocity[2]);
 	}
 
 	matrix::Vector3f vel_sp_local = q_yaw.conjugate(vel_sp_heading);
-	_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VX] = vel_sp_local(0);
-	_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VY] = vel_sp_local(1);
-	_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VZ] = avoidance_input_z;
+	_traj_wp_avoidance_desired.velocity[0] = vel_sp_local(0);
+	_traj_wp_avoidance_desired.velocity[1] = vel_sp_local(1);
+	_traj_wp_avoidance_desired.velocity[2] = avoidance_input_z;
 
-	tx.desiredSpeed.x   = _traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VY]; // E
-	tx.desiredSpeed.y   = _traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VX]; // N
-	tx.desiredSpeed.z   = -_traj_wp_avoidance_desired.point_0[trajectory_waypoint_s::VZ]; // U
+	tx.desiredSpeed.x   = _traj_wp_avoidance_desired.velocity[1]; // E
+	tx.desiredSpeed.y   = _traj_wp_avoidance_desired.velocity[0]; // N
+	tx.desiredSpeed.z   = -_traj_wp_avoidance_desired.velocity[2]; // U
 
 	// current attitude - NED the  just one of the four elements is be check is enough
 	if (!PX4_ISFINITE(_attitude.q[0])) {
@@ -650,36 +650,31 @@ REALSENSE::_read_obstacle_avoidance_data()
 					_traj_wp_avoidance.timestamp = hrt_absolute_time();
 					_traj_wp_avoidance.type = trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
 
-					_traj_wp_avoidance.point_0[trajectory_waypoint_s::X] = NAN; // position sp
-					_traj_wp_avoidance.point_0[trajectory_waypoint_s::Y] = NAN;
-					_traj_wp_avoidance.point_0[trajectory_waypoint_s::Z] = NAN;
-					_traj_wp_avoidance.point_0[trajectory_waypoint_s::VX] =
+					_traj_wp_avoidance.position[0] = NAN; // position sp
+					_traj_wp_avoidance.position[1] = NAN;
+					_traj_wp_avoidance.position[2] = NAN;
+					_traj_wp_avoidance.velocity[0] =
 						packet_data_output.obstacleAvoidanceSpeed.y;	 //realsense E  -> UAV N
-					_traj_wp_avoidance.point_0[trajectory_waypoint_s::VY] =
+					_traj_wp_avoidance.velocity[1] =
 						packet_data_output.obstacleAvoidanceSpeed.x;  //realsense N  -> UAV E
-					_traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ] =
+					_traj_wp_avoidance.velocity[2] =
 						-packet_data_output.obstacleAvoidanceSpeed.z; //realsense U  -> UAV D
-					_traj_wp_avoidance.point_0[trajectory_waypoint_s::AX] = NAN; // acceleration sp
-					_traj_wp_avoidance.point_0[trajectory_waypoint_s::AY] = NAN;
-					_traj_wp_avoidance.point_0[trajectory_waypoint_s::AZ] = NAN;
-					_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW] = NAN; // yaw
-					_traj_wp_avoidance.point_0[trajectory_waypoint_s::YAW_SPEED] = math::constrain(
+					_traj_wp_avoidance.acceleration[0] = NAN; // acceleration sp
+					_traj_wp_avoidance.acceleration[1] = NAN;
+					_traj_wp_avoidance.acceleration[2] = NAN;
+					_traj_wp_avoidance.yaw = NAN; // yaw
+					_traj_wp_avoidance.yaw_speed = math::constrain(
 								packet_data_output.obstacleAvoidanceYawSpeed, -M_PI_F,
 								M_PI_F); //yawspeed
 
-					if (PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VX]) &&
-					    PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VY])
-					    && PX4_ISFINITE(_traj_wp_avoidance.point_0[trajectory_waypoint_s::VZ])) {
-						_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] = true;
+					if (PX4_ISFINITE(_traj_wp_avoidance.velocity[0]) &&
+					    PX4_ISFINITE(_traj_wp_avoidance.velocity[1])
+					    && PX4_ISFINITE(_traj_wp_avoidance.velocity[2])) {
+						_traj_wp_avoidance.point_valid = true;
 
 					} else {
-						_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_0] = false;
+						_traj_wp_avoidance.point_valid = false;
 					}
-
-					_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_1] = false;
-					_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_2] = false;
-					_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_3] = false;
-					_traj_wp_avoidance.point_valid[trajectory_waypoint_s::POINT_4] = false;
 
 					/* Don't use realsense if we are above home within acceptance radius */
 					const float dist_to_home_xy =  matrix::Vector2f(_home_pos.x - _local_pos.x, _home_pos.y - _local_pos.y).length();

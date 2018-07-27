@@ -532,7 +532,7 @@ REALSENSE::_realsense_parse_frame_sync(uint8_t index, uint8_t byte, ReceiverFcPa
 {
 	static volatile ST24_DECODE_STATE decodeState[MAX_YPRC_PORT_NUM] = { ST24_DECODE_STATE_UNSYNCED };
 	static volatile uint8_t rxLen[MAX_YPRC_PORT_NUM] = {0};
-	static ReceiverFcPacket rxpacket[MAX_YPRC_PORT_NUM] = {0};
+	static ReceiverFcPacket rxpacket[MAX_YPRC_PORT_NUM] = {};
 
 	int ret = SyncStatus::SYNC_UNSYNC;
 	uint8_t data_index = 0;
@@ -631,7 +631,7 @@ void
 REALSENSE::_read_obstacle_avoidance_data()
 {
 	uint8_t _rcs_buf[REALSENSE_BUFFER_SIZE] = {};
-	static ReceiverFcPacket _rxpacket_realsense[MAX_YPRC_PORT_NUM] = { 0 };
+	static ReceiverFcPacket _rxpacket_realsense[MAX_YPRC_PORT_NUM] = {};
 	// read all available data from the serial realsense through UART4
 	int newBytes = ::read(_uart_fd, &_rcs_buf[0], REALSENSE_BUFFER_SIZE);
 

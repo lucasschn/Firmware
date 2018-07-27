@@ -17,7 +17,7 @@ set(config_module_list
 	drivers/magnetometer/ist8310
 	drivers/distance_sensor/hc_sr04
 	drivers/gps
-	drivers/realsense
+	#drivers/realsense
 	modules/sensors
 	drivers/vmount
 	drivers/camera_trigger

@@ -239,6 +239,9 @@ class uploader(object):
         self.protocol = self.PROTOCOL_UKN
 
     def __command(self, cmd):
+        if self.protocol == self.PROTOCOL_UKN:
+            raise RuntimeError("Protocol unknown - no supported commands")
+
         return self.protocol_cmds[self.protocol][cmd]
 
     def close(self):
@@ -249,7 +252,7 @@ class uploader(object):
         # upload timeout
         timeout = time.time() + 0.2
 
-        # Attempt to open the port while it exists and until timeout occurs
+        # attempt to open the port while it exists and until timeout occurs
         while self.port is not None:
             portopen = True
             try:
@@ -322,20 +325,16 @@ class uploader(object):
             if (len(data) != count):
                 raise RuntimeError("Ack Window %i not %i " % (len(data), count))
             for i in range(0, len(data), 2):
-                if chr(data[i]) != self.INSYNC:
+                if chr(data[i]) != self.__command(self.CMD_INSYNC):
                     raise RuntimeError("unexpected %s instead of INSYNC" % data[i])
-                if chr(data[i+1]) == self.INVALID:
+                if chr(data[i+1]) == self.__command(self.CMD_INVALID):
                     raise RuntimeError("bootloader reports INVALID OPERATION")
-                if chr(data[i+1]) == self.FAILED:
+                if chr(data[i+1]) == self.__command(self.CMD_FAILED):
                     raise RuntimeError("bootloader reports OPERATION FAILED")
-                if chr(data[i+1]) != self.OK:
+                if chr(data[i+1]) != self.__command(self.CMD_OK):
                     raise RuntimeError("unexpected response 0x%x instead of OK" % ord(data[i+1]))
 
-    # attempt to get back into sync with the bootloader
-    def __sync(self):
-        # send a stream of ignored bytes longer than the longest possible conversation
-        # that we might still have in progress
-        # self.__send(self.__command(self.CMD_NOP) * (uploader.PROG_MULTI_MAX + 2))
+    def __determineProtocol(self):
         self.port.flushInput()
         if (self.protocol == self.PROTOCOL_UKN):
             self.protocol = self.PROTOCOL_0
@@ -356,6 +355,16 @@ class uploader(object):
             self.__send(self.__command(self.CMD_GET_SYNC) +
                         self.__command(self.CMD_EOC))
             self.__getSync()
+
+    # attempt to get back into sync with the bootloader
+    def __sync(self):
+        # send a stream of ignored bytes longer than the longest possible conversation
+        # that we might still have in progress
+        # self.__send(self.__command(self.CMD_NOP) * (uploader.PROG_MULTI_MAX + 2))
+        self.port.flushInput()
+        self.__send(self.__command(self.CMD_GET_SYNC) +
+                    self.__command(self.CMD_EOC))
+        self.__getSync()
 
     def __trySync(self):
         try:
@@ -384,9 +393,8 @@ class uploader(object):
         # Set a baudrate that can not work on a real serial port
         # in that it is 233% off.
         self.port.baudrate = self.baudrate_bootloader * 2.33
-
-        self.__send(uploader.GET_SYNC +
-                    uploader.EOC)
+        self.__send(self.__command(self.CMD_GET_SYNC) +
+                    self.__command(self.CMD_EOC))
         try:
             self.__getSync(False)
         except:
@@ -490,7 +498,7 @@ class uploader(object):
             # N.B. attempts to activly wait on InWating still carried 8 mS of overhead
             self.__probe(False)
             self.__probe(True)
-            time.sleep((ord(length) * self.chartime) + self.__command(self.MAX_FLASH_PRGRAM_TIME))
+            time.sleep((ord(length) * self.chartime) + uploader.MAX_FLASH_PRGRAM_TIME)
             self.__probe(False)
 
     # verify multiple bytes in flash
@@ -698,6 +706,9 @@ class uploader(object):
 
     # get basic data about the board
     def identify(self):
+        if self.protocol == self.PROTOCOL_UKN:
+            self.__determineProtocol()
+
         self.__determineInterface()
         # make sure we are in sync before starting
         self.__sync()
@@ -804,6 +815,7 @@ class uploader(object):
                                    "If you know you that the board does not have the silicon errata, use\n"
                                    "this script with --force, or update the bootloader. If you are invoking\n"
                                    "upload using make, you can use force-upload target to force the upload.\n")
+
         self.__erase("Erase  ")
         if not fw.is_encrypted:
             self.__program("Program", fw)

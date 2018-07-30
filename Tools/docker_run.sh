@@ -14,7 +14,14 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	elif [[ $@ =~ .*ocpoc.* ]]; then
 		# posix_ocpoc_ubuntu
 		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2018-07-19"
-	elif [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then	
+	elif [[ $@ =~ .*clang-tidy-quiet.* ]]; then
+		# Yuneec specific:
+		# clang-tidy-quiet is currently using an older version of clang on upstream.
+		# With the new version (07-09) travis CI is failing as it uses this file
+		# to run commands. Upstream jenkins on the other hand does not rely on this
+		# file.
+		PX4_DOCKER_REPO="px4io/px4-dev-clang:2018-03-30"
+	elif [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then
 		# clang tools
 		PX4_DOCKER_REPO="px4io/px4-dev-clang:2018-07-19"
 	elif [[ $@ =~ .*cppcheck.* ]]; then

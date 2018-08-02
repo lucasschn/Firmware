@@ -341,14 +341,22 @@ then
 
 	if [ $HITL_ON == no ]
 	then
+		set GPS_PORT /dev/ttyS0
+
 		if param compare GPS_FIXPOS_RTK 1
 		then
-			# Start the Fixposition RTK GPS on Real Sense port
-			gps start -d /dev/ttyS3
-		else
-			# Start GPS on normal port
-			gps start -d /dev/ttyS0
+			if ver hwcmp TAP_V2
+			then
+				# Start the Fixposition RTK GPS on Real Sense port on H520
+				set GPS_PORT /dev/ttyS3
+			fi
 		fi
+
+		# Start GPS
+		gps start -d ${GPS_PORT}
+
+		unset GPS_PORT
+
 	fi
 
 	# waypoint storage

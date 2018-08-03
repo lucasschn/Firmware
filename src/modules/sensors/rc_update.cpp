@@ -488,9 +488,11 @@ RCUpdate::set_signal_validity(InputRCset &input_set)
 	// detect RC signal loss
 	input_set.signal_valid = true;
 
+	const bool rc_timeout = hrt_elapsed_time(&input_set.input.timestamp_last_signal) > 1000000;
+
 	// check flags and require at least four channels to consider the signal valid
-	if (input_set.input.rc_lost || input_set.input.rc_failsafe || input_set.input.channel_count < 4) {
-		// signal is lost or no enough channels
+	if (input_set.input.rc_lost || input_set.input.rc_failsafe || input_set.input.channel_count < 4 || rc_timeout) {
+		// signal is lost or not enough channels
 		input_set.signal_valid = false;
 	}
 }

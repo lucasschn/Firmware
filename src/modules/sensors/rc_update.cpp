@@ -296,13 +296,11 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			orb_priority(_inputs_rc[i].sub, &priority);
 
 			// check signal validity
-			if (priority == ORB_PRIO_DEFAULT) {
-				// from rc
-				set_signal_validity(_inputs_rc[i], _rc);
+			set_signal_validity(_inputs_rc[i]);
 
-			} else {
-				// from non-rc
-				set_signal_validity(_inputs_rc[i]);
+			if (priority == ORB_PRIO_DEFAULT) {
+				// handle special failsafe channel for receivers
+				process_failsafe_channel(_inputs_rc[i], _rc);
 			}
 		}
 	}
@@ -498,10 +496,8 @@ RCUpdate::set_signal_validity(InputRCset &input_set)
 }
 
 void
-RCUpdate::set_signal_validity(InputRCset &input_set, const rc_channels_s &channels)
+RCUpdate::process_failsafe_channel(InputRCset &input_set, const rc_channels_s &channels)
 {
-	set_signal_validity(input_set);
-
 	// check failsafe
 	int8_t fs_ch = channels.function[_parameters.rc_map_failsafe]; // get channel mapped to throttle
 

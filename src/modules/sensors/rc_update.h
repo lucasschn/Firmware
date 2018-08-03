@@ -162,9 +162,9 @@ private:
 	void set_signal_validity(InputRCset &input_set);
 
 	/**
-	 * Check and set validity of signal if channel function is used for mapping.
+	 * Adjust validity of signal based on failsafe channel.
 	 */
-	void set_signal_validity(InputRCset &input_set, const rc_channels_s &channels);
+	void process_failsafe_channel(InputRCset &input_set, const rc_channels_s &channels);
 
 	/**
 	 * Map input_rc to manual_control_setpoints.

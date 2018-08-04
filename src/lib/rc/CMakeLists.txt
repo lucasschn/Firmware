@@ -31,9 +31,11 @@
 #
 ############################################################################
 
+include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
 add_library(rc
 	st24.cpp
 	st24_helper.cpp
+	rc_helper.cpp
 	sumd.cpp
 	sbus.cpp
 	dsm.cpp

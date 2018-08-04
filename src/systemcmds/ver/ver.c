@@ -50,7 +50,8 @@
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
 static const char sz_ver_hwcmp_str[]    = "hwcmp";
-static const char sz_ver_hwtypecmp_str[]    = "hwtypecmp";
+static const char sz_ver_hwtypecmp_str[]  = "hwtypecmp";
+static const char sz_ver_hwlabelcmp_str[] = "hwlabelcmp";
 static const char sz_ver_git_str[] 	= "git";
 static const char sz_ver_bdate_str[]    = "bdate";
 static const char sz_ver_buri_str[]     = "uri";
@@ -99,6 +100,9 @@ static void usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("hwtypecmp", "Compare hardware type (returns 0 on match)");
 	PRINT_MODULE_USAGE_ARG("<hwtype> [<hwtype2>]",
 			       "Hardware type to compare against (eg. V2). An OR comparison is used if multiple are specified", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("hwlabelcmp", "Compare hardware label (returns 0 on match)");
+	PRINT_MODULE_USAGE_ARG("<hwlabel> [<hwlabel2>]",
+			       "Hardware label to compare against (eg. default). An OR comparison is used if multiple are specified", false);
 }
 
 __EXPORT int ver_main(int argc, char *argv[]);
@@ -141,6 +145,23 @@ int ver_main(int argc, char *argv[])
 
 				} else {
 					PX4_ERR("Not enough arguments, try 'ver hwtypecmp {V2|V2M|V30|V31}'");
+				}
+
+				return 1;
+			}
+
+			if (!strncmp(argv[1], sz_ver_hwlabelcmp_str, sizeof(sz_ver_hwlabelcmp_str))) {
+				if (argc >= 3 && argv[2] != NULL) {
+					const char *board_label = BOARD_LABEL;
+
+					for (int i = 2; i < argc; ++i) {
+						if (strcmp(board_label, argv[i]) == 0) {
+							return 0; // if one of the arguments match, return success
+						}
+					}
+
+				} else {
+					PX4_ERR("Not enough arguments, try 'ver hwlabelcmp {default}'");
 				}
 
 				return 1;

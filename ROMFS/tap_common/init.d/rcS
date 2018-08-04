@@ -257,6 +257,7 @@ set FMU_MODE pwm
 set MAV_TYPE none
 set FAILSAFE none
 set GIMBAL_TTY /dev/ttyS1
+set OFDM_TTY none
 set ESC_TTY /dev/ttyS4
 
 if ver hwcmp TAP_V2
@@ -267,6 +268,11 @@ fi
 if ver hwcmp TAP_V3 TAP_V4
 then
 	set GIMBAL_TTY /dev/ttyS3
+
+	if ver hwlabelcmp ofdm
+	then
+		set OFDM_TTY /dev/ttyS2
+	fi
 fi
 
 # Start canned airframe config
@@ -452,6 +458,12 @@ then
 	# mavlink instance for the gimbal port
 	mavlink start -r ${MAV_RATE} -d ${GIMBAL_TTY} -m config -b ${BAUDRATE}
 	mavlink stream -d ${GIMBAL_TTY} -s SYSTEM_TIME -r 0.5
+	if ver hwlabelcmp ofdm
+	then
+		# mavlink instance for the OFDM port
+		mavlink start -r ${MAV_RATE} -d ${OFDM_TTY} -m config -b ${BAUDRATE}
+		mavlink stream -d ${OFDM_TTY} -s SYSTEM_TIME -r 0.5
+	fi
 	# mavlink instance for the USB port
 	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 else

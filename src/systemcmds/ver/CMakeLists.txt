@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE systemcmds__ver
 	MAIN ver
 	STACK_MAIN 1024
-	COMPILE_FLAGS
+	COMPILE_FLAGS -DBOARD_LABEL="${LABEL}"
 	SRCS
 		ver.c
 	DEPENDS

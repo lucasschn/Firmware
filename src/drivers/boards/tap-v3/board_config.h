@@ -44,10 +44,6 @@
 #define GPIO_TIM2_CH2_OUT    /* PB3   T22C2  FMU_CAP2 */ GPIO_TIM2_CH2OUT_2
 #define GPIO_TIM2_CH4_OUT    /* PB11  T22C4  FMU_CAP3 */ GPIO_TIM2_CH4OUT_2
 
-// define the serial port of the RC to be UART 6 since UART 5 is enabled
-#undef RC_SERIAL_PORT
-#define RC_SERIAL_PORT "/dev/ttyS5"
-
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
 #define BOARD_USE_ESC_CURRENT_REPORT // each ESC reports its current estimate
 #define BOARD_SUPPORTS_FTC // Board supports fault tolerant control. Set param FTC_ENABLE to 1 to enable it.

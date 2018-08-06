@@ -512,7 +512,7 @@ RCUpdate::process_failsafe_channel(InputRCset &input_set, const rc_channels_s &c
 		if ((_parameters.rc_fails_thr < _parameters.min[fs_ch] && input_set.input.values[fs_ch] < _parameters.rc_fails_thr) ||
 		    (_parameters.rc_fails_thr > _parameters.max[fs_ch] && input_set.input.values[fs_ch] > _parameters.rc_fails_thr)) {
 			// failsafe triggered, signal is lost by receiver
-			input_set.signal_valid = true;
+			input_set.signal_valid = false;
 		}
 	}
 }

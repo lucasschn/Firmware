@@ -35,7 +35,8 @@
  * @file led.cpp
  */
 
-
+#include <uORB/uORB.h>
+#include <uORB/topics/led_control.h>
 #include "led.h"
 
 int LedController::init(int led_control_sub)

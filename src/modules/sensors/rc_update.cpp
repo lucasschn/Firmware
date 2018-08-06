@@ -349,9 +349,11 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 		// normal master mapping
 		if (map_to_control_setpoint(parameter_handles, ORB_PRIO_DEFAULT)) {
 			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
+
 			// team mode slave control
 			if (map_from_team_mode(parameter_handles)) {
 			}
+
 			publish_manual_inputs();
 			publish_rc_channels();
 		}
@@ -474,7 +476,8 @@ RCUpdate::set_signal_validity(InputRCset &input_set)
 	// detect RC signal loss
 	input_set.signal_valid = true;
 
-	const bool rc_timeout = (hrt_absolute_time() - input_set.input.timestamp_last_signal) > hrt_abstime(_parameters.rc_loss_t * 1e6f);
+	const bool rc_timeout = (hrt_absolute_time() - input_set.input.timestamp_last_signal) > hrt_abstime(
+					_parameters.rc_loss_t * 1e6f);
 
 	// check flags and require at least four channels to consider the signal valid
 	if (input_set.input.rc_lost || input_set.input.rc_failsafe || input_set.input.channel_count < 4 || rc_timeout) {

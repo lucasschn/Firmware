@@ -283,7 +283,6 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 	bool rc_updated = false;
 
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-
 		// check if subscriber has updated
 		orb_check(_inputs_rc[i].sub, &rc_updated);
 
@@ -295,14 +294,14 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			int32_t priority;
 			orb_priority(_inputs_rc[i].sub, &priority);
 
-			// check signal validity
-			set_signal_validity(_inputs_rc[i]);
-
 			if (priority == ORB_PRIO_DEFAULT) {
 				// handle special failsafe channel for receivers
 				process_failsafe_channel(_inputs_rc[i], _rc);
 			}
 		}
+
+		// check signal validity
+		set_signal_validity(_inputs_rc[i]);
 	}
 
 	// generate manual setpoints based on link mode

@@ -90,6 +90,9 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	/* type of remote control station */
 	parameter_handles.rc_type = param_find("RC_TYPE");
 
+	/* timeout for rc signal source validity */
+	parameter_handles.rc_loss_t = param_find("COM_RC_LOSS_T");
+
 	/* optional mode switches, not mapped per default */
 	parameter_handles.rc_map_rattitude_sw = param_find("RC_MAP_RATT_SW");
 	parameter_handles.rc_map_posctl_sw = param_find("RC_MAP_POSCTL_SW");
@@ -391,6 +394,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 
 	param_get(parameter_handles.rc_link_mode, &(parameters.rc_link_mode));
 	param_get(parameter_handles.rc_type, &(parameters.rc_type));
+	param_get(parameter_handles.rc_loss_t, &(parameters.rc_loss_t));
 
 	param_get(parameter_handles.rc_flt_smp_rate, &(parameters.rc_flt_smp_rate));
 	parameters.rc_flt_smp_rate = math::max(1.0f, parameters.rc_flt_smp_rate);

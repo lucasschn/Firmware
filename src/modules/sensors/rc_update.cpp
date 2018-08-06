@@ -347,22 +347,15 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 		}
 
 	} else if (_parameters.rc_link_mode == 3) {
-		// team-mode
-		if (map_from_team_mode(parameter_handles)) {
+		// normal master mapping
+		if (map_to_control_setpoint(parameter_handles, ORB_PRIO_DEFAULT)) {
 			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
-			publish_manual_inputs();
-
-		} else {
-			// just stay in normal RC mode
-			// rc only mapping is required
-			if (map_to_control_setpoint(parameter_handles, ORB_PRIO_DEFAULT)) {
-				_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
-				publish_manual_inputs();
-				//always publish rc_channels
-				publish_rc_channels();
+			// team mode slave control
+			if (map_from_team_mode(parameter_handles)) {
 			}
+			publish_manual_inputs();
+			publish_rc_channels();
 		}
-
 	}
 }
 
@@ -425,14 +418,8 @@ RCUpdate::map_to_control_setpoint(const ParameterHandles &parameter_handles, con
 bool
 RCUpdate::map_from_team_mode(const ParameterHandles &parameter_handles)
 {
-
 	if (_parameters.rc_type != 1) {
-		print_rc_error_message("Team-mode is not supported for this remote controller");
-		return false;
-	}
-
-	// first apply default map
-	if (!map_to_control_setpoint(parameter_handles, ORB_PRIO_DEFAULT)) {
+		print_rc_error_message("Team-mode not supported");
 		return false;
 	}
 

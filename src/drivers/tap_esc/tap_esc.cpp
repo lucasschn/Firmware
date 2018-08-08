@@ -53,6 +53,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/test_motor.h>
 #include <uORB/topics/tune_control.h>
@@ -176,6 +177,10 @@ private:
 	// HITL related members (not upstream)
 	bool 	_hitl = false;
 
+	// FTC trigger
+	int _vehicle_status_sub = -1;
+	vehicle_status_s 	_vehicle_status;
+
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::MC_AIRMODE>) _airmode   ///< multicopter air-mode
 	)
@@ -251,6 +256,7 @@ TAP_ESC::~TAP_ESC()
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_tune_control_sub);
 	orb_unsubscribe(_led_control_sub);
+	orb_unsubscribe(_vehicle_status_sub);
 
 	orb_unadvertise(_outputs_pub);
 	orb_unadvertise(_esc_feedback_pub);
@@ -386,6 +392,7 @@ int TAP_ESC::init()
 	_led_control_sub = orb_subscribe(ORB_ID(led_control));
 	_led_controller.init(_led_control_sub);
 	_tune_control_sub = orb_subscribe(ORB_ID(tune_control));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	return ret;
 }
@@ -499,6 +506,31 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 
 bool TAP_ESC::esc_critical_failure(uint8_t channel_id)
 {
+	bool simulate_motor_failure = false;
+
+	bool updated = false;
+	orb_check(_vehicle_status_sub, &updated);
+
+	if (channel_id == 4 &&  updated) {
+		vehicle_status_s new_vehicle_status;
+		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &new_vehicle_status);
+
+		if (new_vehicle_status.nav_state != _vehicle_status.nav_state) {
+
+			switch (new_vehicle_status.nav_state) {
+			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+				simulate_motor_failure = true;
+				break;
+
+			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+				_esc_feedback.engine_failure_report.motor_state = 0;
+				break;
+			}
+		}
+
+		_vehicle_status = new_vehicle_status;
+	}
+
 	if (!_is_armed) {
 		// TODO: I don't agree with this. Why ignore failures prior to arming?
 		// clear any motor failure flags
@@ -512,10 +544,12 @@ bool TAP_ESC::esc_critical_failure(uint8_t channel_id)
 
 	} else {
 		// check for ESC errors that require handling by fault-tolerant control
-		if (_esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_MOTOR_STALL
-		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_HARDWARE
-		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_CMD
-		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
+		// if (_esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_MOTOR_STALL
+		//     || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_HARDWARE
+		//     || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_CMD
+		//     || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
+		if (simulate_motor_failure) {
+			PX4_INFO("SIMULATING MOTOR FAILURE FOR MOTOR %u", channel_id);
 
 			_esc_log_save_start_time = hrt_absolute_time();
 

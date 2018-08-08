@@ -753,7 +753,7 @@ void TAP_ESC::cycle()
 		}
 	}
 
-	uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM];
+	uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM];  //< Yuneec ID scheme
 
 	// Never let motors spin in HITL
 	if (_hitl) {
@@ -763,8 +763,7 @@ void TAP_ESC::cycle()
 
 	} else {
 
-		// We need to remap from the system default to what PX4's normal
-		// scheme is
+		// Remap motor ID schemes: PX4 -> Yuneec
 #ifdef BOARD_MAP_ESC_TO_PX4_OUT
 
 		// Loop over 0 to 5 in case of hex configuration

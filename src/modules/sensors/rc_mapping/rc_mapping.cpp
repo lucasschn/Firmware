@@ -207,7 +207,7 @@ int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 
 	man.aux1 = -unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_RIGHT]); // camera pan (=yaw)
 
-	man.timestamp = input_rc.timestamp_last_signal;
+	// do not overwrite man.timestamp because master is the main required input that triggers rc loss
 
 	// no errors
 	return (int)Error::None;

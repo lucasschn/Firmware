@@ -57,8 +57,15 @@ enum class WaypointType : int {
 	takeoff,
 	land,
 	idle,
-	offboard, // only part of this structure due to legacy reason. It is not used
+	offboard, // only part of this structure due to legacy reason. It is not used within the Auto flighttasks
 	follow_target
+};
+
+enum class State {
+	offtrack, /**< Vehicle is more than cruise speed away from track */
+	target_behind, /**< Vehicle is in front of target. */
+	previous_infront, /**< Vehilce is behind previous waypoint.*/
+	none /**< Vehicle is in normal tracking mode from triplet previous to triplet target */
 };
 
 class FlightTaskAuto : public FlightTask
@@ -75,6 +82,8 @@ protected:
 	void _setDefaultConstraints() override;
 	float _getMaxCruiseSpeed() {return MPC_XY_CRUISE.get();} /**< getter for default cruise speed */
 	matrix::Vector2f _getTargetVelocityXY(); /**< only used for follow-me and only here because of legacy reason.*/
+	void _updateInternalWaypoints(); /**< Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */
+	bool _compute_heading_from_2D_vector(float &heading, matrix::Vector2f v); /**< Computes and sets heading a 2D vector */
 	void _updateAvoidanceWaypoints(); /**< fill desired_waypoints with the triplets. */
 
 	matrix::Vector3f _prev_prev_wp{}; /**< Pre-previous waypoint (local frame). This will be used for smoothing trajectories -> not used yet. */
@@ -97,12 +106,17 @@ protected:
 				       );
 
 private:
-	matrix::Vector2f _lock_position_xy{NAN, NAN};
+	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
 
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_XY_CRUISE>) MPC_XY_CRUISE); /**< Default mc cruise speed.*/
+	matrix::Vector3f
+	_triplet_target; /**< current triplet from navigator which may differ from the intenal one (_target) depending on the vehicle state. */
+	matrix::Vector3f
+	_triplet_prev_wp; /**< previous triplet from navigator which may differ from the intenal one (_prev_wp) depending on the vehicle state.*/
+	matrix::Vector3f
+	_triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
+	matrix::Vector2f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
 
 	map_projection_reference_s _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame. */
 	float _reference_altitude = NAN;  /**< Altitude relative to ground. */

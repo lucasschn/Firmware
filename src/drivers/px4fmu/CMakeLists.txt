@@ -30,20 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(CXX_FLAGS)
-if(${BOARD} STREQUAL "tap-v3")
-	if(${LABEL} STREQUAL "ofdm")
-		set(CXX_FLAGS -DENABLE_RC_HELPER)
-	else()
-		# Define the serial port of the RC to be UART 6 since UART 5 is enabled
-		set(CXX_FLAGS -DRC_SERIAL_PORT="/dev/ttyS5")
-	endif()
-endif()
 px4_add_module(
 	MODULE drivers__px4fmu
 	MAIN fmu
 	STACK_MAIN 1200
-	COMPILE_FLAGS ${CXX_FLAGS}
+	COMPILE_FLAGS
 	SRCS
 		fmu.cpp
 	DEPENDS

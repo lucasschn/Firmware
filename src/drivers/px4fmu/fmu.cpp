@@ -3442,6 +3442,14 @@ int PX4FMU::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(verb, "is_ofdm")) {
+#ifdef ENABLE_RC_HELPER
+		return 0;
+#else
+		return 1;
+#endif
+	}
+
 
 	/* start the FMU if not running */
 	if (!is_running()) {
@@ -3589,6 +3597,8 @@ mixer files.
 	PRINT_MODULE_USAGE_ARG("<ms>", "Delay time in ms between reset and re-enabling", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("peripheral_reset", "Reset board peripherals");
 	PRINT_MODULE_USAGE_ARG("<ms>", "Delay time in ms between reset and re-enabling", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("is_ofdm", "Returns 0 if OFDM is available");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("i2c", "Configure I2C clock rate");
 	PRINT_MODULE_USAGE_ARG("<bus_id> <rate>", "Specify the bus id (>=0) and rate in Hz", false);

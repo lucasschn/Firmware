@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#ifdef ENABLE_RC_HELPER
+
 #include "rc_helper.h"
 
 #include <drivers/drv_hrt.h>
@@ -156,3 +158,5 @@ void RCHelper::cycle(bool is_armed)
 		}
 	}
 }
+
+#endif // ENABLE_RC_HELPER

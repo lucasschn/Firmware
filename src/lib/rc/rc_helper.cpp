@@ -34,7 +34,6 @@
 #include "rc_helper.h"
 
 #include <drivers/drv_hrt.h>
-#include <mavlink/mavlink_bridge_header.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status_flags.h>
@@ -62,10 +61,10 @@ void RCHelper::pair()
 		.param7 = 0.0,
 		.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR,
 		/* send this command to itself */
-		.target_system = mavlink_system.sysid,
-		.target_component = mavlink_system.compid,
-		.source_system = mavlink_system.sysid,
-		.source_component = mavlink_system.compid,
+		.target_system = 1,
+		.target_component = 1,
+		.source_system = 1,
+		.source_component = 1,
 		.confirmation = false,
 		.from_external = false
 	};

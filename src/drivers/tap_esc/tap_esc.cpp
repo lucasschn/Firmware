@@ -605,6 +605,7 @@ void TAP_ESC::cycle()
 
 		/* can we mix? */
 		_outputs.timestamp = hrt_absolute_time();
+
 		if (_is_armed && _mixers != nullptr) {
 
 			/* do mixing */

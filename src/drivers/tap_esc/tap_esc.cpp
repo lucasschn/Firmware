@@ -639,6 +639,7 @@ void TAP_ESC::cycle()
 		uint8_t num_outputs = _channels_count - motor_fault_count;
 
 		/* can we mix? */
+		_outputs.timestamp = hrt_absolute_time();
 		if (_is_armed && _mixers != nullptr) {
 
 			/* do mixing */
@@ -678,7 +679,6 @@ void TAP_ESC::cycle()
 		} else {
 
 			_outputs.noutputs = num_outputs;
-			_outputs.timestamp = hrt_absolute_time();
 
 			/* check for motor test commands */
 			bool test_motor_updated;

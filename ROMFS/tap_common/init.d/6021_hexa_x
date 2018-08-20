@@ -369,7 +369,7 @@ then
 	then
 		tap_esc start -d ${ESC_TTY} -n 6
 	else
-		tap_esc start -d ${ESC_TTY} -n 4 -l
+		tap_esc start -d ${ESC_TTY} -n 6 -l
 	fi
 else
 	# Config could not be written or verified. ESCs won't function properly!

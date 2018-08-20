@@ -755,6 +755,7 @@ void TAP_ESC::cycle()
 	}
 
 	uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM];  //< Yuneec ID scheme
+
 	for (uint8_t i = 0; i < _channels_count; ++i) {
 		motor_out[i] = RPMSTOPPED;
 	}

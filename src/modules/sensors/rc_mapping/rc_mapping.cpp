@@ -196,7 +196,7 @@ int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc)
 
 	if (man.gimbal_pitch_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
 		// tilt speed control: use stick inputs
-		man.aux2 = unit_range(input_rc.values[ST16::CHANNEL_RIGHT_STICK_UP]); // camera tilt
+		man.aux2 = unit_range(input_rc.values[ST16::CHANNEL_LEFT_STICK_UP]); // camera tilt
 
 	} else {
 		// tilt angle control: use tilt slider

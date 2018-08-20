@@ -755,14 +755,14 @@ void TAP_ESC::cycle()
 	}
 
 	uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM];  //< Yuneec ID scheme
+	for (uint8_t i = 0; i < _channels_count; ++i) {
+		motor_out[i] = RPMSTOPPED;
+	}
 
 	// Never let motors spin in HITL
-	if (_hitl) {
-		for (uint8_t i = 0; i < _channels_count; ++i) {
-			motor_out[i] = RPMSTOPPED;
-		}
-
-	} else {
+	// Never let motors spin when manual killswitch is engaged
+	// TODO: Also stop for _armed.lockdown?
+	if (!_hitl && !_armed.manual_lockdown) {
 
 		// Remap motor ID schemes: PX4 -> Yuneec
 #ifdef BOARD_MAP_ESC_TO_PX4_OUT
@@ -809,15 +809,9 @@ void TAP_ESC::cycle()
 #endif
 	}
 
-	// Kill switch is enabled, emergency stop. Also in HITL the motors should never turn
-	// TODO: Also stop for _armed.lockdown
-	if (_armed.manual_lockdown || _hitl) {
-		for (unsigned i = 0; i < _channels_count; ++i) {
-			motor_out[i] = RPMSTOPPED;
-		}
-	}
-
+	// Send motor commands to the ESCs
 	send_esc_outputs(motor_out, _channels_count);
+
 	tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
 	if (tap_esc_common::parse_tap_esc_feedback(&_uartbuf, &_packet) == 0) {

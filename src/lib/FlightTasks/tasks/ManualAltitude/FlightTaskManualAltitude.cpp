@@ -70,6 +70,14 @@ bool FlightTaskManualAltitude::activate()
 		_constraints.max_distance_to_ground = INFINITY;
 	}
 
+	if (_constraints.speed_up >= MPC_VEL_MAN_UP.get()) {
+		_constraints.speed_up = MPC_VEL_MAN_UP.get();
+	}
+
+	if (_constraints.speed_down >= MPC_VEL_MAN_DN.get()) {
+		_constraints.speed_down = MPC_VEL_MAN_DN.get();
+	}
+
 	_max_speed_up = _constraints.speed_up;
 	_min_speed_down = _constraints.speed_down;
 

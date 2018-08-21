@@ -330,6 +330,14 @@ void FlightTaskAuto::_setDefaultConstraints()
 	if (_constraints.speed_xy >= MPC_XY_CRUISE.get()) {
 		_constraints.speed_xy = MPC_XY_CRUISE.get();
 	}
+
+	if (_constraints.speed_up >= MPC_VEL_Z_AUTO.get()) {
+		_constraints.speed_up = MPC_VEL_Z_AUTO.get();
+	}
+
+	if (_constraints.speed_down >= MPC_VEL_Z_AUTO.get()) {
+		_constraints.speed_down = MPC_VEL_Z_AUTO.get();
+	}
 }
 
 matrix::Vector2f FlightTaskAuto::_getTargetVelocityXY()

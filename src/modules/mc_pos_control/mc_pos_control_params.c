@@ -159,11 +159,11 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
 /**
  * Maximum vertical ascent velocity
  *
- * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (ALTCTRL, POSCTRL).
+ * Maximum vertical velocity upwards for any altitude controlled mode.
  *
  * @unit m/s
- * @min 0.5
- * @max 8.0
+ * @min 1.0
+ * @max 10.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -172,14 +172,43 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.0f);
 /**
  * Maximum vertical descent velocity
  *
- * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (ALTCTRL, POSCTRL).
+ * Maximum vertical velocity downwards for any altitude controlled mode.
  *
  * @unit m/s
- * @min 0.5
- * @max 4.0
+ * @min 1.0
+ * @max 6.0
+ * @decimal 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
+
+/**
+ * Vehicle vertical ascent velocity.
+ *
+ * Adjusting this parameter changes the velocity in upwards direction for any altitude controlled mode. However,
+ * the vehicle can never go faster than the maximum vertical ascent velocity.
+ *
+ * @unit m/s
+ * @min 1.0
+ * @max 7.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_MAN_UP, 4.0f);
+
+/**
+ * Vehicle vertical descent velocity.
+ *
+ * Adjusting this parameter changes the velocity in downwards direction for any altitude controlled mode. However,
+ * the vehicle can never go faster than the maximum vertical descent velocity.
+ *
+ * @unit m/s
+ * @min 1.0
+ * @max 6.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_MAN_DN, 2.5f);
 
 /**
  * Proportional gain for horizontal position error
@@ -240,6 +269,23 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
+ * Vertical speed for any auto mode
+ *
+ * Normal vertical speed in AUTO modes (includes
+ * also RTL / hold / etc.)
+ *
+ * @unit m/s
+ * @min 1.0
+ * @max 5.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_Z_AUTO, 4.0f);
+
+/**
+ * Maximum horizontal speed in auto at 90 degrees corners.
+ *
  * Cruise speed when angle prev-current/current-next setpoint
  * is 90 degrees. It should be lower than MPC_XY_CRUISE.
  *
@@ -256,13 +302,14 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_CRUISE_90, 3.0f);
 
 /**
- * Maximum horizontal velocity setpoint for manual controlled mode
- * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
- * the setpoint will be capped to MPC_XY_VEL_MAX
+ * Maximum horizontal speed for manual controlled mode.
+ *
+ * If MPC_VEL_MANUAL is set larger than MPC_XY_VEL_MAX, then
+ * the horizontal speed will be capped to MPC_XY_VEL_MAX.
  *
  * @unit m/s
- * @min 3.0
- * @max 20.0
+ * @min 1.0
+ * @max 14.0
  * @increment 1
  * @decimal 2
  * @group Multicopter Position Control
@@ -272,8 +319,8 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.0f);
 /**
  * Maximum horizontal velocity
  *
- * Maximum horizontal velocity in AUTO mode. If higher speeds
- * are commanded in a mission they will be capped to this velocity.
+ * Maximum global horizontal velocity in any mode. Any demanded speed will
+ * be capped to MPC_XY_VEL_MAX.
  *
  * @unit m/s
  * @min 0.0

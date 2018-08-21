@@ -768,6 +768,8 @@ void TAP_ESC::cycle()
 	// Never let motors spin in HITL
 	// Never let motors spin when manual killswitch is engaged
 	// TODO: Also stop for _armed.lockdown?
+	// NOTE: Ignore armed state because that would break motor_tests, which work
+	// without arming.
 	if (!_hitl && !_armed.manual_lockdown) {
 
 		// Remap motor ID schemes: PX4 -> Yuneec

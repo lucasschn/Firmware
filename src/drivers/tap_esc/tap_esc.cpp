@@ -221,8 +221,13 @@ TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count, bool hitl):
 	param_get(param_find("FTC_ENABLE"), &ftc_enable);
 
 	if (ftc_enable != 0) {
-		PX4_INFO("fault-tolerant-control enabled");
-		_fault_tolerant_control = new FaultTolerantControl();
+		if (_channels_count == 6) {
+			PX4_INFO("fault-tolerant-control enabled");
+			_fault_tolerant_control = new FaultTolerantControl();
+
+		} else {
+			PX4_WARN("cannot enable fault-tolerant-control: not supported for %u channels", _channels_count);
+		}
 
 	} else {
 		PX4_WARN("fault-tolerant-control disabled by parameter");

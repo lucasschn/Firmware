@@ -53,6 +53,9 @@
 #include <lib/rc/st24.h>
 #include <lib/rc/st24_helper.h>
 #include <lib/rc/sumd.h>
+#ifdef ENABLE_RC_HELPER
+#  include <lib/rc/rc_helper.h>
+#endif
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
@@ -69,7 +72,7 @@
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
-#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 
 #ifdef HRT_PPM_CHANNEL
@@ -193,6 +196,7 @@ public:
 	void update_pwm_trims();
 
 private:
+#ifdef RC_SERIAL_PORT
 	enum RC_SCAN {
 		RC_SCAN_PPM = 0,
 		RC_SCAN_SBUS,
@@ -210,14 +214,15 @@ private:
 		"ST24"
 	};
 
+	hrt_abstime _rc_scan_begin = 0;
+	bool _rc_scan_locked = true;
+	bool _report_lock = true;
+#endif
+
 	enum class MotorOrdering : int32_t {
 		PX4 = 0,
 		Betaflight = 1
 	};
-
-	hrt_abstime _rc_scan_begin = 0;
-	bool _rc_scan_locked = true;
-	bool _report_lock = true;
 
 	hrt_abstime _cycle_timestamp = 0;
 	hrt_abstime _last_safety_check = 0;
@@ -232,7 +237,7 @@ private:
 	unsigned	_current_update_rate;
 	bool 		_run_as_task;
 	static struct work_s	_work;
-	int		_vehicle_cmd_sub;
+	int		_vehicle_landed_sub;
 	int		_armed_sub;
 	int		_param_sub;
 	int		_adc_sub;
@@ -243,8 +248,11 @@ private:
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	int		_class_instance;
+#ifdef RC_SERIAL_PORT
+	int		_vehicle_cmd_sub;
 	int		_rcs_fd;
 	uint8_t _rcs_buf[SBUS_BUFFER_SIZE];
+#endif
 
 	bool		_throttle_armed;
 	bool		_pwm_on;
@@ -285,7 +293,13 @@ private:
 
 	perf_counter_t	_perf_control_latency;
 
+#ifdef RC_SERIAL_PORT
 	St24Helper _st24_helper;
+#endif
+
+#ifdef ENABLE_RC_HELPER
+	RCHelper _rc_helper;
+#endif
 
 	static bool	arm_nothrottle()
 	{
@@ -336,9 +350,10 @@ private:
 			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			hrt_abstime now, bool frame_drop, bool failsafe,
 			unsigned frame_drops, int rssi);
-
+#ifdef RC_SERIAL_PORT
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
 	void rc_io_invert(bool invert, uint32_t uxart_base);
+#endif
 	void safety_check_button(void);
 	void flash_safety_button(void);
 
@@ -366,7 +381,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_pwm_alt_rate_channels(0),
 	_current_update_rate(0),
 	_run_as_task(run_as_task),
-	_vehicle_cmd_sub(-1),
+	_vehicle_landed_sub(-1),
 	_armed_sub(-1),
 	_param_sub(-1),
 	_adc_sub(-1),
@@ -377,7 +392,10 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_class_instance(0),
+#ifdef RC_SERIAL_PORT
+	_vehicle_cmd_sub(-1),
 	_rcs_fd(-1),
+#endif
 	_throttle_armed(false),
 	_pwm_on(false),
 	_pwm_mask(0),
@@ -456,6 +474,7 @@ PX4FMU::~PX4FMU()
 
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(_param_sub);
+	orb_unsubscribe(_vehicle_landed_sub);
 
 	orb_unadvertise(_to_input_rc);
 	orb_unadvertise(_outputs_pub);
@@ -466,6 +485,7 @@ PX4FMU::~PX4FMU()
 	up_pwm_servo_deinit();
 
 #ifdef RC_SERIAL_PORT
+	orb_unsubscribe(_vehicle_cmd_sub);
 	dsm_deinit();
 #endif
 
@@ -508,6 +528,7 @@ PX4FMU::init()
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_param_sub = orb_subscribe(ORB_ID(parameter_update));
 	_adc_sub = orb_subscribe(ORB_ID(adc_report));
+	_vehicle_landed_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	/* initialize PWM limit lib */
 	pwm_limit_init(&_pwm_limit);
@@ -529,12 +550,15 @@ PX4FMU::init()
 	// disable CPPM input by mapping it away from the timer capture input
 	px4_arch_unconfiggpio(GPIO_PPM_IN);
 #  endif
+	_st24_helper.init(_rcs_fd);
+#endif
+
+#ifdef ENABLE_RC_HELPER
+	_rc_helper.init();
 #endif
 
 	// Getting initial parameter values
 	update_params();
-
-	_st24_helper.init(_rcs_fd);  // Yuneec specific
 
 	return 0;
 }
@@ -1478,9 +1502,11 @@ PX4FMU::cycle()
 		/* update PWM status if armed or if disarmed PWM values are set */
 		bool pwm_on = _armed.armed || _num_disarmed_set > 0 || _armed.in_esc_calibration_mode;
 
-		if (_st24_helper.vehicle_land_detected_updated()) {
+		orb_check(_vehicle_landed_sub, &updated);
+
+		if (updated) {
 			vehicle_land_detected_s vehicle_landed_state;
-			orb_copy(ORB_ID(vehicle_land_detected), _st24_helper.vehicle_land_detected_sub(), &vehicle_landed_state);
+			orb_copy(ORB_ID(vehicle_land_detected), _vehicle_landed_sub, &vehicle_landed_state);
 
 			if (vehicle_landed_state.inverted) {
 				// enable pwm if vehicle is upside down to allow to control the landing gear
@@ -1533,9 +1559,13 @@ PX4FMU::cycle()
 			}
 		}
 
+		_st24_helper.cycle(_rc_in.rc_lost, _armed.armed);
+
 #endif
 
-		_st24_helper.cycle(_rc_in.rc_lost, _armed.armed);
+#ifdef ENABLE_RC_HELPER
+		_rc_helper.cycle(_armed.armed);
+#endif
 
 		orb_check(_param_sub, &updated);
 
@@ -1627,7 +1657,7 @@ PX4FMU::cycle()
 		case RC_SCAN_DSM:
 			if (_rc_scan_begin == 0) {
 				_rc_scan_begin = _cycle_timestamp;
-				//			// Configure serial port for DSM
+				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
 				rc_io_invert(false, RC_UXART_BASE);
 
@@ -1801,9 +1831,15 @@ PX4FMU::cycle()
 			int instance = _class_instance;
 			orb_publish_auto(ORB_ID(input_rc), &_to_input_rc, &_rc_in, &instance, ORB_PRIO_DEFAULT);
 
-		} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1000 * 1000)) {
+		}
+
+#ifdef RC_SERIAL_PORT
+
+		else if ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1000 * 1000) {
 			_rc_scan_locked = false;
 		}
+
+#endif
 
 		if (_run_as_task) {
 			if (should_exit()) {
@@ -3424,6 +3460,14 @@ int PX4FMU::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(verb, "is_ofdm")) {
+#ifdef ENABLE_RC_HELPER
+		return 0;
+#else
+		return 1;
+#endif
+	}
+
 
 	/* start the FMU if not running */
 	if (!is_running()) {
@@ -3572,6 +3616,8 @@ mixer files.
 	PRINT_MODULE_USAGE_COMMAND_DESCR("peripheral_reset", "Reset board peripherals");
 	PRINT_MODULE_USAGE_ARG("<ms>", "Delay time in ms between reset and re-enabling", true);
 
+	PRINT_MODULE_USAGE_COMMAND_DESCR("is_ofdm", "Returns 0 if OFDM is available");
+
 	PRINT_MODULE_USAGE_COMMAND_DESCR("i2c", "Configure I2C clock rate");
 	PRINT_MODULE_USAGE_ARG("<bus_id> <rate>", "Specify the bus id (>=0) and rate in Hz", false);
 
@@ -3591,8 +3637,8 @@ int PX4FMU::print_status()
 		PX4_INFO("Max update rate: %i Hz", _current_update_rate);
 	}
 
-	PX4_INFO("RC scan state: %s", RC_SCAN_STRING[_rc_scan_state]);
 #ifdef RC_SERIAL_PORT
+	PX4_INFO("RC scan state: %s", RC_SCAN_STRING[_rc_scan_state]);
 	PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
 #endif
 	const char *mode_str = nullptr;

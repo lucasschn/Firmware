@@ -34,6 +34,7 @@
 add_library(rc
 	st24.cpp
 	st24_helper.cpp
+	rc_helper.cpp
 	sumd.cpp
 	sbus.cpp
 	dsm.cpp

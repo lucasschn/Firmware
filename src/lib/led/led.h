@@ -41,6 +41,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_led.h>
 

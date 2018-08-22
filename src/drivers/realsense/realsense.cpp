@@ -57,8 +57,6 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
 
-#include <lib/FlightTasks/FlightTasks.hpp>
-
 #include "realsense.h"
 
 #define B460800 460800
@@ -138,8 +136,6 @@ private:
 	float _yaw;
 	float _nav_rad;
 
-	FlightTasks _flight_tasks;
-
 	orb_advert_t _traj_wp_avoidance_pub;
 	orb_advert_t _optical_flow_pub;
 	orb_advert_t _distance_sensor_pub;
@@ -205,7 +201,6 @@ REALSENSE::REALSENSE(const char *port):
 	_rb_gyro(nullptr),
 	_yaw(0.0f),
 	_nav_rad(0.0f),
-	_flight_tasks(),
 	_traj_wp_avoidance_pub(nullptr),
 	_optical_flow_pub(nullptr),
 	_distance_sensor_pub(nullptr),
@@ -478,7 +473,7 @@ REALSENSE::_send_obstacle_avoidance_data()
 
 	// set flag for Sense&Stop
 	if ((_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
-	    && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL) && (!_flight_tasks.isAnyTaskActive())) {
+	    && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL)) {
 		flag |= ObstacleAvoidanceInputFlags::USE_SMALL_VEHICLE_SIZE;
 	}
 

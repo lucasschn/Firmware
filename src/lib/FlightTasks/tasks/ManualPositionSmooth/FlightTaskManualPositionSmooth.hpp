@@ -42,6 +42,7 @@
 #include "FlightTaskManualPosition.hpp"
 #include "ManualSmoothingXY.hpp"
 #include "ManualSmoothingZ.hpp"
+#include "ObstacleAvoidance.hpp"
 
 class FlightTaskManualPositionSmooth : public FlightTaskManualPosition
 {
@@ -57,4 +58,5 @@ protected:
 private:
 	ManualSmoothingXY _smoothingXY; /**< smoothing for velocity setpoints in xy */
 	ManualSmoothingZ _smoothingZ; /**< smoothing for velocity in z */
+	ObstacleAvoidance _obstacleAvoidance;
 };

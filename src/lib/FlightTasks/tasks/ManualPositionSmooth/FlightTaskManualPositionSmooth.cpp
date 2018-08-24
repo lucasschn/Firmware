@@ -41,7 +41,8 @@ using namespace matrix;
 
 FlightTaskManualPositionSmooth::FlightTaskManualPositionSmooth() :
 	_smoothingXY(this, matrix::Vector2f(&_velocity(0))),
-	_smoothingZ(this, _velocity(2), _sticks(2))
+	_smoothingZ(this, _velocity(2), _sticks(2)),
+	_obstacleAvoidance(this)
 {}
 
 void FlightTaskManualPositionSmooth::_updateSetpoints()
@@ -65,5 +66,7 @@ void FlightTaskManualPositionSmooth::_updateSetpoints()
 
 	/* Check for altitude lock*/
 	_updateAltitudeLock();
+
+	_obstacleAvoidance.stopInFront(_position, _yaw, _velocity_setpoint, _yawspeed_setpoint);
 
 }

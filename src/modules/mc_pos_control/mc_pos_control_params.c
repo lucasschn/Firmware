@@ -719,3 +719,14 @@ PARAM_DEFINE_INT32(MPC_OBS_AVOID, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
+
+/**
+ * Distance at which the MAV starts to brake to stop
+ * in front of obstacles
+ *
+ * @min 0.5
+ * @max 10.0
+ * @unit m
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_DIST_BRAKE, 8.0f);

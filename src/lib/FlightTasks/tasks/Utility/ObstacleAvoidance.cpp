@@ -60,6 +60,8 @@ ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 	}
 
 	_home_position_sub = orb_subscribe(ORB_ID(home_position));
+	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	_obstacle_lock_hysteresis.set_hysteresis_time_from(true, OBSTACLE_LOCK_EXIT_TRIGGER_TIME_US);
 

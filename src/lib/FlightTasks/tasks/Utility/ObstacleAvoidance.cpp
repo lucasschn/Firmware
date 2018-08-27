@@ -42,9 +42,9 @@
 
 using namespace matrix;
 
-/** Time in us that the no obstacle ahead condition has to be true to exit obstacle avoidance lock in */
+// Time in us that the no obstacle ahead condition has to be true to exit obstacle avoidance lock in
 static constexpr uint64_t OBSTACLE_LOCK_EXIT_TRIGGER_TIME_US = 1000000;
-/** Timeout in us for obstacle avoidance sonar data to get considered invalid */
+// Timeout in us for obstacle avoidance sonar data to get considered invalid
 static constexpr uint64_t DISTANCE_STREAM_TIMEOUT_US = 500000;
 
 #define SIGMA_NORM	0.001f
@@ -60,7 +60,7 @@ ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 	}
 
 	_home_position_sub = orb_subscribe(ORB_ID(home_position));
-	/* tap specific: sonar obstacle avoidance initialization */
+
 	_obstacle_lock_hysteresis.set_hysteresis_time_from(true, OBSTACLE_LOCK_EXIT_TRIGGER_TIME_US);
 
 }
@@ -133,12 +133,10 @@ void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw,
 {
 	_updateSubscriptions();
 
-	/*tap specific to enable avoidance through ST16*/
 	const bool stop_in_front = ((_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON) ||
 				    (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE))
 				   && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL);
 
-	/* don't run obstacle avoidance in altitude mode because there are altitude jumps */
 	if (stop_in_front) {
 		struct vehicle_trajectory_waypoint_s _traj_waypoint = {};
 		_traj_waypoint.timestamp = hrt_absolute_time();
@@ -150,7 +148,7 @@ void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw,
 		_traj_waypoint.waypoints[0].yaw_speed = _desired_yawspeed_sp;
 		_traj_waypoint.waypoints[0].point_valid = true;
 
-		/* default set obstacle_distance distance unknown */
+		// default set obstacle_distance distance unknown
 		_min_obstacle_distance = (float)UINT16_MAX;
 
 		const float altitude_above_home = -_position(2) + _home_position.z;
@@ -158,67 +156,67 @@ void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw,
 		const bool obstacle_distance_valid = hrt_elapsed_time((hrt_abstime *)&_obstacle_distance.timestamp) <
 						     DISTANCE_STREAM_TIMEOUT_US;
 
-		/* if obstacle_distance is published, we always want to calculate the minimum distance to obstacle */
+		// if obstacle_distance is published, we always want to calculate the minimum distance to obstacle
 		if (obstacle_distance_valid) {
-			_getMinimumDistance(_yaw);
+			_setMinimumDistance(_yaw);
 		}
 
 
-		/* keep a minimum braking distance of start_braking_distance, otherwise give the vehicle at least 1s time to brake*/
+		// keep a minimum braking distance of start_braking_distance, otherwise give the vehicle at least 1s time to brake
 		float safety_margin = 1.0f;
 		const float brake_distance = math::max(_start_braking_distance.get(), _vel_max_xy_param.get() + safety_margin);
 
-		/* tap specific: fuse obstacle_distance from RealSense and sonar */
+		// tap specific: fuse obstacle_distance from RealSense and sonar
 		_min_obstacle_distance = _fuseObstacleDistanceSonar(altitude_above_home, safety_margin, brake_distance);
 
-		/* anything under the brake distance is considered an obstalce */
+		// anything under the brake distance is considered an obstalce. The vehicle altitude above ground should be at least 1.5m not to detect ground as an obstacle
 		const bool obstacle_ahead = _min_obstacle_distance < brake_distance && altitude_above_home > 1.5f;
 
 		if (obstacle_ahead) {
-			/* vehicle just detected an obstacle */
+			// vehicle just detected an obstacle
 			_obstacle_lock_hysteresis.set_state_and_update(true);
 			_yaw_obstacle_lock = _yaw;
 		}
 
-		/* get velocity setpoint in heading frame */
+		// get velocity setpoint in heading frame
 		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
 		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_desired_vel_sp(0), _desired_vel_sp(1),
 						  0.0f));
 
-		/* adjust velocity setpoint _vel_sp based on obstacle_distance */
+		// adjust velocity setpoint based on obstacle_distance
 		if (_obstacle_lock_hysteresis.get_state()) {
 
-			/* stay in obstacle lock when trying to go forwards without yawing 30 degree away from the last obstacle */
+			// stay in obstacle lock when trying to go forwards without yawing 30 degree away from the last obstacle
 			_obstacle_lock_hysteresis.set_state_and_update(vel_sp_heading(0) > FLT_EPSILON &&
 					fabsf(_yaw - _yaw_obstacle_lock) > math::radians(30.0f));
 
-			/* we don't allow movement perpendicular to heading direction */
+			// we don't allow movement perpendicular to heading direction
 			vel_sp_heading(1) = 0.0f;
 
-			/* default: we only allow movement in heading direction */
+			// default: we only allow movement in heading direction
 			matrix::Vector3f vel_sp_tmp = q_yaw.conjugate(vel_sp_heading);
 			_traj_waypoint.waypoints[0].velocity[0] = vel_sp_tmp(0);
 			_traj_waypoint.waypoints[0].velocity[1] = vel_sp_tmp(1);
 
 			if (vel_sp_heading(0) > 0.0f) {
-				/* vehicle wants to fly towards obstacle */
+				// vehicle wants to fly towards obstacle
 
 				if (_min_obstacle_distance <= safety_margin) {
-					/* vehicle is already safety_margin close to obstacle. Don't move forward */
+					// vehicle is already safety_margin close to obstacle. Don't move forward
 
 					_traj_waypoint.waypoints[0].velocity[0] = 0.0f;
 					_traj_waypoint.waypoints[0].velocity[1] = 0.0f;
 
 				} else {
-					/* vehicle wants to move forward but is more than safety margin away */
+					// vehicle wants to move forward but is more than safety margin away
 
-					/* limit the speed linearly from max velocity to zero over braking distance + safety margin */
+					// limit the speed linearly from max velocity to zero over braking distance + safety margin
 					const float m = _vel_max_xy_param.get() / (brake_distance - safety_margin); // slope
 					const float speed_limit =  m * (_min_obstacle_distance - safety_margin);
 
 					if (vel_sp_heading(0) > speed_limit && vel_sp_heading(0) >= SIGMA_NORM) {
 
-						/* desired heading velocity is above speed limit*/
+						// desired heading velocity is above speed limit
 						_traj_waypoint.waypoints[0].velocity[0] = vel_sp_tmp(0) / vel_sp_tmp.length() * speed_limit;
 						_traj_waypoint.waypoints[0].velocity[1] = vel_sp_tmp(1) / vel_sp_tmp.length() * speed_limit;
 					}
@@ -226,7 +224,7 @@ void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw,
 			}
 		}
 
-		/* publish desired waypoint*/
+		// publish waypoint
 		if (_trajectory_waypoint_pub != nullptr) {
 			orb_publish(ORB_ID(vehicle_trajectory_waypoint), _trajectory_waypoint_pub, &_traj_waypoint);
 
@@ -235,30 +233,30 @@ void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw,
 		}
 
 	} else {
-		/* release lock if obstacle avoidance off */
+		// release lock if obstacle avoidance off
 		_obstacle_lock_hysteresis.set_state_and_update(false);
 	}
 }
 
-void ObstacleAvoidance::_getMinimumDistance(const float yaw)   //TO DO considera altitude above home
+void ObstacleAvoidance::_setMinimumDistance(const float yaw)
 {
 
-	/* find front direction in the array of obsacle positions*/
+	// find front direction in the array of obsacle positions
 	float yaw_deg = math::degrees(yaw);
 	yaw_deg = (yaw_deg > FLT_EPSILON && yaw_deg < 180.0f) ? yaw_deg : (180.0f + (180.0f + yaw_deg));
 
-	/* if increment not set, put it to the minimum value to represent obstacles 360 degrees around the MAV */
+	// if increment not set, put it to the minimum value to represent obstacles 360 degrees around the MAV
 	_obstacle_distance.increment = (_obstacle_distance.increment == 0) ? obstacle_distance_s::MINIMUM_INCREMENT :
 				       _obstacle_distance.increment;
 
-	/* array resolution defined by the increment, index 0 is always global north */
+	// array resolution defined by the increment, index 0 is always global north
 	const int index = (int)floorf(yaw_deg / (float)_obstacle_distance.increment);
 
 	const int distances_array_length = sizeof(_obstacle_distance.distances) / sizeof(uint16_t);
 
-	/* consider only 30 degrees in front of the MAV */
+	// consider only 30 degrees in front of the MAV
 	for (int i = -3; i < 3; ++i) {
-		/* exclude measurements greater than max_distance+1 because it means there is no obstacle ahead */
+		// exclude measurements greater than max_distance+1 because it means there is no obstacle ahead
 		int shifted_index = index + i;
 
 		if (shifted_index < 0) {
@@ -269,7 +267,7 @@ void ObstacleAvoidance::_getMinimumDistance(const float yaw)   //TO DO considera
 		}
 
 		if (_obstacle_distance.distances[shifted_index] < (_obstacle_distance.max_distance + 1)) {
-			/* covert from centimeters to meters */
+			// covert from centimeters to meters
 			_min_obstacle_distance = math::min(_min_obstacle_distance,
 							   (float)_obstacle_distance.distances[shifted_index] * 0.01f);
 		}
@@ -279,28 +277,28 @@ void ObstacleAvoidance::_getMinimumDistance(const float yaw)   //TO DO considera
 float ObstacleAvoidance::_fuseObstacleDistanceSonar(float altitude_above_home, float &safety_margin,
 		const float brake_distance)
 {
-	/* by default we use only obstacle_distance data */
+	// by default we use only obstacle_distance data
 	float minimum_distance_fused = _min_obstacle_distance;
 
-	/* obstacle_distance (RealSense): anything under the brake distance is considered an obstalce */
+	// obstacle_distance (RealSense): anything under the brake distance is considered an obstalce
 	const bool obstacle_ahead = _min_obstacle_distance < brake_distance && altitude_above_home > 1.5f;
 
-	/* sonar is pointing forward, data stream is running, omit floor detection in low altitude */
+	// sonar is pointing forward, data stream is running, omit floor detection in low altitude
 	const bool valid_sonar_measurement = _sonar_measurement.orientation == distance_sensor_s::ROTATION_FORWARD_FACING &&
 					     hrt_elapsed_time((hrt_abstime *)&_sonar_measurement.timestamp) < DISTANCE_STREAM_TIMEOUT_US &&
 					     altitude_above_home > 1.5f;
-	/* sonar: anything but maximum distance measurement is considered an obstacle */
+	// sonar: anything but maximum distance measurement is considered an obstacle
 	const bool obstacle_ahead_sonar = _sonar_measurement.current_distance < _sonar_measurement.max_distance;
 
 	if (obstacle_ahead || (valid_sonar_measurement && obstacle_ahead_sonar)) {
 
 		if (!obstacle_ahead) {
 
-			/* sonar only detected obstacle */
+			// sonar only detected obstacle
 			minimum_distance_fused = _sonar_measurement.current_distance;
 
-			/* if only the sonar is active, increase safety margin to max_distance so that the UAV
-			 * starts braking as soon as the obstacle is detected */
+			// if only the sonar is active, increase safety margin to max_distance so that the UAV
+			// starts braking as soon as the obstacle is detected
 			safety_margin = _sonar_measurement.max_distance;
 
 		} else if (obstacle_ahead && obstacle_ahead_sonar) {

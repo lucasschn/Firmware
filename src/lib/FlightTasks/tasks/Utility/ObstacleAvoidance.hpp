@@ -97,7 +97,7 @@ private:
 		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _vel_max_xy_param /**< maximum horizontal velocity */
 	);
 
-	void _getMinimumDistance(const float yaw); /**< get obstacle minimum distance from cameras */
+	void _setMinimumDistance(const float yaw); /**< get obstacle minimum distance from cameras */
 	float _fuseObstacleDistanceSonar(float altitude_above_home, float &safety_margin,
 					 const float brake_distance); /**< function to fuse distance data from RealSense and Sonar >*/
 	int _getSonarSubIndex(const int *subs); /**< get the sonar instance number in uORB subscription >*/

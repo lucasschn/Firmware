@@ -92,20 +92,7 @@ then
 
 	echo "microSD present"
 	unset DATAMAN_OPT
-
-	if ver hwcmp TAP_V2
-	then
-		# on tap-v2, HITL does not provide enough memory for logger
-		if [ $HITL_ON == no ]
-		then
-			set START_LOGGER 1
-		else
-			echo "logger: Not enough RAM in H520 HITL to start logger"
-		fi
-	else
-		set START_LOGGER 1
-	fi
-
+	set START_LOGGER 1
 
 else
 	if mkfatfs /dev/mmcsd0
@@ -506,6 +493,16 @@ unset MAV_RATE
 #
 # Logging
 #
+if ver hwcmp TAP_V2
+then
+		if [ $HITL_ON == yes ]
+		then
+			# prevent starting logger on H520 in HITL mode - not enough memory
+			set START_LOGGER 0
+			echo "logger: Not enough RAM in H520 HITL to start logger"
+		fi
+fi
+
 if [ $START_LOGGER == 1 ]
 then
 	set LOGGER_ARGS ""

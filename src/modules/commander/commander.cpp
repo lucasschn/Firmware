@@ -2010,7 +2010,7 @@ Commander::run()
 					mavlink_and_console_log_info(&mavlink_log_pub, "Crash detected.");
 				}
 
-				if ((land_detector.alt_max > 0.0f) && (!PX4_ISFINITE(max_altitude) || (fabsf(max_altitude - land_detector.alt_max) > FLT_EPSILON))) {
+				if ((PX4_ISFINITE(land_detector.alt_max) && land_detector.alt_max > 0.0f) && (!PX4_ISFINITE(max_altitude) || (fabsf(max_altitude - land_detector.alt_max) > FLT_EPSILON))) {
 					mavlink_and_console_log_info(&mavlink_log_pub, "Altitude limit: %i meters above home", (uint64_t)land_detector.alt_max);
 				}
 			}

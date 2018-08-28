@@ -64,6 +64,9 @@ public:
 		case RCMapST16::RAW_CHANNEL_MAPPING_VER_ST16:
 			return _st16.map(manual_control_setpoint, input_rc, parameters);
 
+		case RCMapST10C::RAW_CHANNEL_MAPPING_VER_ST10C:
+			return _st10c.map(manual_control_setpoint, input_rc, parameters);
+
 		default:
 			return (int)RCMap::Error::Version;
 		}

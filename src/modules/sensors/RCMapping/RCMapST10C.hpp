@@ -72,22 +72,12 @@ public:
 
 		// buttons
 		man.arm_switch = two_way_switch((int)TwoWay::arm_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
-		const bool loiter_button_pressed = two_way_switch((int)TwoWay::loiter_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
-		const bool rtl_button_pressed = two_way_switch((int)TwoWay::rtl_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
+		man.loiter_switch = two_way_switch((int)TwoWay::loiter_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
+		man.return_switch = two_way_switch((int)TwoWay::rtl_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
 		//const bool photo_button_pressed = two_way_switch(TwoWay::photo_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
 		//const bool video_button_pressed = two_way_switch(TwoWay::video_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
 
-		if (rtl_button_pressed) {
-			man.mode_slot = manual_control_setpoint_s::MODE_SLOT_3; // Return
-
-		} else if (loiter_button_pressed) {
-			man.mode_slot = manual_control_setpoint_s::MODE_SLOT_2; // Position
-
-		} else {
-			man.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
-		}
-
-		man.gear_switch = ((input_rc.values[CHANNEL_EMPTY] & ((1 << 1) | (1 << 0))) == 0); // TODO: not empty?
+		man.gear_switch = three_way_switch((int)ThreeWay::right_switch, CHANNEL_THREE_WAY_SWITCH, input_rc);
 
 		return RCMapST::map(man, input_rc, parameters);
 	}
@@ -109,7 +99,7 @@ private:
 	static constexpr int CHANNEL_EMPTY = (7 - 1);
 
 	enum class ThreeWay : int {
-		mode_switch = 0,
+		right_switch = 0,
 	};
 
 	enum class TwoWay : int {

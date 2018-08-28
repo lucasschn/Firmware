@@ -31,10 +31,19 @@
  *
  ****************************************************************************/
 
+/**
+ * @file RCMapping.hpp
+ *
+ * Class deciding and switching between different input mappings from different remotes.
+ *
+ * @author Matthias Grob <maetugr@gmail.com>
+ */
+
 #pragma once
 
 #include "RCMap.hpp"
 #include "RCMapST16.hpp"
+#include "RCMapST10C.hpp"
 
 namespace sensors
 {
@@ -77,6 +86,7 @@ public:
 
 private:
 	RCMapST16 _st16;
+	RCMapST10C _st10c;
 };
 
 } // namespace sensors

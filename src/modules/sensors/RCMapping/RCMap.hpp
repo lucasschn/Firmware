@@ -34,7 +34,7 @@
 /**
  * @file RCMap.hpp
  *
- * Base class to map RC input data to manual_control_setpoint.
+ * Base/interface class to map RC input data to manual_control_setpoint.
  *
  * @author Dennis Mannhart <dennis@yuneecresearch.com>
  * @author Matthias Grob <maetugr@gmail.com>
@@ -66,8 +66,6 @@ public:
 		None = 0,
 		Version
 	};
-
-private:
 
 };
 

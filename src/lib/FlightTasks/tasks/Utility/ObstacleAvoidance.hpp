@@ -81,11 +81,11 @@ private:
 	float _min_obstacle_distance = 0.0f; /**< minimum distance to an obstacle */
 	float _yaw_obstacle_lock = 0.0f; /**< */
 
-	struct distance_sensor_s _sonar_measurement; /**< sonat distance sensor data */
-	struct home_position_s _home_position; /**< home position */
-	struct manual_control_setpoint_s _manual; /**< manual control setpoint */
-	struct obstacle_distance_s _obstacle_distance; /**< obstacle distance data*/
-	struct vehicle_status_s _vehicle_status; /**< vehicle status */
+	struct distance_sensor_s _sonar_measurement = {}; /**< sonat distance sensor data */
+	struct home_position_s _home_position = {}; /**< home position */
+	struct manual_control_setpoint_s _manual = {}; /**< manual control setpoint */
+	struct obstacle_distance_s _obstacle_distance = {}; /**< obstacle distance data*/
+	struct vehicle_status_s _vehicle_status = {}; /**< vehicle status */
 
 	systemlib::Hysteresis _obstacle_lock_hysteresis; /**< hysteresis to lock the vehicle in front of the obstacle */
 

@@ -40,6 +40,7 @@
  */
 
 #include "parameters.h"
+#include "RCMapping/RCMapping.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
@@ -90,6 +91,8 @@ public:
 	void rc_poll(const ParameterHandles &parameter_handles);
 
 private:
+
+	RCMapping _rcmapping;
 
 	int		_rc_parameter_map_sub = -1;		/**< rc parameter map subscription */
 

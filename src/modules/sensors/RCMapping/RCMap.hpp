@@ -32,60 +32,43 @@
  ****************************************************************************/
 
 /**
- * @file st16_map.h
+ * @file RCMap.hpp
+ *
+ * Base class to map RC input data to manual_control_setpoint.
+ *
+ * @author Dennis Mannhart <dennis@yuneecresearch.com>
+ * @author Matthias Grob <maetugr@gmail.com>
  */
+
+#pragma once
+
+#include "RCMap.hpp"
+
+#include <mathlib/mathlib.h>
+#include <drivers/drv_hrt.h>
+
+#include <uORB/topics/input_rc.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include "../parameters.h"
 
 namespace sensors
 {
-namespace RCmapping
+
+class RCMap
 {
-namespace ST16
-{
+public:
+	RCMap() = default;
+	virtual ~RCMap() = default;
 
-// M4 version
-const int M4_RAW_CHANNEL_MAPPING_VER = 0xA;
-const int MAX_VALUE = 4000; // 12 bits - offset due to calibration
-const int MIN_VALUE = 95; // 0 + offset due to calibration
-const int KILL_HOTKEY_TIME_US = 1000000; // 1s time for kill-switch criteria
-const int KILL_SWITCH_TRIGGER_COUNT = 3; // three times needs the kill switch to be high to be considered complete
+	virtual int map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const sensors::Parameters &parameters) = 0;
 
-// Channels
-const int CHANNEL_LEFT_STICK_UP = (1 - 1);
-const int CHANNEL_LEFT_STICK_RIGHT(2 - 1);
-const int CHANNEL_RIGHT_STICK_UP = (3 - 1);
-const int CHANNEL_RIGHT_STICK_RIGHT = (4 - 1);
-const int CHANNEL_PAN_KNOB = (5 - 1);
-const int CHANNEL_TILT_SLIDER = (6 - 1);
-const int CHANNEL_TORTOISE_SLIDER = (7 - 1);
-const int CHANNEL_THREE_WAY_SWITCH = (8 - 1);
-const int CHANNEL_TWO_WAY_SWITCH = (9 - 1);
-const int CHANNEL_TRIM = (10 - 1);
+	enum class Error : int {
+		None = 0,
+		Version
+	};
 
-enum class ThreeWay : int {
-	mode_switch = 0,
-	obs_avoid_switch,
-	pan_switch,
-	tilt_switch
+private:
+
 };
 
-enum class TwoWay : int {
-	gear_switch = 0,
-	arm_button,
-	aux_button,
-	photo_button,
-	video_button,
-};
-
-enum class Trim : int {
-	left_trim_up = 0,
-	left_trim_down,
-	left_trim_left,
-	left_trim_right,
-	right_trim_up,
-	right_trim_down,
-	right_trim_left,
-	right_trim_right
-};
-} //namespace ST16
-} //namespace RCmapping
 } // namespace sensors

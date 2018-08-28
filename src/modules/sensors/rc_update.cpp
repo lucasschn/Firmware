@@ -49,8 +49,6 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
 
-#include "rc_mapping/rc_mapping.h"
-
 using namespace sensors;
 using namespace time_literals;
 
@@ -394,10 +392,10 @@ RCUpdate::map_to_control_setpoint(const ParameterHandles &parameter_handles, con
 
 			} else if (_parameters.rc_type == 1) {
 
-				// map based on ST16 default
-				int failure = RCmapping::st16_map(_manual_sp, e.input, _parameters);
+				// map predefined remotes
+				int failure = _rcmapping.map(_manual_sp, e.input, _parameters);
 
-				if (failure == (int)RCmapping::Error::Version) {
+				if (failure == (int)RCMap::Error::Version) {
 					// inform user that version does not match
 					print_rc_error_message("Old remote control version, please update!");
 
@@ -447,7 +445,7 @@ RCUpdate::map_from_team_mode(const ParameterHandles &parameter_handles)
 	}
 
 	// overwrite stick inputs with st16 gimbal mapping
-	if (RCmapping::st16_gimbal_map(_manual_sp, gimbal_input)) {
+	if (_rcmapping.mapSlave(_manual_sp, gimbal_input, _parameters)) {
 		// inform user that version does not match
 		print_rc_error_message("Old remote control version, please update!");
 		return false;

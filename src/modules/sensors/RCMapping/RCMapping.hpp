@@ -1,4 +1,3 @@
-
 /****************************************************************************
  *
  *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
@@ -32,32 +31,52 @@
  *
  ****************************************************************************/
 
-/**
- * @file rc_mapping.h
- *
- * Mapping functions from input_rc to manual_control_setpoint for specific remote controllers.
- *
- * Supported remote controller mappings:
- * - ST16
- */
-
 #pragma once
 
-#include <uORB/topics/input_rc.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include "../parameters.h"
+#include "RCMap.hpp"
+#include "RCMapST16.hpp"
 
 namespace sensors
 {
-namespace RCmapping
+
+class RCMapping
 {
-enum class Error : int {
-	None = 0,
-	Version
+public:
+	RCMapping() = default;
+	virtual ~RCMapping() = default;
+
+	int map(manual_control_setpoint_s &manual_control_setpoint, const input_rc_s &input_rc,
+		const sensors::Parameters &parameters)
+	{
+		// check for the M4 raw output channel mapping version embedded in channel 9 to decide which remote it is
+		int version = input_rc.values[9 - 1] >> 8 & 0xF;
+
+		switch (version) {
+		case RCMapST16::RAW_CHANNEL_MAPPING_VER_ST16:
+			return _st16.map(manual_control_setpoint, input_rc, parameters);
+
+		default:
+			return (int)RCMap::Error::Version;
+		}
+	}
+
+	int mapSlave(manual_control_setpoint_s &manual_control_setpoint, const input_rc_s &input_rc,
+		     const sensors::Parameters &parameters)
+	{
+		// check for the M4 raw output channel mapping version embedded in channel 9 to decide which remote it is
+		int version = input_rc.values[9 - 1] >> 8 & 0xF;
+
+		switch (version) {
+		case RCMapST16::RAW_CHANNEL_MAPPING_VER_ST16:
+			return _st16.mapSlave(manual_control_setpoint, input_rc, parameters);
+
+		default:
+			return (int)RCMap::Error::Version;
+		}
+	}
+
+private:
+	RCMapST16 _st16;
 };
 
-int st16_map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const Parameters &parameters);
-
-int st16_gimbal_map(manual_control_setpoint_s &man, const input_rc_s &input_rc);
-} // namespace RCmapping
 } // namespace sensors

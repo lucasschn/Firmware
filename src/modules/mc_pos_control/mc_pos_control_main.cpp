@@ -758,10 +758,10 @@ MulticopterPositionControl::task_main()
 
 			_att_sp.landing_gear = _landing_gear_current_state;
 
-			// Publish local position setpoint (for logging only) and attitude setpoint (for attitude controller).
+			// Publish local position setpoint (for logging only)
 			publish_local_pos_sp();
 
-			// publish attitude setpoint
+			// publish attitude setpoint (for attitude controller)
 			// Note: this requires review. The reason for not sending
 			// an attitude setpoint is because for non-flighttask modes
 			// the attitude septoint should come from another source, otherwise

@@ -770,8 +770,7 @@ MulticopterPositionControl::task_main()
 			// only in the mode of  _control_mode.flag_control_manual_enabled=true
 			// mode, we need to consider the gear switch
 			if (_control_mode.flag_control_manual_enabled
-				&& (_vehicle_land_detected.inverted ||
-				(_gear_pos_prev != _manual.gear_switch && !on_ground))) {
+				&& (_gear_pos_prev != _manual.gear_switch && !on_ground)) {
 
 				_landing_gear_current_state =
 					(_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) ?
@@ -806,6 +805,16 @@ MulticopterPositionControl::task_main()
 			q_sp.copyTo(_att_sp.q_d);
 			_att_sp.q_d_valid = true;
 			_att_sp.thrust = 0.0f;
+
+			// yuneec-specific: landing gear operational when inverted
+			if (_vehicle_land_detected.inverted) {
+				// Interpret landing gear switch position
+				_att_sp.landing_gear = _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON ?
+								 vehicle_attitude_setpoint_s::LANDING_GEAR_UP :
+								 vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+
+				publish_attitude();
+			}
 		}
 	}
 

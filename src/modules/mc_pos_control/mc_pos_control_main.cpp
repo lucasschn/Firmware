@@ -104,7 +104,6 @@ private:
 
 	/* --- yuneec specific declarations */
 	/* landing gear */
-	// int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
 	int		_manual_sub{-1};			/**< notification of manual control updates */
 	int   _pos_sp_triplet_sub{-1};
 	int8_t _landing_gear_current_state = 0;
@@ -424,15 +423,18 @@ MulticopterPositionControl::poll_subscriptions()
 
 	// Yuneec-specific
 	orb_check(_manual_sub, &updated);
+
 	if (updated) {
 		_gear_pos_prev = _manual.gear_switch;  // Remember previous switch position
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 	}
 
 	orb_check(_pos_sp_triplet_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 	}
+
 	// END Yuneec-specific
 }
 
@@ -562,7 +564,7 @@ MulticopterPositionControl::task_main()
 
 	hrt_abstime t_prev = 0;
 
-  // Let's be safe and have the landing gear down by default
+	// Let's be safe and have the landing gear down by default
 	// _att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 
 
@@ -730,7 +732,7 @@ MulticopterPositionControl::task_main()
 			// 	if (constraints.landing_gear == vehicle_constraints_s::GEAR_UP) {
 			// 		_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
 			// 	}
-      //
+			//
 			// 	if (constraints.landing_gear == vehicle_constraints_s::GEAR_DOWN) {
 			// 		_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 			// 	}
@@ -743,15 +745,16 @@ MulticopterPositionControl::task_main()
 					 || (_vehicle_land_detected.ground_contact);
 
 			const bool move_gear_down = (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND)
-					       || _pos_sp_triplet.current.deploy_gear;
+						    || _pos_sp_triplet.current.deploy_gear;
 
 			/* in mission put gears up, and the gear will not up at the when landed or ground_contact */
 			const bool move_gear_up = (((_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_MISSION) &&
-					       !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF))
-					      || (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL));
+						    !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF))
+						   || (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL));
 
 			if (move_gear_down) {
 				_landing_gear_current_state = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+
 			} else if (move_gear_up) {
 				_landing_gear_current_state = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
 			}
@@ -759,12 +762,12 @@ MulticopterPositionControl::task_main()
 			// only in the mode of  _control_mode.flag_control_manual_enabled=true
 			// mode, we need to consider the gear switch
 			if (_control_mode.flag_control_manual_enabled
-				&& (_gear_pos_prev != _manual.gear_switch && !on_ground)) {
+			    && (_gear_pos_prev != _manual.gear_switch && !on_ground)) {
 
 				_landing_gear_current_state =
 					(_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) ?
-									 vehicle_attitude_setpoint_s::LANDING_GEAR_UP :
-									 vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+					vehicle_attitude_setpoint_s::LANDING_GEAR_UP :
+					vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 			}
 
 			_att_sp.landing_gear = _landing_gear_current_state;
@@ -799,8 +802,8 @@ MulticopterPositionControl::task_main()
 			if (_vehicle_land_detected.inverted) {
 				// Interpret landing gear switch position
 				_att_sp.landing_gear = _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON ?
-								 vehicle_attitude_setpoint_s::LANDING_GEAR_UP :
-								 vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+						       vehicle_attitude_setpoint_s::LANDING_GEAR_UP :
+						       vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 
 				publish_attitude();
 			}

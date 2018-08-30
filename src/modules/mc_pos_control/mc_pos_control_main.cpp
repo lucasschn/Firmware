@@ -70,7 +70,6 @@
 #include "Utility/ControlMath.hpp"
 
 /* --- yuneec specific */
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 /* --- END yuneec specific */
 
@@ -106,13 +105,10 @@ private:
 	/* --- yuneec specific declarations */
 	/* landing gear */
 	// int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
-	int		_arming_sub{-1};			/**< arming status of outputs */
 	int		_manual_sub{-1};			/**< notification of manual control updates */
 	int   _pos_sp_triplet_sub{-1};
-	bool		_was_armed = false;		 		/**< true if the pre state was armed */
 	int8_t _landing_gear_current_state = 0;
 	uint8_t		_gear_pos_prev = manual_control_setpoint_s::SWITCH_POS_NONE;		/**< Last state of the gear switch */
-	struct actuator_armed_s				_arming = {};		/**< actuator arming status */
 	struct manual_control_setpoint_s		_manual = {};		/**< r/c channel data */
 	struct position_setpoint_triplet_s _pos_sp_triplet = {};
 	/* --- END yuneec specific declarations */
@@ -437,12 +433,6 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 	}
-
-	orb_check(_arming_sub, &updated);
-	if (updated) {
-		_was_armed = _arming.armed;  // Remember previous arm state
-		orb_copy(ORB_ID(actuator_armed), _arming_sub, &_arming);
-	}
 	// END Yuneec-specific
 }
 
@@ -561,7 +551,6 @@ MulticopterPositionControl::task_main()
 	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(vehicle_trajectory_waypoint));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 	parameters_update(true);
 

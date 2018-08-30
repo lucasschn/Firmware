@@ -752,13 +752,15 @@ MulticopterPositionControl::task_main()
 			 * NOTE: it is an if else if statment */
 			bool on_ground = (_vehicle_land_detected.landed) || (_vehicle_land_detected.maybe_landed)
 					 || (_vehicle_land_detected.ground_contact);
-			const bool move_gear_down = (on_ground ||
-						(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND))
+
+			const bool move_gear_down = (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND)
 					       || _pos_sp_triplet.current.deploy_gear;
+
 			/* in mission put gears up, and the gear will not up at the when landed or ground_contact */
 			const bool move_gear_up = (((_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_MISSION) &&
 					       !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF))
 					      || (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL));
+
 			if (move_gear_down) {
 				_landing_gear_current_state = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 			} else if (move_gear_up) {

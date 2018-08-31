@@ -87,6 +87,10 @@
 
 constexpr int ESC_SAVE_LOG_DURATION_MS = 200000;  //ESC log save frequency is 5Hz.
 
+// Maps motor ID to diagonally-opposed motor ID
+// In PX4, motors 1 and 2, 3 and 4, 5 and 6 are diagonaly opposed
+constexpr uint8_t DIAG_MOTOR_MAP[] = {1, 0, 3, 2, 5, 4};
+
 /*
  * This driver connects to TAP ESCs via serial.
  */
@@ -217,8 +221,13 @@ TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count, bool hitl):
 	param_get(param_find("FTC_ENABLE"), &ftc_enable);
 
 	if (ftc_enable != 0) {
-		PX4_INFO("fault-tolerant-control enabled");
-		_fault_tolerant_control = new FaultTolerantControl();
+		if (_channels_count == 6) {
+			PX4_INFO("fault-tolerant-control enabled");
+			_fault_tolerant_control = new FaultTolerantControl();
+
+		} else {
+			PX4_WARN("cannot enable fault-tolerant-control: not supported for %u channels", _channels_count);
+		}
 
 	} else {
 		PX4_WARN("fault-tolerant-control disabled by parameter");
@@ -600,6 +609,8 @@ void TAP_ESC::cycle()
 		uint8_t num_outputs = _channels_count - motor_fault_count;
 
 		/* can we mix? */
+		_outputs.timestamp = hrt_absolute_time();
+
 		if (_is_armed && _mixers != nullptr) {
 
 			/* do mixing */
@@ -621,7 +632,7 @@ void TAP_ESC::cycle()
 			for (unsigned i = 0; i < num_outputs; i++) {
 				/* last resort: catch NaN, INF and out-of-band errors */
 				if (i < _outputs.noutputs && PX4_ISFINITE(_outputs.output[i])
-				    && !_armed.lockdown && !_armed.manual_lockdown) {
+				    && (_hitl || !_armed.lockdown) && !_armed.manual_lockdown) {
 					/* scale for PWM output 1200 - 1900us */
 					_outputs.output[i] = (RPMMAX + RPMMIN) / 2 + ((RPMMAX - RPMMIN) / 2) * _outputs.output[i];
 					math::constrain(_outputs.output[i], (float)RPMMIN, (float)RPMMAX);
@@ -639,7 +650,6 @@ void TAP_ESC::cycle()
 		} else {
 
 			_outputs.noutputs = num_outputs;
-			_outputs.timestamp = hrt_absolute_time();
 
 			/* check for motor test commands */
 			bool test_motor_updated;
@@ -648,9 +658,15 @@ void TAP_ESC::cycle()
 			if (test_motor_updated) {
 				struct test_motor_s test_motor;
 				orb_copy(ORB_ID(test_motor), _test_motor_sub, &test_motor);
-				_outputs.output[test_motor.motor_number] = RPMSTOPPED + ((RPMMAX - RPMSTOPPED) * test_motor.value);
-				PX4_INFO("setting motor %i to %.1lf", test_motor.motor_number,
-					 (double)_outputs.output[test_motor.motor_number]);
+
+				if (_hitl) {
+					PX4_WARN("Motor outputs are disabled in HITL, motor tests not working!");
+
+				} else {
+					_outputs.output[test_motor.motor_number] = RPMSTOPPED + ((RPMMAX - RPMSTOPPED) * test_motor.value);
+					PX4_INFO("setting motor %i to %.1lf", test_motor.motor_number,
+						 (double)_outputs.output[test_motor.motor_number]);
+				}
 			}
 
 			/* set the invalid values to the minimum */
@@ -667,21 +683,105 @@ void TAP_ESC::cycle()
 
 		}
 
-		uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM];
+		if (_fault_tolerant_control != nullptr) {
 
-		// We need to remap from the system default to what PX4's normal
-		// scheme is
+			int failure_motor_num = -1;
+
+			for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
+				failure_motor_num = esc_failure_check(channel_id);
+
+				// enter fault tolerant control
+				if (failure_motor_num == channel_id) {
+
+					// update fault tolerant controller parameters about PID or others, only for debug PID parameters
+					_fault_tolerant_control->parameter_update_poll();
+
+					// find the motor with the failure motor is diagonal
+					uint8_t diagonal_motor_num = DIAG_MOTOR_MAP[failure_motor_num];
+
+					// check the diagonal motor is failure,will stop it.
+					if (esc_failure_check(diagonal_motor_num) == diagonal_motor_num) {
+
+						// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
+						if (((hrt_absolute_time() - _wait_esc_save_log) > ESC_SAVE_LOG_DURATION_MS)
+						    || (_esc_feedback.esc[diagonal_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
+							// stop the failure motor
+							_outputs.output[diagonal_motor_num] = RPMSTOPPED;
+
+						}
+
+					} else {
+						// recalculate output of the motor with the failure motor is diagonal
+						_outputs.output[diagonal_motor_num] = _fault_tolerant_control->recalculate_pwm_outputs(
+								_outputs.output[failure_motor_num],
+								_outputs.output[diagonal_motor_num],
+								_esc_feedback.engine_failure_report.delta_pwm);
+
+						// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
+						if (((hrt_absolute_time() - _wait_esc_save_log) > ESC_SAVE_LOG_DURATION_MS)
+						    || (_esc_feedback.esc[failure_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
+							// stop the failure motor
+							_outputs.output[failure_motor_num] = RPMSTOPPED;
+
+						}
+					}
+
+					// check a motor stall is caused by a collision of another motor's lost propeller
+					if (_esc_feedback.esc[failure_motor_num].esc_state == ESC_STATUS_ERROR_MOTOR_STALL) {
+						// check whether the other motor is lost propeller
+						for (uint8_t lose_id = 0; lose_id < _channels_count; lose_id++) {
+							if (_esc_feedback.esc[lose_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
+								// stop the failure motor try restart this motor
+								_outputs.output[failure_motor_num] = RPMSTOPPED;
+								// set the flag when the motor stall by a collision of another motor's lost propeller
+								_stall_by_lost_prop = failure_motor_num;
+								break;
+							}
+						}
+
+					}
+
+					// when ESC unlock to clear motor failure mask
+					if ((hrt_absolute_time() - _wait_esc_save_log) > 50000 && (failure_motor_num == _stall_by_lost_prop)) {
+						// clear this motor mask and has failure
+						_esc_feedback.engine_failure_report.motor_state &= ~(1 << failure_motor_num);
+						_stall_by_lost_prop = -1;
+					}
+				}
+			}
+
+
+		} else {
+			// Even without FTC we want to check for motor failures and report them
+			for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
+				esc_failure_check(channel_id);
+			}
+		}
+	}
+
+	uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM];  //< Yuneec ID scheme
+
+	for (uint8_t i = 0; i < _channels_count; ++i) {
+		motor_out[i] = RPMSTOPPED;
+	}
+
+	// Never let motors spin in HITL
+	// Never let motors spin when manual killswitch is engaged
+	// TODO: Also stop for _armed.lockdown?
+	// NOTE: Ignore armed state because that would break motor_tests, which work
+	// without arming.
+	if (!_hitl && !_armed.manual_lockdown) {
+
+		// Remap motor ID schemes: PX4 -> Yuneec
 #ifdef BOARD_MAP_ESC_TO_PX4_OUT
 
-		uint8_t num = 0;
-
 		// Loop over 0 to 5 in case of hex configuration
-		for (num = 0; num < num_outputs; num++) {
+		for (uint8_t num = 0; num < _channels_count; num++) {
 			motor_out[num] = _outputs.output[_device_out_map[num]];
 		}
 
 		// Loop over 6,7 in case of hex configuration
-		for (num = num_outputs; num < TAP_ESC_MAX_MOTOR_NUM; num++) {
+		for (uint8_t num = _channels_count; num < TAP_ESC_MAX_MOTOR_NUM; num++) {
 			motor_out[num] = RPMSTOPPED;
 		}
 
@@ -715,142 +815,47 @@ void TAP_ESC::cycle()
 		}
 
 #endif
+	}
 
-		if (_fault_tolerant_control != nullptr) {
+	// Send motor commands to the ESCs
+	send_esc_outputs(motor_out, _channels_count);
 
-			int failure_motor_num = -1;
+	tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
-			for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
-				failure_motor_num = esc_failure_check(channel_id);
+	if (tap_esc_common::parse_tap_esc_feedback(&_uartbuf, &_packet) == 0) {
+		if (_packet.msg_id == ESCBUS_MSG_ID_RUN_INFO) {
+			RunInfoRepsonse &feed_back_data = _packet.d.rspRunInfo;
 
-				// enter fault tolerant control
-				if (failure_motor_num == channel_id) {
-
-					// update fault tolerant controller parameters about PID or others, only for debug PID parameters
-					_fault_tolerant_control->parameter_update_poll();
-
-					// find the motor with the failure motor is diagonal
-					uint8_t diagonal_motor_num = 0;
-
-					// TODO: to distribute the vehicle motor number of QUAD_X ,this is only for vehicle is HEX_X now
-					// failure motor number: 0 1 2 3 4 5
-					// diagonal motor number:3 4 5 0 1 2
-					if (failure_motor_num + 3 > 5) {
-						diagonal_motor_num = failure_motor_num - 3;
-
-					} else {
-						diagonal_motor_num = failure_motor_num + 3;
-					}
-
-					// check the diagonal motor is failure,will stop it.
-					if (esc_failure_check(diagonal_motor_num) == diagonal_motor_num) {
-
-						// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
-						if (((hrt_absolute_time() - _wait_esc_save_log) > ESC_SAVE_LOG_DURATION_MS)
-						    || (_esc_feedback.esc[diagonal_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
-							// stop the failure motor
-							motor_out[diagonal_motor_num] = RPMSTOPPED;
-
-						}
-
-					} else {
-						// recalculate output of the motor with the failure motor is diagonal
-						motor_out[diagonal_motor_num] = _fault_tolerant_control->recalculate_pwm_outputs(motor_out[failure_motor_num],
-										motor_out[diagonal_motor_num], _esc_feedback.engine_failure_report.delta_pwm);
-
-						// wait ESC save log time,because ESC save log frequency is 5Hz.if we stop motor esc state will clear
-						if (((hrt_absolute_time() - _wait_esc_save_log) > ESC_SAVE_LOG_DURATION_MS)
-						    || (_esc_feedback.esc[failure_motor_num].esc_setpoint_raw == RPMSTOPPED)) {
-							// stop the failure motor
-							motor_out[failure_motor_num] = RPMSTOPPED;
-
-						}
-					}
-
-					// check a motor stall is caused by a collision of another motor's lost propeller
-					if (_esc_feedback.esc[failure_motor_num].esc_state == ESC_STATUS_ERROR_MOTOR_STALL) {
-						// check whether the other motor is lost propeller
-						for (uint8_t lose_id = 0; lose_id < _channels_count; lose_id++) {
-							if (_esc_feedback.esc[lose_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
-								// stop the failure motor try restart this motor
-								motor_out[failure_motor_num] = RPMSTOPPED;
-								// set the flag when the motor stall by a collision of another motor's lost propeller
-								_stall_by_lost_prop = failure_motor_num;
-								break;
-							}
-						}
-
-					}
-
-					// when ESC unlock to clear motor failure mask
-					if ((hrt_absolute_time() - _wait_esc_save_log) > 50000 && (failure_motor_num == _stall_by_lost_prop)) {
-						// clear this motor mask and has failure
-						_esc_feedback.engine_failure_report.motor_state &= ~(1 << failure_motor_num);
-						_stall_by_lost_prop = -1;
-					}
-				}
-			}
-
-
-		} else {
-			// Even without FTC we want to check for motor failures and report them
-			for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
-				esc_failure_check(channel_id);
-			}
-		}
-
-		// Kill switch is enabled, emergency stop. Also in HITL the motors should never turn
-		if (_armed.manual_lockdown || _hitl) {
-			for (unsigned i = 0; i < num_outputs; ++i) {
-				motor_out[i] = RPMSTOPPED;
-			}
-		}
-
-		_outputs.timestamp = hrt_absolute_time();
-
-		send_esc_outputs(motor_out, _channels_count);
-		tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
-
-		if (tap_esc_common::parse_tap_esc_feedback(&_uartbuf, &_packet) == 0) {
-			if (_packet.msg_id == ESCBUS_MSG_ID_RUN_INFO) {
-				RunInfoRepsonse &feed_back_data = _packet.d.rspRunInfo;
-
-				if (feed_back_data.channelID < esc_status_s::CONNECTED_ESC_MAX) {
-					_esc_feedback.esc[feed_back_data.channelID].esc_rpm = feed_back_data.speed;
+			if (feed_back_data.channelID < esc_status_s::CONNECTED_ESC_MAX) {
+				_esc_feedback.esc[feed_back_data.channelID].esc_rpm = feed_back_data.speed;
 #ifdef ESC_HAVE_VOLTAGE_SENSOR
-					_esc_feedback.esc[feed_back_data.channelID].esc_voltage = feed_back_data.voltage;
+				_esc_feedback.esc[feed_back_data.channelID].esc_voltage = feed_back_data.voltage;
 #endif
 #ifdef ESC_HAVE_CURRENT_SENSOR
-					// ESCs report in 10mA/LSB
-					_esc_feedback.esc[feed_back_data.channelID].esc_current = feed_back_data.current / 100.f;
+				// ESCs report in 10mA/LSB
+				_esc_feedback.esc[feed_back_data.channelID].esc_current = feed_back_data.current / 100.f;
 #endif
 #ifdef ESC_HAVE_TEMPERATURE_SENSOR
-					_esc_feedback.esc[feed_back_data.channelID].esc_temperature = feed_back_data.temperature;
+				_esc_feedback.esc[feed_back_data.channelID].esc_temperature = feed_back_data.temperature;
 #endif
-					_esc_feedback.esc[feed_back_data.channelID].esc_state = feed_back_data.ESCStatus;
-					_esc_feedback.esc[feed_back_data.channelID].esc_vendor = esc_status_s::ESC_VENDOR_TAP;
-					_esc_feedback.esc[feed_back_data.channelID].esc_setpoint_raw = motor_out[feed_back_data.channelID];
-					// PWM convert to RPM,PWM:1200~1900<-->RPM:1600~7500 so rpm = 1600 + (pwm - 1200)*((7500-1600)/(1900-1200))
-					_esc_feedback.esc[feed_back_data.channelID].esc_setpoint = (float)motor_out[feed_back_data.channelID] * 8.43f - 8514.3f;
-					_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
-					_esc_feedback.counter++;
-					_esc_feedback.esc_count = _channels_count;
+				_esc_feedback.esc[feed_back_data.channelID].esc_state = feed_back_data.ESCStatus;
+				_esc_feedback.esc[feed_back_data.channelID].esc_vendor = esc_status_s::ESC_VENDOR_TAP;
+				_esc_feedback.esc[feed_back_data.channelID].esc_setpoint_raw = motor_out[feed_back_data.channelID];
+				// PWM convert to RPM,PWM:1200~1900<-->RPM:1600~7500 so rpm = 1600 + (pwm - 1200)*((7500-1600)/(1900-1200))
+				_esc_feedback.esc[feed_back_data.channelID].esc_setpoint = (float)motor_out[feed_back_data.channelID] * 8.43f - 8514.3f;
+				_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
+				_esc_feedback.counter++;
+				_esc_feedback.esc_count = _channels_count;
 
-					_esc_feedback.timestamp = hrt_absolute_time();
+				_esc_feedback.timestamp = hrt_absolute_time();
 
-					// Don't publish ESC feedback in HITL mode. Reading and parsing the
-					// feedback is still done (see above) such that the hardware load
-					// is as close as possible to when actually flying without HITL.
-					if (!_hitl) {
-						orb_publish(ORB_ID(esc_status), _esc_feedback_pub, &_esc_feedback);
-					}
+				// Don't publish ESC feedback in HITL mode. Reading and parsing the
+				// feedback is still done (see above) such that the hardware load
+				// is as close as possible to when actually flying without HITL.
+				if (!_hitl) {
+					orb_publish(ORB_ID(esc_status), _esc_feedback_pub, &_esc_feedback);
 				}
 			}
-		}
-
-		/* and publish for anyone that cares to see */
-		if (!_hitl) {
-			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 		}
 
 		// use first valid timestamp_sample for latency tracking
@@ -866,8 +871,9 @@ void TAP_ESC::cycle()
 
 	}
 
-	bool updated;
+	orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
+	bool updated;
 	orb_check(_armed_sub, &updated);
 
 	if (updated) {

@@ -290,13 +290,6 @@ then
 	reboot
 fi
 
-
-
-if [ $HITL_ON == yes ]
-then
-	set OUTPUT_MODE hil
-fi
-
 #
 # Set default output if not set
 #
@@ -366,18 +359,18 @@ then
 
 fi
 
+#
+# Start the RC input driver and allocated the 3 PWM
+# one for landing gear in group 0 chan 0
+# two for Sonar in group 1 chan 0 and 1.
+# chan 1 will be reconfigured as capture, but ONLY
+# after the PWM rates are set because rates can only
+# be set on all channels in a group.
+#
+fmu mode_pwm3
+
 if [ $HITL_ON == no ]
 then
-	#
-	# Start the RC input driver and allocated the 3 PWM
-	# one for landing gear in group 0 chan 0
-	# two for Sonar in group 1 chan 0 and 1.
-	# chan 1 will be reconfigured as capture, but ONLY
-	# after the PWM rates are set because rates can only
-	# be set on all channels in a group.
-	#
-	fmu mode_pwm3
-
 	if ver hwcmp TAP_V1
 	then
 	# On TAP-V1 use 400 Hz PWM output for landing gear
@@ -500,6 +493,16 @@ unset MAV_RATE
 #
 # Logging
 #
+if ver hwcmp TAP_V2
+then
+		if [ $HITL_ON == yes ]
+		then
+			# prevent starting logger on H520 in HITL mode - not enough memory
+			set START_LOGGER 0
+			echo "logger: Not enough RAM in H520 HITL to start logger"
+		fi
+fi
+
 if [ $START_LOGGER == 1 ]
 then
 	set LOGGER_ARGS ""
@@ -603,25 +606,18 @@ then
 	fi
 
 	# Load mixer and configure outputs
-	if [ $HITL_ON == no ]
+	if [ $HITL_ON == yes ]
 	then
-		sh /etc/init.d/rc.interface
+		# Override mixer to quad_x for HITL simulation
+		set MIXER quad_x
 	fi
+	sh /etc/init.d/rc.interface
 
 
 	if [ $DO_TEMP_CALIB == 0 ]
 	then
 		# Start standard multicopter apps
 		sh /etc/init.d/rc.mc_apps
-	fi
-fi
-
-if [ $OUTPUT_MODE == hil ]
-then
-	if pwm_out_sim mode_pwm16
-	then
-		mixer load /dev/pwm_output0 /etc/mixers/quad_x.main.mix
-		fmu mode_pwm3
 	fi
 fi
 

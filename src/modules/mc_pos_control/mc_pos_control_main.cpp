@@ -564,10 +564,6 @@ MulticopterPositionControl::task_main()
 
 	hrt_abstime t_prev = 0;
 
-	// Let's be safe and have the landing gear down by default
-	// _att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
-
-
 	// wakeup source
 	px4_pollfd_struct_t fds[1];
 
@@ -727,16 +723,6 @@ MulticopterPositionControl::task_main()
 			_att_sp.fw_control_yaw = false;
 			_att_sp.disable_mc_yaw_control = false;
 			_att_sp.apply_flaps = false;
-
-			// if (!constraints.landing_gear) {
-			// 	if (constraints.landing_gear == vehicle_constraints_s::GEAR_UP) {
-			// 		_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
-			// 	}
-			//
-			// 	if (constraints.landing_gear == vehicle_constraints_s::GEAR_DOWN) {
-			// 		_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
-			// 	}
-			// }
 
 			/* For most cases we want to have gears up except when being on ground. For cases not mentioned below
 			 * we do not care if gears are up or down

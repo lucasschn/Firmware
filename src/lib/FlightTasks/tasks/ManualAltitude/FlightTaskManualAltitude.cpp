@@ -91,7 +91,7 @@ void FlightTaskManualAltitude::_scaleSticks()
 
 	// scale horizontal velocity with expo curve stick input
 	float vel_max_z = (_sticks(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
-	vel_max_z *= math::gradual(_speed_scale, -1.f, 1.f, 0.1f, 1.f); // Yuneec specific speed scale
+	vel_max_z *= math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f); // Yuneec specific speed scale
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
 }
 

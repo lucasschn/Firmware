@@ -59,7 +59,7 @@ protected:
 	bool _sticks_data_required = true; /**< let inherited task-class define if it depends on stick data */
 	matrix::Vector<float, 4> _sticks; /**< unmodified manual stick inputs */
 	matrix::Vector<float, 4> _sticks_expo; /**< modified manual sticks using expo function*/
-	float _speed_scale; /**< Yuneec specific input to scale the velocity down on the fly */
+	float _user_speed_scale; /**< Yuneec specific input to scale the velocity down on the fly */
 
 	float stickDeadzone() const { return _stick_dz.get(); }
 

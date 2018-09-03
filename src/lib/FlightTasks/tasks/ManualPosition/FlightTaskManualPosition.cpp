@@ -108,7 +108,7 @@ void FlightTaskManualPosition::_scaleSticks()
 
 	// scale velocity to its maximum limits
 	Vector2f vel_sp_xy = stick_xy * _velocity_scale *
-			     math::gradual(_speed_scale, -1.f, 1.f, 0.1f, 1.f);
+			     math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f);
 
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);

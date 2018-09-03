@@ -63,7 +63,9 @@ void FlightTaskManualStabilized::_scaleSticks()
 	/* Scale sticks to yaw and thrust using
 	 * linear scale for yaw and piecewise linear map for thrust. */
 	_yawspeed_setpoint = _sticks_expo(3) * math::radians(_yaw_rate_scaling.get());
-	_yawspeed_setpoint *= math::gradual(_speed_scale, -1.f, 1.f, 0.3f, 1.f); // Yuneec specific speed scale
+
+	 // Yuneec specific speed scale
+	_yawspeed_setpoint *= math::gradual(_user_speed_scale, -1.f, 1.f, 0.3f, 1.f);
 	_throttle = _throttleCurve();
 }
 

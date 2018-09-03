@@ -86,9 +86,6 @@ void FlightTaskManualPosition::_scaleSticks()
 		stick_xy = stick_xy.normalized() * mag;
 	}
 
-	// scale the stick inputs
-	_constraints.speed_xy *= math::gradual(_speed_scale, -1.f, 1.f, 0.1f, 1.f); // Yuneec specific speed scale
-
 	if (PX4_ISFINITE(_sub_vehicle_local_position->get().vxy_max)) {
 		// estimator provides vehicle specific max
 
@@ -110,7 +107,8 @@ void FlightTaskManualPosition::_scaleSticks()
 	}
 
 	// scale velocity to its maximum limits
-	Vector2f vel_sp_xy = stick_xy * _velocity_scale;
+	Vector2f vel_sp_xy = stick_xy * _velocity_scale *
+			     math::gradual(_speed_scale, -1.f, 1.f, 0.1f, 1.f);
 
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);

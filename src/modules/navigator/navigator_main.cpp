@@ -449,7 +449,7 @@ Navigator::run()
 
 		} else {
 			/* if the obstacle avoidance output is not updated, set the waypoint as invalid */
-			_traj_wp_avoidance.point_valid[0] = false;
+			_traj_wp_avoidance.point_valid = false;
 		}
 
 		orb_check(_manual_sub, &updated);

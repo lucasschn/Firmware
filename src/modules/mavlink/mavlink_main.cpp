@@ -1369,9 +1369,9 @@ void Mavlink::send_protocol_version()
 	set_proto_version(curr_proto_ver);
 }
 
-MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int instance)
+MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int instance, bool disable_sharing)
 {
-	if (topic != ORB_ID(vehicle_command)) {
+	if (!disable_sharing) {
 		/* check if already subscribed to this topic */
 		MavlinkOrbSubscription *sub;
 
@@ -1818,6 +1818,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("RC_CHANNELS", 5.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream_local("SYS_STATUS", 1.0f);
+		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f);
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("VISION_POSITION_ESTIMATE", 1.0f);
 		configure_stream_local("WIND_COV", 1.0f);
@@ -1856,6 +1857,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("SYS_STATUS", 5.0f);
 		configure_stream_local("SYSTEM_TIME", 1.0f);
 		configure_stream_local("TIMESYNC", 10.0f);
+		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f);
 		configure_stream_local("VFR_HUD", 10.0f);
 		configure_stream_local("VISION_POSITION_ESTIMATE", 10.0f);
 		configure_stream_local("WIND_COV", 10.0f);
@@ -2191,14 +2193,12 @@ Mavlink::task_main(int argc, char *argv[])
 	/* Initialize system properties */
 	mavlink_update_system();
 
-	MavlinkOrbSubscription *cmd_sub = add_orb_subscription(ORB_ID(vehicle_command));
-	uint64_t cmd_time = 0;
+	MavlinkOrbSubscription *cmd_sub = add_orb_subscription(ORB_ID(vehicle_command), 0, true);
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
 	uint64_t status_time = 0;
-	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack));
-	uint64_t ack_time = 0;
+	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack), 0, true);
 	/* We don't want to miss the first advertise of an ACK, so we subscribe from the
 	 * beginning and not just when the topic exists. */
 	ack_sub->subscribe_from_beginning(true);
@@ -2307,7 +2307,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		struct vehicle_command_s vehicle_cmd;
 
-		if (cmd_sub->update(&cmd_time, &vehicle_cmd)) {
+		if (cmd_sub->update_if_changed(&vehicle_cmd)) {
 			if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
 			    (_mode == MAVLINK_MODE_IRIDIUM)) {
 				if (vehicle_cmd.param1 > 0.5f) {
@@ -2330,16 +2330,13 @@ Mavlink::task_main(int argc, char *argv[])
 				}
 
 				// send positive command ack
-				struct vehicle_command_ack_s command_ack = {
-					.timestamp = vehicle_cmd.timestamp,
-					.result_param2 = 0,
-					.command = vehicle_cmd.command,
-					.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED,
-					.from_external = !vehicle_cmd.from_external,
-					.result_param1 = 0,
-					.target_system = vehicle_cmd.source_system,
-					.target_component = vehicle_cmd.source_component
-				};
+				vehicle_command_ack_s command_ack = {};
+				command_ack.timestamp = vehicle_cmd.timestamp;
+				command_ack.command = vehicle_cmd.command;
+				command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+				command_ack.from_external = !vehicle_cmd.from_external;
+				command_ack.target_system = vehicle_cmd.source_system;
+				command_ack.target_component = vehicle_cmd.source_component;
 
 				if (command_ack_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);
@@ -2355,7 +2352,7 @@ Mavlink::task_main(int argc, char *argv[])
 		uint16_t current_command_ack = 0;
 		struct vehicle_command_ack_s command_ack;
 
-		if (ack_sub->update(&ack_time, &command_ack)) {
+		if (ack_sub->update_if_changed(&command_ack)) {
 			if (!command_ack.from_external) {
 				mavlink_command_ack_t msg;
 				msg.result = command_ack.result;

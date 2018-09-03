@@ -64,12 +64,14 @@
 #include <replay/definitions.hpp>
 #include <version/version.h>
 
-#ifdef __PX4_DARWIN
+#if defined(__PX4_DARWIN)
 #include <sys/param.h>
 #include <sys/mount.h>
 #else
 #include <sys/statfs.h>
 #endif
+
+typedef decltype(statfs::f_bavail) px4_statfs_buf_f_bavail_t;
 
 #define GPS_EPOCH_SECS ((time_t)1234567890ULL)
 
@@ -221,7 +223,7 @@ int Logger::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("logger",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_LOG_CAPTURE,
-				      3600,
+				      3610,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -616,21 +618,17 @@ void Logger::add_default_topics()
 	add_topic("estimator_status", 200);
 	// add_topic("home_position");  // NOTE(YUNEEC): Saving memory
 	add_topic("input_rc", 200);
-	// add_topic("iridiumsbd_status");  // NOTE(YUNEEC): Saving memory
 	// add_topic("landing_target_pose");  // NOTE(YUNEEC): Saving memory
 	add_topic("manual_control_setpoint", 200);
 	// add_topic("mission");  // NOTE(YUNEEC): Saving memory
 	// add_topic("mission_result");  // NOTE(YUNEEC): Saving memory
 	add_topic("optical_flow", 50);
-	add_topic("ping");
 	add_topic("position_setpoint_triplet", 200);
 	// add_topic("rate_ctrl_status", 30);  // NOTE(YUNEEC): Saving memory
-	// add_topic("safety");  // NOTE(YUNEEC): Saving memory
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
-	add_topic("telemetry_status");
 	add_topic("vehicle_attitude", 30);
 	add_topic("vehicle_attitude_setpoint", 100);
 	add_topic("vehicle_command");
@@ -642,11 +640,14 @@ void Logger::add_default_topics()
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
+	add_topic("vehicle_trajectory_waypoint", 200);
+	add_topic("vehicle_trajectory_waypoint_desired", 200);
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);  // NOTE(YUNEEC): Saving memory
 	add_topic("wind_estimate", 200);
-	add_topic("timesync_status");
+
+	// Yuneec specific
 	add_topic("trajectory_waypoint", 20);
 	add_topic("trajectory_waypoint_desired", 20);
 	add_topic("obstacle_distance", 20);
@@ -658,7 +659,6 @@ void Logger::add_default_topics()
 	add_topic("commander_state");
 	add_topic("fw_pos_ctrl_status");
 	add_topic("fw_virtual_attitude_setpoint");
-	add_topic("led_control");
 	add_topic("mc_virtual_attitude_setpoint");
 	add_topic("multirotor_motor_limits");
 	add_topic("offboard_control_mode");
@@ -694,6 +694,7 @@ void Logger::add_estimator_replay_topics()
 {
 	// for estimator replay (need to be at full rate)
 	add_topic("ekf2_timestamps");
+	add_topic("ekf_gps_position");
 
 	// current EKF2 subscriptions
 	add_topic("airspeed");
@@ -2234,25 +2235,18 @@ int Logger::remove_directory(const char *dir)
 
 void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result)
 {
-	vehicle_command_ack_s vehicle_command_ack = {
-		.timestamp = hrt_absolute_time(),
-		.result_param2 = 0,
-		.command = cmd->command,
-		.result = (uint8_t)result,
-		.from_external = false,
-		.result_param1 = 0,
-		.target_system = cmd->source_system,
-		.target_component = cmd->source_component
-	};
+	vehicle_command_ack_s vehicle_command_ack = {};
+	vehicle_command_ack.timestamp = hrt_absolute_time();
+	vehicle_command_ack.command = cmd->command;
+	vehicle_command_ack.result = (uint8_t)result;
+	vehicle_command_ack.target_system = cmd->source_system;
+	vehicle_command_ack.target_component = cmd->source_component;
 
 	if (vehicle_command_ack_pub == nullptr) {
-		vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,
-					  vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
+		vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 	} else {
 		orb_publish(ORB_ID(vehicle_command_ack), vehicle_command_ack_pub, &vehicle_command_ack);
 	}
-
 }
 
 } // namespace logger

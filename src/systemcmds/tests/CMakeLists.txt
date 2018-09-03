@@ -35,6 +35,7 @@ set(srcs
 	test_adc.c
 	test_autodeclination.cpp
 	test_automation.cpp
+	test_bezierQuad.cpp
 	test_bson.c
 	test_conv.cpp
 	test_dataman.c
@@ -61,6 +62,7 @@ set(srcs
 	test_perf.c
 	test_ppm_loopback.c
 	test_rc.c
+	test_search_min.cpp
 	test_sensors.c
 	test_servo.c
 	test_sleep.c
@@ -70,6 +72,7 @@ set(srcs
 	test_uart_send.c
 	test_versioning.cpp
 	test_smooth_z.cpp
+	test_controlmath.cpp
 	tests_main.c
 	)
 
@@ -96,7 +99,6 @@ px4_add_module(
 	SRCS
 		${srcs}
 	DEPENDS
-		modules__mc_pos_control__mc_pos_control_tests
 		git_ecl
 		ecl_geo_lookup # TODO: move this
 		pwm_limit

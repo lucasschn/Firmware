@@ -330,19 +330,22 @@ bool AutomationTest::_takeOff(float altitude, int waitTimeOutInSecond)
 	ut_assert_true(_isGPSAvailable());
 	ut_assert_true(_arm());
 
-	struct vehicle_command_s cmd = {
-		.timestamp = hrt_absolute_time(),
-		.param5 = NAN,
-		.param6 = NAN,
-		.param1 = NAN,
-		.param2 = NAN,
-		.param3 = NAN,
-		.param4 = NAN,
-		.param7 = NAN,
-		.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF,
-		.target_system = mavlink_system_id,
-		.target_component = mavlink_component_id
-	};
+	struct vehicle_command_s cmd = {};
+	cmd.timestamp = hrt_absolute_time();
+	cmd.param5 = NAN;
+	cmd.param6 = NAN;
+	cmd.param1 = NAN;
+	cmd.param2 = NAN;
+	cmd.param3 = NAN;
+	cmd.param4 = NAN;
+	cmd.param7 = NAN;
+	cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF;
+	cmd.target_system = mavlink_system_id;
+	cmd.target_component = mavlink_component_id;
+	cmd.source_system = 0;
+	cmd.source_component = 0;
+	cmd.confirmation = 0;
+	cmd.from_external = false;
 
 	PUBLISH_TOPIC(vehicle_command, cmd);
 
@@ -415,19 +418,22 @@ bool AutomationTest::_land(int waitTimeOutInSecond)
 {
 	_saveLandingPosition();
 
-	struct vehicle_command_s cmd = {
-		.timestamp = hrt_absolute_time(),
-		.param5 = NAN,
-		.param6 = NAN,
-		.param1 = NAN,
-		.param2 = NAN,
-		.param3 = NAN,
-		.param4 = NAN,
-		.param7 = NAN,
-		.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND,
-		.target_system = mavlink_system_id,
-		.target_component = mavlink_component_id
-	};
+	struct vehicle_command_s cmd = {};
+	cmd.timestamp = hrt_absolute_time();
+	cmd.param5 = NAN;
+	cmd.param6 = NAN;
+	cmd.param1 = NAN;
+	cmd.param2 = NAN;
+	cmd.param3 = NAN;
+	cmd.param4 = NAN;
+	cmd.param7 = NAN;
+	cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
+	cmd.target_system = mavlink_system_id;
+	cmd.target_component = mavlink_component_id;
+	cmd.source_system = 0;
+	cmd.source_component = 0;
+	cmd.confirmation = 0;
+	cmd.from_external = false;
 
 	PUBLISH_TOPIC(vehicle_command, cmd);
 

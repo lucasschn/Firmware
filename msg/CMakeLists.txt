@@ -53,6 +53,7 @@ set(msg_files
 	ekf2_innovations.msg
 	ekf2_timestamps.msg
 	engine_failure_report.msg
+	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
@@ -133,8 +134,10 @@ set(msg_files
 	vehicle_roi.msg
 	vehicle_status.msg
 	vehicle_status_flags.msg
+	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
+	vehicle_constraints.msg
 	)
 
 if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")

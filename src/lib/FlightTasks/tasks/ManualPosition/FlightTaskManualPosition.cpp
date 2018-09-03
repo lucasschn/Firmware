@@ -80,6 +80,9 @@ void FlightTaskManualPosition::_scaleSticks()
 	/* Constrain length of stick inputs to 1 for xy*/
 	Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
 
+	// Yuneec specific speed scale (turtle slider)
+	stick_xy *=	math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f);
+
 	float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
 
 	if (mag > FLT_EPSILON) {
@@ -107,8 +110,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	}
 
 	// scale velocity to its maximum limits
-	Vector2f vel_sp_xy = stick_xy * _velocity_scale *
-			     math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f);
+	Vector2f vel_sp_xy = stick_xy * _velocity_scale;
 
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);

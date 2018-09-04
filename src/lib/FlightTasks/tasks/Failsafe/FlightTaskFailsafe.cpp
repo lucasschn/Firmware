@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,39 +30,48 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file FlightTaskManualPosition.hpp
- *
- * Flight task for manual position controlled mode.
- *
+ * @file FlightTaskFailsafe.cpp
  */
 
-#pragma once
+#include "FlightTaskFailsafe.hpp"
 
-#include "FlightTaskManualAltitude.hpp"
-
-class FlightTaskManualPosition : public FlightTaskManualAltitude
+bool FlightTaskFailsafe::activate()
 {
-public:
-	FlightTaskManualPosition() = default;
+	bool ret = FlightTask::activate();
+	_position_setpoint = _position;
+	_velocity_setpoint.zero();
+	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -MPC_THR_HOVER.get() * 0.6f);
+	_yaw_setpoint = _yaw;
+	_yawspeed_setpoint = 0.0f;
+	return ret;
+}
 
-	virtual ~FlightTaskManualPosition() = default;
-	bool activate() override;
-	bool updateInitialize() override;
+bool FlightTaskFailsafe::update()
+{
+	if (PX4_ISFINITE(_position(0)) && PX4_ISFINITE(_position(1))) {
+		// stay at current position setpoint
+		_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
+		_thrust_setpoint(0) = _thrust_setpoint(1) = 0.0f;
 
-protected:
-	void _updateXYlock(); /**< applies position lock based on stick and velocity */
-	void _updateSetpoints() override;
-	void _scaleSticks() override;
+	} else if (PX4_ISFINITE(_velocity(0)) && PX4_ISFINITE(_velocity(1))) {
+		// don't move along xy
+		_position_setpoint(0) = _position_setpoint(1) = NAN;
+		_thrust_setpoint(0) = _thrust_setpoint(1) = NAN;
+	}
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAltitude,
-					(ParamFloat<px4::params::MPC_VEL_MANUAL>) MPC_VEL_MANUAL,
-					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) MPC_ACC_HOR_MAX,
-					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) MPC_HOLD_MAX_XY,
-					(ParamFloat<px4::params::MPC_ACC_HOR_ESTM>) MPC_ACC_HOR_ESTM
-				       )
-private:
-	float _velocity_scale{0.0f}; //scales the stick input to velocity
-	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
-};
+	if (PX4_ISFINITE(_position(2))) {
+		// stay at current altitude setpoint
+		_velocity_setpoint(2) = 0.0f;
+		_thrust_setpoint(2) = NAN;
+
+	} else if (PX4_ISFINITE(_velocity(2))) {
+		// land with landspeed
+		_velocity_setpoint(2) = MPC_LAND_SPEED.get();
+		_position_setpoint(2) = NAN;
+		_thrust_setpoint(2) = NAN;
+	}
+
+	return true;
+
+}

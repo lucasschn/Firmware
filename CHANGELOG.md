@@ -75,6 +75,7 @@ All notable changes to this project will be documented in this file.
 * Add support to RealSense, only for H520C
 * Enable internal dialect for MAVLink, custom Yuneec messages
 * Add support to switch LED off
+* Improved estimator rubostuness (with upstram merge)
 
 ### Changed
 * Battery estimation adjustments for slightly longer flight time.

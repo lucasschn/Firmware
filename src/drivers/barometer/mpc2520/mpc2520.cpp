@@ -115,7 +115,7 @@ protected:
 
 	ringbuffer::RingBuffer	*_reports = nullptr;
 	bool			_collect_phase = false;
-	unsigned		_measure_phase;  // TODO: is never initialized!
+	unsigned		_measure_phase;
 
 	orb_advert_t		_baro_topic = nullptr;
 	int			_orb_class_instance = -1;
@@ -128,6 +128,7 @@ protected:
 
 	int32_t _kP = 0;
 	int32_t _kT = 0;
+
 	/**
 	 * Initialize the automatic measurement state machine and start it.
 	 *
@@ -193,8 +194,8 @@ protected:
 
 
 	int	 		set_sampling_rate(uint8_t iSensor,
-		MPC2520_SAMPLING_RATE u8SmplRate,
-		MPC2520_OVERSAMPLING_RATE u8OverSmpl);
+			MPC2520_SAMPLING_RATE u8SmplRate,
+			MPC2520_OVERSAMPLING_RATE u8OverSmpl);
 
 	int	 		set_measure_mode(MPC2520_MEAS_MODE mode);
 
@@ -243,7 +244,9 @@ MPC2520::~MPC2520()
 	perf_free(_comms_errors);
 	perf_free(_buffer_overflows);
 
-	delete _interface;
+	if (_interface != nullptr) {
+		delete _interface;
+	}
 }
 
 int MPC2520::init()
@@ -274,17 +277,17 @@ int MPC2520::init()
 	_measure_phase = 0;
 	_reports->flush();
 
-	/* this do..while is goto without goto */
+	/* this [do..while] is a goto without the actual goto */
 	do {
 		// sampling rate = 1Hz; Pressure oversample = 2;
 		set_sampling_rate(PRESSURE_SENSOR,
-			MPC2520_SAMPLING_RATE::RATE_32_HZ,
-			MPC2520_OVERSAMPLING_RATE::RATE_8_HZ);
+				  MPC2520_SAMPLING_RATE::RATE_32_HZ,
+				  MPC2520_OVERSAMPLING_RATE::RATE_8_HZ);
 
 		// sampling rate = 1Hz; Temperature oversample = 1;
 		set_sampling_rate(TEMPERATURE_SENSOR,
-			MPC2520_SAMPLING_RATE::RATE_32_HZ,
-			MPC2520_OVERSAMPLING_RATE::RATE_8_HZ);
+				  MPC2520_SAMPLING_RATE::RATE_32_HZ,
+				  MPC2520_OVERSAMPLING_RATE::RATE_8_HZ);
 
 		set_measure_mode(MPC2520_MEAS_MODE::CONTINUOUS_P_AND_T);
 
@@ -329,8 +332,8 @@ int MPC2520::read_reg(uint8_t reg, uint8_t &val)
 }
 
 int MPC2520::set_sampling_rate(uint8_t iSensor,
-	MPC2520_SAMPLING_RATE u8SmplRate,
-	MPC2520_OVERSAMPLING_RATE u8OverSmpl)
+			       MPC2520_SAMPLING_RATE u8SmplRate,
+			       MPC2520_OVERSAMPLING_RATE u8OverSmpl)
 {
 	uint8_t reg = 0;  // Register for sensor configuration
 	int32_t i32kPkT = 0;  // Scale Factor (kP or kT), depending on oversampling rate
@@ -452,11 +455,10 @@ int MPC2520::set_sampling_rate(uint8_t iSensor,
 		}
 	}
 
-	return 0;
+	return PX4_OK;
 }
 
-int
-MPC2520::set_measure_mode(MPC2520_MEAS_MODE mode)
+int MPC2520::set_measure_mode(MPC2520_MEAS_MODE mode)
 {
 	uint8_t mearsure_mode;
 
@@ -481,11 +483,10 @@ MPC2520::set_measure_mode(MPC2520_MEAS_MODE mode)
 
 	_interface->write(MPC2520_MEAS_CFG, (void *)&mearsure_mode, 1);
 
-	return 0;
+	return PX4_OK;
 }
 
-ssize_t
-MPC2520::read(struct file *filp, char *buffer, size_t buflen)
+ssize_t MPC2520::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct baro_report);
 	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
@@ -1073,5 +1074,5 @@ int mpc2520_main(int argc, char *argv[])
 
 	MPC2520::print_usage("unrecognised command");
 
-	return 0;
+	return PX4_OK;
 }

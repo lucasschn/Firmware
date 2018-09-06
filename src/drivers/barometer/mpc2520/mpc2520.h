@@ -52,7 +52,7 @@
 #define MPC2520_CFG_REG		0x09    /*configuration of interrupts, measurement data shift, and FIFO enable*/
 
 // All supported sampling rates
-enum class MPC2520_SAMPLING_RATE{
+enum class MPC2520_SAMPLING_RATE {
 	RATE_1_HZ,
 	RATE_2_HZ,
 	RATE_4_HZ,
@@ -64,7 +64,7 @@ enum class MPC2520_SAMPLING_RATE{
 };
 
 // All supported oversampling rates
-enum class MPC2520_OVERSAMPLING_RATE{
+enum class MPC2520_OVERSAMPLING_RATE {
 	RATE_1_HZ,
 	RATE_2_HZ,
 	RATE_4_HZ,

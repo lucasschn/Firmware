@@ -114,9 +114,6 @@ protected:
 	bool			_collect_phase = false;
 	unsigned		_measure_phase;  // TODO: is never initialized!
 
-	/* altitude conversion calibration */
-	unsigned		_msl_pressure = 101325;	/* in Pa */
-
 	orb_advert_t		_baro_topic = nullptr;
 	int			_orb_class_instance = -1;
 	int			_class_instance = -1;

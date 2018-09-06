@@ -66,6 +66,9 @@
 #include <systemlib/err.h>
 #include <platforms/px4_getopt.h>
 
+#include <px4_log.h>
+#include <px4_module.h>
+
 #include "mpc2520.h"
 
 enum MPC2520_BUS {
@@ -96,9 +99,10 @@ public:
 	~MPC2520();
 
 	virtual int		init();
-
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+
+	static int print_usage(const char *reason = nullptr);
 
 protected:
 	Device			*_interface;
@@ -779,6 +783,39 @@ int MPC2520::collect()
 	return OK;
 }
 
+int MPC2520::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Driver for mpc2520 barometer sensor
+
+### Implementation
+TODO
+
+### Example
+TODO
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("mpc2520", "driver");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task. Requries exactly one of the following flags:");
+	PRINT_MODULE_USAGE_PARAM_FLAG('X', "external I2C bus", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('I', "internal I2C bus", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('S', "external SPI bus", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('s', "internal SPI bus", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Print sensor values");
+
+
+	return PX4_OK;
+}
+
 /**
  * Local functions in support of the shell command.
  */
@@ -814,7 +851,7 @@ bool	start_bus(struct mpc2520_bus_option &bus);
 struct  mpc2520_bus_option &find_bus(enum MPC2520_BUS busid);
 void	start(enum MPC2520_BUS busid);
 void	test(enum MPC2520_BUS busid);
-void	usage();
+
 
 /**
  * Start the driver.
@@ -977,17 +1014,6 @@ void test(enum MPC2520_BUS busid)
 	close(fd);
 	errx(0, "PASS");
 }
-
-void usage()
-{
-	warnx("missing command: try 'start', 'info', 'test'");
-	warnx("options:");
-	warnx("    -X    (external I2C bus)");
-	warnx("    -I    (intternal I2C bus)");
-	warnx("    -S    (external SPI bus)");
-	warnx("    -s    (internal SPI bus)");
-}
-
 }// namespace
 
 int mpc2520_main(int argc, char *argv[])
@@ -1018,7 +1044,7 @@ int mpc2520_main(int argc, char *argv[])
 
 		//no break
 		default:
-			mpc2520::usage();
+			MPC2520::print_usage();
 			exit(0);
 		}
 	}
@@ -1039,7 +1065,7 @@ int mpc2520_main(int argc, char *argv[])
 		mpc2520::test(busid);
 	}
 
-	errx(1, "unrecognised command, try 'start', 'test'");
+	MPC2520::print_usage("unrecognised command");
 
 	return 0;
 }

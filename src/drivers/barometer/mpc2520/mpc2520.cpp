@@ -103,6 +103,7 @@ public:
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	static int print_usage(const char *reason = nullptr);
+	static int print_formatted_report(baro_report report);
 
 protected:
 	Device			*_interface;
@@ -816,6 +817,14 @@ TODO
 	return PX4_OK;
 }
 
+int MPC2520::print_formatted_report(baro_report report){
+	warnx("pressure:\t%10.4f [Pa]", (double)report.pressure);
+	warnx("temperature:\t %8.4f [C]", (double)report.temperature);
+	warnx("time:\t\t  %lld [us]\n", report.timestamp);
+
+	return PX4_OK;
+}
+
 /**
  * Local functions in support of the shell command.
  */
@@ -970,10 +979,8 @@ void test(enum MPC2520_BUS busid)
 		err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("pressure:    %10.4f", (double)report.pressure);
-	warnx("temperature: %8.4f", (double)report.temperature);
-	warnx("time:        %lld", report.timestamp);
+	warnx("Performing single read");
+	MPC2520::print_formatted_report(report);
 
 	/* set the queue depth to 10 */
 	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
@@ -986,7 +993,8 @@ void test(enum MPC2520_BUS busid)
 	}
 
 	/* read the sensor 5x and report each value */
-	for (unsigned i = 0; i < 5; i++) {
+	const size_t NUM_PERIODIC_READS = 4;
+	for (unsigned i = 0; i <= NUM_PERIODIC_READS; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
@@ -1005,10 +1013,8 @@ void test(enum MPC2520_BUS busid)
 			err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-		warnx("pressure:    %10.4f", (double)report.pressure);
-		warnx("temperature: %8.4f", (double)report.temperature);
-		warnx("time:        %lld", report.timestamp);
+		warnx("Performing periodic read %u/%u", i, NUM_PERIODIC_READS);
+		MPC2520::print_formatted_report(report);
 	}
 
 	close(fd);

@@ -40,9 +40,7 @@
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>

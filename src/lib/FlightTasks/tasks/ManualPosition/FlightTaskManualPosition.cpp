@@ -53,7 +53,6 @@ bool FlightTaskManualPosition::updateInitialize()
 
 bool FlightTaskManualPosition::activate()
 {
-
 	// all requirements from altitude-mode still have to hold
 	bool ret = FlightTaskManualAltitude::activate();
 
@@ -74,10 +73,18 @@ bool FlightTaskManualPosition::activate()
 
 void FlightTaskManualPosition::_scaleSticks()
 {
-	/* Use same scaling as for FlightTaskManualAltitude */
+	// Yuneec specific: if avoidance is on, set max velocity to 4
+	if (_avoidance_on) {
+		_constraints.speed_xy = 4.0f;
+
+	} else {
+		_constraints.speed_xy = MPC_VEL_MANUAL.get();
+	}
+
+	// Use same scaling as for FlightTaskManualAltitude
 	FlightTaskManualAltitude::_scaleSticks();
 
-	/* Constrain length of stick inputs to 1 for xy*/
+	// Constrain length of stick inputs to 1 for xy
 	Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
 
 	// Yuneec specific speed scale (turtle slider)

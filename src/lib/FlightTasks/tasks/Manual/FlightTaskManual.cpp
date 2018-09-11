@@ -98,6 +98,15 @@ bool FlightTaskManual::_evaluateSticks()
 			_applyGearSwitch(gear_switch);
 		}
 
+		// Yuneec specific: check avoidance switch
+		if ((_sub_manual_control_setpoint->get().obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON) ||
+		    (_sub_manual_control_setpoint->get().obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE)) {
+			_avoidance_on = true;
+
+		} else {
+			_avoidance_on = false;
+		}
+
 		// valid stick inputs are required
 		const bool valid_sticks =  PX4_ISFINITE(_sticks(0))
 					   && PX4_ISFINITE(_sticks(1))

@@ -61,7 +61,7 @@ protected:
 	matrix::Vector<float, 4> _sticks_expo; /**< modified manual sticks using expo function*/
 	float _user_speed_scale; /**< Yuneec specific input to scale the velocity down on the fly */
 
-	float stickDeadzone() const { return _stick_dz.get(); }
+	float stickDeadzone() const { return MPC_HOLD_DZ.get(); }
 
 private:
 
@@ -71,7 +71,7 @@ private:
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_HOLD_DZ>) _stick_dz, /**< 0-deadzone around the center for the sticks */
+					(ParamFloat<px4::params::MPC_HOLD_DZ>) MPC_HOLD_DZ, /**< 0-deadzone around the center for the sticks */
 					(ParamFloat<px4::params::MPC_XY_MAN_EXPO>)
 					_xy_vel_man_expo, /**< ratio of exponential curve for stick input in xy direction */
 					(ParamFloat<px4::params::MPC_Z_MAN_EXPO>)

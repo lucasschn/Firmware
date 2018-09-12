@@ -638,6 +638,9 @@ void Logger::add_default_topics()
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
+	add_topic("flighttask_setpoint", 100);
+	add_topic("position_control_setpoint_input", 50);
+	add_topic("vehicle_constraints", 50);
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");

@@ -52,24 +52,16 @@ void RCHelper::pair()
 	_state = START;
 
 	/* send command to ofdm module via command API */
-	struct vehicle_command_s vcmd = {
-		.timestamp = hrt_absolute_time(),
-		.param5 = 0.0,
-		.param6 = 0.0,
-		.param1 = 0.0,
-		.param2 = 0.0,
-		.param3 = 0.0,
-		.param4 = 0.0,
-		.param7 = 0.0,
-		.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR,
-		/* send this command to itself */
-		.target_system = 1,
-		.target_component = 1,
-		.source_system = 1,
-		.source_component = 1,
-		.confirmation = false,
-		.from_external = false
-	};
+	struct vehicle_command_s vcmd = {};
+	vcmd.timestamp = hrt_absolute_time();
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR;
+	/* send this command to itself */
+	vcmd.target_system = 1;
+	vcmd.target_component = 1;
+	vcmd.source_system = 1;
+	vcmd.source_component = 1;
+	vcmd.confirmation = false;
+	vcmd.from_external = false;
 
 	if (_vehicle_cmd_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, &vcmd);

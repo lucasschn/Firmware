@@ -125,6 +125,11 @@ public:
 	 */
 	const char *errorToString(const int error);
 
+	/**
+	 *  This method will re-activate current task.
+	 */
+	void reActivate();
+
 private:
 
 	/**

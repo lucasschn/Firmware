@@ -534,18 +534,23 @@ float
 RTL::get_rtl_altitude()
 {
 
-	// climb to at least a 45 degree cone
-	float climb_alt = _return_location.alt
-			  + get_distance_to_next_waypoint(
-				  _return_location.lat,
-				  _return_location.lon,
-				  _navigator->get_global_position()->lat,
-				  _navigator->get_global_position()->lon);
+	const float distance_home = get_distance_to_next_waypoint(
+					    _return_location.lat,
+					    _return_location.lon,
+					    _navigator->get_global_position()->lat,
+					    _navigator->get_global_position()->lon);
 
-	/* limit altitude to rtl max */
-	climb_alt = math::min(
-			    _return_location.alt + _param_return_alt.get(),
-			    climb_alt);
+	float climb_alt = _return_location.alt + _param_return_alt.get();
+
+	// if within 50m, only climb to a 63.43 (arbitrary) degree cone (two times distance_home)
+	const float max_cone_dist = 50.0f;
+
+	if (distance_home < max_cone_dist) {
+		climb_alt = math::min(
+				    _return_location.alt + 2.0f * distance_home,
+				    climb_alt);
+	}
+
 	// do also not reduce altitude if already higher
 	climb_alt = math::max(climb_alt, _navigator->get_global_position()->alt);
 

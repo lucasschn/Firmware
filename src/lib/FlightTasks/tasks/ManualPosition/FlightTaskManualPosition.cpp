@@ -41,6 +41,8 @@
 
 using namespace matrix;
 
+static constexpr float AVOIDANCE_SPEED = 4.0f; //maximum speed during avoidance
+
 bool FlightTaskManualPosition::updateInitialize()
 {
 	bool ret = FlightTaskManualAltitude::updateInitialize();
@@ -75,7 +77,7 @@ void FlightTaskManualPosition::_scaleSticks()
 {
 	// Yuneec specific: if avoidance is on, set max velocity to 4
 	if (_avoidance_on) {
-		_constraints.speed_xy = 4.0f;
+		_constraints.speed_xy = AVOIDANCE_SPEED;
 
 	} else {
 		_constraints.speed_xy = MPC_VEL_MANUAL.get();

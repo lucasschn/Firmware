@@ -118,8 +118,11 @@ private:
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
-	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
-	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
+	orb_advert_t 	_pub_vehicle_command{nullptr};           /**< vehicle command publication */
+	orb_advert_t 	_flighttask_sp_pub{nullptr}; /**< flighttask setpoint publication for logging (only for logging)*/
+	orb_advert_t	_position_control_setpoint_input_pub{nullptr}; /** setpoint input to position controller (only for logging)*/
+	orb_advert_t	_traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
+	orb_advert_t 	_constraints_pub{nullptr}; /**< vehicle constraints publication (only for logging)*/
 	orb_id_t _attitude_setpoint_id{nullptr};
 
 	int		_control_task{-1};			/**< task handle for task */
@@ -649,6 +652,11 @@ MulticopterPositionControl::task_main()
 				setpoint = _flight_tasks.getPositionSetpoint();
 				_failsafe_land_hysteresis.set_state_and_update(false);
 
+				// for logging only: publish flighttask setpoints
+				int instance_id = 0;
+				setpoint.timestamp = hrt_absolute_time();
+				orb_publish_auto(ORB_ID(flighttask_setpoint), &_flighttask_sp_pub, &setpoint, &instance_id, ORB_PRIO_DEFAULT);
+
 				// Check if position, velocity or thrust pairs are valid -> trigger failsaife if no pair is valid
 				if (!(PX4_ISFINITE(setpoint.x) && PX4_ISFINITE(setpoint.y)) &&
 				    !(PX4_ISFINITE(setpoint.vx) && PX4_ISFINITE(setpoint.vy)) &&
@@ -712,6 +720,11 @@ MulticopterPositionControl::task_main()
 			_control.updateConstraints(constraints);
 			_control.updateState(_states);
 
+			// for logging only: publish constraints
+			int instance_id = 0;
+			constraints.timestamp = hrt_absolute_time();
+			orb_publish_auto(ORB_ID(vehicle_constraints), &_constraints_pub, &constraints, &instance_id, ORB_PRIO_DEFAULT);
+
 			// adjust setpoints based on avoidance
 			if (use_obstacle_avoidance()) {
 				execute_avoidance_waypoint(setpoint);
@@ -722,6 +735,10 @@ MulticopterPositionControl::task_main()
 				warn_rate_limited("Position-Control Setpoint-Update failed");
 			}
 
+			// for logging only: publish position-controller  setpoint and state inputs
+			setpoint.timestamp = hrt_absolute_time();
+			orb_publish_auto(ORB_ID(position_control_setpoint_input), &_position_control_setpoint_input_pub, &setpoint,
+					 &instance_id, ORB_PRIO_DEFAULT);
 			// Generate desired thrust and yaw.
 			_control.generateThrustYawSetpoint(_dt);
 

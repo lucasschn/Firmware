@@ -2,7 +2,7 @@
 
 [![Releases](https://img.shields.io/github/release/PX4/Firmware.svg)](https://github.com/PX4/Firmware/releases) [![DOI](https://zenodo.org/badge/22634/PX4/Firmware.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/Firmware)
 
-[![Build Status](https://travis-ci.com/YUNEEC/Firmware.svg?token=6rGWfr6nYD59qLPxm1uS&branch=tap)](https://travis-ci.com/YUNEEC/Firmware) [![Coverity Scan](https://scan.coverity.com/projects/3966/badge.svg?flat=1)](https://scan.coverity.com/projects/3966?tab=overview)
+[![Build Status](https://travis-ci.com/YUNEEC/Firmware.svg?token=6rGWfr6nYD59qLPxm1uS&branch=develop)](https://travis-ci.com/YUNEEC/Firmware) [![Coverity Scan](https://scan.coverity.com/projects/3966/badge.svg?flat=1)](https://scan.coverity.com/projects/3966?tab=overview)
 
 [![Slack](https://px4-slack.herokuapp.com/badge.svg)](http://slack.px4.io)
 

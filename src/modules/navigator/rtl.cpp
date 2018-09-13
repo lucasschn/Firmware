@@ -666,18 +666,22 @@ RTL::publish_rtl_time_estimate()
 		case RTL_STATE_TRANSITION_TO_MC:
 
 		// Fallthrough intented
-		case RTL_STATE_DESCEND:
-			// "climb" segment: Ascending/descending to the RTL travel altitude
-			// Note that if the vehicle is above the RTL travel altitude, the climb
-			// distance only changes its sign. Thus the absolute value is taken.
-			_rtl_time_estimate.time_estimate += fabsf(gpos.alt -
-							    (_return_location.alt + _param_return_alt.get())) /
-							    _param_mpc_vel_z_auto.get();
+		case RTL_STATE_DESCEND: {
+				// compute the return altitude. This takes the yuneec-cone into account
+				float return_alt = get_rtl_altitude();
 
-			// Add descend segment (first landing phase)
-			_rtl_time_estimate.time_estimate += fabsf(_param_return_alt.get() -
-							    _param_descend_alt.get()) /
-							    _param_mpc_vel_z_auto.get();
+				// "climb" segment: Ascending/descending to the RTL travel altitude
+				// Note that if the vehicle is above the RTL travel altitude, the climb
+				// distance only changes its sign. Thus the absolute value is taken.
+				_rtl_time_estimate.time_estimate += fabsf(gpos.alt -
+								    (_return_location.alt + return_alt)) /
+								    _param_mpc_vel_z_auto.get();
+
+				// Add descend segment (first landing phase)
+				_rtl_time_estimate.time_estimate += fabsf(return_alt -
+								    _param_descend_alt.get()) /
+								    _param_mpc_vel_z_auto.get();
+			}
 
 		// Fallthrough intented
 		case RTL_STATE_LOITER:

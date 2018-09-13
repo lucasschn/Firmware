@@ -4,20 +4,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Added
 * RTL to ground control station (#1879)
-
-### Changed
-
-### Fixed
-* Connecting to drone after startup is now significantly faster (#2049)
-* Multi-battery missions now resumable after low-battery emergency landing (#1999)
-
-
-### [v1.7.3-1.5.0]
-### Added
 * ESC firmware version logging (#1786)
 * ROI: New waypoint types for Region of Interest (missing in DataPilot) (#1819)
 * Structure scan (#1819)
-* Yaw stick deadzone and exponential curve (#1910)
 
 ### Changed
 * Yaw P gain lowered from 6.0 to 3.5 because of upstream merge (#1872)
@@ -25,7 +14,67 @@ All notable changes to this project will be documented in this file.
 * Sonar-based obstacle avoidance increased trigger range and reliability (#1959)
 
 ### Fixed
+* Connecting to drone after startup is now significantly faster (#2049)
+* Multi-battery missions now resumable after low-battery emergency landing (#1999)
 * Compass calibration uses less memory, now also works after a flight (#1884)
+
+
+## [v1.7.3-1.4.9]
+### Fixed
+* Sonar-based obstacle avoidance increased trigger range and reliability (#2456)
+
+
+## [v1.7.3-1.4.8]
+### Fixed
+* Switched to mixed channel RC channel parsing for team mode slave
+### Added
+* Use left stick for slave pitch gimbal control in velocity mode
+
+
+## [v1.7.3-1.4.7]
+### Fixed
+* Fixed Five-Rotor-Mode issues (#2406)
+
+
+## [v1.7.3-1.4.6]
+### Fixed
+* Remote control loss reaction when slave disconnects (#2381)
+
+
+## [v1.7.3-1.4.5]
+### Fixed
+* Increase parameter default version number to apply new values for 1.5 beta testers
+
+
+## [v1.7.3-1.4.4]
+### Fixed
+* Team mode reconnection problems (#2391)
+
+
+## [v1.7.3-1.4.3]
+### Added
+* Basic Team mode support (#2349)
+
+
+## [v1.7.3-1.4.2]
+### Fixed
+* Yaw input also gets scaled using the turtle slider (#2235)
+
+
+## [v1.7.3-1.4.1]
+### Fixed
+* Multi-battery missions now resumable after low-battery emergency landing (#1999)
+
+
+## [v1.7.3-1.4.0beta2]
+### Added
+* Yaw stick deadzone and exponential curve (#1910)
+
+### Changed
+
+### Fixed
+* Compass calibration uses less memory, now also works after a flight (#1884)
+
 
 ## [v1.7.3-1.4.0beta1]
 ### Changed
@@ -52,7 +101,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 * Hover and capture producing blurry images (#1450)
-* Direction change delay in rabit mode
+* Direction change delay in rabbit mode
 * For reported jerky flight
 * Improved tune playback (#1771, #1883)
 
@@ -75,7 +124,7 @@ All notable changes to this project will be documented in this file.
 * Add support to RealSense, only for H520C
 * Enable internal dialect for MAVLink, custom Yuneec messages
 * Add support to switch LED off
-* Improved estimator rubostuness (with upstram merge)
+* Improved estimator robustness (with upstram merge)
 
 ### Changed
 * Battery estimation adjustments for slightly longer flight time.

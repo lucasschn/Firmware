@@ -69,6 +69,7 @@ RTL::on_inactive()
 	// Limit calculation and publishing frequency
 	if ((hrt_absolute_time() - _rtl_time_estimate.timestamp) >
 	    1000000 / _RTL_TIME_ESTIMATE_FREQUENCY) {
+		update_return_location();
 		publish_rtl_time_estimate();
 	}
 }
@@ -89,21 +90,8 @@ RTL::on_activation()
 	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->next.valid = false;
 
-	// set home position
-	// default home is where takeoff location was
-	_return_location = *_navigator->get_home_position();
-	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
-
-	if (_param_home_at_gcs.get()) {
-
-		const follow_target_s &target = *_navigator->get_target_motion();
-
-		// only replace landing pose if target is finite
-		if (PX4_ISFINITE(target.lat) && PX4_ISFINITE(target.lon) && PX4_ISFINITE(target.alt)) {
-			set_GCS_to_home(_return_location, gpos, target);
-		}
-
-	}
+	// set home position to either GS or takeoff location
+	update_return_location();
 
 	// go directly to home if obstacle avoidance is used
 	const bool obstacle_avoidance_switch_on = _navigator->get_manual_setpoint()->obsavoid_switch ==
@@ -607,6 +595,24 @@ RTL::set_GCS_to_home(home_position_s &hpos, const vehicle_global_position_s &pos
 }
 
 void
+RTL::update_return_location()
+{
+	if (_param_home_at_gcs.get()) {
+		const follow_target_s &target = *_navigator->get_target_motion();
+
+		// only replace landing pose if target is finite
+		if (PX4_ISFINITE(target.lat) && PX4_ISFINITE(target.lon) && PX4_ISFINITE(target.alt)) {
+			const vehicle_global_position_s &gpos = *_navigator->get_global_position();
+			set_GCS_to_home(_return_location, gpos, target);
+		}
+
+	} else {
+		// default home is where takeoff location was
+		_return_location = *_navigator->get_home_position();
+	}
+}
+
+void
 RTL::publish_rtl_time_estimate()
 {
 	// Advertise uORB topic the first time
@@ -627,7 +633,6 @@ RTL::publish_rtl_time_estimate()
 	} else {
 		_rtl_time_estimate.valid = true;
 
-		const home_position_s &home = *_navigator->get_home_position();
 		const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
 		switch (_rtl_state) {
@@ -643,7 +648,7 @@ RTL::publish_rtl_time_estimate()
 			// descend. But the math still holds since for the landing phase we assume
 			// that the vehicle is always at the travel distance initially.
 			_rtl_time_estimate.time_estimate += fabsf(gpos.alt -
-							    (home.alt + _param_return_alt.get())) /
+							    (_return_location.alt + _param_return_alt.get())) /
 							    _param_mpc_vel_z_auto.get();
 
 		// Fallthrough intented
@@ -653,7 +658,7 @@ RTL::publish_rtl_time_estimate()
 		case RTL_STATE_RETURN:
 			// Add cruise segment to home
 			_rtl_time_estimate.time_estimate += get_distance_to_next_waypoint(
-					home.lat, home.lon,	gpos.lat, gpos.lon) / _param_mpc_xy_cruise.get();
+					_return_location.lat, _return_location.lon,	gpos.lat, gpos.lon) / _param_mpc_xy_cruise.get();
 
 		// Fallthrough intented
 		case RTL_STATE_AFTER_RETURN:
@@ -682,7 +687,7 @@ RTL::publish_rtl_time_estimate()
 			// Since during final land phase the vehicle is below
 			// _param_descend_alt, take the actual vehicle altitude instead of param.
 			_rtl_time_estimate.time_estimate +=
-				(gpos.alt - home.alt) / _param_mpc_land_speed.get();
+				(gpos.alt - _return_location.alt) / _param_mpc_land_speed.get();
 			break;
 
 		case RTL_STATE_LANDED:

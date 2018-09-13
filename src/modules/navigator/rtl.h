@@ -107,6 +107,12 @@ private:
 	void		publish_rtl_time_estimate();
 
 	/**
+	 * Set return location to either the launch-site or current position of the
+	 * GroundStation, depending on the paramter settings.
+	 */
+	void update_return_location();
+
+	/**
 	 * Return location.
 	 * The location can be the takeoff position or the position
 	 * of the remote controller.

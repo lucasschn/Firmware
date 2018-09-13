@@ -643,13 +643,12 @@ RTL::publish_rtl_time_estimate()
 
 		// Fallthrough intented
 		case RTL_STATE_CLIMB:
-			// Add first segment: Ascending to the RTL travel altitude
-			// Note that if the vehicle is abofe the RTL travel altitude, it will not
-			// descend. But the math still holds since for the landing phase we assume
-			// that the vehicle is always at the travel distance initially.
-			_rtl_time_estimate.time_estimate += fabsf(gpos.alt -
-							    (_return_location.alt + _param_return_alt.get())) /
-							    _param_mpc_vel_z_auto.get();
+
+		// The climb segment only exists if the drone is below RTL return altitude
+		// when RTL is initiated. If the drone is above said altitude, the same
+		// vertical distance needs to be overcome in the descend phase. Hence
+		// this distance can always be incorporated in the DESCEND case, even
+		// though in practice the order of the segments might be different.
 
 		// Fallthrough intented
 		case RTL_STATE_PRE_RETURN:
@@ -668,6 +667,13 @@ RTL::publish_rtl_time_estimate()
 
 		// Fallthrough intented
 		case RTL_STATE_DESCEND:
+			// "climb" segment: Ascending/descending to the RTL travel altitude
+			// Note that if the vehicle is above the RTL travel altitude, the climb
+			// distance only changes its sign. Thus the absolute value is taken.
+			_rtl_time_estimate.time_estimate += fabsf(gpos.alt -
+							    (_return_location.alt + _param_return_alt.get())) /
+							    _param_mpc_vel_z_auto.get();
+
 			// Add descend segment (first landing phase)
 			_rtl_time_estimate.time_estimate += fabsf(_param_return_alt.get() -
 							    _param_descend_alt.get()) /

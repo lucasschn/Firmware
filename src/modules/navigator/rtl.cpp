@@ -674,11 +674,12 @@ RTL::publish_rtl_time_estimate()
 				// Note that if the vehicle is above the RTL travel altitude, the climb
 				// distance only changes its sign. Thus the absolute value is taken.
 				_rtl_time_estimate.time_estimate += fabsf(gpos.alt -
-								    (_return_location.alt + return_alt)) /
+								    return_alt) /
 								    _param_mpc_vel_z_auto.get();
 
 				// Add descend segment (first landing phase)
 				_rtl_time_estimate.time_estimate += fabsf(return_alt -
+								    _return_location.alt -
 								    _param_descend_alt.get()) /
 								    _param_mpc_vel_z_auto.get();
 			}

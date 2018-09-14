@@ -318,7 +318,7 @@ RTL::set_rtl_item()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.lat = home.lat;
 			_mission_item.lon = home.lon;
-			_mission_item.altitude = loiter_altitude;  // << Soetti return_location beinhalte
+			_mission_item.altitude = loiter_altitude;
 			_mission_item.altitude_is_relative = false;
 
 			// Except for vtol which might be still off here and should point towards this location.
@@ -668,7 +668,16 @@ RTL::publish_rtl_time_estimate()
 		// Fallthrough intented
 		case RTL_STATE_DESCEND: {
 				// compute the return altitude. This takes the yuneec-cone into account
-				float return_alt = get_rtl_altitude();
+				float return_alt;
+
+				if (_rtl_state == RTL_STATE_NONE) {
+					// Get return altitude if RTL was initiated at current location
+					return_alt = get_rtl_altitude();
+
+				} else {
+					// RTL happening. Get return altitude already used by RTL logic
+					return_alt = _mission_item.altitude;
+				}
 
 				// "climb" segment: Ascending/descending to the RTL travel altitude
 				// Note that if the vehicle is above the RTL travel altitude, the climb
@@ -690,8 +699,15 @@ RTL::publish_rtl_time_estimate()
 			_rtl_time_estimate.time_estimate += _param_land_delay.get();
 
 			// Add land segment (second landing phase)
-			_rtl_time_estimate.time_estimate += _param_descend_alt.get() /
-							    _param_mpc_land_speed.get();
+			if (_rtl_state == RTL_STATE_NONE) {
+				_rtl_time_estimate.time_estimate += _param_descend_alt.get() /
+								    _param_mpc_land_speed.get();
+
+			} else {
+				_rtl_time_estimate.time_estimate += (_mission_item.altitude -
+								     _return_location.alt) /	_param_mpc_land_speed.get();
+			}
+
 			break;
 
 		case RTL_STATE_LAND:

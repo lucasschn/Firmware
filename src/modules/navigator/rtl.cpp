@@ -195,7 +195,7 @@ RTL::set_rtl_item()
 	// }
 
 	bool home_close = (home_dist < _param_rtl_min_dist.get());
-	bool home_altitude_close = (fabsf(home.alt - home.alt) < _param_rtl_min_dist.get());
+	bool home_altitude_close = (fabsf(gpos.alt - home.alt) < _param_rtl_min_dist.get());
 
 	// Compute the loiter altitude.
 	const float loiter_altitude = math::min(home.alt + _param_descend_alt.get(), gpos.alt);

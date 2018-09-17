@@ -697,18 +697,25 @@ RTL::publish_rtl_time_estimate()
 			_rtl_time_estimate.time_estimate += _param_land_delay.get();
 
 		case RTL_STATE_LAND:
-			// Add land segment (second landing phase) which comes after LOITER
-			if (_rtl_state == RTL_STATE_LAND) {
-				// If we are in this phase, use the current vehicle altitude  instead
-				// of the altitude paramteter to get a continous time estimate
-				_rtl_time_estimate.time_estimate +=
-					(gpos.alt - _return_location.alt) / _param_mpc_land_speed.get();
+		{
+			float dt = 0;
+				// Add land segment (second landing phase) which comes after LOITER
+				if (_rtl_state == RTL_STATE_LAND) {
+					// If we are in this phase, use the current vehicle altitude  instead
+					// of the altitude paramteter to get a continous time estimate
+					dt = (gpos.alt - _return_location.alt) / _param_mpc_land_speed.get();
 
-			} else if (loiter_altitude >= _return_location.alt){
-				// If this phase is not active yet, simply use the loiter altitude,
-				// which is where the LAND phase will start
-				_rtl_time_estimate.time_estimate += (loiter_altitude - _return_location.alt) /
-								    _param_mpc_land_speed.get();
+				} else {
+					// If this phase is not active yet, simply use the loiter altitude,
+					// which is where the LAND phase will start
+					 dt = (loiter_altitude - _return_location.alt) /
+									    _param_mpc_land_speed.get();
+				}
+
+				// Prevent negative times when close to the ground
+				if (dt>0){
+					_rtl_time_estimate.time_estimate += dt;
+				}
 			}
 
 			break;

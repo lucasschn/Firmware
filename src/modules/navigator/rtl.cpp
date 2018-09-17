@@ -656,17 +656,15 @@ RTL::publish_rtl_time_estimate()
 		case RTL_STATE_BRAKE:
 
 		// Fallthrough intented
-		case RTL_STATE_CLIMB:
-		{
-			// Climb segment is only relevant if the drone is below return altitude
-			const float climb_dist = gpos.alt < return_alt ? (return_alt - gpos.alt) : 0;
+		case RTL_STATE_CLIMB: {
+				// Climb segment is only relevant if the drone is below return altitude
+				const float climb_dist = gpos.alt < return_alt ? (return_alt - gpos.alt) : 0;
 
-			// use difference between current altitude and return_alt
-			if (climb_dist > 0) {
-				_rtl_time_estimate.time_estimate += climb_dist / _param_mpc_vel_z_auto.get();
+				// use difference between current altitude and return_alt
+				if (climb_dist > 0) {
+					_rtl_time_estimate.time_estimate += climb_dist / _param_mpc_vel_z_auto.get();
+				}
 			}
-
-		}
 
 		// Fallthrough intented
 		case RTL_STATE_PRE_RETURN:
@@ -696,9 +694,9 @@ RTL::publish_rtl_time_estimate()
 			// TODO: Check if landing gear is deployed or not
 			_rtl_time_estimate.time_estimate += _param_land_delay.get();
 
-		case RTL_STATE_LAND:
-		{
-			float dt = 0;
+		case RTL_STATE_LAND: {
+				float dt = 0;
+
 				// Add land segment (second landing phase) which comes after LOITER
 				if (_rtl_state == RTL_STATE_LAND) {
 					// If we are in this phase, use the current vehicle altitude  instead
@@ -708,12 +706,12 @@ RTL::publish_rtl_time_estimate()
 				} else {
 					// If this phase is not active yet, simply use the loiter altitude,
 					// which is where the LAND phase will start
-					 dt = (loiter_altitude - _return_location.alt) /
-									    _param_mpc_land_speed.get();
+					dt = (loiter_altitude - _return_location.alt) /
+					     _param_mpc_land_speed.get();
 				}
 
 				// Prevent negative times when close to the ground
-				if (dt>0){
+				if (dt > 0) {
 					_rtl_time_estimate.time_estimate += dt;
 				}
 			}

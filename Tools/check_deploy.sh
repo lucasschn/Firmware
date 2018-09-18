@@ -42,7 +42,7 @@ else
 fi
 
 # check whether changelog entry exists for current tag
-if [[ $(cat CHANGELOG.md | grep "### $version_tag") ]]; then
+if [[ $(cat CHANGELOG.md | grep "## \[$version_tag") ]]; then
     echo "check_deploy.sh: changelog entry exists"
 else
     echo "check_deploy.sh: changelog entry does not exist or has wrong format, exit 1"

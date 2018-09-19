@@ -635,32 +635,29 @@ RTL::publish_rtl_time_estimate()
 
 		const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
-		// compute the return altitude. This takes the yuneec-cone into account
-		float return_alt;
+		float return_alt = 0;
+		float loiter_altitude = 0;
 
-		if (_rtl_state == RTL_STATE_NONE) {
-			// Get return altitude if RTL were to be initiated at current location
-			return_alt = get_rtl_altitude();
-
-		} else {
-			// RTL is currently active. Get return altitude directly from RTL
-			return_alt = _mission_item.altitude;
-		}
-
-		float loiter_altitude = math::min(_return_location.alt + _param_descend_alt.get(), return_alt);
-
+		// Sum up time estimate for various segments of the landing procedure
 		switch (_rtl_state) {
 		case RTL_STATE_NONE:
+			// While RTL is inactive, calculate the RTL altitude the same way we would
+			// if RTl was activated right here and now.
+			return_alt = get_rtl_altitude();
 
 		// Fallthrough intented
 		case RTL_STATE_BRAKE:
 
 		// Fallthrough intented
 		case RTL_STATE_CLIMB: {
+				// Extract return altitude from mission when RTL has already been initiated
+				if (_rtl_state == RTL_STATE_CLIMB) {
+					return_alt = _mission_item.altitude;
+				}
+
 				// Climb segment is only relevant if the drone is below return altitude
 				const float climb_dist = gpos.alt < return_alt ? (return_alt - gpos.alt) : 0;
 
-				// use difference between current altitude and return_alt
 				if (climb_dist > 0) {
 					_rtl_time_estimate.time_estimate += climb_dist / _param_mpc_vel_z_auto.get();
 				}
@@ -668,52 +665,96 @@ RTL::publish_rtl_time_estimate()
 
 		// Fallthrough intented
 		case RTL_STATE_PRE_RETURN:
+			// Read: if this case is the entry point to the switch
+			if (_rtl_state == RTL_STATE_PRE_RETURN) {
+				return_alt = _mission_item.altitude;
+			}
 
 		// Fallthrough intented
 		case RTL_STATE_RETURN:
+			// Extract return altitude from mission when RTL has already been initiated
+			if (_rtl_state == RTL_STATE_RETURN) {
+				return_alt = _mission_item.altitude;  // Needed by subsequent cases
+			}
+
 			// Add cruise segment to home
 			_rtl_time_estimate.time_estimate += get_distance_to_next_waypoint(
 					_return_location.lat, _return_location.lon,	gpos.lat, gpos.lon) / _param_mpc_xy_cruise.get();
 
 		// Fallthrough intented
 		case RTL_STATE_AFTER_RETURN:
+			// Read: if this case is the entry point to the switch
+			if (_rtl_state == RTL_STATE_AFTER_RETURN) {
+				return_alt = _mission_item.altitude;
+			}
 
 		// Fallthrough intented
 		case RTL_STATE_TRANSITION_TO_MC:
+			// Read: if this case is the entry point to the switch
+			if (_rtl_state == RTL_STATE_TRANSITION_TO_MC) {
+				return_alt = _mission_item.altitude;
+			}
 
 		// Fallthrough intented
 		case RTL_STATE_DESCEND: {
+				// Read: if this case is the entry point to the switch
+				if (_rtl_state == RTL_STATE_DESCEND) {
+					return_alt = _mission_item.altitude;
+				}
+
+				// when descending, the target altitude is stored in the current mission item
+				float initial_altitude = 0;
+
+				if (_rtl_state == RTL_STATE_DESCEND) {
+					// Take current vehicle altitude as the starting point for calculation
+					initial_altitude = gpos.alt;  // TODO: Check if this is in the right frame
+					loiter_altitude = _mission_item.altitude;  // Next waypoint = loiter
+
+
+				} else {
+					// Take the return altitude as the starting point for the calculation
+					initial_altitude = return_alt; // CLIMB and RETURN
+					loiter_altitude = math::min(_return_location.alt + _param_descend_alt.get(), return_alt);
+				}
+
 				// Add descend segment (first landing phase: return alt to loiter alt)
-				_rtl_time_estimate.time_estimate += fabsf(return_alt - loiter_altitude) /
+				_rtl_time_estimate.time_estimate += fabsf(initial_altitude - loiter_altitude) /
 								    _param_mpc_vel_z_auto.get();
 			}
 
 		// Fallthrough intented
 		case RTL_STATE_LOITER:
+			// Read: if this case is the entry point to the switch
+			if (_rtl_state == RTL_STATE_LOITER) {
+				return_alt = _mission_item.altitude;
+			}
+
 			// Add land delay (the short pause for deploying landing gear)
 			// TODO: Check if landing gear is deployed or not
 			_rtl_time_estimate.time_estimate += _param_land_delay.get();
 
 		case RTL_STATE_LAND: {
-				float dt = 0;
+				float initial_altitude;
 
 				// Add land segment (second landing phase) which comes after LOITER
 				if (_rtl_state == RTL_STATE_LAND) {
 					// If we are in this phase, use the current vehicle altitude  instead
 					// of the altitude paramteter to get a continous time estimate
-					dt = (gpos.alt - _return_location.alt) / _param_mpc_land_speed.get();
+					initial_altitude = gpos.alt;
+
 
 				} else {
 					// If this phase is not active yet, simply use the loiter altitude,
 					// which is where the LAND phase will start
-					dt = (loiter_altitude - _return_location.alt) /
-					     _param_mpc_land_speed.get();
+					loiter_altitude = math::min(_return_location.alt + _param_descend_alt.get(), return_alt);
+					initial_altitude = loiter_altitude;
 				}
 
 				// Prevent negative times when close to the ground
-				if (dt > 0) {
-					_rtl_time_estimate.time_estimate += dt;
+				if (initial_altitude > _return_location.alt) {
+					_rtl_time_estimate.time_estimate += (initial_altitude - _return_location.alt) / _param_mpc_land_speed.get();
 				}
+
 			}
 
 			break;

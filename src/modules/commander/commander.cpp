@@ -217,6 +217,8 @@ enum class power_state_e : uint8_t
 	wait_for_poweroff
 };
 
+static bool _should_reevaluate_mode_slot = true;
+
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -1168,6 +1170,9 @@ Commander::set_home_position(orb_advert_t &homePub, home_position_s &home, bool 
 		if (!status_flags.condition_home_position_valid) {
 			tune_home_set(true);
 		}
+
+		// Once we have home, we switch to the mode we commanded in the first place.
+		_should_reevaluate_mode_slot = true;
 
 		/* mark home position as set */
 		status_flags.condition_home_position_valid = true;
@@ -2933,6 +2938,7 @@ Commander::run()
 				// no need for param notification: the only user is mavlink which reads the param upon request
 				param_set_no_notification(_param_flight_uuid, &flight_uuid);
 				last_disarmed_timestamp = hrt_absolute_time();
+				_should_reevaluate_mode_slot = true;
 			}
 		}
 
@@ -3406,6 +3412,11 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	}
 
 	control_mode.flag_control_updated = false;
+
+	// FIXME: this is an ugly workaround
+	// Before we save _last_sp_man, we need to remember if the mode slot has actually changed or not
+	const bool mode_slot_has_actually_changed = (sp_man.mode_slot != _last_sp_man.mode_slot);
+
 	_last_sp_man = sp_man;
 
 	// reset the position and velocity validity calculation to give the best change of being able to select
@@ -3456,7 +3467,9 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	}
 
 	/* we know something has changed - check if we are in mode slot operation */
-	if (sp_man.mode_slot != manual_control_setpoint_s::MODE_SLOT_NONE) {
+	if ((sp_man.mode_slot != manual_control_setpoint_s::MODE_SLOT_NONE && mode_slot_has_actually_changed) || _should_reevaluate_mode_slot) {
+
+		_should_reevaluate_mode_slot = false;
 
 		if (sp_man.mode_slot >= (int)(sizeof(_flight_mode_slots) / sizeof(_flight_mode_slots[0]))) {
 			warnx("m slot overflow");

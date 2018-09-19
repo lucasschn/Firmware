@@ -126,3 +126,18 @@ PARAM_DEFINE_INT32(RTL_TYPE, 0);
  * @value 1 Return to GCS-location
  */
 PARAM_DEFINE_INT32(RTL_TO_GCS, 0);
+
+/**
+ * Cone distance
+ *
+ * Within this distance a cone will be applied to the return altitude.
+ * Set to -1 to disable
+ *
+ * @unit m
+ * @min -1.0
+ * @max 50
+ * @decimal 1
+ * @increment 0.5
+ * @group Return Mode
+ */
+PARAM_DEFINE_FLOAT(RTL_CONE_DIST, 5.0f);

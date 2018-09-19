@@ -542,8 +542,8 @@ RTL::get_rtl_altitude()
 
 	float climb_alt = _return_location.alt + _param_return_alt.get();
 
-	// if within 50m, only climb to a 63.43 (arbitrary) degree cone (two times distance_home)
-	const float max_cone_dist = 50.0f;
+	// if within 5m, only climb to a 63.43 (arbitrary) degree cone (two times distance_home)
+	const float max_cone_dist = 5.0f;
 
 	if (distance_home < max_cone_dist) {
 		climb_alt = math::min(

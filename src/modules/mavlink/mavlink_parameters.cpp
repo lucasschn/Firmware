@@ -152,6 +152,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				    strcmp(name, "MPC_VEL_MANUAL") != 0 &&
 				    strcmp(name, "MPC_VEL_MAN_DN") != 0 &&
 				    strcmp(name, "MPC_VEL_MAN_UP") != 0 &&
+				    strcmp(name, "RTL_CONE_DIST") != 0 &&
 				    strcmp(name, "RTL_RETURN_ALT") != 0 &&
 				    strcmp(name, "RC_MODE") != 0 &&
 				    strcmp(name, "SYS_HITL") != 0) {

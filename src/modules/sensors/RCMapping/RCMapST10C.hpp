@@ -74,6 +74,8 @@ public:
 		man.arm_switch = two_way_switch((int)TwoWay::arm_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
 		man.loiter_switch = two_way_switch((int)TwoWay::loiter_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
 		man.return_switch = two_way_switch((int)TwoWay::rtl_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
+		// Hardcode mode to be in POSCTL.
+		man.mode_slot = manual_control_setpoint_s::MODE_SLOT_2;
 		//const bool photo_button_pressed = two_way_switch(TwoWay::photo_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
 		//const bool video_button_pressed = two_way_switch(TwoWay::video_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
 

@@ -56,7 +56,7 @@ class ObstacleAvoidance : public ModuleParams
 {
 public:
 	ObstacleAvoidance(ModuleParams *parent);
-	~ObstacleAvoidance() = default;
+	~ObstacleAvoidance();
 
 	/**
 	 * Method to publish velocity setpoints to stop in front of an obstacle

@@ -74,9 +74,11 @@ ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 ObstacleAvoidance::~ObstacleAvoidance()
 {
 	orb_unsubscribe(_obstacle_distance_sub);
+
 	for (unsigned int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		orb_unsubscribe(_distance_sensor_sub[i]);
 	}
+
 	orb_unsubscribe(_home_position_sub);
 	orb_unsubscribe(_manual_control_sub);
 	orb_unsubscribe(_vehicle_status_sub);

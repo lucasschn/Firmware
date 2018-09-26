@@ -1129,7 +1129,8 @@ bool
 MulticopterPositionControl::use_obstacle_avoidance()
 {
 	/* check that external obstacle avoidance is sending data and that the first point is valid */
-	return (MPC_OBS_AVOID.get()
+	return (((_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+		 || (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE))
 		&& (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) < TRAJECTORY_STREAM_TIMEOUT_US)
 		&& (_traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true)
 		&& ((_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) ||

@@ -45,6 +45,7 @@
 
 #include <math.h>
 
+#include <drivers/drv_hrt.h>
 #include <uORB/topics/vehicle_command.h>
 
 static constexpr float DELAY_SIGMA = 0.01f;
@@ -63,12 +64,13 @@ RTL::~RTL()
 void
 RTL::on_inactive()
 {
+	using namespace time_literals;
+
 	// Reset RTL state.
 	_rtl_state = RTL_STATE_NONE;
 
 	// Limit calculation and publishing frequency
-	if ((hrt_absolute_time() - _rtl_time_estimate.timestamp) >
-	    1000000 / _RTL_TIME_ESTIMATE_FREQUENCY) {
+	if ((hrt_absolute_time() - _rtl_time_estimate.timestamp) > 1_s) {
 		update_return_location();
 		publish_rtl_time_estimate();
 	}
@@ -146,14 +148,15 @@ RTL::on_activation()
 void
 RTL::on_active()
 {
+	using namespace time_literals;
+
 	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
 		advance_rtl();
 		set_rtl_item();
 	}
 
 	// Limit calculation and publishing frequency
-	if ((hrt_absolute_time() - _rtl_time_estimate.timestamp) >
-	    1000000 / _RTL_TIME_ESTIMATE_FREQUENCY) {
+	if ((hrt_absolute_time() - _rtl_time_estimate.timestamp) > 1_s) {
 		publish_rtl_time_estimate();
 	}
 }

@@ -104,7 +104,7 @@ private:
 	/**
 	 * Compute and publish the estimated time to perform RTL from the current location.
 	 */
-	void		publish_rtl_time_estimate();
+	void		calc_and_pub_rtl_time_estimate();
 
 	/**
 	 * Set return location to either the launch-site or current position of the

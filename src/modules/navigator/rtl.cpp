@@ -72,7 +72,7 @@ RTL::on_inactive()
 	// Limit calculation and publishing frequency
 	if ((hrt_absolute_time() - _rtl_time_estimate.timestamp) > 1_s) {
 		update_return_location();
-		publish_rtl_time_estimate();
+		calc_and_pub_rtl_time_estimate();
 	}
 }
 
@@ -157,7 +157,7 @@ RTL::on_active()
 
 	// Limit calculation and publishing frequency
 	if ((hrt_absolute_time() - _rtl_time_estimate.timestamp) > 1_s) {
-		publish_rtl_time_estimate();
+		calc_and_pub_rtl_time_estimate();
 	}
 }
 
@@ -616,7 +616,7 @@ RTL::update_return_location()
 }
 
 void
-RTL::publish_rtl_time_estimate()
+RTL::calc_and_pub_rtl_time_estimate()
 {
 	// Advertise uORB topic the first time
 	if (_rtl_time_estimate_pub == nullptr) {
@@ -643,7 +643,7 @@ RTL::publish_rtl_time_estimate()
 
 		if (_rtl_state == RTL_STATE_NONE) {
 			// While RTL is inactive, calculate the RTL altitude the same way we would
-			// if RTl was activated right here and now.
+			// if RTL was activated right here and now.
 			return_alt = get_rtl_altitude();
 
 		} else {
@@ -654,8 +654,6 @@ RTL::publish_rtl_time_estimate()
 		// Sum up time estimate for various segments of the landing procedure
 		switch (_rtl_state) {
 		case RTL_STATE_NONE:
-
-			return_alt = get_rtl_altitude();
 
 		// Fallthrough intented
 		case RTL_STATE_BRAKE:
@@ -742,9 +740,14 @@ RTL::publish_rtl_time_estimate()
 			break;
 
 		case RTL_STATE_LANDED:
+			// Remaining time is 0
 			break;
 
 		case RTL_STATE_HOME:
+			// Remaining time is 0
+			break;
+
+		default:
 			break;
 		}
 

@@ -87,8 +87,8 @@ enum class MPC2520_MEAS_MODE {
 
 
 /* internal conversion time is 9.17 ms, so sensor should not be polled at rates higher than 100 Hz */
-#define MPC2520_CONVERSION_INTERVAL	25000	/* microseconds */  // TODO: Doesn't this depend on the (max) rate?!
-#define MPC2520_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
+#define MPC2520_CONVERSION_INTERVAL		25000				/* microseconds */  // TODO: Doesn't this depend on the (max) rate?! -> max. sampling rate is 128 Hz, thus too high -> leave value like that
+#define MPC2520_MEASUREMENT_RATIO		3					/* pressure measurements per temperature measurement */
 #define MPC2520_BARO_DEVICE_PATH_EXT	"/dev/mpc2520_ext"  // TODO: Move to some header
 #define MPC2520_BARO_DEVICE_PATH_INT	"/dev/mpc2520_int"
 
@@ -193,11 +193,11 @@ protected:
 	int			read_reg(uint8_t reg, uint8_t &val);
 
 
-	int	 		set_sampling_rate(uint8_t iSensor,
+	int 		set_sampling_rate(uint8_t iSensor,
 			MPC2520_SAMPLING_RATE u8SmplRate,
 			MPC2520_OVERSAMPLING_RATE u8OverSmpl);
 
-	int	 		set_measure_mode(MPC2520_MEAS_MODE mode);
+	int 		set_measure_mode(MPC2520_MEAS_MODE mode);
 
 	/**
 	 * Collect the result of the most recent measurement.

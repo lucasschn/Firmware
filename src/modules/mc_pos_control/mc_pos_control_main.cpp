@@ -1085,7 +1085,9 @@ void
 MulticopterPositionControl::update_avoidance_waypoint_desired(PositionControlStates &states,
 		vehicle_local_position_setpoint_s &setpoint)
 {
-	if (MPC_OBS_AVOID.get()) {
+	if ((_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+	    || (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE)) {
+
 		_traj_wp_avoidance_desired = _flight_tasks.getAvoidanceWaypoint();
 
 		_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();

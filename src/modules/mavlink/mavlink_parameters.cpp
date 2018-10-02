@@ -144,6 +144,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 				// only allow setting the following params
 				if (strcmp(name, "COM_LED_MODE") != 0 &&
+				    strcmp(name, "COM_RC_LOSS_MAN") != 0 &&
 				    strcmp(name, "EKF2_INDOOR_MODE") != 0 &&
 				    strcmp(name, "GF_ACTION") != 0 &&
 				    strcmp(name, "GF_MAX_HOR_DIST") != 0 &&

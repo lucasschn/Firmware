@@ -155,7 +155,7 @@ PARAM_DEFINE_FLOAT(RTL_CONE_DIST, 5.0f);
  * @increment 0.1
  * @group Return To Land
  */
-PARAM_DEFINE_FLOAT(RTL_TIME_FACTOR, 1.2f);
+PARAM_DEFINE_FLOAT(RTL_TIME_FACTOR, 1.1f);
 
 /**
  * RTL time estimate safety margin
@@ -170,4 +170,4 @@ PARAM_DEFINE_FLOAT(RTL_TIME_FACTOR, 1.2f);
  * @increment 1
  * @group Return To Land
  */
-PARAM_DEFINE_INT32(RTL_TIME_MARGIN, 60);
+PARAM_DEFINE_INT32(RTL_TIME_MARGIN, 10);

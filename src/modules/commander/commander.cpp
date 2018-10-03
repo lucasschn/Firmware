@@ -2079,7 +2079,7 @@ Commander::run()
 			// Compare estimate of RTL to estimate of remaining flight time
 			if(armed.armed &&
 				!rtl_time_actions_done &&
-				!(battery.time_remaining_s <= -1+FLT_EPSILON && battery.time_remaining_s >= -1-FLT_EPSILON) &&
+				!(battery.time_remaining_s <= FLT_EPSILON) &&
 				internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL &&
 				rtl_time_estimate.valid &&
 				rtl_time_estimate.safe_time_estimate >= battery.time_remaining_s) {

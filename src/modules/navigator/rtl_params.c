@@ -148,7 +148,7 @@ PARAM_DEFINE_FLOAT(RTL_CONE_DIST, 5.0f);
  * Safety factor that is used to scale the actual RTL time estiamte.
  *
  *
- * @unit s
+ * @unit -
  * @min 1.0
  * @max 2.0
  * @decimal 1

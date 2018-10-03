@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 * ROI: New waypoint types for Region of Interest (missing in DataPilot) (#1819)
 * Structure scan (#1819)
 * Resetting parameters when switching between releases (#2691, #2692, #2693)
+* Added message for RTL time estimate (#2656, #2560)
+* Added safety trigger based on RTL time estimate (#2563)
 
 ### Changed
 * Yaw P gain lowered from 6.0 to 3.5 because of upstream merge (#1872)

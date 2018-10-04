@@ -2111,14 +2111,6 @@ Commander::run()
 			if ((hrt_elapsed_time(&commander_boot_timestamp) > 6_s)
 			    && battery.voltage_filtered_v > 2.0f * FLT_EPSILON) {
 
-				// Skip emergency action if RTL is ongoing and will make it in time
-				bool rtl_will_make_it_in_time =
-					internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL
-					&& !(battery.time_remaining_s <= -1+FLT_EPSILON &&  // Check if defined
-					battery.time_remaining_s >= -1-FLT_EPSILON)  // Check if defined
-					&& rtl_time_estimate.valid
-					&& rtl_time_estimate.safe_time_estimate >= battery.time_remaining_s;
-
 				/* if battery voltage is getting lower, warn using buzzer, etc. */
 				if (battery.warning == battery_status_s::BATTERY_WARNING_LOW &&
 				    !low_battery_voltage_actions_done) {
@@ -2182,7 +2174,7 @@ Commander::run()
 					status_changed = true;
 
 				} else if (battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY &&
-					   !emergency_battery_voltage_actions_done && !rtl_will_make_it_in_time) {
+					   !emergency_battery_voltage_actions_done) {
 
 					emergency_battery_voltage_actions_done = true;
 

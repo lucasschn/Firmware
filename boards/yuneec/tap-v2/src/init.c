@@ -236,7 +236,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (hadCrash == OK) {
 
 		syslog(LOG_ERR, "[boot] There is a hard fault logged. Hold down the SPACE BAR," \
-			" while booting to halt the system!\n");
+		       " while booting to halt the system!\n");
 
 		/* Yes. So add one to the boot count - this will be reset after a successful
 		 * commit to SD
@@ -258,8 +258,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 			hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
 
 			syslog(LOG_ERR, "[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
-				reboots,
-				(bytesWaiting == 0 ? "" : " Due to Key Press\n"));
+			       reboots,
+			       (bytesWaiting == 0 ? "" : " Due to Key Press\n"));
 
 
 			/* For those of you with a debugger set a break point on up_assert and
@@ -313,8 +313,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 					} // Inner Switch
 
 					syslog(LOG_ERR, "\nEnter B - Continue booting\n" \
-						"Enter C - Clear the fault log\n" \
-						"Enter D - Dump fault log\n\n?>");
+					       "Enter C - Clear the fault log\n" \
+					       "Enter D - Dump fault log\n\n?>");
 					fflush(stdout);
 
 					if (!dbgContinue) {

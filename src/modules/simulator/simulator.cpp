@@ -233,7 +233,7 @@ extern "C" {
 						break;
 
 					} else {
-						system_sleep(1);
+						px4_usleep(100000);
 					}
 				}
 

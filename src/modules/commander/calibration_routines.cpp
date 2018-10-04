@@ -860,14 +860,14 @@ calibrate_return calibrate_from_hex_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		calibration_log_info(mavlink_log_pub, "[cal] pending:%s", pendingStr);
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
-		usleep(20000);
+		px4_usleep(20000);
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 
 		// Call worker routine
 		result = calibration_worker(orient, cancel_sub, worker_data);
@@ -877,9 +877,9 @@ calibrate_return calibrate_from_hex_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 
 		// Note that this side is complete
 		side_data_collected[orient] = true;
@@ -887,7 +887,7 @@ calibrate_return calibrate_from_hex_orientation(orb_advert_t *mavlink_log_pub,
 
 		// output neutral tune
 		set_tune(TONE_NOTIFY_NEUTRAL_TUNE);
-		usleep(200000);
+		px4_usleep(200000);
 	}
 
 	return result;

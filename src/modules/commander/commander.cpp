@@ -1325,8 +1325,6 @@ Commander::run()
 	/* Set home and global position to false */
 	status_flags.condition_last_home_position_valid = false;
 	status_flags.condition_home_position_valid = false;
-	status_flags.condition_global_position_valid = false;
-
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);

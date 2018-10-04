@@ -2093,7 +2093,7 @@ Commander::run()
 							break;
 
 						default:
-							mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, BUT RTL FAILED");
+							mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, LAND NOW!");
 					}
 					status_changed = true;
 					rtl_time_actions_done = true;
@@ -2110,6 +2110,14 @@ Commander::run()
 			/* only consider battery voltage if system has been running 6s (usb most likely detected) and battery voltage is valid */
 			if ((hrt_elapsed_time(&commander_boot_timestamp) > 6_s)
 			    && battery.voltage_filtered_v > 2.0f * FLT_EPSILON) {
+
+				// Skip emergency action if RTL is ongoing and will make it in time
+				bool rtl_will_make_it_in_time =
+					internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL
+					&& !(battery.time_remaining_s <= -1+FLT_EPSILON &&  // Check if defined
+					battery.time_remaining_s >= -1-FLT_EPSILON)  // Check if defined
+					&& rtl_time_estimate.valid
+					&& rtl_time_estimate.safe_time_estimate >= battery.time_remaining_s;
 
 				/* if battery voltage is getting lower, warn using buzzer, etc. */
 				if (battery.warning == battery_status_s::BATTERY_WARNING_LOW &&
@@ -2174,7 +2182,7 @@ Commander::run()
 					status_changed = true;
 
 				} else if (battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY &&
-					   !emergency_battery_voltage_actions_done) {
+					   !emergency_battery_voltage_actions_done && !rtl_will_make_it_in_time) {
 
 					emergency_battery_voltage_actions_done = true;
 
@@ -2183,18 +2191,7 @@ Commander::run()
 						// the vehicle state to be published after emergency landing
 						dangerous_battery_level_requests_poweroff = true;
 					} else {
-
-						// Skip emergency action if RTL is ongoing and will make it in time
-						bool rtl_will_make_it_in_time =
-							internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL
-							&& !(battery.time_remaining_s <= -1+FLT_EPSILON &&  // Check if defined
-							battery.time_remaining_s >= -1-FLT_EPSILON)  // Check if defined
-							&& rtl_time_estimate.valid
-							&& rtl_time_estimate.safe_time_estimate >= battery.time_remaining_s;
-
-						// Perform emergency action only if no RTL is ongoing OR RTL is ongoing
-						// but vehicle will not land in time
-						if (!rtl_will_make_it_in_time && (low_bat_action == 2 || low_bat_action == 3)) {
+						if (low_bat_action == 2 || low_bat_action == 3) {
 							transition_result_t s = main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state);
 
 							if (s == TRANSITION_CHANGED) {

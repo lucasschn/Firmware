@@ -86,8 +86,8 @@ constexpr uint32_t MPC2520_64_HZ_SCALE_FACTOR  = 1040384;
 constexpr uint32_t MPC2520_128_HZ_SCALE_FACTOR = 2088960;
 
 /* interface ioctls */
-#define IOCTL_RESET		2
-#define IOCTL_MEASURE		3
+#define IOCTL_RESET				2
+#define IOCTL_MEASURE			3
 
 #define PRESSURE_SENSOR         0
 #define TEMPERATURE_SENSOR      1

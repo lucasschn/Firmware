@@ -89,7 +89,7 @@ enum class MPC2520_MEAS_MODE {
 /* internal conversion time is 9.17 ms, so sensor should not be polled at rates higher than 100 Hz */
 #define MPC2520_CONVERSION_INTERVAL		25000				/* microseconds */  // TODO: Doesn't this depend on the (max) rate?! -> max. sampling rate is 128 Hz, thus too high -> leave value like that
 #define MPC2520_MEASUREMENT_RATIO		3					/* pressure measurements per temperature measurement */
-#define MPC2520_BARO_DEVICE_PATH_EXT	"/dev/mpc2520_ext"  // TODO: Move to some header
+#define MPC2520_BARO_DEVICE_PATH_EXT	"/dev/mpc2520_ext"  // TODO: Move to some header -> however, in other drivers it is also done like here
 #define MPC2520_BARO_DEVICE_PATH_INT	"/dev/mpc2520_int"
 
 class MPC2520 : public device::CDev
@@ -257,7 +257,7 @@ int MPC2520::init()
 
 	if (ret != OK) {
 		DEVICE_DEBUG("CDev init failed");
-		goto out;  // TODO: Get rid of goto
+		return ret;  // TODO: Get rid of goto -> better like this?
 	}
 
 	/* allocate basic report buffers */
@@ -266,7 +266,7 @@ int MPC2520::init()
 	if (_reports == nullptr) {
 		DEVICE_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
-		goto out;  // TODO: Get rid of goto
+		return ret;  // TODO: Get rid of goto -> better like this?
 	}
 
 	/* register alternate interfaces if we have to */
@@ -312,9 +312,6 @@ int MPC2520::init()
 		}
 
 	} while (0);
-
-out:
-	return ret;
 }
 
 int MPC2520::write_reg(uint8_t reg, uint8_t val)
@@ -335,10 +332,10 @@ int MPC2520::set_sampling_rate(uint8_t iSensor,
 			       MPC2520_SAMPLING_RATE u8SmplRate,
 			       MPC2520_OVERSAMPLING_RATE u8OverSmpl)
 {
-	uint8_t reg = 0;  // Register for sensor configuration
-	int32_t i32kPkT = 0;  // Scale Factor (kP or kT), depending on oversampling rate
+	uint8_t reg = 0;  		// Register for sensor configuration
+	int32_t i32kPkT = 0;  	// Scale Factor (kP or kT), depending on oversampling rate
 
-	// TODO: document what's going on
+	// Change sampling rate
 	switch (u8SmplRate) {
 	case MPC2520_SAMPLING_RATE::RATE_2_HZ:
 		reg |= (1 << 4);
@@ -424,13 +421,13 @@ int MPC2520::set_sampling_rate(uint8_t iSensor,
 		if (u8OverSmpl > MPC2520_OVERSAMPLING_RATE::RATE_8_HZ) {
 			read_reg(MPC2520_CFG_REG, reg);
 
-			reg = reg | 0x04;  // TODO: what's 0x04 magic?
+			reg = reg | MPC2520_TMP_B1;  
 			write_reg(MPC2520_CFG_REG, reg);
 
 		} else {
 			read_reg(MPC2520_CFG_REG, reg);
 
-			reg = reg & (~0x04);
+			reg = reg & (~MPC2520_TMP_B1);
 			write_reg(MPC2520_CFG_REG, reg);
 		}
 	}
@@ -438,19 +435,19 @@ int MPC2520::set_sampling_rate(uint8_t iSensor,
 	if (iSensor == TEMPERATURE_SENSOR) {
 		_kT = i32kPkT;
 
-		reg = reg | 0x80;  // TODO: magic
+		reg = reg | MPC2520_MEAS_CFG;
 		write_reg(MPC2520_TMP_CFG, reg);
 
 		if (u8OverSmpl > MPC2520_OVERSAMPLING_RATE::RATE_8_HZ) {
 			read_reg(MPC2520_CFG_REG, reg);
 
-			reg = reg | 0x08;  // TODO: magic
+			reg = reg | MPC2520_MEAS_CFG;
 			write_reg(MPC2520_CFG_REG, reg);
 
 		} else {
 			read_reg(MPC2520_CFG_REG, reg);
 
-			reg = reg & (~0x08);  // TODO: magic
+			reg = reg & (~MPC2520_MEAS_CFG);
 			write_reg(MPC2520_CFG_REG, reg);
 		}
 	}
@@ -460,28 +457,27 @@ int MPC2520::set_sampling_rate(uint8_t iSensor,
 
 int MPC2520::set_measure_mode(MPC2520_MEAS_MODE mode)
 {
-	uint8_t mearsure_mode;
+	uint8_t measure_mode;
 
-	// TODO: Define and document measure modes
 	switch (mode) {
 	case MPC2520_MEAS_MODE::CONTINUOUS_PRESSURE:
-		mearsure_mode = 0x01;
+		measure_mode = MPC2520_PSR_B1;
 		break;
 
 	case MPC2520_MEAS_MODE::CONTINUOUS_TEMPERATURE:
-		mearsure_mode = 0x02;
+		measure_mode = MPC2520_PSR_B0;
 		break;
 
 	case MPC2520_MEAS_MODE::CONTINUOUS_P_AND_T:
-		mearsure_mode = 0x07;
+		measure_mode = MPC2520_TMP_CFG;
 		break;
 
 	default:
-		mearsure_mode = 0x00;
+		measure_mode = 0x00;
 		break;
 	}
 
-	_interface->write(MPC2520_MEAS_CFG, (void *)&mearsure_mode, 1);
+	_interface->write(MPC2520_MEAS_CFG, (void *)&measure_mode, 1);
 
 	return PX4_OK;
 }
@@ -533,7 +529,7 @@ ssize_t MPC2520::read(struct file *filp, char *buffer, size_t buflen)
 			ret = sizeof(*brp);
 		}
 
-	} while (0);  //TODO what's the point of this while loop?!
+	} while (0);
 
 	return ret;
 }

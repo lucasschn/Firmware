@@ -71,6 +71,9 @@
 //      HW_INFO_INIT_REV       2
 //      HW_INFO_INIT_VER           3
 
+// No safety switch on our boards
+#undef GPIO_BTN_SAFETY
+
 // LED mapping
 #define BOARD_FRONT_LED_MASK (1 << 0) | (1 << 3)
 #define BOARD_REAR_LED_MASK  (1 << 1) | (1 << 2)

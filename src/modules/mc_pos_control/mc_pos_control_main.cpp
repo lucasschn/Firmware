@@ -653,9 +653,8 @@ MulticopterPositionControl::task_main()
 				_failsafe_land_hysteresis.set_state_and_update(false);
 
 				// for logging only: publish flighttask setpoints
-				int instance_id = 0;
 				setpoint.timestamp = hrt_absolute_time();
-				orb_publish_auto(ORB_ID(flighttask_setpoint), &_flighttask_sp_pub, &setpoint, &instance_id, ORB_PRIO_DEFAULT);
+				orb_publish_auto(ORB_ID(flighttask_setpoint), &_flighttask_sp_pub, &setpoint, nullptr, ORB_PRIO_DEFAULT);
 
 				// Check if position, velocity or thrust pairs are valid -> trigger failsaife if no pair is valid
 				if (!(PX4_ISFINITE(setpoint.x) && PX4_ISFINITE(setpoint.y)) &&
@@ -671,10 +670,9 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			/* desired waypoints for obstacle avoidance:
-			 * point_0 contains the current position with the desired velocity
-			 * point_1 contains _pos_sp_triplet.current if valid
-			 */
+			// desired waypoints for obstacle avoidance:
+			// point_0 contains the current position with the desired velocity
+			// point_1 contains _pos_sp_triplet.current if valid
 			update_avoidance_waypoint_desired(_states, setpoint);
 
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
@@ -721,9 +719,8 @@ MulticopterPositionControl::task_main()
 			_control.updateState(_states);
 
 			// for logging only: publish constraints
-			int instance_id = 0;
 			constraints.timestamp = hrt_absolute_time();
-			orb_publish_auto(ORB_ID(vehicle_constraints), &_constraints_pub, &constraints, &instance_id, ORB_PRIO_DEFAULT);
+			orb_publish_auto(ORB_ID(vehicle_constraints), &_constraints_pub, &constraints, nullptr, ORB_PRIO_DEFAULT);
 
 			// adjust setpoints based on avoidance
 			if (use_obstacle_avoidance()) {
@@ -738,7 +735,7 @@ MulticopterPositionControl::task_main()
 			// for logging only: publish position-controller  setpoint and state inputs
 			setpoint.timestamp = hrt_absolute_time();
 			orb_publish_auto(ORB_ID(position_control_setpoint_input), &_position_control_setpoint_input_pub, &setpoint,
-					 &instance_id, ORB_PRIO_DEFAULT);
+					 nullptr, ORB_PRIO_DEFAULT);
 			// Generate desired thrust and yaw.
 			_control.generateThrustYawSetpoint(_dt);
 

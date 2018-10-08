@@ -87,9 +87,9 @@ enum class MPC2520_MEAS_MODE {
 
 
 /* internal conversion time is 9.17 ms, so sensor should not be polled at rates higher than 100 Hz */
-#define MPC2520_CONVERSION_INTERVAL		25000				/* microseconds */  // TODO: Doesn't this depend on the (max) rate?! -> max. sampling rate is 128 Hz, thus too high -> leave value like that
+#define MPC2520_CONVERSION_INTERVAL		25000				/* microseconds */
 #define MPC2520_MEASUREMENT_RATIO		3					/* pressure measurements per temperature measurement */
-#define MPC2520_BARO_DEVICE_PATH_EXT	"/dev/mpc2520_ext"  // TODO: Move to some header -> however, in other drivers it is also done like here
+#define MPC2520_BARO_DEVICE_PATH_EXT	"/dev/mpc2520_ext" 
 #define MPC2520_BARO_DEVICE_PATH_INT	"/dev/mpc2520_int"
 
 class MPC2520 : public device::CDev
@@ -257,7 +257,7 @@ int MPC2520::init()
 
 	if (ret != OK) {
 		DEVICE_DEBUG("CDev init failed");
-		return ret;  // TODO: Get rid of goto -> better like this?
+		return ret;
 	}
 
 	/* allocate basic report buffers */
@@ -266,7 +266,7 @@ int MPC2520::init()
 	if (_reports == nullptr) {
 		DEVICE_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
-		return ret;  // TODO: Get rid of goto -> better like this?
+		return ret;
 	}
 
 	/* register alternate interfaces if we have to */
@@ -312,6 +312,8 @@ int MPC2520::init()
 		}
 
 	} while (0);
+
+    return ret;
 }
 
 int MPC2520::write_reg(uint8_t reg, uint8_t val)
@@ -421,13 +423,13 @@ int MPC2520::set_sampling_rate(uint8_t iSensor,
 		if (u8OverSmpl > MPC2520_OVERSAMPLING_RATE::RATE_8_HZ) {
 			read_reg(MPC2520_CFG_REG, reg);
 
-			reg = reg | MPC2520_TMP_B1;  
+			reg = reg | 0x04;  
 			write_reg(MPC2520_CFG_REG, reg);
 
 		} else {
 			read_reg(MPC2520_CFG_REG, reg);
 
-			reg = reg & (~MPC2520_TMP_B1);
+			reg = reg & (~0x04);
 			write_reg(MPC2520_CFG_REG, reg);
 		}
 	}
@@ -435,19 +437,19 @@ int MPC2520::set_sampling_rate(uint8_t iSensor,
 	if (iSensor == TEMPERATURE_SENSOR) {
 		_kT = i32kPkT;
 
-		reg = reg | MPC2520_MEAS_CFG;
+		reg = reg | 0x80;
 		write_reg(MPC2520_TMP_CFG, reg);
 
 		if (u8OverSmpl > MPC2520_OVERSAMPLING_RATE::RATE_8_HZ) {
 			read_reg(MPC2520_CFG_REG, reg);
 
-			reg = reg | MPC2520_MEAS_CFG;
+			reg = reg | 0x80;
 			write_reg(MPC2520_CFG_REG, reg);
 
 		} else {
 			read_reg(MPC2520_CFG_REG, reg);
 
-			reg = reg & (~MPC2520_MEAS_CFG);
+			reg = reg & (~0x80);
 			write_reg(MPC2520_CFG_REG, reg);
 		}
 	}
@@ -461,15 +463,15 @@ int MPC2520::set_measure_mode(MPC2520_MEAS_MODE mode)
 
 	switch (mode) {
 	case MPC2520_MEAS_MODE::CONTINUOUS_PRESSURE:
-		measure_mode = MPC2520_PSR_B1;
+		measure_mode = 0x01;
 		break;
 
 	case MPC2520_MEAS_MODE::CONTINUOUS_TEMPERATURE:
-		measure_mode = MPC2520_PSR_B0;
+		measure_mode = 0x02;
 		break;
 
 	case MPC2520_MEAS_MODE::CONTINUOUS_P_AND_T:
-		measure_mode = MPC2520_TMP_CFG;
+		measure_mode = 0x07;
 		break;
 
 	default:
@@ -736,7 +738,7 @@ int MPC2520::collect()
 	}
 
 	raw = (int32_t)(buf[0] << 16) | (int32_t)(buf[1] << 8) | (int32_t)buf[2];
-	raw = (raw & 0x800000) ? (0xFF000000 | raw) : raw;  // TODO: more magic numbers
+	raw = (raw & 0x800000) ? (0xFF000000 | raw) : raw;
 	fTsc = raw / (double)_kT;
 	fTCompensate =  _prom.c0 * 0.5 + _prom.c1 * fTsc;
 

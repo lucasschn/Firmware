@@ -67,6 +67,7 @@ sercon
 # to reflect the new defaults
 #
 set DEFAULTS_VER 92
+set RELEASE_VER 0  # no release version
 
 # Log file location
 set LOG_FILE /fs/microsd/bootlog.txt
@@ -235,10 +236,18 @@ else
 	set AUTOCNF no
 fi
 
-if param compare SYS_PARAM_VER ${DEFAULTS_VER}
+if param compare SYS_RELEASE_VER ${RELEASE_VER}
 then
-	set NEW_DEFAULTS no
+  # We are on the same release version train
+	if param compare SYS_PARAM_VER ${DEFAULTS_VER}
+	then
+		set NEW_DEFAULTS no
+	else
+		set NEW_DEFAULTS yes
+	fi
 else
+  # The release version changed. SYS_PARAM_VER is meaningless
+	echo "Switched to different firmware release. Resetting parameters."
 	set NEW_DEFAULTS yes
 fi
 
@@ -285,6 +294,7 @@ unset AUTOCNF
 if [ $NEW_DEFAULTS == yes ]
 then
 	param set SYS_PARAM_VER ${DEFAULTS_VER}
+	param set SYS_RELEASE_VER ${RELEASE_VER}
 	param save
 	set NEW_DEFAULTS no
 	reboot
@@ -661,5 +671,7 @@ then
 fi
 
 unset REALSENSE_PORT
+unset DEFAULTS_VER
+unset RELEASE_VER
 
 mavlink boot_complete

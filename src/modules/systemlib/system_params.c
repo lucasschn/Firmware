@@ -153,6 +153,19 @@ PARAM_DEFINE_INT32(SYS_COMPANION, 157600);
 PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
 
 /**
+* Release version
+*
+* This number encodes the release train of yuneec. this allows the parameters
+* to be restored to default when switching from one release train to another,
+* for example when switching between the latest public release and beta version.
+* The nubmer encodes only major and minor version, i.e. '14' for release v1.4.x.
+*
+* @min 0
+* @group System
+*/
+PARAM_DEFINE_INT32(SYS_RELEASE_VER, 0);
+
+/**
  * Enable stack checking
  *
  * @boolean

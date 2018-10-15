@@ -87,6 +87,12 @@ public:
 	 */
 	int mapSlave(manual_control_setpoint_s &man, const input_rc_s &input_rc, const sensors::Parameters &parameters)
 	{
+		// switches
+		man.gimbal_yaw_mode = three_way_switch((int)ThreeWay::pan_switch, CHANNEL_THREE_WAY_SWITCH,
+						       input_rc); // OFF: heading 0, MNIDDLE: angle, ON: angle stabilized
+		man.gimbal_pitch_mode = three_way_switch((int)ThreeWay::tilt_switch, CHANNEL_THREE_WAY_SWITCH,
+					input_rc); // OFF/MIDDLE: angle, ON: velocity
+
 		// analog inputs
 		man.aux1 = unit_range(input_rc.values[CHANNEL_RIGHT_STICK_RIGHT]); // camera pan (= yaw)
 
@@ -98,12 +104,6 @@ public:
 			man.aux2 = unit_range(input_rc.values[CHANNEL_TILT_SLIDER]); // tilt angle control: use tilt slider
 
 		}
-
-		// switches
-		man.gimbal_yaw_mode = three_way_switch((int)ThreeWay::pan_switch, CHANNEL_THREE_WAY_SWITCH,
-						       input_rc); // OFF: heading 0, MNIDDLE: angle, ON: angle stabilized
-		man.gimbal_pitch_mode = three_way_switch((int)ThreeWay::tilt_switch, CHANNEL_THREE_WAY_SWITCH,
-					input_rc); // OFF/MIDDLE: angle, ON: velocity
 
 		// do not overwrite man.timestamp because master is the main required input that triggers rc loss!
 		return (int)RCMap::Error::None;

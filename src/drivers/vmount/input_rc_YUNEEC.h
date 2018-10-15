@@ -32,7 +32,7 @@
 ****************************************************************************/
 
 /**
- * @file input_rc_st16.h
+ * @file input_rc_YUNEEC.h
  * @author Beat Küng <beat-kueng@gmx.net>
  *
  */
@@ -46,20 +46,20 @@ namespace vmount
 
 
 /**
- ** class InputRCSt16
- * RC input class using manual_control_setpoint topic, specific for the ST16.
+ ** class InputRCYUNEEC
+ * RC input class using manual_control_setpoint topic, specific for YUNEEC.
  * It expects:
  * - pitch control on aux2
  * - yaw control on aux1
  * - pitch (tilt) mode on aux3
  * - yaw (pan) mode on aux4
  */
-class InputRCSt16 : public InputRC
+class InputRCYUNEEC : public InputRC
 {
 public:
 
-	InputRCSt16();
-	virtual ~InputRCSt16();
+	InputRCYUNEEC(float deadzone);
+	virtual ~InputRCYUNEEC();
 
 
 protected:
@@ -68,6 +68,7 @@ protected:
 private:
 	bool _first_time = true;
 	float _last_set_aux_values[2] = {};
+	float _dead_zone = 0.0f;
 	uint8_t _last_gimbal_yaw_mode = 0;
 	uint8_t _last_gimbal_pitch_mode = 0;
 };

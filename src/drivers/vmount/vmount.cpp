@@ -58,7 +58,7 @@
 #include "input_mavlink.h"
 #include "input_rc.h"
 #include "input_test.h"
-#include "input_rc_st16.h"
+#include "input_rc_YUNEEC.h"
 #include "output_rc.h"
 #include "output_mavlink.h"
 #include "output_serial.h"
@@ -101,6 +101,7 @@ struct Parameters {
 	float mnt_off_pitch;
 	float mnt_off_roll;
 	float mnt_off_yaw;
+	float stick_deadzone;
 
 	bool operator!=(const Parameters &p)
 	{
@@ -121,7 +122,9 @@ struct Parameters {
 		       mnt_range_yaw != p.mnt_range_yaw ||
 		       mnt_off_pitch != p.mnt_off_pitch ||
 		       mnt_off_roll != p.mnt_off_roll ||
-		       mnt_off_yaw != p.mnt_off_yaw;
+		       mnt_off_yaw != p.mnt_off_yaw ||
+		       stick_deadzone != p.stick_deadzone;
+
 #pragma GCC diagnostic pop
 
 	}
@@ -144,6 +147,7 @@ struct ParameterHandles {
 	param_t mnt_off_pitch;
 	param_t mnt_off_roll;
 	param_t mnt_off_yaw;
+	param_t stick_deadzone;
 };
 
 
@@ -328,14 +332,14 @@ static int vmount_thread_main(int argc, char *argv[])
 					thread_data.input_objs[0] = new InputMavlinkCmdMount(params.mnt_do_stab);
 					break;
 
-				case 4: // Auto with RC ST16
+				case 4: // Auto with RC YUNEEC
 					thread_data.input_objs[0] = new InputMavlinkCmdMount(false);
 					thread_data.input_objs[1] = new InputMavlinkROI();
 
 					// RC is on purpose last here so that if there are any mavlink
 					// messages, they will take precedence over RC.
 					// This logic is done further below while update() is called.
-					thread_data.input_objs[2] = new InputRCSt16();
+					thread_data.input_objs[2] = new InputRCYUNEEC(params.stick_deadzone);
 					thread_data.input_objs_len = 3;
 					break;
 
@@ -603,6 +607,7 @@ void update_params(ParameterHandles &param_handles, Parameters &params, bool &go
 	param_get(param_handles.mnt_off_pitch, &params.mnt_off_pitch);
 	param_get(param_handles.mnt_off_roll, &params.mnt_off_roll);
 	param_get(param_handles.mnt_off_yaw, &params.mnt_off_yaw);
+	param_get(param_handles.stick_deadzone, &params.stick_deadzone);
 
 	got_changes = prev_params != params;
 }
@@ -625,6 +630,7 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_off_pitch = param_find("MNT_OFF_PITCH");
 	param_handles.mnt_off_roll = param_find("MNT_OFF_ROLL");
 	param_handles.mnt_off_yaw = param_find("MNT_OFF_YAW");
+	param_handles.stick_deadzone = param_find("MPC_HOLD_DZ");
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
@@ -641,7 +647,8 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 		param_handles.mnt_range_yaw == PARAM_INVALID ||
 		param_handles.mnt_off_pitch == PARAM_INVALID ||
 		param_handles.mnt_off_roll == PARAM_INVALID ||
-		param_handles.mnt_off_yaw == PARAM_INVALID) {
+		param_handles.mnt_off_yaw == PARAM_INVALID ||
+		param_handles.stick_deadzone == PARAM_INVALID) {
 		return false;
 	}
 

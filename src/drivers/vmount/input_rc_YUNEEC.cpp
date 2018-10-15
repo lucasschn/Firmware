@@ -32,12 +32,12 @@
 ****************************************************************************/
 
 /**
- * @file input_rc_st16.cpp
+ * @file input_rc_YUNEEC.cpp
  * @author Beat Küng <beat-kueng@gmx.net>
  *
  */
 
-#include "input_rc_st16.h"
+#include "input_rc_YUNEEC.h"
 
 #include <errno.h>
 #include <px4_posix.h>
@@ -48,17 +48,17 @@ namespace vmount
 {
 
 
-InputRCSt16::InputRCSt16()
-	: InputRC(false, 0, 0, 0)
+InputRCYUNEEC::InputRCYUNEEC(float deadzone)
+	: InputRC(false, 0, 0, 0), _dead_zone(deadzone)
 {
 }
 
-InputRCSt16::~InputRCSt16()
+InputRCYUNEEC::~InputRCYUNEEC()
 {
 }
 
 
-bool InputRCSt16::_read_control_data_from_subscription(ControlData &control_data, bool already_active)
+bool InputRCYUNEEC::_read_control_data_from_subscription(ControlData &control_data, bool already_active)
 {
 	manual_control_setpoint_s manual_control_setpoint;
 	orb_copy(ORB_ID(manual_control_setpoint), _get_subscription_fd(), &manual_control_setpoint);
@@ -68,6 +68,15 @@ bool InputRCSt16::_read_control_data_from_subscription(ControlData &control_data
 
 	new_aux_values[0] = -manual_control_setpoint.aux1;
 	new_aux_values[1] = -manual_control_setpoint.aux2;
+
+	// Apply deadzone
+	if (fabsf(new_aux_values[0]) < _dead_zone) {
+		new_aux_values[0] = 0.0f;
+	}
+
+	if (fabsf(new_aux_values[1]) < _dead_zone) {
+		new_aux_values[1] = 0.0f;
+	}
 
 	// If we were already active previously, we just update normally. Otherwise, there needs to be
 	// a major stick movement to re-activate manual (or it's running for the very first time).

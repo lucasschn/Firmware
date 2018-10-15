@@ -350,6 +350,7 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 
 			// team mode slave control
 			if (map_from_team_mode(parameter_handles)) {
+				// Team mode did not succeed, but nothing to do.
 			}
 
 			publish_manual_inputs();
@@ -447,7 +448,7 @@ RCUpdate::map_from_team_mode(const ParameterHandles &parameter_handles)
 	// overwrite stick inputs with st16 gimbal mapping
 	if (_rcmapping.mapSlave(_manual_sp, gimbal_input, _parameters)) {
 		// inform user that version does not match
-		print_rc_error_message("Old remote control version, please update!");
+		print_rc_error_message("Old slave remote control version, please update!");
 		return false;
 
 	}

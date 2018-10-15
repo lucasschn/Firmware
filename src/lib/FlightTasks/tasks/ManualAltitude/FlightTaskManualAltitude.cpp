@@ -62,11 +62,11 @@ bool FlightTaskManualAltitude::updateInitialize()
 
 bool FlightTaskManualAltitude::activate()
 {
-	bool ret = FlightTaskManualStabilized::activate();
+	_setDefaultConstraints(); // set default constraints
+	bool ret = FlightTaskManualStabilized::activate(); //reuse all setting from Stabilized
 	_thrust_setpoint(2) = NAN; // altitude is controlled from position/velocity
 	_position_setpoint(2) = _position(2);
 	_velocity_setpoint(2) = 0.0f;
-	_setDefaultConstraints();
 
 	if (PX4_ISFINITE(_sub_vehicle_local_position->get().hagl_min)) {
 		_constraints.min_distance_to_ground = _sub_vehicle_local_position->get().hagl_min;

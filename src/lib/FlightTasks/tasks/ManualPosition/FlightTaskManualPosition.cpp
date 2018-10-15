@@ -57,6 +57,7 @@ bool FlightTaskManualPosition::activate()
 {
 	// all requirements from altitude-mode still have to hold
 	bool ret = FlightTaskManualAltitude::activate();
+	_setDefaultConstraints(); // overwrite parameter settings with default
 
 	// set task specific constraint
 	if (_constraints.speed_xy >= MPC_VEL_MANUAL.get()) {

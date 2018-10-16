@@ -236,20 +236,22 @@ else
 	set AUTOCNF no
 fi
 
+if param compare SYS_PARAM_VER ${DEFAULTS_VER}
+then
+	set NEW_DEFAULTS no
+else
+	set NEW_DEFAULTS yes
+fi
+
+# Check if release version train changed
 if param compare SYS_RELEASE_VER ${RELEASE_VER}
 then
-  # We are on the same release version train
-	if param compare SYS_PARAM_VER ${DEFAULTS_VER}
-	then
-		set NEW_DEFAULTS no
-	else
-		set NEW_DEFAULTS yes
-	fi
+	set NEW_DEFAULTS no
 else
-  # The release version changed. SYS_PARAM_VER is meaningless
 	echo "Switched to different firmware release. Resetting parameters."
 	set NEW_DEFAULTS yes
 fi
+
 
 #
 # Set default values

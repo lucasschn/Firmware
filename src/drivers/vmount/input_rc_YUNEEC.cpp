@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <px4_posix.h>
 #include <px4_defines.h>
+#include <mathlib/mathlib.h>
 
 
 namespace vmount
@@ -64,19 +65,10 @@ bool InputRCYUNEEC::_read_control_data_from_subscription(ControlData &control_da
 	orb_copy(ORB_ID(manual_control_setpoint), _get_subscription_fd(), &manual_control_setpoint);
 	control_data.type = ControlData::Type::Angle;
 
+	// Take negative RC value because it's defined opposite and apply deadzone
 	float new_aux_values[2];
-
-	new_aux_values[0] = -manual_control_setpoint.aux1;
-	new_aux_values[1] = -manual_control_setpoint.aux2;
-
-	// Apply deadzone
-	if (fabsf(new_aux_values[0]) < _dead_zone) {
-		new_aux_values[0] = 0.0f;
-	}
-
-	if (fabsf(new_aux_values[1]) < _dead_zone) {
-		new_aux_values[1] = 0.0f;
-	}
+	new_aux_values[0] = math::deadzone(-manual_control_setpoint.aux1, _dead_zone);
+	new_aux_values[1] = math::deadzone(-manual_control_setpoint.aux2, _dead_zone);
 
 	// If we were already active previously, we just update normally. Otherwise, there needs to be
 	// a major stick movement to re-activate manual (or it's running for the very first time).

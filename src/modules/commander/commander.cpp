@@ -2071,36 +2071,6 @@ Commander::run()
 			orb_copy(ORB_ID(cpuload), cpuload_sub, &cpuload);
 		}
 
-		/* Update time estimate for RTL and perform RTL action if required */
-		orb_check(rtl_time_estimate_sub, &updated);
-		if(updated) {
-			orb_copy(ORB_ID(rtl_time_estimate), rtl_time_estimate_sub, &rtl_time_estimate);
-
-			// Compare estimate of RTL to estimate of remaining flight time
-			if(armed.armed &&
-				!rtl_time_actions_done &&
-				!(battery.time_remaining_s <= FLT_EPSILON) &&
-				internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL &&
-				rtl_time_estimate.valid &&
-				rtl_time_estimate.safe_time_estimate >= battery.time_remaining_s) {
-
-					// Try to initiate RTL
-					transition_result_t s = main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state);
-					switch(s){
-						case TRANSITION_CHANGED:
-							warning_action_on = true;
-							mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, RETURNING TO LAND.");
-							break;
-
-						default:
-							mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, LAND NOW!");
-					}
-					status_changed = true;
-					rtl_time_actions_done = true;
-				}
-		}
-
-
 		/* update battery status */
 		orb_check(battery_sub, &updated);
 
@@ -2208,6 +2178,35 @@ Commander::run()
 
 				/* End battery voltage check */
 			}
+		}
+
+		/* Update time estimate for RTL and perform RTL action if required */
+		orb_check(rtl_time_estimate_sub, &updated);
+		if(updated) {
+			orb_copy(ORB_ID(rtl_time_estimate), rtl_time_estimate_sub, &rtl_time_estimate);
+
+			// Compare estimate of RTL to estimate of remaining flight time
+			if(armed.armed &&
+				!rtl_time_actions_done &&
+				!(battery.time_remaining_s <= FLT_EPSILON) &&
+				internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL &&
+				rtl_time_estimate.valid &&
+				rtl_time_estimate.safe_time_estimate >= battery.time_remaining_s) {
+
+					// Try to initiate RTL
+					transition_result_t s = main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state);
+					switch(s){
+						case TRANSITION_CHANGED:
+							warning_action_on = true;
+							mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, RETURNING TO LAND.");
+							break;
+
+						default:
+							mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, LAND NOW!");
+					}
+					status_changed = true;
+					rtl_time_actions_done = true;
+				}
 		}
 
 		/* update subsystem info which arrives from outside of commander*/

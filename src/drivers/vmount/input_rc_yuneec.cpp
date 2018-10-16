@@ -32,12 +32,12 @@
 ****************************************************************************/
 
 /**
- * @file input_rc_YUNEEC.cpp
+ * @file input_rc_yuneec.cpp
  * @author Beat Küng <beat-kueng@gmx.net>
  *
  */
 
-#include "input_rc_YUNEEC.h"
+#include "input_rc_yuneec.h"
 
 #include <errno.h>
 #include <px4_posix.h>
@@ -49,26 +49,26 @@ namespace vmount
 {
 
 
-InputRCYUNEEC::InputRCYUNEEC(float deadzone)
-	: InputRC(false, 0, 0, 0), _dead_zone(deadzone)
+InputRCYuneec::InputRCYuneec(float stick_deadzone)
+	: InputRC(false, 0, 0, 0), _stick_deadzone(stick_deadzone)
 {
 }
 
-InputRCYUNEEC::~InputRCYUNEEC()
+InputRCYuneec::~InputRCYuneec()
 {
 }
 
 
-bool InputRCYUNEEC::_read_control_data_from_subscription(ControlData &control_data, bool already_active)
+bool InputRCYuneec::_read_control_data_from_subscription(ControlData &control_data, bool already_active)
 {
 	manual_control_setpoint_s manual_control_setpoint;
 	orb_copy(ORB_ID(manual_control_setpoint), _get_subscription_fd(), &manual_control_setpoint);
 	control_data.type = ControlData::Type::Angle;
 
-	// Take negative RC value because it's defined opposite and apply deadzone
+	// Take negative RC value because the gimbal awaits the inverted RC value and apply deadzone
 	float new_aux_values[2];
-	new_aux_values[0] = math::deadzone(-manual_control_setpoint.aux1, _dead_zone);
-	new_aux_values[1] = math::deadzone(-manual_control_setpoint.aux2, _dead_zone);
+	new_aux_values[0] = math::deadzone(-manual_control_setpoint.aux1, _stick_deadzone);
+	new_aux_values[1] = math::deadzone(-manual_control_setpoint.aux2, _stick_deadzone);
 
 	// If we were already active previously, we just update normally. Otherwise, there needs to be
 	// a major stick movement to re-activate manual (or it's running for the very first time).

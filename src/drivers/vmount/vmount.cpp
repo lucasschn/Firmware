@@ -58,7 +58,7 @@
 #include "input_mavlink.h"
 #include "input_rc.h"
 #include "input_test.h"
-#include "input_rc_YUNEEC.h"
+#include "input_rc_yuneec.h"
 #include "output_rc.h"
 #include "output_mavlink.h"
 #include "output_serial.h"
@@ -332,14 +332,14 @@ static int vmount_thread_main(int argc, char *argv[])
 					thread_data.input_objs[0] = new InputMavlinkCmdMount(params.mnt_do_stab);
 					break;
 
-				case 4: // Auto with RC YUNEEC
+				case 4: // Auto with RC support for Yuneec
 					thread_data.input_objs[0] = new InputMavlinkCmdMount(false);
 					thread_data.input_objs[1] = new InputMavlinkROI();
 
 					// RC is on purpose last here so that if there are any mavlink
 					// messages, they will take precedence over RC.
 					// This logic is done further below while update() is called.
-					thread_data.input_objs[2] = new InputRCYUNEEC(params.stick_deadzone);
+					thread_data.input_objs[2] = new InputRCYuneec(params.stick_deadzone);
 					thread_data.input_objs_len = 3;
 					break;
 

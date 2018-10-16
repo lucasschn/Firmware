@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file.
 ### Added
 * Command motors to stop if they don't spin up correctly for safety (#3089)
 
+### Changed
+* Changed minimum altitude for OBS. avoidance from 1.5m to 2.0m (#2675)
+
 
 ## [v1.8.0-1.5.9]
 ### Fixed

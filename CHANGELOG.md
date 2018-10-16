@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 * Connecting to drone after startup is now significantly faster (#2049)
 * Multi-battery missions now resumable after low-battery emergency landing (#1999)
 * Compass calibration uses less memory, now also works after a flight (#1884)
+* Fixed scenario where H520 can perform full flips (#2701, #2645)
 
 
 ## [v1.7.3-1.4.9]

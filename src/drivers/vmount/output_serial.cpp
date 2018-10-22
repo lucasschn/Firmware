@@ -290,6 +290,23 @@ int OutputSerial::update(const ControlData *control_data)
 	vehicle_attitude_s vehicle_attitude;
 	orb_copy(ORB_ID(vehicle_attitude), _get_vehicle_attitude_sub(), &vehicle_attitude);
 
+	// Strangely, at the beginning, some spurious attitude updates are published,
+	// therefore we need to actually check if the norm is sane.
+	// The right fix would be if the attitude was only published when it's sane
+	// and we would not run this at all if no attitude is published, however, that would
+	// require bigger changes to vmount, so this check should be a good enough
+	// workaround for now.
+	const float quaternion_norm = sqrtf(vehicle_attitude.q[0]*vehicle_attitude.q[0] +
+					    vehicle_attitude.q[1]*vehicle_attitude.q[1] +
+					    vehicle_attitude.q[2]*vehicle_attitude.q[2] +
+					    vehicle_attitude.q[3]*vehicle_attitude.q[3]);
+
+	if (quaternion_norm < 0.9f) {
+		// Don't send gimbal_controls when the attitude is not initialized yet, otherwise
+		// the gimbal initializes incorrectly.
+		return 0;
+	}
+
 	gimbal_control_t gimbal_control;
 	memset(&gimbal_control, 0, sizeof(gimbal_control));
 	gimbal_control.quaternion[0] = 10000.f * vehicle_attitude.q[0]; //w

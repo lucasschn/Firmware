@@ -392,7 +392,13 @@ class uploader(object):
         self.port.flushInput()
         # Set a baudrate that can not work on a real serial port
         # in that it is 233% off.
-        self.port.baudrate = self.baudrate_bootloader * 2.33
+        try:
+            self.port.baudrate = self.baudrate_bootloader * 2.33
+        except NotImplementedError as e:
+            # This error can occur because pySerial on Windows does not support odd baudrates
+            print(str(e) + " -> could not check for FTDI device, assuming USB connection")
+            return
+
         self.__send(self.__command(self.CMD_GET_SYNC) +
                     self.__command(self.CMD_EOC))
         try:
@@ -401,7 +407,7 @@ class uploader(object):
             # if it fails we are on a real Serial Port
             self.ackWindowedMode = True
 
-        self.port.baudrate =self.baudrate_bootloader
+        self.port.baudrate = self.baudrate_bootloader
 
     # send the GET_DEVICE command and wait for an info parameter
     def __getInfo(self, param):
@@ -453,7 +459,7 @@ class uploader(object):
 
     # send the CHIP_ERASE command and wait for the bootloader to become ready
     def __erase(self, label):
-        print("Windowed mode:%s" % self.ackWindowedMode)
+        print("Windowed mode: %s" % self.ackWindowedMode)
         print("\n", end='')
         self.__send(self.__command(self.CMD_CHIP_ERASE) +
                     self.__command(self.CMD_EOC))
@@ -908,6 +914,26 @@ def main():
     print("Loaded firmware for board id: %s,%s size: %d bytes (%.2f%%), waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size'), percent))
     print()
 
+    # tell any GCS that might be connected to the autopilot to give up
+    # control of the serial port
+
+    # send to localhost and default GCS port
+    ipaddr = '127.0.0.1'
+    portnum = 14550
+
+    # COMMAND_LONG in MAVLink 1
+    heartbeatpacket = bytearray.fromhex('fe097001010000000100020c5103033c8a')
+    commandpacket = bytearray.fromhex('fe210101014c00000000000000000000000000000000000000000000803f00000000f6000000008459')
+
+    # initialize an UDP socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # send heartbeat to initialize connection and command to free the link
+    s.sendto(heartbeatpacket, (ipaddr, portnum))
+    s.sendto(commandpacket, (ipaddr, portnum))
+
+    # close the socket
+    s.close()
 
     # Spin waiting for a device to show up
     try:

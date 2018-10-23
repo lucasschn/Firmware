@@ -135,7 +135,7 @@ if ver hwcmp TAP_V2 TAP_V3 TAP_V4
 then
 
 	# now load from SD card, which can override the temp calib params
-	param select $PARAM_FILE
+	param select ${PARAM_FILE}
 	# we need to use param import (instead of load), because load will cause a reset
 	if param load
 	then
@@ -287,13 +287,13 @@ sh /etc/init.d/rc.autostart
 #
 # If autoconfig parameter was set, reset it and save parameters
 #
-if [ $AUTOCNF == yes ]
+if [ ${AUTOCNF} == yes ]
 then
 	param set SYS_AUTOCONFIG 0
 fi
 unset AUTOCNF
 
-if [ $NEW_DEFAULTS == yes ]
+if [ ${NEW_DEFAULTS} == yes ]
 then
 	param set SYS_PARAM_VER ${DEFAULTS_VER}
 	param set SYS_RELEASE_VER ${RELEASE_VER}
@@ -305,9 +305,9 @@ fi
 #
 # Set default output if not set
 #
-if [ $OUTPUT_MODE == none ]
+if [ ${OUTPUT_MODE} == none ]
 then
-	if [ $USE_IO == yes ]
+	if [ ${USE_IO} == yes ]
 	then
 		set OUTPUT_MODE io
 	else
@@ -342,10 +342,10 @@ then
 fi
 
 
-if [ $DO_TEMP_CALIB == 0 ]
+if [ ${DO_TEMP_CALIB} == 0 ]
 then
 
-	if [ $HITL_ON == no ]
+	if [ ${HITL_ON} == no ]
 	then
 		set GPS_PORT /dev/ttyS0
 
@@ -367,7 +367,7 @@ then
 
 	# waypoint storage
 	# REBOOTWORK this needs to start in parallel
-	dataman start $DATAMAN_OPT
+	dataman start ${DATAMAN_OPT}
 
 fi
 
@@ -381,7 +381,7 @@ fi
 #
 fmu mode_pwm3
 
-if [ $HITL_ON == no ]
+if [ ${HITL_ON} == no ]
 then
 	if ver hwcmp TAP_V1
 	then
@@ -408,7 +408,7 @@ fi
 
 
 # make sure to start temperature calibration after the sensors
-if [ "x$TEMP_CALIB_ARGS" != "x" ]
+if [ "x${TEMP_CALIB_ARGS}" != "x" ]
 then
 	usleep 100000
 	send_event temperature_calibration ${TEMP_CALIB_ARGS}
@@ -417,7 +417,7 @@ unset TEMP_CALIB_ARGS
 
 
 
-if [ $HITL_ON == no ]
+if [ ${HITL_ON} == no ]
 then
 	sh /etc/init.d/rc.sensors
 	commander start
@@ -471,7 +471,7 @@ else
 	vmount start -d ${GIMBAL_TTY} -b ${BAUDRATE}
 
 	# run mavlink (the same instance) on USB and gimbal port
-	if [ $HITL_ON == no ]
+	if [ ${HITL_ON} == no ]
 	then
 		mavlink_dup start -d /dev/mavlink_dup
 		mavlink_dup add -d ${GIMBAL_TTY} -b ${BAUDRATE}
@@ -507,7 +507,7 @@ unset MAV_RATE
 #
 if ver hwcmp TAP_V2
 then
-		if [ $HITL_ON == yes ]
+		if [ ${HITL_ON} == yes ]
 		then
 			# prevent starting logger on H520 in HITL mode - not enough memory
 			set START_LOGGER 0
@@ -515,7 +515,7 @@ then
 		fi
 fi
 
-if [ $START_LOGGER == 1 ]
+if [ ${START_LOGGER} == 1 ]
 then
 	set LOGGER_ARGS ""
 	if param compare SDLOG_MODE 1
@@ -540,22 +540,22 @@ unset BAUDRATE
 #
 # Fixed wing setup
 #
-if [ $VEHICLE_TYPE == fw ]
+if [ ${VEHICLE_TYPE} == fw ]
 then
 
-	if [ $MIXER == none ]
+	if [ ${MIXER} == none ]
 	then
 		# Set default mixer for fixed wing if not defined
 		set MIXER AERT
 	fi
 
-	if [ $MAV_TYPE == none ]
+	if [ ${MAV_TYPE} == none ]
 	then
 		# Use MAV_TYPE = 1 (fixed wing) if not defined
 		set MAV_TYPE 1
 	fi
 
-	param set MAV_TYPE $MAV_TYPE
+	param set MAV_TYPE ${MAV_TYPE}
 
 	# Load mixer and configure outputs
 	sh /etc/init.d/rc.interface
@@ -567,58 +567,58 @@ fi
 #
 # Multicopters setup
 #
-if [ $VEHICLE_TYPE == mc ]
+if [ ${VEHICLE_TYPE} == mc ]
 then
 
-	if [ $MIXER == none ]
+	if [ ${MIXER} == none ]
 	then
 		echo "INFO  [init] Mixer undefined"
 	fi
 
-	if [ $MAV_TYPE == none ]
+	if [ ${MAV_TYPE} == none ]
 	then
 		# Use mixer to detect vehicle type
-		if [ $MIXER == quad_x -o $MIXER == quad_+ ]
+		if [ ${MIXER} == quad_x -o ${MIXER} == quad_+ ]
 		then
 			set MAV_TYPE 2
 		fi
-		if [ $MIXER == quad_w ]
+		if [ ${MIXER} == quad_w ]
 		then
 			set MAV_TYPE 2
 		fi
-		if [ $MIXER == quad_h ]
+		if [ ${MIXER} == quad_h ]
 		then
 			set MAV_TYPE 2
 		fi
-		if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
+		if [ ${MIXER} == tri_y_yaw- -o ${MIXER} == tri_y_yaw+ ]
 		then
 			set MAV_TYPE 15
 		fi
-		if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
+		if [ ${MIXER} == hexa_x -o ${MIXER} == hexa_+ ]
 		then
 			set MAV_TYPE 13
 		fi
-		if [ $MIXER == hexa_cox ]
+		if [ ${MIXER} == hexa_cox ]
 		then
 			set MAV_TYPE 13
 		fi
-		if [ $MIXER == octo_x -o $MIXER == octo_+ ]
+		if [ ${MIXER} == octo_x -o ${MIXER} == octo_+ ]
 		then
 			set MAV_TYPE 14
 		fi
 	fi
 
 	# Still no MAV_TYPE found
-	if [ $MAV_TYPE == none ]
+	if [ ${MAV_TYPE} == none ]
 	then
 		echo "WARN  [init] Unknown MAV_TYPE"
 		param set MAV_TYPE 2
 	else
-		param set MAV_TYPE $MAV_TYPE
+		param set MAV_TYPE ${MAV_TYPE}
 	fi
 
 	# Load mixer and configure outputs
-	if [ $HITL_ON == yes ]
+	if [ ${HITL_ON} == yes ]
 	then
 		# Override mixer to quad_x for HITL simulation
 		set MIXER quad_x

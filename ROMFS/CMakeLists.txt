@@ -102,7 +102,7 @@ endif()
 
 # Copy Yuneec tap_esc firmware binary if configured
 if (config_tap_esc_fw)
-	list(APPEND romfs_dependencies
+	list(APPEND extras_dependencies
 		copy_tap_esc_fw
 		${fw_esc_bin}
 	)

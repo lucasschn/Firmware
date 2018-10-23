@@ -1,3 +1,4 @@
+
 ############################################################################
 #
 #   Copyright (c) 2016 PX4 Development Team. All rights reserved.
@@ -53,11 +54,11 @@ if(DEFINED config_tap_esc_fw)
 	message(STATUS "ESC firmware: ${fw_file_name}")
 
 	set(fw_esc_bin "${PX4_SOURCE_DIR}/ROMFS/yuneec/esc/${fw_file_name}")
-	set(fw_esc_target_dir "${PX4_BINARY_DIR}/genromfs/${config_romfs_root}/extras/")
+	set(fw_esc_target_dir "${PX4_BINARY_DIR}/romfs_extras")
 	set(renamed_fw_esc_bin "${fw_esc_target_dir}/tap_esc.bin")
 
 	add_custom_command(OUTPUT ${renamed_fw_esc_bin}
-		COMMAND mkdir -p ${fw_esc_target_dir}
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${fw_esc_target_dir}
 		COMMAND cp -f ${fw_esc_bin} ${renamed_fw_esc_bin}
 		DEPENDS ${fw_esc_bin}
 		COMMENT "Copying ${fw_esc_bin} to ${renamed_fw_esc_bin}"

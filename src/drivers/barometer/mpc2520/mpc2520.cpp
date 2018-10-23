@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015, 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -807,8 +807,8 @@ TODO
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task. Requries exactly one of the following flags:");
 	PRINT_MODULE_USAGE_PARAM_FLAG('X', "external I2C bus", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('I', "internal I2C bus", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('S', "external SPI bus", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('s', "internal SPI bus", true);
+	// PRINT_MODULE_USAGE_PARAM_FLAG('S', "external SPI bus", true);  // Not implemented
+	// PRINT_MODULE_USAGE_PARAM_FLAG('s', "internal SPI bus", true);  // Not implemented
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Print sensor values");
 

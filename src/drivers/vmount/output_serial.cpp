@@ -376,7 +376,11 @@ int OutputSerial::update(const ControlData *control_data)
 
 	} else { //angle mode
 		if (_cur_control_data->stabilize_axis[2]) {
-			gimbal_control.yaw_mode = 2100;
+			// This sets the gimbal to an absolute angle with 0 as North,
+			// instead of initializing the absolute angle relative to the vehicle.
+			// This is specifically needed for the 3DR integration.
+			gimbal_control.yaw_mode = 3736; // between 3686..3786
+			//gimbal_control.yaw_mode = 2100; // "absolute" relative to vehicle.
 
 		} else {
 			gimbal_control.yaw_mode = 830;

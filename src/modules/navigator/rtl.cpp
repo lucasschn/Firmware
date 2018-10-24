@@ -386,15 +386,25 @@ RTL::set_rtl_item()
 			_mission_item.origin = ORIGIN_ONBOARD;
 			_mission_item.deploy_gear = true;
 
-			vehicle_command_s cmd{};
+			vehicle_command_s cmd_configure{};
+			// Set gimbal to
+			cmd_configure.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
+			cmd_configure.param1 = 2.0f; // VEHICLE_MOUNT_MODE_MAVLINK_TARGETING
+			cmd_configure.param2 = 0.0f; // don't stabilize roll
+			cmd_configure.param3 = 0.0f; // don't stabilize pitch
+			cmd_configure.param4 = 0.0f; // don't stabilize yaw (for now this works, later this is done using param7)
+			cmd_configure.timestamp = hrt_absolute_time();
+			_navigator->publish_vehicle_cmd(&cmd_configure);
+
+			vehicle_command_s cmd_control{};
 			// Set gimbal to default orientation
-			cmd.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
-			cmd.param1 = 0.0f; // pitch
-			cmd.param2 = 0.0f; // roll
-			cmd.param3 = 0.0f; // yaw
-			cmd.param7 = 2.0f; // VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
-			cmd.timestamp = hrt_absolute_time();
-			_navigator->publish_vehicle_cmd(&cmd);
+			cmd_control.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
+			cmd_control.param1 = 0.0f; // pitch
+			cmd_control.param2 = 0.0f; // roll
+			cmd_control.param3 = 0.0f; // yaw
+			cmd_control.param7 = 2.0f; // VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+			cmd_control.timestamp = hrt_absolute_time();
+			_navigator->publish_vehicle_cmd(&cmd_control);
 
 			_navigator->set_can_loiter_at_sp(true);
 

@@ -159,11 +159,13 @@ PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
 * to be restored to default when switching from one release train to another,
 * for example when switching between the latest public release and beta version.
 * The nubmer encodes only major and minor version, i.e. '14' for release v1.4.x.
+* 0  is special and means "no version"
+* -1 is special and means the parameter is not in use
 *
-* @min 0
+* @min -1
 * @group System
 */
-PARAM_DEFINE_INT32(SYS_RELEASE_VER, 0);
+PARAM_DEFINE_INT32(SYS_RELEASE_VER, -1);
 
 /**
  * Enable stack checking

@@ -297,12 +297,12 @@ int OutputSerial::update(const ControlData *control_data)
 	// require bigger changes to vmount, so this check should be a good enough
 	// workaround for now.
 	const float quaternion_norm_squared =
-		vehicle_attitude.q[0]*vehicle_attitude.q[0] +
-		vehicle_attitude.q[1]*vehicle_attitude.q[1] +
-		vehicle_attitude.q[2]*vehicle_attitude.q[2] +
-		vehicle_attitude.q[3]*vehicle_attitude.q[3];
+		vehicle_attitude.q[0] * vehicle_attitude.q[0] +
+		vehicle_attitude.q[1] * vehicle_attitude.q[1] +
+		vehicle_attitude.q[2] * vehicle_attitude.q[2] +
+		vehicle_attitude.q[3] * vehicle_attitude.q[3];
 
-	if (quaternion_norm_squared < 0.9f*0.9f) {
+	if (quaternion_norm_squared < 0.9f * 0.9f) {
 		// Don't send gimbal_controls when the attitude is not initialized yet, otherwise
 		// the gimbal initializes incorrectly.
 		return 0;

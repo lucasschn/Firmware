@@ -177,8 +177,10 @@ bool MulticopterLandDetector::_get_inverted_state()
 	matrix::Vector3f z_axis(0.0f, 0.0f, 1.0f); //body z-axis in body frame
 	z_axis = matrix::Dcmf(matrix::Quatf(_vehicleAttitude.q)) * z_axis; //body z-axis in NED frame
 
-	/* we are inverted if z axis points upward */
-	if (z_axis(2) < 0.0f) {
+	/* we are inverted if z axis points upward
+	0.0f means 90deg -> -0.35 means ~110deg, -1.0f would be 180deg but we
+	need to have a margin to detect the inverted state */
+	if (z_axis(2) < -0.35f) {
 		return true;
 	}
 

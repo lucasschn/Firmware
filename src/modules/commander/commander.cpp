@@ -3433,6 +3433,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 
 		} else {
 			/* changed successfully or already in this state */
+			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
 			return res;
 		}
 	}
@@ -3448,6 +3449,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
 		} else {
 			/* changed successfully or already in this state */
+			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
 			return res;
 		}
 
@@ -3462,13 +3464,13 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 			print_reject_mode("AUTO HOLD");
 
 		} else {
+			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
 			return res;
 		}
 	}
 
 	/* we know something has changed - check if we are in mode slot operation */
 	if ((sp_man.mode_slot != manual_control_setpoint_s::MODE_SLOT_NONE && mode_slot_has_actually_changed) || _should_reevaluate_mode_slot) {
-
 		_should_reevaluate_mode_slot = false;
 
 		if (sp_man.mode_slot >= (int)(sizeof(_flight_mode_slots) / sizeof(_flight_mode_slots[0]))) {

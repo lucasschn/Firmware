@@ -240,16 +240,17 @@ Navigator::vehicle_land_detected_update()
 }
 
 /* --- tap specific update functions */
-void
-Navigator::vehicle_att_sp_update()
-{
-	orb_copy(ORB_ID(vehicle_attitude_setpoint), _vehicle_att_sp_sub, &_att_sp);
-}
 
 void
 Navigator::vehicle_esc_report_update()
 {
 	orb_copy(ORB_ID(esc_status), _esc_report_sub, &_esc_report);
+}
+
+void
+Navigator::landing_gear_update()
+{
+	orb_copy(ORB_ID(landing_gear), _landing_gear_sub, &_landing_gear_state);
 }
 /* --- */
 
@@ -310,10 +311,10 @@ Navigator::run()
 	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
 
 	/* --- tap specific subscription and update */
-	_vehicle_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_esc_report_sub = orb_subscribe(ORB_ID(esc_status));
-	vehicle_att_sp_update();
+	_landing_gear_sub = orb_subscribe(ORB_ID(landing_gear));
 	vehicle_esc_report_update();
+	landing_gear_update();
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -399,16 +400,17 @@ Navigator::run()
 		}
 
 		/* --- tap specific subscription */
-		orb_check(_vehicle_att_sp_sub, &updated);
-
-		if (updated) {
-			vehicle_att_sp_update();
-		}
 
 		orb_check(_esc_report_sub, &updated);
 
 		if (updated) {
 			vehicle_esc_report_update();
+		}
+
+		orb_check(_landing_gear_sub, &updated);
+
+		if (updated) {
+			landing_gear_update();
 		}
 
 		/* --- */
@@ -974,7 +976,9 @@ Navigator::run()
 	orb_unsubscribe(_offboard_mission_sub);
 	orb_unsubscribe(_param_update_sub);
 	orb_unsubscribe(_vehicle_command_sub);
-	orb_unsubscribe(_vehicle_att_sp_sub);
+	// Yuneec specific unsubscribe
+	orb_unsubscribe(_esc_report_sub);
+	orb_unsubscribe(_landing_gear_sub);
 }
 
 int Navigator::task_spawn(int argc, char *argv[])

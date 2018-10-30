@@ -395,6 +395,17 @@ MulticopterAttitudeControl::vehicle_land_detected_poll()
 
 }
 
+void
+MulticopterAttitudeControl::landing_gear_state_poll()
+{
+	bool updated;
+	orb_check(_landing_gear_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(landing_gear), _landing_gear_sub, &_landing_gear_state);
+	}
+}
+
 /**
  * Attitude controller.
  * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
@@ -663,6 +674,7 @@ MulticopterAttitudeControl::run()
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_esc_status_sub = orb_subscribe(ORB_ID(esc_status));
+	_landing_gear_sub =  orb_subscribe(ORB_ID(landing_gear));
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {};
@@ -724,6 +736,7 @@ MulticopterAttitudeControl::run()
 			sensor_bias_poll();
 			vehicle_land_detected_poll();
 			engine_failure_poll();
+			landing_gear_state_poll();
 
 			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
@@ -796,7 +809,7 @@ MulticopterAttitudeControl::run()
 				_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
 				_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
 				_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
-				_actuators.control[7] = _v_att_sp.landing_gear;
+				_actuators.control[7] = _landing_gear_state.landing_gear;
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _sensor_gyro.timestamp;
 
@@ -898,6 +911,8 @@ MulticopterAttitudeControl::run()
 	orb_unsubscribe(_sensor_correction_sub);
 	orb_unsubscribe(_sensor_bias_sub);
 	orb_unsubscribe(_vehicle_land_detected_sub);
+	orb_unsubscribe(_esc_status_sub);
+	orb_unsubscribe(_landing_gear_sub);
 }
 
 int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])

@@ -66,7 +66,6 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -79,6 +78,7 @@
 /* --- tap specific includes */
 #include "descend.h"
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/vehicle_control_mode.h>
 /* --- */
 
@@ -172,7 +172,7 @@ public:
 	struct manual_control_setpoint_s *get_manual_setpoint() { return &_manual;}
 
 	/* --- tap specific getters */
-	struct vehicle_attitude_setpoint_s *get_attitude_sp() { return &_att_sp; }
+	struct landing_gear_s *get_landing_gear() { return &_landing_gear_state; }
 	struct esc_status_s *get_esc_report() { return &_esc_report; }
 	struct vehicle_control_mode_s *get_control_mode() { return &_control_mode; }
 	/* --- */
@@ -312,7 +312,7 @@ private:
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
 	/* --- tap specific subscription */
 	int		_esc_report_sub{-1};		/**< esc report subscription */
-	int		_vehicle_att_sp_sub{-1};	/**< attitude contain gear flag */
+	int 		_landing_gear_sub{-1};
 	int 	_traj_wp_avoidance_sub{-1}; /**< obstacle avoidance subscription */
 	int 	_manual_sub{-1}; /**< manual setpoint subscription */
 	/* --- */
@@ -344,7 +344,7 @@ private:
 	/* --- tap specific subsciption variables */
 	esc_status_s 					_esc_report{};/**< esc status report include engine failure report */
 	vehicle_control_mode_s				_control_mode{};		/**< vehicle control mode */
-	vehicle_attitude_setpoint_s			_att_sp{};
+	landing_gear_s					_landing_gear_state{};
 	/* --- */
 	// Publications
 	geofence_result_s				_geofence_result{};
@@ -424,8 +424,8 @@ private:
 	void		target_motion_update();
 
 	/* --- tap specific update subscription */
-	void		vehicle_att_sp_update();
 	void		vehicle_esc_report_update();
+	void 		landing_gear_update();
 	/* --- */
 
 	void 		local_reference_update();

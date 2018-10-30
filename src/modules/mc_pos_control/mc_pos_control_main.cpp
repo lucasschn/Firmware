@@ -72,6 +72,7 @@
 
 /* --- yuneec specific */
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/landing_gear.h>
 /* --- END yuneec specific */
 
 /**
@@ -107,7 +108,8 @@ private:
 	/* landing gear */
 	int		_manual_sub{-1};			/**< notification of manual control updates */
 	int   _pos_sp_triplet_sub{-1};
-	int8_t _landing_gear_current_state = 0;
+	orb_advert_t	_landing_gear_pub{nullptr};
+	landing_gear_s _landing_gear_state{};
 	uint8_t		_gear_pos_prev = manual_control_setpoint_s::SWITCH_POS_NONE;		/**< Last state of the gear switch */
 	struct manual_control_setpoint_s		_manual = {};		/**< r/c channel data */
 	struct position_setpoint_triplet_s _pos_sp_triplet = {};
@@ -592,7 +594,15 @@ MulticopterPositionControl::task_main()
 	hrt_abstime t_prev = 0;
 
 	// Let's be safe and have the landing gear down by default
-	_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+	_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_DOWN;
+	_landing_gear_state.timestamp = hrt_absolute_time();
+
+	if (_landing_gear_pub != nullptr) {
+		orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
+
+	} else {
+		_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
+	}
 
 	// wakeup source
 	px4_pollfd_struct_t fds[1];
@@ -789,6 +799,13 @@ MulticopterPositionControl::task_main()
 			_att_sp.disable_mc_yaw_control = false;
 			_att_sp.apply_flaps = false;
 
+			// publish attitude setpoint (for attitude controller)
+			// Note: this requires review. The reason for not sending
+			// an attitude setpoint is because for non-flighttask modes
+			// the attitude septoint should come from another source, otherwise
+			// they might conflict with each other such as in offboard attitude control.
+			publish_attitude();
+
 			/* For most cases we want to have gears up except when being on ground. For cases not mentioned below
 			 * we do not care if gears are up or down
 			 * NOTE: it is an if else if statment */
@@ -804,10 +821,10 @@ MulticopterPositionControl::task_main()
 						   || (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL));
 
 			if (move_gear_down) {
-				_landing_gear_current_state = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+				_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_DOWN;
 
 			} else if (move_gear_up) {
-				_landing_gear_current_state = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
+				_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_UP;
 			}
 
 			// only in the mode of  _control_mode.flag_control_manual_enabled=true
@@ -815,20 +832,20 @@ MulticopterPositionControl::task_main()
 			if (_control_mode.flag_control_manual_enabled
 			    && (_gear_pos_prev != _manual.gear_switch && !on_ground)) {
 
-				_landing_gear_current_state =
+				_landing_gear_state.landing_gear =
 					(_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) ?
-					vehicle_attitude_setpoint_s::LANDING_GEAR_UP :
-					vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+					landing_gear_s::LANDING_GEAR_UP :
+					landing_gear_s::LANDING_GEAR_DOWN;
 			}
 
-			_att_sp.landing_gear = _landing_gear_current_state;
+			_landing_gear_state.timestamp = hrt_absolute_time();
 
-			// publish attitude setpoint (for attitude controller)
-			// Note: this requires review. The reason for not sending
-			// an attitude setpoint is because for non-flighttask modes
-			// the attitude septoint should come from another source, otherwise
-			// they might conflict with each other such as in offboard attitude control.
-			publish_attitude();
+			if (_landing_gear_pub != nullptr) {
+				orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
+
+			} else {
+				_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
+			}
 
 		} else {
 
@@ -848,15 +865,19 @@ MulticopterPositionControl::task_main()
 			if (_vehicle_land_detected.inverted) {
 				// Check for switch toggles
 				if (_gear_pos_prev != _manual.gear_switch) {
-					_landing_gear_current_state = _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON ?
-								      vehicle_attitude_setpoint_s::LANDING_GEAR_UP :
-								      vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
-				}
+					_landing_gear_state.landing_gear = _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON ?
+									   landing_gear_s::LANDING_GEAR_UP :
+									   landing_gear_s::LANDING_GEAR_DOWN;
 
-				// Only publish if action required
-				if (_landing_gear_current_state != 0) {
-					_att_sp.landing_gear = _landing_gear_current_state;
-					publish_attitude();
+					_landing_gear_state.timestamp = hrt_absolute_time();
+
+					if (_landing_gear_pub != nullptr) {
+						orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
+
+					} else {
+						_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
+					}
+
 				}
 			}
 		}

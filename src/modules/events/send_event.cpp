@@ -75,6 +75,8 @@ SendEvent::SendEvent() : ModuleParams(nullptr)
 	if (_param_rc_loss.get()) {
 		_rc_loss_alarm = new rc_loss::RC_Loss_Alarm(_subscriber_handler);
 	}
+
+	_inverted_state = new states::InvertedState(_subscriber_handler);
 }
 
 SendEvent::~SendEvent()
@@ -85,6 +87,10 @@ SendEvent::~SendEvent()
 
 	if (_rc_loss_alarm != nullptr) {
 		delete _rc_loss_alarm;
+	}
+
+	if (_inverted_state != nullptr) {
+		delete _inverted_state;
 	}
 }
 
@@ -142,6 +148,10 @@ void SendEvent::cycle()
 
 	if (_rc_loss_alarm != nullptr) {
 		_rc_loss_alarm->process();
+	}
+
+	if (_inverted_state != nullptr) {
+		_inverted_state->process();
 	}
 
 	work_queue(LPWORK, &_work, (worker_t)&SendEvent::cycle_trampoline, this,

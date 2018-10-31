@@ -33,7 +33,7 @@
 
 /**
  * @file landing_gear.cpp
- * Landing Gear decouples the landing gear logic form the position controller
+ * Inverted State decouples the landing gear logic form the position controller
  *
  * @author Simone Guscetti <simone@px4.io>
  *
@@ -59,7 +59,6 @@ bool InvertedState::check_for_updates()
 
 	if (_subscriber_handler.manual_control_sp_updated()) {
 		orb_copy(ORB_ID(manual_control_setpoint), _subscriber_handler.get_manual_control_sp_sub(), &_manual_control_sp);
-
 		got_updates = true;
 	}
 

@@ -33,7 +33,7 @@
 
 /**
  * @file landing_gear.h
- * Landing Gear decouples the landing gear logic form the position controller
+ * Inverted State decouples the landing gear logic form the position controller
  *
  * @author Simone Guscetti <simone@px4.io>
  */

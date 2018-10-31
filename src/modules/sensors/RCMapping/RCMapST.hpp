@@ -51,6 +51,8 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include "../parameters.h"
 
+using namespace time_literals;
+
 namespace sensors
 {
 
@@ -198,7 +200,7 @@ protected:
 
 private:
 	// Kill switch shortcut logic states
-	static constexpr int KILL_HOTKEY_TIME_US = 1000000; // 1s time for kill-switch criteria
+	static constexpr int KILL_HOTKEY_TIME_US = 1_s; // 1s time for kill-switch criteria
 	static constexpr int KILL_SWITCH_TRIGGER_COUNT = 3; // arm button pushed three times -> kill
 	bool _kill_state = false; // the kill state in which we lockdown the motors until restart
 	hrt_abstime _kill_hotkey_start_time = 0; // the time when the hotkey started to measure timeout

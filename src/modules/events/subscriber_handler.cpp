@@ -35,6 +35,14 @@ void SubscriberHandler::subscribe()
 	if (_smart_heading_sub < 0) {
 		_smart_heading_sub = orb_subscribe(ORB_ID(smart_heading));
 	}
+
+	if (_manual_control_sp_sub < 0) {
+		_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	}
+
+	if (_vehicle_land_detected_sub < 0) {
+		_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	}
 }
 
 void SubscriberHandler::unsubscribe()
@@ -73,58 +81,75 @@ void SubscriberHandler::unsubscribe()
 		orb_unsubscribe(_smart_heading_sub);
 		_smart_heading_sub = -1;
 	}
+
+	if (_manual_control_sp_sub >= 0) {
+		orb_unsubscribe(_manual_control_sp_sub);
+		_manual_control_sp_sub = -1;
+	}
+
+	if (_vehicle_land_detected_sub >= 0) {
+		orb_unsubscribe(_vehicle_land_detected_sub);
+		_vehicle_land_detected_sub = -1;
+	}
 }
 
 void SubscriberHandler::check_for_updates()
 {
-	bool updated;
+	bool updated = false;
 	_update_bitfield = 0;
+
 	orb_check(_vehicle_command_sub, &updated);
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::VehicleCommand;
 	}
 
-	updated = false;
 	orb_check(_vehicle_status_sub, &updated);
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::VehicleStatus;
 	}
 
-	updated = false;
 	orb_check(_vehicle_status_flags_sub, &updated);
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::VehicleStatusFlags;
 	}
 
-	updated = false;
 	orb_check(_battery_status_sub, &updated);
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::BatteryStatus;
 	}
 
-	updated = false;
 	orb_check(_cpuload_sub, &updated);
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::CpuLoad;
 	}
 
-	updated = false;
 	orb_check(_vehicle_attitude_sub, &updated);
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::VehicleAttitude;
 	}
 
-	updated = false;
 	orb_check(_smart_heading_sub, &updated);
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::SmartHeading;
+	}
+
+	orb_check(_manual_control_sp_sub, &updated);
+
+	if (updated) {
+		_update_bitfield |= (uint32_t)StatusMask::ManualControlSP;
+	}
+
+	orb_check(_vehicle_land_detected_sub, &updated);
+
+	if (updated) {
+		_update_bitfield |= (uint32_t)StatusMask::VehicleLandDetected;
 	}
 }
 

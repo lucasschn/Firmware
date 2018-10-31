@@ -5,9 +5,12 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/smart_heading.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 namespace events
 {
@@ -29,7 +32,9 @@ public:
 	int get_vehicle_status_sub() const { return _vehicle_status_sub; }
 	int get_vehicle_status_flags_sub() const { return _vehicle_status_flags_sub; }
 	int get_vehicle_attitude_sub() const { return _vehicle_attitude_sub; }
-	int get_smart_heading_sub() const {return _smart_heading_sub; }
+	int get_smart_heading_sub() const { return _smart_heading_sub; }
+	int get_manual_control_sp_sub() const { return _manual_control_sp_sub; }
+	int get_vehicle_land_detected_sub() const { return _vehicle_land_detected_sub; }
 	// TODO: incorporate an add_topic method, this will push back the sub handler
 	// in the subscriber vector
 
@@ -41,6 +46,8 @@ public:
 	bool vehicle_status_flags_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleStatusFlags; }
 	bool vehicle_attitude_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleAttitude; }
 	bool smart_heading_updated() const { return _update_bitfield & (uint32_t)StatusMask::SmartHeading; }
+	bool manual_control_sp_updated() const { return _update_bitfield & (uint32_t)StatusMask::ManualControlSP; }
+	bool vehicle_land_detcted_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleLandDetected; }
 
 
 private:
@@ -51,7 +58,9 @@ private:
 		BatteryStatus = (0x01 << 3),
 		CpuLoad = (0x01 << 4),
 		VehicleAttitude = (0x01 << 5),
-		SmartHeading = (0x01 << 6)
+		SmartHeading = (0x01 << 6),
+		ManualControlSP = (0x01 << 7),
+		VehicleLandDetected = (0x01 << 8)
 	};
 
 	// TODO: incorporate the subscriber into a vector of int
@@ -62,6 +71,8 @@ private:
 	int _vehicle_status_sub = -1;
 	int _vehicle_status_flags_sub = -1;
 	int _vehicle_attitude_sub = -1;
+	int _manual_control_sp_sub = -1;
+	int _vehicle_land_detected_sub = -1;
 
 	uint32_t _update_bitfield = 0;
 };

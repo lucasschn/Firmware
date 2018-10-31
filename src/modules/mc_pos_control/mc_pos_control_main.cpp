@@ -860,26 +860,6 @@ MulticopterPositionControl::task_main()
 			q_sp.copyTo(_att_sp.q_d);
 			_att_sp.q_d_valid = true;
 			_att_sp.thrust = 0.0f;
-
-			// yuneec-specific: landing gear operational when inverted
-			if (_vehicle_land_detected.inverted) {
-				// Check for switch toggles
-				if (_gear_pos_prev != _manual.gear_switch) {
-					_landing_gear_state.landing_gear = _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON ?
-									   landing_gear_s::LANDING_GEAR_UP :
-									   landing_gear_s::LANDING_GEAR_DOWN;
-
-					_landing_gear_state.timestamp = hrt_absolute_time();
-
-					if (_landing_gear_pub != nullptr) {
-						orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
-
-					} else {
-						_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
-					}
-
-				}
-			}
 		}
 	}
 

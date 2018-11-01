@@ -76,7 +76,9 @@ SendEvent::SendEvent() : ModuleParams(nullptr)
 		_rc_loss_alarm = new rc_loss::RC_Loss_Alarm(_subscriber_handler);
 	}
 
-	_inverted_state = new states::InvertedState(_subscriber_handler);
+	if (_param_inv_gear.get()) {
+		_inverted_state = new states::InvertedState(_subscriber_handler);
+	}
 }
 
 SendEvent::~SendEvent()

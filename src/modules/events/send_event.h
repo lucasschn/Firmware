@@ -97,7 +97,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::EV_TSK_STAT_DIS>) _param_status_display,
-		(ParamBool<px4::params::EV_TSK_RC_LOSS>) _param_rc_loss
+		(ParamBool<px4::params::EV_TSK_RC_LOSS>) _param_rc_loss,
+		(ParamBool<px4::params::EV_TSK_INV_GEAR>) _param_inv_gear
 	)
 };
 

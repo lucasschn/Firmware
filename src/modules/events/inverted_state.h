@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 ATL | Yuneec Research. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file inverted_state.h
  * Inverted State decouples part of the landing gear logic form the position controller
  *
- * @author Simone Guscetti <simone@px4.io>
+ * @author Simone Guscetti <simone@yuneecresearch.com>
  */
 
 #pragma once

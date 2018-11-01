@@ -396,7 +396,13 @@ then
 	#
 	# Load the gear mixer onto fmu
 	#
-	mixer load /dev/px4fmu /etc/mixers/gear.mix
+	if mixer load /dev/px4fmu /etc/mixers/gear.mix
+	then
+		echo "INFO  [init] Mixer: gear on /dev/px4fmu"
+	else
+		echo "ERROR [init] Error loading mixer: gear"
+		echo "ERROR [init] Error loading mixer: gear" >> $LOG_FILE
+	fi
 
 	#
 	# Set Landing gear pwm configuration directly for the only channel we use

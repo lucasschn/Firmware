@@ -32,14 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file landing_gear.cpp
- * Inverted State decouples the landing gear logic form the position controller
+ * @file inverted_state.cpp
+ * Inverted State decouples part of the landing gear logic form the position controller
  *
  * @author Simone Guscetti <simone@px4.io>
  *
  */
 
 #include "inverted_state.h"
+
 #include <px4_log.h>
 
 namespace events
@@ -48,10 +49,7 @@ namespace states
 {
 
 InvertedState::InvertedState(const events::SubscriberHandler &subscriber_handler)
-	: _subscriber_handler(subscriber_handler)
-{
-
-}
+	: _subscriber_handler(subscriber_handler) {}
 
 bool InvertedState::check_for_updates()
 {

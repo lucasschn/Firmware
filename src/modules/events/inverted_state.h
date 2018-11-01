@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file landing_gear.h
- * Inverted State decouples the landing gear logic form the position controller
+ * @file inverted_state.h
+ * Inverted State decouples part of the landing gear logic form the position controller
  *
  * @author Simone Guscetti <simone@px4.io>
  */
@@ -47,13 +47,13 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 
 namespace events
 {
 namespace states
 {
+
 class InvertedState
 {
 public:
@@ -69,7 +69,7 @@ protected:
 	 */
 	bool check_for_updates();
 
-	/** publish LED control */
+	/** publish landing gear state */
 	void publish();
 
 	struct manual_control_setpoint_s _manual_control_sp {};
@@ -81,7 +81,6 @@ private:
 	orb_advert_t _landing_gear_pub{nullptr};
 	const events::SubscriberHandler &_subscriber_handler;
 };
-
 
 } /* namespace gear */
 } /* namespace events */

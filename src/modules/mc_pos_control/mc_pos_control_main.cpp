@@ -110,7 +110,7 @@ private:
 	int   _pos_sp_triplet_sub{-1};
 	orb_advert_t	_landing_gear_pub{nullptr};
 	landing_gear_s _landing_gear_state{};
-	uint8_t		_gear_pos_prev = manual_control_setpoint_s::SWITCH_POS_NONE;		/**< Last state of the gear switch */
+	int8_t		_old_landing_gear_position;
 	struct manual_control_setpoint_s		_manual = {};		/**< r/c channel data */
 	struct position_setpoint_triplet_s _pos_sp_triplet = {};
 	/* --- END yuneec specific declarations */
@@ -454,7 +454,6 @@ MulticopterPositionControl::poll_subscriptions()
 	orb_check(_manual_sub, &updated);
 
 	if (updated) {
-		_gear_pos_prev = _manual.gear_switch;  // Remember previous switch position
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 	}
 
@@ -806,46 +805,23 @@ MulticopterPositionControl::task_main()
 			// they might conflict with each other such as in offboard attitude control.
 			publish_attitude();
 
-			/* For most cases we want to have gears up except when being on ground. For cases not mentioned below
-			 * we do not care if gears are up or down
-			 * NOTE: it is an if else if statment */
-			bool on_ground = (_vehicle_land_detected.landed) || (_vehicle_land_detected.maybe_landed)
-					 || (_vehicle_land_detected.ground_contact);
-
-			const bool move_gear_down = (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND)
-						    || _pos_sp_triplet.current.deploy_gear;
-
-			/* in mission put gears up, and the gear will not up at the when landed or ground_contact */
-			const bool move_gear_up = (((_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_MISSION) &&
-						    !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF))
-						   || (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_AUTO_RTL));
-
-			if (move_gear_down) {
-				_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_DOWN;
-
-			} else if (move_gear_up) {
-				_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_UP;
-			}
-
-			// only in the mode of  _control_mode.flag_control_manual_enabled=true
-			// mode, we need to consider the gear switch
-			if (_control_mode.flag_control_manual_enabled
-			    && (_gear_pos_prev != _manual.gear_switch && !on_ground)) {
+			if (_old_landing_gear_position != constraints.landing_gear) {
 
 				_landing_gear_state.landing_gear =
-					(_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) ?
+					(constraints.landing_gear == vehicle_constraints_s::GEAR_UP) ?
 					landing_gear_s::LANDING_GEAR_UP :
 					landing_gear_s::LANDING_GEAR_DOWN;
+				_landing_gear_state.timestamp = hrt_absolute_time();
+
+				if (_landing_gear_pub != nullptr) {
+					orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
+
+				} else {
+					_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
+				}
 			}
 
-			_landing_gear_state.timestamp = hrt_absolute_time();
-
-			if (_landing_gear_pub != nullptr) {
-				orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
-
-			} else {
-				_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
-			}
+			_old_landing_gear_position = constraints.landing_gear;
 
 		} else {
 

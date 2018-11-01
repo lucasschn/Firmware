@@ -805,12 +805,10 @@ MulticopterPositionControl::task_main()
 			// they might conflict with each other such as in offboard attitude control.
 			publish_attitude();
 
-			if (_old_landing_gear_position != constraints.landing_gear) {
+			if (_old_landing_gear_position != constraints.landing_gear
+			    && constraints.landing_gear != vehicle_constraints_s::GEAR_KEEP) {
 
-				_landing_gear_state.landing_gear =
-					(constraints.landing_gear == vehicle_constraints_s::GEAR_UP) ?
-					landing_gear_s::LANDING_GEAR_UP :
-					landing_gear_s::LANDING_GEAR_DOWN;
+				_landing_gear_state.landing_gear = constraints.landing_gear;
 				_landing_gear_state.timestamp = hrt_absolute_time();
 
 				if (_landing_gear_pub != nullptr) {

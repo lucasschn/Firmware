@@ -77,6 +77,7 @@ void InvertedState::process()
 	}
 
 	if (_land_detector.inverted) {
+		// TODO set PWM output to arm -> remove diff from FMU
 		if (_gear_pos_prev != _manual_control_sp.gear_switch) {
 			_landing_gear.landing_gear =
 				(_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) ?

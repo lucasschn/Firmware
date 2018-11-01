@@ -79,8 +79,8 @@ void VehicleInverted::process()
 		if (_gear_pos_prev != _manual_control_sp.gear_switch) {
 			_landing_gear.landing_gear =
 				(_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) ?
-				landing_gear_s::LANDING_GEAR_UP :
-				landing_gear_s::LANDING_GEAR_DOWN;
+				landing_gear_s::GEAR_UP :
+				landing_gear_s::GEAR_DOWN;
 
 			publish();
 		}

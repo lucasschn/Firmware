@@ -159,7 +159,7 @@ Land::set_autoland_item()
 			_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 
-			if ((int)_navigator->get_landing_gear()->landing_gear == (int)landing_gear_s::LANDING_GEAR_DOWN) {
+			if ((int)_navigator->get_landing_gear()->landing_gear == (int)landing_gear_s::GEAR_DOWN) {
 				// NOTE(Yuneec): If landing gear is down, we don't want to loiter at all.
 				// However, loitering for 0 seconds means loitering indefinitely
 				// in upstream. Hence we set the time very close to zero:

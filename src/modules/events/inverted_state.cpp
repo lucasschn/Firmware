@@ -101,5 +101,5 @@ void InvertedState::publish()
 	}
 }
 
-} /* namespace gear */
+} /* namespace states */
 } /* namespace events */

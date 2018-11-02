@@ -82,5 +82,5 @@ private:
 	const events::SubscriberHandler &_subscriber_handler;
 };
 
-} /* namespace gear */
+} /* namespace states */
 } /* namespace events */

@@ -402,7 +402,7 @@ MulticopterAttitudeControl::landing_gear_state_poll()
 	orb_check(_landing_gear_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(landing_gear), _landing_gear_sub, &_landing_gear_state);
+		orb_copy(ORB_ID(landing_gear), _landing_gear_sub, &_landing_gear);
 	}
 }
 
@@ -674,7 +674,7 @@ MulticopterAttitudeControl::run()
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_esc_status_sub = orb_subscribe(ORB_ID(esc_status));
-	_landing_gear_sub =  orb_subscribe(ORB_ID(landing_gear));
+	_landing_gear_sub = orb_subscribe(ORB_ID(landing_gear));
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {};
@@ -809,7 +809,7 @@ MulticopterAttitudeControl::run()
 				_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
 				_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
 				_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
-				_actuators.control[7] = (float)_landing_gear_state.landing_gear;
+				_actuators.control[7] = (float)_landing_gear.landing_gear;
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _sensor_gyro.timestamp;
 

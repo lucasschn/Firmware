@@ -36,8 +36,8 @@ void SubscriberHandler::subscribe()
 		_smart_heading_sub = orb_subscribe(ORB_ID(smart_heading));
 	}
 
-	if (_manual_control_sp_sub < 0) {
-		_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	if (_manual_control_setpoint_sub < 0) {
+		_manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	}
 
 	if (_vehicle_land_detected_sub < 0) {
@@ -82,9 +82,9 @@ void SubscriberHandler::unsubscribe()
 		_smart_heading_sub = -1;
 	}
 
-	if (_manual_control_sp_sub >= 0) {
-		orb_unsubscribe(_manual_control_sp_sub);
-		_manual_control_sp_sub = -1;
+	if (_manual_control_setpoint_sub >= 0) {
+		orb_unsubscribe(_manual_control_setpoint_sub);
+		_manual_control_setpoint_sub = -1;
 	}
 
 	if (_vehicle_land_detected_sub >= 0) {
@@ -140,7 +140,7 @@ void SubscriberHandler::check_for_updates()
 		_update_bitfield |= (uint32_t)StatusMask::SmartHeading;
 	}
 
-	orb_check(_manual_control_sp_sub, &updated);
+	orb_check(_manual_control_setpoint_sub, &updated);
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::ManualControlSP;

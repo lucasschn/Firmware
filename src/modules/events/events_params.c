@@ -73,8 +73,8 @@ PARAM_DEFINE_INT32(EV_TSK_RC_LOSS, 0);
 /**
  * Inverted State
  *
- * Enable/disable event task for activating the landing gear in a upside down
- * state with the remote controller switch.
+ * Enable/disable event task for landing gear control via RC switch when the
+ * vehicle is held upside down.
  *
  * @group Events
  * @boolean

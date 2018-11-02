@@ -32,74 +32,55 @@
  ****************************************************************************/
 
 /**
- * @file inverted_state.cpp
- * Inverted State decouples part of the landing gear logic form the position controller
+ * @file vehicle_inverted.h
+ * Detect vehicle inverted state to set the landing gear accordig to the RC switch
  *
  * @author Simone Guscetti <simone@yuneecresearch.com>
- *
  */
 
-#include "inverted_state.h"
+#pragma once
 
-#include <px4_log.h>
+#include "subscriber_handler.h"
+
+#include <drivers/drv_hrt.h>
+
+#include <uORB/uORB.h>
+#include <uORB/topics/landing_gear.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 namespace events
 {
-namespace states
+namespace inverted
 {
 
-InvertedState::InvertedState(const events::SubscriberHandler &subscriber_handler)
-	: _subscriber_handler(subscriber_handler) {}
-
-bool InvertedState::check_for_updates()
+class VehicleInverted
 {
-	bool got_updates = false;
+public:
+	VehicleInverted(const events::SubscriberHandler &subscriber_handler);
 
-	if (_subscriber_handler.manual_control_sp_updated()) {
-		orb_copy(ORB_ID(manual_control_setpoint), _subscriber_handler.get_manual_control_sp_sub(), &_manual_control_sp);
-		got_updates = true;
-	}
+	/** regularily called to handle state updates */
+	void process();
 
-	if (_subscriber_handler.vehicle_land_detcted_updated()) {
-		orb_copy(ORB_ID(vehicle_land_detected), _subscriber_handler.get_vehicle_land_detected_sub(), &_land_detector);
-		got_updates = true;
-	}
+protected:
+	/**
+	 * check for topic updates
+	 * @return true if one or more topics got updated
+	 */
+	bool check_for_updates();
 
-	return got_updates;
-}
+	/** publish landing gear state */
+	void publish();
 
-void InvertedState::process()
-{
-	if (!check_for_updates()) {
-		return;
-	}
+	struct manual_control_setpoint_s _manual_control_sp {};
+	struct vehicle_land_detected_s _land_detector {};
 
-	if (_land_detector.inverted) {
-		// TODO set PWM output to arm -> remove diff from FMU
-		if (_gear_pos_prev != _manual_control_sp.gear_switch) {
-			_landing_gear.landing_gear =
-				(_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) ?
-				landing_gear_s::LANDING_GEAR_UP :
-				landing_gear_s::LANDING_GEAR_DOWN;
+	struct landing_gear_s _landing_gear {};
+private:
+	uint8_t _gear_pos_prev = manual_control_setpoint_s::SWITCH_POS_NONE;
+	orb_advert_t _landing_gear_pub{nullptr};
+	const events::SubscriberHandler &_subscriber_handler;
+};
 
-			publish();
-		}
-	}
-
-	_gear_pos_prev = _manual_control_sp.gear_switch;
-}
-
-void InvertedState::publish()
-{
-	_landing_gear.timestamp = hrt_absolute_time();
-
-	if (_landing_gear_pub != nullptr) {
-		orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear);
-
-	} else {
-		_landing_gear_pub =  orb_advertise(ORB_ID(landing_gear), &_landing_gear);
-	}
-}
-
-} /* namespace states */
+} /* namespace inverted */
 } /* namespace events */

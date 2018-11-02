@@ -171,7 +171,7 @@ private:
 	struct sensor_bias_s			_sensor_bias {};	/**< sensor in-run bias corrections */
 	struct vehicle_land_detected_s		_vehicle_land_detected {};
 	struct esc_status_s			_esc_status_report {};
-	struct landing_gear_s 			_landing_gear_state {};
+	struct landing_gear_s 			_landing_gear {};
 
 	MultirotorMixer::saturation_status _saturation_status{};
 

@@ -36,7 +36,7 @@
 #include "subscriber_handler.h"
 #include "status_display.h"
 #include "rc_loss_alarm.h"
-#include "inverted_state.h"
+#include "vehicle_inverted.h"
 
 #include <px4_workqueue.h>
 #include <px4_module.h>
@@ -92,7 +92,7 @@ private:
 	SubscriberHandler _subscriber_handler;
 	status::StatusDisplay *_status_display = nullptr;
 	rc_loss::RC_Loss_Alarm *_rc_loss_alarm = nullptr;
-	states::InvertedState *_inverted_state = nullptr;
+	inverted::VehicleInverted *_vehicle_inverted = nullptr;
 	orb_advert_t _command_ack_pub = nullptr;
 
 	DEFINE_PARAMETERS(

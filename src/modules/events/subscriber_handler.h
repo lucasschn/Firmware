@@ -33,7 +33,7 @@ public:
 	int get_vehicle_status_flags_sub() const { return _vehicle_status_flags_sub; }
 	int get_vehicle_attitude_sub() const { return _vehicle_attitude_sub; }
 	int get_smart_heading_sub() const { return _smart_heading_sub; }
-	int get_manual_control_sp_sub() const { return _manual_control_sp_sub; }
+	int get_manual_control_setpoint_sub() const { return _manual_control_setpoint_sub; }
 	int get_vehicle_land_detected_sub() const { return _vehicle_land_detected_sub; }
 	// TODO: incorporate an add_topic method, this will push back the sub handler
 	// in the subscriber vector
@@ -71,7 +71,7 @@ private:
 	int _vehicle_status_sub = -1;
 	int _vehicle_status_flags_sub = -1;
 	int _vehicle_attitude_sub = -1;
-	int _manual_control_sp_sub = -1;
+	int _manual_control_setpoint_sub = -1;
 	int _vehicle_land_detected_sub = -1;
 
 	uint32_t _update_bitfield = 0;

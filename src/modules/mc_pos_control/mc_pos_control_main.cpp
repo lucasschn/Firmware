@@ -109,7 +109,7 @@ private:
 	int		_manual_sub{-1};			/**< notification of manual control updates */
 	int   _pos_sp_triplet_sub{-1};
 	orb_advert_t	_landing_gear_pub{nullptr};
-	landing_gear_s _landing_gear_state{};
+	landing_gear_s _landing_gear{};
 	int8_t		_old_landing_gear_position;
 	struct manual_control_setpoint_s		_manual = {};		/**< r/c channel data */
 	struct position_setpoint_triplet_s _pos_sp_triplet = {};
@@ -592,16 +592,7 @@ MulticopterPositionControl::task_main()
 
 	hrt_abstime t_prev = 0;
 
-	// Let's be safe and have the landing gear down by default
-	_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_DOWN;
-	_landing_gear_state.timestamp = hrt_absolute_time();
-
-	if (_landing_gear_pub != nullptr) {
-		orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
-
-	} else {
-		_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
-	}
+	// We assume that the landing gear is already in the correct position
 
 	// wakeup source
 	px4_pollfd_struct_t fds[1];
@@ -808,14 +799,14 @@ MulticopterPositionControl::task_main()
 			if (_old_landing_gear_position != constraints.landing_gear
 			    && constraints.landing_gear != vehicle_constraints_s::GEAR_KEEP) {
 
-				_landing_gear_state.landing_gear = constraints.landing_gear;
-				_landing_gear_state.timestamp = hrt_absolute_time();
+				_landing_gear.landing_gear = constraints.landing_gear;
+				_landing_gear.timestamp = hrt_absolute_time();
 
 				if (_landing_gear_pub != nullptr) {
-					orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
+					orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear);
 
 				} else {
-					_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
+					_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear);
 				}
 			}
 

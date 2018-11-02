@@ -77,7 +77,7 @@ SendEvent::SendEvent() : ModuleParams(nullptr)
 	}
 
 	if (_param_inv_gear.get()) {
-		_inverted_state = new states::InvertedState(_subscriber_handler);
+		_vehicle_inverted = new inverted::VehicleInverted(_subscriber_handler);
 	}
 }
 
@@ -91,8 +91,8 @@ SendEvent::~SendEvent()
 		delete _rc_loss_alarm;
 	}
 
-	if (_inverted_state != nullptr) {
-		delete _inverted_state;
+	if (_vehicle_inverted != nullptr) {
+		delete _vehicle_inverted;
 	}
 }
 
@@ -152,8 +152,8 @@ void SendEvent::cycle()
 		_rc_loss_alarm->process();
 	}
 
-	if (_inverted_state != nullptr) {
-		_inverted_state->process();
+	if (_vehicle_inverted != nullptr) {
+		_vehicle_inverted->process();
 	}
 
 	work_queue(LPWORK, &_work, (worker_t)&SendEvent::cycle_trampoline, this,

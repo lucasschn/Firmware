@@ -37,7 +37,6 @@ px4_add_module(
 	STACK_MAIN 2200
 	COMPILE_FLAGS
 	SRCS
-		inverted_state.cpp
 		rc_loss_alarm.cpp
 		send_event.cpp
 		set_leds.cpp
@@ -47,6 +46,7 @@ px4_add_module(
 		temperature_calibration/baro.cpp
 		temperature_calibration/gyro.cpp
 		temperature_calibration/task.cpp
+		vehicle_inverted.cpp
 	DEPENDS
 		modules__uORB
 	)

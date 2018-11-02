@@ -43,6 +43,10 @@
 
 #include <px4_log.h>
 
+#include <DevMgr.hpp>
+#include <drivers/drv_gpio.h>
+#include <drivers/drv_pwm_output.h>
+
 namespace events
 {
 namespace inverted
@@ -75,7 +79,13 @@ void VehicleInverted::process()
 	}
 
 	if (_land_detector.inverted) {
-		// TODO set PWM output to arm -> remove diff from FMU
+
+		if (!_pwm_armed) {
+			if (arm_pwm(true) == PX4_OK) {
+				_pwm_armed = true;
+			}
+		}
+
 		if (_gear_pos_prev != _manual_control_sp.gear_switch) {
 			_landing_gear.landing_gear =
 				(_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) ?
@@ -83,6 +93,12 @@ void VehicleInverted::process()
 				landing_gear_s::GEAR_DOWN;
 
 			publish();
+		}
+
+	} else if (_pwm_armed) {
+
+		if (arm_pwm(false) == PX4_OK) {
+			_pwm_armed = false;
 		}
 	}
 
@@ -99,6 +115,33 @@ void VehicleInverted::publish()
 	} else {
 		_landing_gear_pub =  orb_advertise(ORB_ID(landing_gear), &_landing_gear);
 	}
+}
+
+int VehicleInverted::arm_pwm(bool arm)
+{
+	DriverFramework::DevHandle fmu_h;
+	DriverFramework::DevMgr::getHandle(PX4FMU_DEVICE_PATH, fmu_h);
+
+	if (!fmu_h.isValid()) {
+		PX4_WARN("FMU: getHandle fail\n");
+		return PX4_ERROR;
+	}
+
+	if (arm) {
+		if (fmu_h.ioctl(PWM_SERVO_ARM, 0) != OK) {
+			PX4_ERR("PWM_SERVO_ARM fail");
+			return PX4_ERROR;
+		}
+
+	} else {
+		if (fmu_h.ioctl(PWM_SERVO_DISARM, 0) != OK) {
+			PX4_ERR("PWM_SERVO_DISARM fail");
+			return PX4_ERROR;
+		}
+
+	}
+
+	return PX4_OK;
 }
 
 } /* namespace inverted */

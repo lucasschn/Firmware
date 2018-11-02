@@ -77,9 +77,12 @@ protected:
 
 	struct landing_gear_s _landing_gear {};
 private:
+	bool _pwm_armed = false;
 	uint8_t _gear_pos_prev = manual_control_setpoint_s::SWITCH_POS_NONE;
 	orb_advert_t _landing_gear_pub{nullptr};
 	const events::SubscriberHandler &_subscriber_handler;
+
+	int arm_pwm(bool arm);
 };
 
 } /* namespace inverted */

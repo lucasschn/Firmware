@@ -146,7 +146,7 @@ protected:
 	 */
 	int three_way_switch(int offset_count, const int channel, const input_rc_s &input_rc)
 	{
-		switch ((input_rc.values[channel] >> offset_count * 2) & 0x3) {
+		switch ((input_rc.values[channel] >> (offset_count * 2)) & 0x3) {
 		case 0: // switch is up
 			return manual_control_setpoint_s::SWITCH_POS_OFF;
 

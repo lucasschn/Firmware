@@ -1,5 +1,3 @@
-
-
 uint8 SWITCH_POS_NONE = 0		# switch is not mapped
 uint8 SWITCH_POS_ON = 1			# switch activated (value = 1)
 uint8 SWITCH_POS_MIDDLE = 2		# middle position (value = 0)

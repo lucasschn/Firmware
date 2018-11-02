@@ -72,7 +72,6 @@
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
-#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 
 #ifdef HRT_PPM_CHANNEL
@@ -237,7 +236,6 @@ private:
 	unsigned	_current_update_rate;
 	bool 		_run_as_task;
 	static struct work_s	_work;
-	int		_vehicle_landed_sub;
 	int		_armed_sub;
 	int		_param_sub;
 	int		_adc_sub;
@@ -381,7 +379,6 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_pwm_alt_rate_channels(0),
 	_current_update_rate(0),
 	_run_as_task(run_as_task),
-	_vehicle_landed_sub(-1),
 	_armed_sub(-1),
 	_param_sub(-1),
 	_adc_sub(-1),
@@ -474,7 +471,6 @@ PX4FMU::~PX4FMU()
 
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(_param_sub);
-	orb_unsubscribe(_vehicle_landed_sub);
 
 	orb_unadvertise(_to_input_rc);
 	orb_unadvertise(_outputs_pub);
@@ -528,7 +524,6 @@ PX4FMU::init()
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_param_sub = orb_subscribe(ORB_ID(parameter_update));
 	_adc_sub = orb_subscribe(ORB_ID(adc_report));
-	_vehicle_landed_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	/* initialize PWM limit lib */
 	pwm_limit_init(&_pwm_limit);
@@ -1501,18 +1496,6 @@ PX4FMU::cycle()
 
 		/* update PWM status if armed or if disarmed PWM values are set */
 		bool pwm_on = _armed.armed || _num_disarmed_set > 0 || _armed.in_esc_calibration_mode;
-
-		orb_check(_vehicle_landed_sub, &updated);
-
-		if (updated) {
-			vehicle_land_detected_s vehicle_landed_state;
-			orb_copy(ORB_ID(vehicle_land_detected), _vehicle_landed_sub, &vehicle_landed_state);
-
-			if (vehicle_landed_state.inverted) {
-				// enable pwm if vehicle is upside down to allow to control the landing gear
-				pwm_on = true;
-			}
-		}
 
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;

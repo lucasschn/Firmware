@@ -168,9 +168,9 @@ struct mission_item_s {
 			 altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
 			 autocontinue : 1,				/**< true if next waypoint should follow after this one */
 			 vtol_back_transition : 1,		/**< part of the vtol back transition sequence */
-			 deploy_gear: 1,
 			 force_velocity: 1;				/**< velocity needs to be reached */
 	};
+	int8_t  landing_gear; /**< Yuneec specific */
 };
 
 /**

@@ -688,6 +688,7 @@ Mission::set_mission_items()
 					_mission_item.altitude_is_relative = false;
 					_mission_item.autocontinue = true;
 					_mission_item.time_inside = 0.0f;
+					_mission_item.landing_gear = landing_gear_s::GEAR_UP; //< Yuneec landing gear
 
 				} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 					   && _work_item_type == WORK_ITEM_TYPE_DEFAULT

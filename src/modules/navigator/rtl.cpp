@@ -232,7 +232,7 @@ RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.deploy_gear = home_close && home_altitude_close;
+			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
 			_mission_item.force_velocity = false;
 
 			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above home)",
@@ -262,7 +262,7 @@ RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.deploy_gear = home_close && home_altitude_close;
+			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
 			break;
 		}
 
@@ -288,7 +288,7 @@ RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.deploy_gear = home_close && home_altitude_close;
+			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
 
 			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above home)",
 						     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - home.alt));
@@ -308,7 +308,7 @@ RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.deploy_gear = home_close && home_altitude_close;
+			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
 			break;
 		}
 
@@ -338,7 +338,7 @@ RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.deploy_gear = home_close && home_altitude_close;
+			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
 
 			// Disable previous setpoint to prevent drift.
 			pos_sp_triplet->previous.valid = false;
@@ -384,7 +384,7 @@ RTL::set_rtl_item()
 
 			_mission_item.autocontinue = autoland;
 			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.deploy_gear = true;
+			_mission_item.landing_gear = landing_gear_s::GEAR_DOWN;
 
 			vehicle_command_s cmd_configure{};
 			// Set gimbal to
@@ -423,7 +423,7 @@ RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.deploy_gear = true;
+			_mission_item.landing_gear = landing_gear_s::GEAR_DOWN;
 
 			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at home");
 			break;
@@ -448,7 +448,7 @@ RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.deploy_gear = home_close && home_altitude_close;
+			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
 			_mission_item.force_velocity = false;
 
 			break;

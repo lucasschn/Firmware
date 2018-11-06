@@ -565,7 +565,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			    _navigator->get_loiter_radius();
 	sp->loiter_direction = (item.loiter_radius > 0) ? 1 : -1;
 	sp->acceptance_radius = item.acceptance_radius;
-	sp->deploy_gear = item.deploy_gear;
+	sp->landing_gear = item.landing_gear;
 
 	sp->cruising_speed = _navigator->get_cruising_speed();
 	sp->cruising_throttle = _navigator->get_cruising_throttle();
@@ -694,7 +694,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, 
 	item->pitch_min = min_pitch;
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
-	item->deploy_gear = false;
+	item->landing_gear = landing_gear_s::GEAR_UP;
 }
 
 void
@@ -732,7 +732,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
-	item->deploy_gear = true;
+	item->landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
 // Yuneec specific land-item
@@ -752,7 +752,7 @@ MissionBlock::set_descend_item(struct mission_item_s *item)
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
-	item->deploy_gear = true;
+	item->landing_gear = landing_gear_s::GEAR_DOWN;
 }
 /* --- */
 

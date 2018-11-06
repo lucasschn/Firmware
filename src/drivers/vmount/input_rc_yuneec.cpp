@@ -65,12 +65,12 @@ bool InputRCYuneec::_read_control_data_from_subscription(ControlData &control_da
 	orb_copy(ORB_ID(manual_control_setpoint), _get_subscription_fd(), &manual_control_setpoint);
 	control_data.type = ControlData::Type::Angle;
 
-	// Take negative RC value because the gimbal awaits the inverted RC value and apply deadzone
+	// take negative RC value because the gimbal awaits the inverted RC value and apply deadzone
 	float new_aux_values[2];
 	new_aux_values[0] = math::deadzone(-manual_control_setpoint.aux1, _stick_deadzone);
 	new_aux_values[1] = math::deadzone(-manual_control_setpoint.aux2, _stick_deadzone);
 
-	// If we were already active previously, we just update normally. Otherwise, there needs to be
+	// if we were already active previously, we just update normally. Otherwise, there needs to be
 	// a major stick movement to re-activate manual (or it's running for the very first time).
 	bool major_movement = false;
 
@@ -81,7 +81,7 @@ bool InputRCYuneec::_read_control_data_from_subscription(ControlData &control_da
 		}
 	}
 
-	// Detect gimbal mode change
+	// detect gimbal mode change
 	if (_last_gimbal_yaw_mode != manual_control_setpoint.gimbal_yaw_mode ||
 	    _last_gimbal_pitch_mode != manual_control_setpoint.gimbal_pitch_mode) {
 		major_movement = true;
@@ -91,18 +91,20 @@ bool InputRCYuneec::_read_control_data_from_subscription(ControlData &control_da
 
 		_first_time = false;
 
-		//roll
+		// roll
 		control_data.type_data.angle.is_speed[0] = false;
 		control_data.type_data.angle.angles[0] = 0.f; //not assigned
 		control_data.stabilize_axis[0] = false;
 
-		//pitch
+		// pitch
 		if (manual_control_setpoint.gimbal_pitch_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
+			// angular velocity pitch control
 			control_data.type_data.angle.is_speed[1] = true;
 			control_data.type_data.angle.angles[1] = new_aux_values[1] * M_PI_F;
 
 		} else {
-			//convert the input range to [-90, -3] deg
+			// absolute pitch control
+			// convert the input range to [-90, -3] deg
 			const float pitch_min = -3.f / 180.f;
 			const float pitch_max = -90.f / 180.f;
 			control_data.type_data.angle.angles[1] = ((new_aux_values[1] + 1.f) / 2.f * (pitch_max - pitch_min)
@@ -112,17 +114,20 @@ bool InputRCYuneec::_read_control_data_from_subscription(ControlData &control_da
 
 		control_data.stabilize_axis[1] = true;
 
-		//yaw
+		// yaw
 		control_data.type_data.angle.is_speed[2] = true;
 		control_data.type_data.angle.angles[2] = new_aux_values[0] * M_PI_F;
 
 		if (manual_control_setpoint.gimbal_yaw_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
+			// angular velocity relative to world frame
 			control_data.stabilize_axis[2] = true;
 
 		} else if (manual_control_setpoint.gimbal_yaw_mode == manual_control_setpoint_s::SWITCH_POS_MIDDLE) {
+			// angular velocity relative to vehicle frame
 			control_data.stabilize_axis[2] = false;
 
 		} else if (manual_control_setpoint.gimbal_yaw_mode == manual_control_setpoint_s::SWITCH_POS_OFF) {
+			// always pointing in forward vehicle direction
 			control_data.stabilize_axis[2] = false;
 			control_data.type_data.angle.angles[2] = 0.f;
 			control_data.type_data.angle.is_speed[2] = false;

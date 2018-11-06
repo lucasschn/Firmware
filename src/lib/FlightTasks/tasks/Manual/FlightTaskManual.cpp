@@ -93,14 +93,11 @@ bool FlightTaskManual::_evaluateSticks()
 		// until he toggles the switch to avoid retracting the gear immediately on takeoff.
 		int8_t gear_switch = _sub_manual_control_setpoint->get().gear_switch;
 
-		if (!_gear.landing_gear) {
-			if (gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-				_applyGearSwitch(gear_switch);
-			}
-
-		} else {
+		if (_gear_switch_old != gear_switch) {
 			_applyGearSwitch(gear_switch);
 		}
+
+		_gear_switch_old = gear_switch;
 
 		// Yuneec specific: check avoidance switch
 		if ((_sub_manual_control_setpoint->get().obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON) ||

@@ -60,6 +60,7 @@ protected:
 	matrix::Vector<float, 4> _sticks; /**< unmodified manual stick inputs */
 	matrix::Vector<float, 4> _sticks_expo; /**< modified manual sticks using expo function*/
 	float _user_speed_scale; /**< Yuneec specific input to scale the velocity down on the fly */
+	int _gear_switch_old = manual_control_setpoint_s::SWITCH_POS_NONE; /**< old switch state*/
 	bool _avoidance_on = false; /**< true if avoidance is on */
 
 	float stickDeadzone() const { return MPC_HOLD_DZ.get(); }

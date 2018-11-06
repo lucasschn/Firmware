@@ -65,10 +65,8 @@ bool InputRCYuneec::_read_control_data_from_subscription(ControlData &control_da
 	orb_copy(ORB_ID(manual_control_setpoint), _get_subscription_fd(), &manual_control_setpoint);
 	control_data.type = ControlData::Type::Angle;
 
-	// take negative RC value because the gimbal awaits the inverted RC value and apply deadzone
-	float new_aux_values[2];
-	new_aux_values[0] = math::deadzone(-manual_control_setpoint.aux1, _stick_deadzone);
-	new_aux_values[1] = math::deadzone(-manual_control_setpoint.aux2, _stick_deadzone);
+	// take negative RC value because the gimbal output is defined inverse
+	float new_aux_values[2] = {-manual_control_setpoint.aux1, -manual_control_setpoint.aux2};
 
 	// if we were already active previously, we just update normally. Otherwise, there needs to be
 	// a major stick movement to re-activate manual (or it's running for the very first time).
@@ -100,7 +98,7 @@ bool InputRCYuneec::_read_control_data_from_subscription(ControlData &control_da
 		if (manual_control_setpoint.gimbal_pitch_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
 			// angular velocity pitch control
 			control_data.type_data.angle.is_speed[1] = true;
-			control_data.type_data.angle.angles[1] = new_aux_values[1] * M_PI_F;
+			control_data.type_data.angle.angles[1] = math::deadzone(new_aux_values[1], _stick_deadzone) * M_PI_F;
 
 		} else {
 			// absolute pitch control
@@ -116,7 +114,7 @@ bool InputRCYuneec::_read_control_data_from_subscription(ControlData &control_da
 
 		// yaw
 		control_data.type_data.angle.is_speed[2] = true;
-		control_data.type_data.angle.angles[2] = new_aux_values[0] * M_PI_F;
+		control_data.type_data.angle.angles[2] = math::deadzone(new_aux_values[0], _stick_deadzone) * M_PI_F;
 
 		if (manual_control_setpoint.gimbal_yaw_mode == manual_control_setpoint_s::SWITCH_POS_ON) {
 			// angular velocity relative to world frame

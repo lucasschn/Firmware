@@ -722,7 +722,6 @@ MulticopterPositionControl::task_main()
 				setpoint.vx = setpoint.vy = setpoint.vz = NAN;
 				setpoint.yawspeed = NAN;
 				setpoint.yaw = _states.yaw;
-				gear.landing_gear = landing_gear_s::GEAR_KEEP;
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
 			}

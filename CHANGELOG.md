@@ -3,7 +3,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
-* Added safety trigger based on RTL time estimate (#2563)
 
 ### Changed
 
@@ -14,7 +13,6 @@ All notable changes to this project will be documented in this file.
 ## [v1.8.0-1.5.2]
 ### Added
 * Added parameter `RTL_CONE_DIST` to change size of the RTL cone (#2595, #2559)
-* Added message for RTL time estimate (#2656, #2560)
 * Resetting parameters when switching between releases (#2691, #2692)
 
 

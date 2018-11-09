@@ -3,14 +3,35 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
-* Time estiamte for RTL (#2560, #2076)
+* Added safety trigger based on RTL time estimate (#2563)
+
+### Changed
+
+### Fixed
+* Fixed scenario where H520 can perform full flips (#2701, #2645)
+
+
+## [v1.8.0-1.5.2]
+### Added
+* Added parameter `RTL_CONE_DIST` to change size of the RTL cone (#2595, #2559)
+* Added message for RTL time estimate (#2656, #2560)
+* Resetting parameters when switching between releases (#2691, #2692)
+
+
+## [v1.8.0-1.5.1]
+### Added
 * RTL to ground control station (#1879)
+
+### Changed
+* Lifting restriction on parameter `SYS_PARAM_VER`.
+
+
+## [v1.8.0-1.5.0]
+### Added
 * ESC firmware version logging (#1786)
 * ROI: New waypoint types for Region of Interest (missing in DataPilot) (#1819)
 * Structure scan (#1819)
-* Resetting parameters when switching between releases (#2691, #2692, #2693)
-* Added message for RTL time estimate (#2656, #2560)
-* Added safety trigger based on RTL time estimate (#2563)
+* Yaw stick deadzone and exponential curve (#1910)
 
 ### Changed
 * Yaw P gain lowered from 6.0 to 3.5 because of upstream merge (#1872)
@@ -18,97 +39,13 @@ All notable changes to this project will be documented in this file.
 * Sonar-based obstacle avoidance increased trigger range and reliability (#1959)
 
 ### Fixed
+* Compass calibration uses less memory, now also works after a flight (#1884)
 * Connecting to drone after startup is now significantly faster (#2049)
 * Multi-battery missions now resumable after low-battery emergency landing (#1999)
-* Compass calibration uses less memory, now also works after a flight (#1884)
-* Fixed scenario where H520 can perform full flips (#2701, #2645)
 
 
-## [v1.7.3-1.4.9]
-### Fixed
-* Sonar-based obstacle avoidance increased trigger range and reliability (#2456)
-
-
-## [v1.7.3-1.4.8]
-### Fixed
-* Switched to mixed channel RC channel parsing for team mode slave
-### Added
-* Use left stick for slave pitch gimbal control in velocity mode
-
-
-## [v1.7.3-1.4.7]
-### Fixed
-* Fixed Five-Rotor-Mode issues (#2406)
-
-
-## [v1.7.3-1.4.6]
-### Fixed
-* Remote control loss reaction when slave disconnects (#2381)
-
-
-## [v1.7.3-1.4.5]
-### Fixed
-* Increase parameter default version number to apply new values for 1.5 beta testers
-
-
-## [v1.7.3-1.4.4]
-### Fixed
-* Team mode reconnection problems (#2391)
-
-
-## [v1.7.3-1.4.3]
-### Added
-* Basic Team mode support (#2349)
-
-
-## [v1.7.3-1.4.2]
-### Fixed
-* Yaw input also gets scaled using the turtle slider (#2235)
-
-
-## [v1.7.3-1.4.1]
-### Fixed
-* Multi-battery missions now resumable after low-battery emergency landing (#1999)
-
-
-## [v1.7.3-1.4.0beta2]
-### Added
-* Yaw stick deadzone and exponential curve (#1910)
-
-### Changed
-
-### Fixed
-* Compass calibration uses less memory, now also works after a flight (#1884)
-
-
-## [v1.7.3-1.4.0beta1]
-### Changed
-* Allow changing RC mode in flight (#1840)
-
-### Fixed
-* Battery deep discharge when USB is plugged
-* Low battery beep warning no longer continuous
-* Land descend rate slow down depending on mode
-
-
-## [v1.7.3-1.4.0alpha1]
-### Added
-* Support for remote control modes 1,2,3,4 (#985)
-* Remaining battery time estimate during flight
-* Indoor mode to disable GPS usage completely (#1677)
-* HITL (Hardware In The Loop) support for H520
-* Adjustable rise and descend speeds (#1824)
-
-### Changed
-* New H520 ESC Firmware 2.03
-* Switch to raw ST16S hardware input mapping (requires ST16 update!)
-* Improved crash detection (#1546)
-
-### Fixed
-* Hover and capture producing blurry images (#1450)
-* Direction change delay in rabbit mode
-* For reported jerky flight
-* Improved tune playback (#1771, #1883)
+## [v1.7.3-1.4]
+See ongoing changelog here: https://github.com/YUNEEC/Firmware/blob/release_1.4.0/CHANGELOG.md
 
 
 ## [v1.6.5-1.3.1]

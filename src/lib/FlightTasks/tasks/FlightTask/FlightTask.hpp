@@ -137,7 +137,7 @@ public:
 	/**
 	 * default landing gear state
 	 */
-	static const landing_gear_s landing_gear_default_keep;
+	static const landing_gear_s empty_landing_gear_default_keep;
 
 	/**
 	 * Empty desired waypoints.

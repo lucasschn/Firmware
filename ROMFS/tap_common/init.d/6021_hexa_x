@@ -149,7 +149,6 @@ then
 			param set CAL_GYRO0_ID 3670290
 		fi
 
-		param set COM_RC_LOSS_MAN 1
 		param set COM_DISARM_LAND 0.1
 	fi
 

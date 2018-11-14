@@ -285,6 +285,15 @@ fi
 sh /etc/init.d/rc.autostart
 
 #
+# Override RC loss parameter
+# This parameter has been opened up for a use-case with 3DR. However, we want
+# to make sure, that it always defaults to `1`. This means the external
+# application will have to change the parameter after every reboot.
+#
+param set COM_RC_LOSS_MAN 1
+param save
+
+#
 # If autoconfig parameter was set, reset it and save parameters
 #
 if [ ${AUTOCNF} == yes ]

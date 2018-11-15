@@ -291,7 +291,6 @@ sh /etc/init.d/rc.autostart
 # application will have to change the parameter after every reboot.
 #
 param set COM_RC_LOSS_MAN 1
-param save
 
 #
 # If autoconfig parameter was set, reset it and save parameters

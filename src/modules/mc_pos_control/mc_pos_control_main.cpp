@@ -979,7 +979,7 @@ MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const fl
 				     0.2f;
 
 		// takeoff was initiated through velocity setpoint
-		_smooth_velocity_takeoff = PX4_ISFINITE(vz_sp) && vz_sp < math::min(-_tko_speed.get(), -0.6f);
+		_smooth_velocity_takeoff = PX4_ISFINITE(vz_sp) && vz_sp < -0.3f;
 
 		if ((PX4_ISFINITE(z_sp) && z_sp < _states.position(2) - min_altitude) ||  _smooth_velocity_takeoff) {
 			// There is a position setpoint above current position or velocity setpoint larger than

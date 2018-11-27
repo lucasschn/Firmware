@@ -137,11 +137,6 @@ then
 	param set MPC_TILTMAX_AIR 35.0
 
 	#
-	# Smoothing happening between waypoints
-	#
-	param set MPC_POS_SMOOTH 30.0
-
-	#
 	# Battery setting
 	#
 	param set BAT_N_CELLS 3

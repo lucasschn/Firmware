@@ -1033,6 +1033,10 @@ MulticopterPositionControl::limit_thrust_during_landing(matrix::Vector3f &thr_sp
 		// Set thrust in xy to zero
 		thr_sp(0) = 0.0f;
 		thr_sp(1) = 0.0f;
+
+		// FIXME: only to recover previous bug that made landing dection super fast
+		thr_sp(2) = 0.0f;
+
 		// Reset integral in xy is required because PID-controller does
 		// know about the overwrite and would therefore increase the intragral term
 		_control.resetIntegralXY();

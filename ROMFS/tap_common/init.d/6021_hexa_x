@@ -220,12 +220,6 @@ then
 	param set MNT_MAN_PITCH 2
 	param set MNT_MAN_YAW 1
 
-	# Set landing detection stick up/down thresholds
-	# requires an ST16 in rabbit mode or with new
-	# stick mapping code
-	param set LNDMC_POS_UPTHR 0.66
-	param set LNDMC_MAN_DWNTHR 0.25
-
 	# sensor thermal calibration
 	param set SYS_CAL_TDEL 60
 	param set SYS_CAL_ACC_TOL 1

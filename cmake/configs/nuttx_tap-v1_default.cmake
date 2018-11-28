@@ -16,7 +16,6 @@ set(config_module_list
 	drivers/rgbled_pwm
 	drivers/stm32
 	drivers/stm32/adc
-	drivers/stm32/tone_alarm
 	drivers/tap_esc
 	drivers/vmount
 	modules/sensors

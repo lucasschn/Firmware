@@ -6,7 +6,6 @@ set(config_module_list
 	#
 	drivers/stm32
 	drivers/stm32/adc
-	drivers/stm32/tone_alarm
 	drivers/px4fmu
 	drivers/rgbled_pwm
 	drivers/tap_esc

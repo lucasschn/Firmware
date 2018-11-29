@@ -69,8 +69,8 @@ protected:
 					(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P,
 					(ParamFloat<px4::params::MPC_VEL_MAN_UP>) MPC_VEL_MAN_UP,
 					(ParamFloat<px4::params::MPC_VEL_MAN_DN>) MPC_VEL_MAN_DN,
-					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which speed limit downwards reaches maximum speed
-					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which to start downwards slowdown
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude below wich to land with land speed
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED
 				       )
 private:
@@ -107,4 +107,10 @@ private:
 	void _respectMinAltitude();
 
 	void _respectMaxAltitude();
+
+	/**
+	 * Sets downwards velocity constraint based on the distance to ground.
+	 * To ensure a slowdown to land speed before hitting the ground.
+	 */
+	void _respectGroundSlowdown();
 };

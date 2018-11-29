@@ -106,25 +106,6 @@ void FlightTaskManualAltitude::_scaleSticks()
 	vel_max_z *= math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f); // Yuneec specific speed scale
 	vel_max_z = math::max(vel_max_z, MPC_LAND_SPEED.get()); // make sure the pilot can command a minimal vertical speed and is always able to land
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
-
-	// if there is a valid distance to bottom or distance to home, then
-	// adjust speed downwards gradually within the limits MPC_LAND_ALT1 and MPC_LAND_ALT2.
-	if (_sticks_expo(2) > FLT_EPSILON) { //user demands speed downwards
-
-		float dist_to_ground = NAN;
-
-		if (PX4_ISFINITE(_dist_to_bottom)) {
-			dist_to_ground = _dist_to_bottom;
-
-		} else if (PX4_ISFINITE(_sub_home_position->get().valid_alt)) {
-			dist_to_ground = -_position(2) + _sub_home_position->get().z;
-		}
-
-		if (PX4_ISFINITE(dist_to_ground)) {
-			_velocity_setpoint(2) = math::gradual(dist_to_ground,  MPC_LAND_ALT2.get(),
-							      MPC_LAND_ALT1.get(), MPC_LAND_SPEED.get(), _velocity_setpoint(2));
-		}
-	}
 }
 
 void FlightTaskManualAltitude::_updateAltitudeLock()
@@ -290,6 +271,29 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 	}
 }
 
+void FlightTaskManualAltitude::_respectGroundSlowdown()
+{
+	// if there is a valid distance to bottom or distance to home, then
+	// adjust downwards speed limit gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2.
+	if (_sticks_expo(2) > FLT_EPSILON) { //user demands speed downwards
+		float dist_to_ground = NAN;
+
+		if (PX4_ISFINITE(_dist_to_bottom)) {
+			dist_to_ground = _dist_to_bottom;
+
+		} else if (PX4_ISFINITE(_sub_home_position->get().valid_alt)) {
+			dist_to_ground = -_position(2) + _sub_home_position->get().z;
+		}
+
+		if (PX4_ISFINITE(dist_to_ground)) {
+			_constraints.speed_down = math::gradual(dist_to_ground,
+									  MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
+									  MPC_LAND_SPEED.get(), _min_speed_down);
+		}
+	}
+}
+
+
 void FlightTaskManualAltitude::_updateSetpoints()
 {
 	FlightTaskManualStabilized::_updateSetpoints(); // get yaw and thrust setpoints
@@ -312,4 +316,5 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	_thrust_setpoint(1) = sp(1);
 
 	_updateAltitudeLock();
+	_respectGroundSlowdown();
 }

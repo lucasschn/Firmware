@@ -551,8 +551,6 @@ bool TAP_ESC::esc_critical_failure(uint8_t channel_id)
 		if (simulate_motor_failure) {
 			PX4_INFO("SIMULATING MOTOR FAILURE FOR MOTOR %u", channel_id);
 
-			_esc_log_save_start_time = hrt_absolute_time();
-
 			// set this motor's failure flag to true
 			_esc_feedback.engine_failure_report.motor_state |= 1 << channel_id;
 
@@ -690,6 +688,7 @@ void TAP_ESC::cycle()
 						// Hence we attempt to run FTC for the first failing motor and if more
 						// fail, those are ignored. Best that can be done right now.
 						_first_failing_motor = channel_id;
+						_esc_log_save_start_time = hrt_absolute_time();
 					}
 
 					// TODO: Implement for QUAD_X, this currently only works for HEX_X

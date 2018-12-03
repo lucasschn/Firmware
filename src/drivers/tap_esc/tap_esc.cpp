@@ -499,13 +499,6 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 
 bool TAP_ESC::esc_critical_failure(uint8_t channel_id)
 {
-	if (!_is_armed) {
-		// TODO: I don't agree with this. Why ignore failures prior to arming?
-		// clear any motor failure flags
-		_esc_feedback.engine_failure_report.motor_state = 0;
-		return false;
-	}
-
 	// If the motor has shown a failure once, do not check it again
 	if (_esc_feedback.engine_failure_report.motor_state & (1 << channel_id)) {
 		return true;
@@ -874,9 +867,13 @@ void TAP_ESC::cycle()
 
 		_is_armed = _armed.armed;
 
-		// Reset flag for motor failure - no FTC while disarmed
+		// Reset ESC/motor errors
 		if (!_is_armed) {
+			// Reset flag for motor failure - no FTC while disarmed
 			_first_failing_motor = -1;
+
+			// Also clear any motor failure flags
+			_esc_feedback.engine_failure_report.motor_state = 0;
 		}
 	}
 

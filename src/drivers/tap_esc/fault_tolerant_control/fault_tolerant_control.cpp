@@ -43,8 +43,11 @@ int FaultTolerantControl::get_parameters_update()
 {
 	float p;
 
-	param_get(_params_handles.motor_failure_gain,			&p);	_params.motor_failure_gain 	= p;
-	param_get(_params_handles.propeller_reverse_coefficient, &p);	_params.propeller_reverse_coefficient 	= p;
+	param_get(_params_handles.motor_failure_gain, &p);
+	_params.motor_failure_gain = p;
+
+	param_get(_params_handles.propeller_reverse_coefficient, &p);
+	_params.propeller_reverse_coefficient = p;
 
 	return OK;
 }

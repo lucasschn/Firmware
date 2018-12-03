@@ -9,7 +9,7 @@
 #define FAULT_TOLERANT_CONTROL_H_
 
 #include <stdint.h>
-#include <lib/mathlib/mathlib.h>
+#include <parameters/param.h>
 
 #define ESC_SUPPORT_REVERSE
 
@@ -67,4 +67,4 @@ private:
 };
 
 
-#endif /* FIVE_PROPELLERS_HANDLING_H_ */
+#endif /* FAULT_TOLERANT_CONTROL_H_ */

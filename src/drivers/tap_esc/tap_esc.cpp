@@ -499,29 +499,67 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 
 bool TAP_ESC::esc_critical_failure(uint8_t channel_id)
 {
+	bool critical_error = false;
+
 	// If the motor has shown a failure once, do not check it again
 	if (_esc_feedback.engine_failure_report.motor_state & (1 << channel_id)) {
-		return true;
+		critical_error = true;
 
 	} else {
 		// check for ESC errors that require handling by fault-tolerant control
-		if (_esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_MOTOR_STALL
-		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_HARDWARE
-		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_CMD
-		    || _esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
+		// Print failure log and catch critical errors
+		switch (_esc_feedback.esc[channel_id].esc_state) {
+		case ESC_STATUS_HEALTHY:
+			break;
 
+		case ESC_STATUS_WARNING_LOW_VOLTAGE:
+			mavlink_log_critical(&_mavlink_log_pub, "motor %d LOW VOLTAGE", channel_id);
+			break;
+
+		case ESC_STATUS_WARNING_OVER_HEAT:
+			mavlink_log_critical(&_mavlink_log_pub, "motor %d OVERHEATING", channel_id);
+			break;
+
+		case ESC_STATUS_ERROR_MOTOR_LOW_SPEED_LOSE_STEP:
+			mavlink_log_critical(&_mavlink_log_pub, "motor %d SLIPPING", channel_id);
+			break;
+
+		case ESC_STATUS_ERROR_MOTOR_STALL:
+			mavlink_log_emergency(&_mavlink_log_pub, "motor %d STALLING", channel_id);
+			critical_error = true;
+			break;
+
+		case ESC_STATUS_ERROR_HARDWARE:
+			mavlink_log_emergency(&_mavlink_log_pub, "motor %d HW FAULT", channel_id);
+			critical_error = true;
+			break;
+
+		case ESC_STATUS_ERROR_LOSE_PROPELLER:
+			mavlink_log_emergency(&_mavlink_log_pub, "motor %d PROP LOSE", channel_id);
+			critical_error = true;
+			break;
+
+		case ESC_STATUS_ERROR_OVER_CURRENT:
+			mavlink_log_critical(&_mavlink_log_pub, "motor %d OVERCURRENT", channel_id);
+			break;
+
+		case ESC_STATUS_ERROR_MOTOR_HIGH_SPEED_LOSE_STEP:
+			mavlink_log_critical(&_mavlink_log_pub, "motor %d SLIPPING", channel_id);
+			break;
+
+		case ESC_STATUS_ERROR_LOSE_CMD:
+			mavlink_log_emergency(&_mavlink_log_pub, "motor %d COM ERROR", channel_id);
+			critical_error = true;
+			break;
+		}
+
+		if (critical_error) {
 			// set this motor's failure flag to true
 			_esc_feedback.engine_failure_report.motor_state |= 1 << channel_id;
-
-			// Print failure log once
-			mavlink_log_critical(&_mavlink_log_pub, "motor %d error: %d",
-					     channel_id, _esc_feedback.esc[channel_id].esc_state);
-
-			return true;
 		}
 	}
 
-	return false;
+	return critical_error;
 }
 
 void TAP_ESC::cycle()
@@ -648,6 +686,7 @@ void TAP_ESC::cycle()
 						// fail, those are ignored. Best that can be done right now.
 						_first_failing_motor = channel_id;
 						_esc_log_save_start_time = hrt_absolute_time();
+						mavlink_log_emergency(&_mavlink_log_pub, "Enabling Five-Rotor-Mode");
 					}
 
 					// TODO: Implement for QUAD_X, this currently only works for HEX_X
@@ -870,6 +909,10 @@ void TAP_ESC::cycle()
 		// Reset ESC/motor errors
 		if (!_is_armed) {
 			// Reset flag for motor failure - no FTC while disarmed
+			if (_first_failing_motor != -1) {
+				mavlink_log_emergency(&_mavlink_log_pub, "Disabling Five-Rotor-Mode");
+			}
+
 			_first_failing_motor = -1;
 
 			// Also clear any motor failure flags

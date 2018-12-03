@@ -701,30 +701,18 @@ void TAP_ESC::cycle()
 						// if we stop motor beforehand, ESC state will be cleared.
 						if (((hrt_absolute_time() - _esc_log_save_start_time) > ESC_SAVE_LOG_DURATION_MS)
 						    || (_esc_feedback.esc[channel_id].esc_setpoint_raw == RPMSTOPPED)) {
-							// stop the failing motor
-							_outputs.output[channel_id] = RPMSTOPPED;
-						}
 
-						// check the diagonal motor is also failing. If not, use it for
-						// five-rotor-mode.
-						if (esc_critical_failure(DIAG_MOTOR_MAP[channel_id])) {
-
-							// wait long enough for ESC to log. ESC log save frequency is 5Hz.
-							// if we stop motor beforehand, ESC state will be cleared.
-							if (((hrt_absolute_time() - _esc_log_save_start_time) > ESC_SAVE_LOG_DURATION_MS)
-							    || (_esc_feedback.esc[DIAG_MOTOR_MAP[channel_id]].esc_setpoint_raw == RPMSTOPPED)) {
-								// stop the failing motor
-								_outputs.output[DIAG_MOTOR_MAP[channel_id]] = RPMSTOPPED;
-
-							}
-
-						} else {
-							// recalculate output of the motor with the failure motor is diagonal
+							// Before stopping the faulty motor, use it to recalculate the
+							// thrust for the diagonally opposed motor
 							_outputs.output[DIAG_MOTOR_MAP[channel_id]] =
 								_fault_tolerant_control->recalculate_pwm_outputs(
 									_outputs.output[channel_id],
 									_outputs.output[DIAG_MOTOR_MAP[channel_id]],
 									_esc_feedback.engine_failure_report.delta_pwm);
+
+
+							// stop the failing motor
+							_outputs.output[channel_id] = RPMSTOPPED;
 						}
 
 						// TODO: Restart any failing motor except for the first failure for any reason!

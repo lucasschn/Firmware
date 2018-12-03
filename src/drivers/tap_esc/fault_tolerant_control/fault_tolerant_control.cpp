@@ -113,12 +113,8 @@ uint16_t FaultTolerantControl::recalculate_pwm_outputs(uint16_t failure_pwm, uin
 		diagonal_pwm = RPMMIN + delta_pwm;
 
 	} else {
-#ifdef ESC_SUPPORT_REVERSE
 		diagonal_pwm = RPMMIN - delta_pwm * _params.propeller_reverse_coefficient;
 		diagonal_pwm |= RUN_REVERSE_MASK;
-#else
-		diagonal_pwm = RPMSTOPPED;
-#endif
 	}
 
 	return diagonal_pwm;

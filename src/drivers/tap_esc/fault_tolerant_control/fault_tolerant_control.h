@@ -11,8 +11,6 @@
 #include <stdint.h>
 #include <parameters/param.h>
 
-#define ESC_SUPPORT_REVERSE
-
 class FaultTolerantControl
 {
 public:

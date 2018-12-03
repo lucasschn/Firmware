@@ -70,7 +70,7 @@ protected:
 					(ParamFloat<px4::params::MPC_VEL_MAN_UP>) MPC_VEL_MAN_UP,
 					(ParamFloat<px4::params::MPC_VEL_MAN_DN>) MPC_VEL_MAN_DN,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which to start downwards slowdown
-					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude below wich to land with land speed
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude below which to land with land speed
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED
 				       )
 private:

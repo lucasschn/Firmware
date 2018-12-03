@@ -899,7 +899,6 @@ MulticopterPositionControl::start_flight_task()
 			error =  _flight_tasks.switchTask(FlightTaskIndex::Sport);
 			break;
 
-		case 0:
 		default:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
 			break;
@@ -925,8 +924,6 @@ MulticopterPositionControl::start_flight_task()
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmooth);
 			break;
 
-		case 0:
-		case 2:
 		default:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
 			break;
@@ -987,11 +984,12 @@ MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const fl
 				     0.2f;
 
 		// takeoff was initiated through velocity setpoint
+		// 0.3m/s is a slow gentle takeoff but doesn't get triggered by very small setpoint fluctuation around zero
 		_smooth_velocity_takeoff = PX4_ISFINITE(vz_sp) && vz_sp < -0.3f;
 
 		if ((PX4_ISFINITE(z_sp) && z_sp < _states.position(2) - min_altitude) ||  _smooth_velocity_takeoff) {
-			// There is a position setpoint above current position or velocity setpoint larger than
-			// takeoff speed. Enable smooth takeoff.
+			// Start smooth takeoff because theres a position or vvelocity setpoint commanding to ascend.
+			// 0.7m/s starts low enough to ommit a jump with normal tuning, a more general logic would be better
 			_in_smooth_takeoff = true;
 			_takeoff_speed = -0.7f;
 			_takeoff_reference_z = _states.position(2);

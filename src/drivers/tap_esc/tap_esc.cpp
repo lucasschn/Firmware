@@ -693,14 +693,14 @@ void TAP_ESC::cycle()
 
 					// TODO: Implement for QUAD_X, this currently only works for HEX_X
 					if (_fault_tolerant_control != nullptr && channel_id == _first_failing_motor) {
-						// update FTC parameters about PID or others, only for debug PID parameters
-						_fault_tolerant_control->parameter_update_poll();
-
 						// Stop the first failing motor after it stored the log.
 						// wait long enough for ESC to log. ESC log save frequency is 5Hz.
 						// if we stop motor beforehand, ESC state will be cleared.
 						if (((hrt_absolute_time() - _esc_log_save_start_time) > ESC_SAVE_LOG_DURATION_MS)
 						    || (_esc_feedback.esc[channel_id].esc_setpoint_raw == RPMSTOPPED)) {
+
+							// update FTC parameters
+							_fault_tolerant_control->parameter_update_poll();
 
 							// Before stopping the faulty motor, use it to recalculate the
 							// thrust for the diagonally opposed motor

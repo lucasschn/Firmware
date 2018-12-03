@@ -16,7 +16,6 @@
 #include <lib/mathlib/mathlib.h>
 
 FaultTolerantControl::FaultTolerantControl() :
-	_filter_delta_pwm(100.0f, 50.0f),
 	_params_sub(-1)
 {
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -99,7 +98,6 @@ uint16_t FaultTolerantControl::recalculate_pwm_outputs(uint16_t failure_pwm, uin
 	// the motor pwm merge with failure motor pwm and filter
 	float delta_pwm = diagonal_pwm - failure_pwm;
 	delta_pwm = math::constrain(delta_pwm, (float)(RPMMIN - RPMMAX), (float)(RPMMAX - RPMMIN));
-	//delta_pwm = _filter_delta_pwm.apply(delta_pwm);
 
 	// compensate for the motor failure case roll, pitch and yaw output will not balance
 	float nonlinear_gain = _params.motor_failure_gain * s_curve_gain(delta_pwm / (RPMMAX - RPMMIN));

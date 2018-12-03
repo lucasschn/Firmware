@@ -10,7 +10,6 @@
 
 #include <stdint.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 
 #define ESC_SUPPORT_REVERSE
 
@@ -64,10 +63,7 @@ private:
 		float propeller_reverse_coefficient;
 	}	_params;
 
-	math::LowPassFilter2p
-	_filter_delta_pwm;	/**< filters for the delta pwm(e.g. pwm[1] - pwm[0]),to smooth error pwm will decision to motor reverse */
 	int _params_sub;			/**< parameter updates subscription */
-
 };
 
 

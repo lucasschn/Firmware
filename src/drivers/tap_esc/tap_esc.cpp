@@ -619,22 +619,9 @@ void TAP_ESC::cycle()
 		// NOTE: HOTFIX! REMOVE ASAP
 		// This is a hotfix for issue #1454 (restoring FTC to original functionality)
 		// We tell the mixer that FTC is running by suddenly reducing the number
-		// of outputs.
-		uint8_t motor_fault_count = 0;
-
-		if (_fault_tolerant_control != nullptr) {
-
-			/* get the fault motor counter */
-			for (unsigned i = 0; i < _channels_count; i++) {
-				if (_esc_feedback.engine_failure_report.motor_state & (1 << i)) {
-					motor_fault_count ++;
-				}
-			}
-		}
-
-		// NOTE: HOTFIX: In case of one or more faulty motors, reduce the number of outputs by 1
-		// to notify the mixer of FTC running
-		uint8_t num_outputs = _channels_count - bool(motor_fault_count > 0);
+		// of outputs by 1.
+		uint8_t num_outputs = _esc_feedback.engine_failure_report.motor_state == 0 ?
+				      _channels_count : _channels_count - 1;
 
 		/* can we mix? */
 		_outputs.timestamp = hrt_absolute_time();

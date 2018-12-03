@@ -86,7 +86,7 @@
 #endif
 
 constexpr int ESC_SAVE_LOG_DURATION_MS = 200000;  //ESC log save frequency is 5Hz.
-constexpr int RESTART_STALLED_MOTOR_AFTER_MS = 50000;
+// constexpr int RESTART_STALLED_MOTOR_AFTER_MS = 50000;
 
 // Maps motor ID to diagonally-opposed motor ID
 // In PX4, motors 1 and 2, 3 and 4, 5 and 6 are diagonaly opposed

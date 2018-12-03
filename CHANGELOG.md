@@ -3,12 +3,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
+* Arming without propellers now still spins 5 out of 6 motors (#2463)
+* More detailed logging of motor faults (#2463)
 
 ### Changed
 
 ### Fixed
 * Fixed scenario where H520 can perform full flips (#2701, #2645)
 * Vehicle wobbles around yaw axis for big setpoint steps (#2896)
+* Fixed Five-Rotor-Mode when more than one motor fails (#2463)
 
 
 ## [v1.8.0-1.5.2]

@@ -170,15 +170,16 @@ bool FlightTaskOrbit::update()
 	_yawspeed_setpoint = _v / _r;
 
 	// publish telemetry
+	_orbit_status.radius = _r;
+	_orbit_status.frame = 0;
+	_orbit_status.x = _center(0);
+	_orbit_status.y = _center(1);
+	_orbit_status.z = _center(2);
+
 	if (_orbit_status_pub == nullptr) {
 		_orbit_status_pub = orb_advertise(ORB_ID(orbit_status), &_orbit_status);
 
 	} else {
-		_orbit_status.radius = _r;
-		_orbit_status.frame = 0; // TODO
-		_orbit_status.x = _center(0);
-		_orbit_status.y = _center(1);
-		_orbit_status.z = _center(2);
 		orb_publish(ORB_ID(orbit_status), _orbit_status_pub, &_orbit_status);
 	}
 

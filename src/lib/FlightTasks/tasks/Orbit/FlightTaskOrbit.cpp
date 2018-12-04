@@ -171,7 +171,7 @@ bool FlightTaskOrbit::update()
 
 	// publish telemetry
 	_orbit_status.radius = _r;
-	_orbit_status.frame = 0;
+	_orbit_status.frame = 6;  // MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
 	_orbit_status.x = _center(0);
 	_orbit_status.y = _center(1);
 	_orbit_status.z = _center(2);

@@ -275,10 +275,13 @@ TAP_ESC_UPLOADER::upload(const char *filenames[])
 
 		if (esc_fail_mask & (1 << esc_id)) {
 			ret = upload_id(esc_id, fw_size);
+
+			if (ret != OK) {
+				PX4_LOG("Failed uploading ID for ESC %d", esc_id);
+				return ret;
+			}
 		}
 	}
-
-	esc_fail_mask = 0;
 
 	// sleep for enough time for the TAP ESC chip to boot. This makes
 	// update more reliably startup TAP ESC again after upload
@@ -436,7 +439,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 		ret = verify_crc(esc_id, fw_size);
 
 		if (ret == -EINVAL) {
-			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d check CRC is different,will upload tap esc firmware ",
+			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d check CRC is different, will upload tap esc firmware ",
 						     esc_id);
 			ret = upload_id(esc_id, fw_size);
 
@@ -444,7 +447,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 				esc_fail_mask = 1 << esc_id;
 			}
 
-		} else {
+		} else if (ret == OK) {
 			/* reboot tap esc_id */
 			ret = reboot(esc_id);
 
@@ -458,6 +461,10 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 					return ret;
 				}
 			}
+
+		} else {
+			PX4_LOG("Error verifying FW CRC for ESC %d", esc_id);
+			return ret;
 		}
 	}
 
@@ -466,10 +473,13 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 
 		if (esc_fail_mask & (1 << esc_id)) {
 			ret = upload_id(esc_id, fw_size);
+
+			if (ret != OK) {
+				PX4_LOG("Failed uploading ID for ESC %d", esc_id);
+				return ret;
+			}
 		}
 	}
-
-	esc_fail_mask = 0;
 
 	// sleep for enough time for the TAP ESC chip to boot. This makes
 	// update more reliably startup TAP ESC again after upload

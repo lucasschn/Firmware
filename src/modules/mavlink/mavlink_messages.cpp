@@ -76,6 +76,7 @@
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/orbit_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_bias.h>
@@ -104,9 +105,6 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/uORB.h>
-
-// Yuneec
-#include <uORB/topics/orbit_status.h>
 
 using matrix::wrap_2pi;
 
@@ -4377,7 +4375,9 @@ protected:
 	explicit MavlinkStreamOrbitStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_sub(_mavlink->add_orb_subscription(ORB_ID(orbit_status))),
 		_orbit_status_time(0)
-	{}
+	{
+
+	}
 
 	bool send(const hrt_abstime t)
 	{

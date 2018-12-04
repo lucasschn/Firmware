@@ -522,6 +522,7 @@ else
 	mavlink stream -d ${MAVLINK_DEV} -s GLOBAL_POSITION_INT -r 50.0
 	mavlink stream -d ${MAVLINK_DEV} -s HIGHRES_IMU -r 10.0
 	mavlink stream -d ${MAVLINK_DEV} -s LOCAL_POSITION_NED -r 10.0
+	mavlink stream -d ${MAVLINK_DEV} -s ORBIT_EXECUTION_STATUS -r 1.0
 	mavlink stream -d ${MAVLINK_DEV} -s POSITION_TARGET_GLOBAL_INT -r 5.0
 	mavlink stream -d ${MAVLINK_DEV} -s SERVO_OUTPUT_RAW_0 -r 5.0
 	mavlink stream -d ${MAVLINK_DEV} -s SERVO_OUTPUT_RAW_1 -r 5.0

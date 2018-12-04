@@ -104,7 +104,7 @@ void FlightTaskManualAltitude::_scaleSticks()
 	// scale horizontal velocity with expo curve stick input
 	float vel_max_z = (_sticks_expo(2) > FLT_EPSILON) ? _constraints.speed_down : _constraints.speed_up;
 	vel_max_z *= math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f); // Yuneec specific speed scale
-	vel_max_z = math::max(vel_max_z, MPC_LAND_SPEED.get()); // make sure the pilot can command a minimal vertical speed and is always able to land
+	vel_max_z = math::max(vel_max_z, MPC_LAND_SPEED.get()); // the pilot can command a minimal vertical speed to land
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
 }
 
@@ -287,8 +287,8 @@ void FlightTaskManualAltitude::_respectGroundSlowdown()
 
 		if (PX4_ISFINITE(dist_to_ground)) {
 			_constraints.speed_down = math::gradual(dist_to_ground,
-									  MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
-									  MPC_LAND_SPEED.get(), _min_speed_down);
+								MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
+								MPC_LAND_SPEED.get(), _min_speed_down);
 		}
 	}
 }

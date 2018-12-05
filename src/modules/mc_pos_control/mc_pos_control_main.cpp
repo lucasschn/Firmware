@@ -762,8 +762,6 @@ MulticopterPositionControl::task_main()
 			// Generate desired thrust and yaw.
 			_control.generateThrustYawSetpoint(_dt);
 
-			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
-
 			// Fill local position, velocity and thrust setpoint.
 			vehicle_local_position_setpoint_s local_pos_sp{};
 			local_pos_sp.timestamp = hrt_absolute_time();
@@ -776,14 +774,13 @@ MulticopterPositionControl::task_main()
 			local_pos_sp.vx = _control.getVelSp()(0);
 			local_pos_sp.vy = _control.getVelSp()(1);
 			local_pos_sp.vz = _control.getVelSp()(2);
-			thr_sp.copyTo(local_pos_sp.thrust);
+			_control.getThrustSetpoint().copyTo(local_pos_sp.thrust);
 
 			// Publish local position setpoint (for logging only) and attitude setpoint (for attitude controller).
 			publish_local_pos_sp(local_pos_sp);
 
-
 			// Fill attitude setpoint. Attitude is computed from yaw and thrust setpoint.
-			_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
+			_att_sp = ControlMath::thrustToAttitude(_control.getThrustSetpoint(), _control.getYawSetpoint());
 			_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
 			_att_sp.fw_control_yaw = false;
 			_att_sp.disable_mc_yaw_control = false;

@@ -86,7 +86,6 @@
 #endif
 
 constexpr int ESC_SAVE_LOG_DURATION_MS = 200000;  //ESC log save frequency is 5Hz.
-// constexpr int RESTART_STALLED_MOTOR_AFTER_MS = 50000;
 
 // Maps motor ID to diagonally-opposed motor ID
 // In PX4, motors 1 and 2, 3 and 4, 5 and 6 are diagonaly opposed
@@ -700,29 +699,6 @@ void TAP_ESC::cycle()
 							// stop the failing motor
 							_outputs.output[channel_id] = RPMSTOPPED;
 						}
-
-						// // TODO: Restart any failing motor except for the first failure for any reason!
-						// // check if stall failure is caused by colliding with another motor's lost propeller
-						// if (_esc_feedback.esc[channel_id].esc_state == ESC_STATUS_ERROR_MOTOR_STALL) {
-						// 	// check whether the other motor is lost propeller
-						// 	for (uint8_t lose_id = 0; lose_id < _channels_count; lose_id++) {
-						// 		if (_esc_feedback.esc[lose_id].esc_state == ESC_STATUS_ERROR_LOSE_PROPELLER) {
-						// 			// stop the stalling motor and try restarting it
-						// 			_outputs.output[channel_id] = RPMSTOPPED;
-						// 			// set the flag when the motor stall by a collision of another motor's lost propeller
-						// 			_stall_by_lost_prop = channel_id;
-						// 			break;
-						// 		}
-						// 	}
-						// }
-						//
-						// // For stall failure after a neighbour lost its prop: Clear failure.
-						// // This will also restart the motor eventually
-						// if ((hrt_absolute_time() - _esc_log_save_start_time) > RESTART_STALLED_MOTOR_AFTER_MS &&
-						//     (channel_id == _stall_by_lost_prop)) {
-						// 	_esc_feedback.engine_failure_report.motor_state &= ~(1 << channel_id);
-						// 	_stall_by_lost_prop = -1;
-						// }
 					}
 				}
 			}

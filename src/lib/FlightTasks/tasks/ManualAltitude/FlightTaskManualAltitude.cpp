@@ -93,7 +93,7 @@ bool FlightTaskManualAltitude::activate()
 	// While the constraint-structure members can change based on vehicle state,
 	// the maximum and minmum speed are fixed for the time of FlightTaskManualAltitude
 	_max_speed_up = _constraints.speed_up;
-	_min_speed_down = _constraints.speed_down;
+	_max_speed_down = _constraints.speed_down;
 
 	return ret;
 }
@@ -104,7 +104,7 @@ void FlightTaskManualAltitude::_scaleSticks()
 	FlightTaskManualStabilized::_scaleSticks();
 
 	// scale horizontal velocity with expo curve stick input
-	float vel_max_z = (_sticks_expo(2) > FLT_EPSILON) ? _min_speed_down : _max_speed_up;
+	float vel_max_z = (_sticks_expo(2) > FLT_EPSILON) ? _max_speed_down : _max_speed_up;
 	vel_max_z *= math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f); // Yuneec specific speed scale
 	vel_max_z = math::max(vel_max_z, MPC_LAND_SPEED.get()); // the pilot can command a minimal vertical speed to land
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
@@ -251,7 +251,7 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 		// below the maximum, preserving control loop vertical position error gain.
 		if (PX4_ISFINITE(_constraints.max_distance_to_ground)) {
 			_constraints.speed_up = math::constrain(MPC_Z_P.get() * (_constraints.max_distance_to_ground - _dist_to_bottom),
-								-_min_speed_down, _max_speed_up);
+								-_max_speed_down, _max_speed_up);
 
 		} else {
 			_constraints.speed_up = _max_speed_up;
@@ -264,10 +264,10 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 			// set position setpoint to maximum distance to ground
 			_position_setpoint(2) = _position(2) +  delta_distance_to_max;
 			// limit speed downwards to 0.7m/s
-			_constraints.speed_down = math::min(_min_speed_down, 0.7f);
+			_constraints.speed_down = math::min(_max_speed_down, 0.7f);
 
 		} else {
-			_constraints.speed_down = _min_speed_down;
+			_constraints.speed_down = _max_speed_down;
 
 		}
 	}
@@ -290,7 +290,10 @@ void FlightTaskManualAltitude::_respectGroundSlowdown()
 		if (PX4_ISFINITE(dist_to_ground)) {
 			_constraints.speed_down = math::gradual(dist_to_ground,
 								MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
-								MPC_LAND_SPEED.get(), _min_speed_down);
+								MPC_LAND_SPEED.get(), _max_speed_down);
+
+		} else {
+			_constraints.speed_down = _max_speed_down;
 		}
 	}
 }

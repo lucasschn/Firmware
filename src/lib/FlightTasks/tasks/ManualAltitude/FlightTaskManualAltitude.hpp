@@ -77,7 +77,7 @@ private:
 	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	float _max_speed_up = 10.0f;
-	float _min_speed_down = 1.0f;
+	float _max_speed_down = 1.0f;
 	bool _terrain_follow{false}; /**< true when the vehicle is following the terrain height */
 	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
 

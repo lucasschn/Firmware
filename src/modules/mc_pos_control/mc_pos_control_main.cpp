@@ -256,7 +256,7 @@ private:
 	 * Thrust is adjusted to support the land-detector during detection.
 	 * @param thrust_setpoint gets adjusted based on land-detector state
 	 */
-	void limit_thrust_during_landing(matrix::Vector3f &thrust_sepoint);
+	void limit_thrust_during_landing(float *thrust_sepoint);
 
 	/**
 	 * Start flightasks based on navigation state.
@@ -726,6 +726,12 @@ MulticopterPositionControl::task_main()
 				_flight_tasks.reActivate();
 			}
 
+			// Adjust thrust setpoint based on landdetector only if the
+			// vehicle is NOT in pure Manual mode and NOT in smooth takeoff
+			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
+				limit_thrust_during_landing(setpoint.thrust);
+			}
+
 			// limit altitude only if local position is valid
 			if (PX4_ISFINITE(_states.position(2))) {
 				limit_altitude(setpoint);
@@ -757,12 +763,6 @@ MulticopterPositionControl::task_main()
 			_control.generateThrustYawSetpoint(_dt);
 
 			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
-
-			// Adjust thrust setpoint based on landdetector only if the
-			// vehicle is NOT in pure Manual mode and NOT in smooth takeoff
-			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
-				limit_thrust_during_landing(thr_sp);
-			}
 
 			// Fill local position, velocity and thrust setpoint.
 			vehicle_local_position_setpoint_s local_pos_sp{};
@@ -1033,15 +1033,15 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 }
 
 void
-MulticopterPositionControl::limit_thrust_during_landing(matrix::Vector3f &thr_sp)
+MulticopterPositionControl::limit_thrust_during_landing(float *thr_sp)
 {
 	if (_vehicle_land_detected.ground_contact) {
 		// Set thrust in xy to zero
-		thr_sp(0) = 0.0f;
-		thr_sp(1) = 0.0f;
+		thr_sp[0] = 0.0f;
+		thr_sp[1] = 0.0f;
 
 		// FIXME: only to recover previous bug that made landing dection super fast
-		thr_sp(2) = 0.0f;
+		thr_sp[2] = 0.0f;
 
 		// Reset integral in xy is required because PID-controller does
 		// know about the overwrite and would therefore increase the intragral term
@@ -1051,7 +1051,7 @@ MulticopterPositionControl::limit_thrust_during_landing(matrix::Vector3f &thr_sp
 	if (_vehicle_land_detected.maybe_landed) {
 		// we set thrust to zero
 		// this will help to decide if we are actually landed or not
-		thr_sp.zero();
+		thr_sp[0] = thr_sp[1] = thr_sp[2] = 0.0f;
 		// We need to reset all integral terms otherwise the PID-controller
 		// will continue to integrate
 		_control.resetIntegralXY();

@@ -1042,6 +1042,7 @@ MulticopterPositionControl::limit_thrust_during_landing(float *thr_sp)
 
 		// FIXME: only to recover previous bug that made landing dection super fast
 		thr_sp[2] = 0.0f;
+		_control.resetIntegralZ();
 
 		// Reset integral in xy is required because PID-controller does
 		// know about the overwrite and would therefore increase the intragral term

@@ -665,8 +665,9 @@ void TAP_ESC::cycle()
 
 			// Check for motor failures and if enabled engage fault-tolerant-control
 			for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
-				if (esc_critical_failure(channel_id)) {
+				if (esc_critical_failure(channel_id) && _fault_tolerant_control != nullptr) {
 
+					// Check if this is the first reported motor failure
 					if (_first_failing_motor == -1) {
 						// The current implementation of FTC allows only failure of one motor.
 						// Hence we attempt to run FTC for the first failing motor and if more
@@ -677,7 +678,7 @@ void TAP_ESC::cycle()
 					}
 
 					// TODO: Implement for QUAD_X, this currently only works for HEX_X
-					if (_fault_tolerant_control != nullptr && channel_id == _first_failing_motor) {
+					if (channel_id == _first_failing_motor) {
 						// Stop the first failing motor after it stored the log.
 						// wait long enough for ESC to log. ESC log save frequency is 5Hz.
 						// if we stop motor beforehand, ESC state will be cleared.

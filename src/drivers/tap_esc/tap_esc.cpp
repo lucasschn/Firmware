@@ -168,7 +168,7 @@ private:
 
 	// FTC related members (not upstream)
 	FaultTolerantControl 	*_fault_tolerant_control = nullptr;
-	int8_t			_first_failing_motor = -1;  ///< First motor to show critical failure
+	int			_first_failing_motor = -1;  ///< First motor to show critical failure
 	bool 			esc_critical_failure(uint8_t channel_id);
 
 	// HITL related members (not upstream)

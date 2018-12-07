@@ -289,10 +289,6 @@ else
 	echo "tap_esc_config send_basic_config failed - not starting the ESC driver"
 fi
 
-#
-# Play startup tune
-#
-tune_control play -t 1 -s 30
 
 set OUTPUT_MODE tap_esc
 

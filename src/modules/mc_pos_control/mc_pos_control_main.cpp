@@ -143,14 +143,25 @@ private:
 	bool _smooth_velocity_takeoff =
 		false; /**< Smooth velocity takeoff can be initiated either through position or velocity setpoint */
 
-	vehicle_status_s 			_vehicle_status{};		/**< vehicle status */
-	vehicle_land_detected_s 		_vehicle_land_detected{};	/**< vehicle land detected */
-	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */
-	vehicle_control_mode_s			_control_mode{};		/**< vehicle control mode */
-	vehicle_local_position_s		_local_pos{};			/**< vehicle local position */
-	home_position_s				_home_pos{};			/**< home position */
-	vehicle_trajectory_waypoint_s		_traj_wp_avoidance{};		/**< trajectory waypoint */
-	vehicle_trajectory_waypoint_s		_traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
+	vehicle_status_s _vehicle_status{};		/**< vehicle status */
+	/**< vehicle-land-detection: initialze to landed */
+	vehicle_land_detected_s _vehicle_land_detected = {0, //timestamp
+							  -1.0f, // alt_max
+							  true, // landed
+							  false, // freefall
+							  false, // ground-contact
+							  false, // maybelanded
+							  false, // crash
+							  false, // inverted
+							  {}
+							 };
+
+	vehicle_attitude_setpoint_s	_att_sp{};			/**< vehicle attitude setpoint */
+	vehicle_control_mode_s	_control_mode{};		/**< vehicle control mode */
+	vehicle_local_position_s _local_pos{};			/**< vehicle local position */
+	home_position_s	_home_pos{};			/**< home position */
+	vehicle_trajectory_waypoint_s _traj_wp_avoidance{};		/**< trajectory waypoint */
+	vehicle_trajectory_waypoint_s _traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
@@ -587,12 +598,7 @@ MulticopterPositionControl::task_main()
 	// get an initial update for all sensor and status data
 	poll_subscriptions();
 
-	// We really need to know from the beginning if we're landed or in-air.
-	orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
-
 	hrt_abstime t_prev = 0;
-
-	// We assume that the landing gear is already in the correct position
 
 	// wakeup source
 	px4_pollfd_struct_t fds[1];

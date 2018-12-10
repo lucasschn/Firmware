@@ -47,8 +47,17 @@ bool FlightTaskManualStabilized::activate()
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
 	_yaw_setpoint = _yaw;
 	_yawspeed_setpoint = 0.0f;
-	_constraints.tilt = math::radians(_tilt_max_man.get());
 	return ret;
+}
+
+void FlightTaskManualStabilized::_setDynamicConstraints()
+{
+	FlightTaskManual::_setDynamicConstraints();
+
+	if (math::radians(MPC_TILTMAX_AIR.get()) >=  math::radians(_tilt_max_man.get())) {
+		_constraints.tilt = math::radians(_tilt_max_man.get());
+
+	}
 }
 
 bool FlightTaskManualStabilized::updateInitialize()
@@ -155,8 +164,9 @@ float FlightTaskManualStabilized::_throttleCurve()
 
 bool FlightTaskManualStabilized::update()
 {
-	_scaleSticks();
-	_updateSetpoints();
+	_setDynamicConstraints(); // set default constraints in every loop
+	_scaleSticks(); // sclae sticks in every loop
+	_updateSetpoints(); // update setpoints in every loop
 
 	return true;
 }

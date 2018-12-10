@@ -52,13 +52,9 @@ public:
 
 	virtual ~FlightTaskSport() = default;
 
-	bool activate() override
+	void _setDynamicConstraints()
 	{
-		bool ret = FlightTaskManualPosition::activate();
-
-		// default constraints already are the maximum allowed limits
-		_setDefaultConstraints();
-
-		return ret;
+		// set limits to its maximum which is set by FlightTask-base
+		FlightTask::_setDynamicConstraints();
 	}
 };

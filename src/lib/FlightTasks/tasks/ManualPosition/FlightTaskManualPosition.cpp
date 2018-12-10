@@ -53,16 +53,20 @@ bool FlightTaskManualPosition::updateInitialize()
 	       && PX4_ISFINITE(_velocity(1));
 }
 
+void FlightTaskManualPosition::_setDynamicConstraints()
+{
+	// set task specific constraint
+	FlightTaskManualAltitude::_setDynamicConstraints();
+
+	if (MPC_XY_VEL_MAX.get() >= MPC_VEL_MANUAL.get()) {
+		_constraints.speed_xy = MPC_VEL_MANUAL.get();
+	}
+}
+
 bool FlightTaskManualPosition::activate()
 {
 	// all requirements from altitude-mode still have to hold
 	bool ret = FlightTaskManualAltitude::activate();
-	_setDefaultConstraints(); // overwrite parameter settings with default
-
-	// set task specific constraint
-	if (_constraints.speed_xy >= MPC_VEL_MANUAL.get()) {
-		_constraints.speed_xy = MPC_VEL_MANUAL.get();
-	}
 
 	_position_setpoint(0) = _position(0);
 	_position_setpoint(1) = _position(1);

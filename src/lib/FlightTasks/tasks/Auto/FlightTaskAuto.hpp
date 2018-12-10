@@ -79,7 +79,7 @@ public:
 	bool updateInitialize() override;
 
 protected:
-	void _setDefaultConstraints() override;
+	void _setDynamicConstraints() override;
 	float _getMaxCruiseSpeed() {return MPC_XY_CRUISE.get();} /**< getter for default cruise speed */
 	matrix::Vector2f _getTargetVelocityXY(); /**< only used for follow-me and only here because of legacy reason.*/
 	void _updateInternalWaypoints(); /**< Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */

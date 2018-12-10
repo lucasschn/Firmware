@@ -33,7 +33,7 @@ bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 bool FlightTask::activate()
 {
 	_resetSetpoints();
-	_setDefaultConstraints();
+	_setDynamicConstraints();
 	_time_stamp_activate = hrt_absolute_time();
 	_heading_reset_counter = _sub_attitude->get().quat_reset_counter;
 	_gear = empty_landing_gear_default_keep;
@@ -147,7 +147,7 @@ bool FlightTask::_evaluateVehicleLocalPosition()
 	}
 }
 
-void FlightTask::_setDefaultConstraints()
+void FlightTask::_setDynamicConstraints()
 {
 	_constraints.speed_xy = MPC_XY_VEL_MAX.get();
 	_constraints.speed_up = MPC_Z_VEL_MAX_UP.get();

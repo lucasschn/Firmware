@@ -66,7 +66,7 @@ bool FlightTaskAuto::activate()
 	_velocity_setpoint = _velocity;
 	_yaw_setpoint = _yaw;
 	_yawspeed_setpoint = 0.0f;
-	_setDefaultConstraints();
+	_setDynamicConstraints();
 	return ret;
 }
 
@@ -351,20 +351,20 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 	}
 }
 
-void FlightTaskAuto::_setDefaultConstraints()
+void FlightTaskAuto::_setDynamicConstraints()
 {
-	FlightTask::_setDefaultConstraints();
+	FlightTask::_setDynamicConstraints();
 
 	// only adjust limits if the new limit is lower
-	if (_constraints.speed_xy >= MPC_XY_CRUISE.get()) {
+	if (MPC_XY_VEL_MAX.get() >= MPC_XY_CRUISE.get()) {
 		_constraints.speed_xy = MPC_XY_CRUISE.get();
 	}
 
-	if (_constraints.speed_up >= MPC_VEL_Z_AUTO.get()) {
+	if (MPC_Z_VEL_MAX_UP.get() >= MPC_VEL_Z_AUTO.get()) {
 		_constraints.speed_up = MPC_VEL_Z_AUTO.get();
 	}
 
-	if (_constraints.speed_down >= MPC_VEL_Z_AUTO.get()) {
+	if (MPC_Z_VEL_MAX_DN.get() >= MPC_VEL_Z_AUTO.get()) {
 		_constraints.speed_down = MPC_VEL_Z_AUTO.get();
 	}
 }

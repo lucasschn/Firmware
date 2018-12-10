@@ -55,6 +55,7 @@ protected:
 	void _updateXYlock(); /**< applies position lock based on stick and velocity */
 	void _updateSetpoints() override;
 	void _scaleSticks() override;
+	void _setDynamicConstraints() override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAltitude,
 					(ParamFloat<px4::params::MPC_VEL_MANUAL>) MPC_VEL_MANUAL,

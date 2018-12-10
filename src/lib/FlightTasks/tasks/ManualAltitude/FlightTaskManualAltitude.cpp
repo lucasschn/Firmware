@@ -60,13 +60,9 @@ bool FlightTaskManualAltitude::updateInitialize()
 	return ret && PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2));
 }
 
-bool FlightTaskManualAltitude::activate()
+void FlightTaskManualAltitude::_setDynamicConstraints()
 {
-	_setDefaultConstraints(); // set default constraints
-	bool ret = FlightTaskManualStabilized::activate(); //reuse all setting from Stabilized
-	_thrust_setpoint(2) = NAN; // altitude is controlled from position/velocity
-	_position_setpoint(2) = _position(2);
-	_velocity_setpoint(2) = 0.0f;
+	FlightTaskManualStabilized::_setDynamicConstraints();
 
 	if (PX4_ISFINITE(_sub_vehicle_local_position->get().hagl_min)) {
 		_constraints.min_distance_to_ground = _sub_vehicle_local_position->get().hagl_min;
@@ -82,19 +78,21 @@ bool FlightTaskManualAltitude::activate()
 		_constraints.max_distance_to_ground = INFINITY;
 	}
 
-	if (_constraints.speed_up >= MPC_VEL_MAN_UP.get()) {
+	if (MPC_Z_VEL_MAX_UP.get() >= MPC_VEL_MAN_UP.get()) {
 		_constraints.speed_up = MPC_VEL_MAN_UP.get();
 	}
 
-	if (_constraints.speed_down >= MPC_VEL_MAN_DN.get()) {
+	if (MPC_Z_VEL_MAX_DN.get() >= MPC_VEL_MAN_DN.get()) {
 		_constraints.speed_down = MPC_VEL_MAN_DN.get();
 	}
+}
 
-	// While the constraint-structure members can change based on vehicle state,
-	// the maximum and minmum speed are fixed for the time of FlightTaskManualAltitude
-	_max_speed_up = _constraints.speed_up;
-	_max_speed_down = _constraints.speed_down;
-
+bool FlightTaskManualAltitude::activate()
+{
+	bool ret = FlightTaskManualStabilized::activate(); //reuse all setting from Stabilized
+	_thrust_setpoint(2) = NAN; // altitude is controlled from position/velocity
+	_position_setpoint(2) = _position(2);
+	_velocity_setpoint(2) = 0.0f;
 	return ret;
 }
 
@@ -104,7 +102,7 @@ void FlightTaskManualAltitude::_scaleSticks()
 	FlightTaskManualStabilized::_scaleSticks();
 
 	// scale horizontal velocity with expo curve stick input
-	float vel_max_z = (_sticks_expo(2) > FLT_EPSILON) ? _max_speed_down : _max_speed_up;
+	float vel_max_z = (_sticks_expo(2) > FLT_EPSILON) ? _constraints.speed_down : _constraints.speed_up;
 	vel_max_z *= math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f); // Yuneec specific speed scale
 	vel_max_z = math::max(vel_max_z, MPC_LAND_SPEED.get()); // the pilot can command a minimal vertical speed to land
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
@@ -251,10 +249,8 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 		// below the maximum, preserving control loop vertical position error gain.
 		if (PX4_ISFINITE(_constraints.max_distance_to_ground)) {
 			_constraints.speed_up = math::constrain(MPC_Z_P.get() * (_constraints.max_distance_to_ground - _dist_to_bottom),
-								-_max_speed_down, _max_speed_up);
+								-_constraints.speed_down, _constraints.speed_up);
 
-		} else {
-			_constraints.speed_up = _max_speed_up;
 		}
 
 		// if distance to bottom exceeded maximum distance, slowly approach maximum distance
@@ -264,10 +260,7 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 			// set position setpoint to maximum distance to ground
 			_position_setpoint(2) = _position(2) +  delta_distance_to_max;
 			// limit speed downwards to 0.7m/s
-			_constraints.speed_down = math::min(_max_speed_down, 0.7f);
-
-		} else {
-			_constraints.speed_down = _max_speed_down;
+			_constraints.speed_down = math::min(_constraints.speed_down, 0.7f);
 
 		}
 	}
@@ -290,14 +283,11 @@ void FlightTaskManualAltitude::_respectGroundSlowdown()
 		if (PX4_ISFINITE(dist_to_ground)) {
 			_constraints.speed_down = math::gradual(dist_to_ground,
 								MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
-								MPC_LAND_SPEED.get(), _max_speed_down);
+								MPC_LAND_SPEED.get(), _constraints.speed_down);
 
-		} else {
-			_constraints.speed_down = _max_speed_down;
 		}
 	}
 }
-
 
 void FlightTaskManualAltitude::_updateSetpoints()
 {

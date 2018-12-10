@@ -54,6 +54,7 @@ public:
 protected:
 	void _updateSetpoints() override; /**< updates all setpoints */
 	void _scaleSticks() override; /**< scales sticks to velocity in z */
+	void _setDynamicConstraints() override;
 
 	/**
 	 *  Check and sets for position lock.

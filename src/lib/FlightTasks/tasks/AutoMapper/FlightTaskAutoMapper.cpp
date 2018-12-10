@@ -50,7 +50,7 @@ bool FlightTaskAutoMapper::activate()
 bool FlightTaskAutoMapper::update()
 {
 	// always reset constraints because they might change depending on the type
-	_setDefaultConstraints();
+	_setDynamicConstraints();
 
 	_updateAltitudeAboveGround();
 

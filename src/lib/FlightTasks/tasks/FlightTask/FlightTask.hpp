@@ -170,9 +170,10 @@ protected:
 	bool _evaluateVehicleLocalPosition();
 
 	/**
-	 * Set constraints to default values
+	 * Set dynamic constraints
+	 * Certain constraints, such as maximum speed, depends on the vehicle flight-state
 	 */
-	virtual void  _setDefaultConstraints();
+	virtual void  _setDynamicConstraints();
 
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */

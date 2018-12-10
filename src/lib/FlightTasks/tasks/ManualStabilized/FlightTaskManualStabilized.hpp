@@ -59,11 +59,11 @@ protected:
 	void _setDynamicConstraints() override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManual,
-					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _yaw_rate_scaling, /**< scaling factor from stick to yaw rate */
-					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _tilt_max_man, /**< maximum tilt allowed for manual flight */
-					(ParamFloat<px4::params::MPC_MANTHR_MIN>) _throttle_min_stabilized, /**< minimum throttle for stabilized */
-					(ParamFloat<px4::params::MPC_THR_MAX>) _throttle_max, /**< maximum throttle that always has to be satisfied in flight*/
-					(ParamFloat<px4::params::MPC_THR_HOVER>) _throttle_hover /**< throttle value at which vehicle is at hover equilibrium */
+					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) MPC_MAN_Y_MAX, /**< scaling factor from stick to yaw rate */
+					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX, /**< maximum tilt allowed for manual flight */
+					(ParamFloat<px4::params::MPC_MANTHR_MIN>) MPC_MANTHR_MIN, /**< minimum throttle for stabilized */
+					(ParamFloat<px4::params::MPC_THR_MAX>) MPC_THR_MAX, /**< maximum throttle that always has to be satisfied in flight*/
+					(ParamFloat<px4::params::MPC_THR_HOVER>) MPC_THR_HOVER /**< throttle value at which vehicle is at hover equilibrium */
 				       )
 
 private:

@@ -44,7 +44,7 @@ using namespace matrix;
 bool FlightTaskManualStabilized::activate()
 {
 	bool ret = FlightTaskManual::activate();
-	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_throttle_hover.get());
+	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -MPC_THR_HOVER.get());
 	_yaw_setpoint = _yaw;
 	_yawspeed_setpoint = 0.0f;
 	return ret;
@@ -54,8 +54,8 @@ void FlightTaskManualStabilized::_setDynamicConstraints()
 {
 	FlightTaskManual::_setDynamicConstraints();
 
-	if (math::radians(MPC_TILTMAX_AIR.get()) >=  math::radians(_tilt_max_man.get())) {
-		_constraints.tilt = math::radians(_tilt_max_man.get());
+	if (math::radians(MPC_TILTMAX_AIR.get()) >=  math::radians(MPC_MAN_TILT_MAX.get())) {
+		_constraints.tilt = math::radians(MPC_MAN_TILT_MAX.get());
 
 	}
 }
@@ -71,7 +71,7 @@ void FlightTaskManualStabilized::_scaleSticks()
 {
 	/* Scale sticks to yaw and thrust using
 	 * linear scale for yaw and piecewise linear map for thrust. */
-	_yawspeed_setpoint = _sticks_expo(3) * math::radians(_yaw_rate_scaling.get());
+	_yawspeed_setpoint = _sticks_expo(3) * math::radians(MPC_MAN_Y_MAX.get());
 
 	// Yuneec specific speed scale
 	_yawspeed_setpoint *= math::gradual(_user_speed_scale, -1.f, 1.f, 0.3f, 1.f);
@@ -155,10 +155,10 @@ float FlightTaskManualStabilized::_throttleCurve()
 	float throttle = -((_sticks(2) - 1.0f) * 0.5f);
 
 	if (throttle < 0.5f) {
-		return (_throttle_hover.get() - _throttle_min_stabilized.get()) / 0.5f * throttle + _throttle_min_stabilized.get();
+		return (MPC_THR_HOVER.get() - MPC_MANTHR_MIN.get()) / 0.5f * throttle + MPC_MANTHR_MIN.get();
 
 	} else {
-		return (_throttle_max.get() - _throttle_hover.get()) / 0.5f * (throttle - 1.0f) + _throttle_max.get();
+		return (MPC_THR_MAX.get() - MPC_THR_HOVER.get()) / 0.5f * (throttle - 1.0f) + MPC_THR_MAX.get();
 	}
 }
 

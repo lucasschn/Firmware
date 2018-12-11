@@ -141,7 +141,7 @@ deploy:
     api_key:
       secure: xNcSJImv5YNJMxhPUO5BOD9ZbK0cnC26AY6Vr3HNJjxUXKYEs/K3IIT1XL13Y3EmmJdUZVRNtGCCamkOOBU/Aap/Tzwzs8R5sSGd/OKaK8E+PklXJruQfbOQV84ATa0PnW5hHjbD550G3GYI8wE8XGbtyPGBM71jUX9ePNIQWSgUrD0XzfuPdoJC3nyjSk7siwaaAA+19iWu86p8LnKmeqG1KHQUxNv5iOY1C+pgA3IQsLGdDRlvT7wknC7UiQZFW7hLq9Lxjtvwn96mBRoOduLfdx6tdffnILeW+axWWClAPUA2IKiKOKUgSF+fnzitorPTU+wWG8U+I7idUb6big8d9PqCFwzQX3wNOstx1QvcuA/g5oe+X70TTuTKSKwGsrOKwdDcYC1Nm5Y3Ld5YMmjoUvtmVmYjwH/tTR9VQL+iXv2Efie+xCP6vYaU9eF39CWHKqz8UHSWu2l9oNEVNcRzEJ3L8lkIf7xezmx3L+7gDlKsvJ4baaiQq46g3oQh61DqouDY/VzBsr02sJZnfs2zKPEztvZr9JEjeFu+ezwISaaDt+Xf3ZK9dNTLhrw65Xc+i4VVpNQrSyWHLyjrwUWaZ0aIVAiYQ2lV9VlUqSJ98yHBGdXQ1CsFkB8Ho8IeKSnKXtbf8WJid3MqikwXFUND5tApFtLw+xDp1j3tfKs=
     file:
-      - build/tap-v2_default/tap-v2_default.px4
+      - build/nuttx_tap-v2_default/tap-v2_default.px4
       - s3autopilot/autopilot.yuneec
     skip_cleanup: true
     on:

@@ -661,6 +661,10 @@ Mission::set_mission_items()
 
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
+				// By default, we want to have landing gears up during entire mission.
+				// The gears during takeoff, landing etc are handled by Flighttask.
+				_mission_item.landing_gear = landing_gear_s::GEAR_UP; //< Yuneec landing gear
+
 				/* do takeoff before going to setpoint if needed and not already in takeoff */
 				/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
 				if (do_need_vertical_takeoff() &&
@@ -688,7 +692,6 @@ Mission::set_mission_items()
 					_mission_item.altitude_is_relative = false;
 					_mission_item.autocontinue = true;
 					_mission_item.time_inside = 0.0f;
-					_mission_item.landing_gear = landing_gear_s::GEAR_UP; //< Yuneec landing gear
 
 				} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 					   && _work_item_type == WORK_ITEM_TYPE_DEFAULT

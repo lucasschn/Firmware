@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 * Fixed scenario where H520 can perform full flips (#2701, #2645)
 * Vehicle wobbles around yaw axis for big setpoint steps (#2896)
 * Fixed Five-Rotor-Mode when more than one motor fails (#2463)
+* Startup tune chopped up when updating drone (#2923)
 
 
 ## [v1.8.0-1.5.2]

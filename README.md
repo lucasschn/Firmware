@@ -10,7 +10,7 @@ The original readme can be found [here](https://github.com/PX4/Firmware/blob/mas
 | Mantis Q  | `make tap-v4_v18s` |
 
 ## Creating new release branch
-1. Update the develop branch no your machine: `git checkout develop && git pull`
+1. Update the develop branch on your machine: `git checkout develop && git pull`
 2. Create new branch: `git checkout -b release-x.x.x`
 3. Set the correct `RELEASE_VER` variable [tap_common/rcS](https://github.com/YUNEEC/Firmware/blob/develop/ROMFS/tap_common/init.d/rcS)
 4. Add the branch to the CI white-list in [.travis.yml](https://github.com/YUNEEC/Firmware/blob/develop/.travis.yml#L10-L13)

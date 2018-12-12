@@ -442,8 +442,8 @@ int send_basic_config(const char *device, uint8_t num_escs, bool verify_config){
 	packet.d.reqConfigInfoBasic.controlMode = BOARD_TAP_ESC_MODE;
 
 	// Asign the IDs to the ESCs to match the mux
-	const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
-	const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
+	const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = BOARD_MAP_ESC_PHYS_TO_LOG;
+	const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = BOARD_MAP_ESC_TO_PX4_DIR;
 	for (uint8_t phy_chan_index = 0; phy_chan_index < num_escs; phy_chan_index++) {
 		// channelMapTable is for phyiscal to logical mapping
 		// This is required on Typhoon, H520 and H520c because the ID resistors for

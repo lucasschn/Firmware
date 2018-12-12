@@ -67,7 +67,7 @@
 // define for comms logging
 //#define UDEBUG
 
-const uint8_t TAP_ESC_UPLOADER::_device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
+const uint8_t TAP_ESC_UPLOADER::_device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = BOARD_MAP_ESC_PHYS_TO_LOG;
 
 TAP_ESC_UPLOADER::TAP_ESC_UPLOADER(const char *device, uint8_t esc_counter) :
 	_esc_fd(-1),

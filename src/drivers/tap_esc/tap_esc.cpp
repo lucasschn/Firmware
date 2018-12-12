@@ -185,7 +185,7 @@ private:
 	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
 };
 
-const uint8_t TAP_ESC::_device_out_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_OUT;
+const uint8_t TAP_ESC::_device_out_map[TAP_ESC_MAX_MOTOR_NUM] = BOARD_MAP_ESC_TO_PX4_OUT;
 
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count, bool hitl):
 	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
@@ -753,48 +753,14 @@ void TAP_ESC::cycle()
 	if (!_hitl && !_armed.manual_lockdown) {
 
 		// Remap motor ID schemes: PX4 -> Yuneec
-#ifdef BOARD_MAP_ESC_TO_PX4_OUT
-
-		// Loop over 0 to 5 in case of hex configuration
 		for (uint8_t num = 0; num < _channels_count; num++) {
 			motor_out[num] = _outputs.output[_device_out_map[num]];
 		}
 
-		// Loop over 6,7 in case of hex configuration
+		// Disable remaining motor outputs
 		for (uint8_t num = _channels_count; num < TAP_ESC_MAX_MOTOR_NUM; num++) {
 			motor_out[num] = RPMSTOPPED;
 		}
-
-#else
-
-		switch (_channels_count) {
-		case 4:
-			motor_out[0] = (uint16_t)_outputs.output[2];
-			motor_out[1] = (uint16_t)_outputs.output[1];
-			motor_out[2] = (uint16_t)_outputs.output[0];
-			motor_out[3] = (uint16_t)_outputs.output[3];
-			break;
-
-		case 6:
-			motor_out[0] = (uint16_t)_outputs.output[3];
-			motor_out[1] = (uint16_t)_outputs.output[0];
-			motor_out[2] = (uint16_t)_outputs.output[4];
-			motor_out[3] = (uint16_t)_outputs.output[2];
-			motor_out[4] = (uint16_t)_outputs.output[1];
-			motor_out[5] = (uint16_t)_outputs.output[5];
-			break;
-
-		default:
-
-			// Use the system defaults
-			for (uint8_t i = 0; i < _channels_count; ++i) {
-				motor_out[i] = (uint16_t)_outputs.output[i];
-			}
-
-			break;
-		}
-
-#endif
 	}
 
 	// Send motor commands to the ESCs

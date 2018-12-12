@@ -763,8 +763,9 @@ void TAP_ESC::cycle()
 		}
 	}
 
-	// Send motor commands to the ESCs
+	// Send motor commands to the ESCs and also publish feedback to PX4
 	send_esc_outputs(motor_out, _channels_count);
+	orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
 	tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
@@ -816,8 +817,6 @@ void TAP_ESC::cycle()
 		}
 
 	}
-
-	orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
 	bool updated;
 	orb_check(_armed_sub, &updated);

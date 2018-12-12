@@ -767,6 +767,7 @@ void TAP_ESC::cycle()
 	send_esc_outputs(motor_out, _channels_count);
 	orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
+	// Parse and publish ESC feedback
 	tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
 	if (tap_esc_common::parse_tap_esc_feedback(&_uartbuf, &_packet) == 0) {
@@ -774,22 +775,23 @@ void TAP_ESC::cycle()
 			RunInfoRepsonse &feed_back_data = _packet.d.rspRunInfo;
 
 			if (feed_back_data.channelID < esc_status_s::CONNECTED_ESC_MAX) {
-				_esc_feedback.esc[feed_back_data.channelID].esc_rpm = feed_back_data.speed;
+				size_t yun_index_in_px4 = _device_out_map[feed_back_data.channelID];
+				_esc_feedback.esc[yun_index_in_px4].esc_rpm = feed_back_data.speed;
 #ifdef ESC_HAVE_VOLTAGE_SENSOR
-				_esc_feedback.esc[feed_back_data.channelID].esc_voltage = feed_back_data.voltage;
+				_esc_feedback.esc[yun_index_in_px4].esc_voltage = feed_back_data.voltage;
 #endif
 #ifdef ESC_HAVE_CURRENT_SENSOR
 				// ESCs report in 10mA/LSB
-				_esc_feedback.esc[feed_back_data.channelID].esc_current = feed_back_data.current / 100.f;
+				_esc_feedback.esc[yun_index_in_px4].esc_current = feed_back_data.current / 100.f;
 #endif
 #ifdef ESC_HAVE_TEMPERATURE_SENSOR
-				_esc_feedback.esc[feed_back_data.channelID].esc_temperature = feed_back_data.temperature;
+				_esc_feedback.esc[yun_index_in_px4].esc_temperature = feed_back_data.temperature;
 #endif
-				_esc_feedback.esc[feed_back_data.channelID].esc_state = feed_back_data.ESCStatus;
-				_esc_feedback.esc[feed_back_data.channelID].esc_vendor = esc_status_s::ESC_VENDOR_TAP;
-				_esc_feedback.esc[feed_back_data.channelID].esc_setpoint_raw = motor_out[feed_back_data.channelID];
+				_esc_feedback.esc[yun_index_in_px4].esc_state = feed_back_data.ESCStatus;
+				_esc_feedback.esc[yun_index_in_px4].esc_vendor = esc_status_s::ESC_VENDOR_TAP;
+				_esc_feedback.esc[yun_index_in_px4].esc_setpoint_raw = motor_out[feed_back_data.channelID];
 				// PWM convert to RPM,PWM:1200~1900<-->RPM:1600~7500 so rpm = 1600 + (pwm - 1200)*((7500-1600)/(1900-1200))
-				_esc_feedback.esc[feed_back_data.channelID].esc_setpoint = (float)motor_out[feed_back_data.channelID] * 8.43f - 8514.3f;
+				_esc_feedback.esc[yun_index_in_px4].esc_setpoint = (float)motor_out[feed_back_data.channelID] * 8.43f - 8514.3f;
 				_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 				_esc_feedback.counter++;
 				_esc_feedback.esc_count = _channels_count;

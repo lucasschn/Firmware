@@ -79,6 +79,8 @@
 
 #ifndef BOARD_MAP_ESC_TO_PX4_OUT
 // Remap from the system default to what PX4's normal scheme is
+// BOARD_MAP_ESC_TO_PX4_OUT[x] tells which px4 output yuneec hardware ID x
+// corresponds to.
 #define BOARD_MAP_ESC_TO_PX4_OUT {3, 0, 4, 2, 1, 5, 6, 7}
 #endif
 

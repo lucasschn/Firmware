@@ -84,7 +84,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 	Vector2f pos_sp_to_dest = Vector2f(&(_target - _position_setpoint)(0));
 	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < NAV_ACC_RAD.get();
 
-	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < NAV_ACC_RAD.get()) ||
+	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < math::min(NAV_ACC_RAD.get(), 0.5f)) ||
 	    (!has_reached_altitude && pos_sp_to_dest.length() < NAV_ACC_RAD.get())) {
 
 		// Vehicle reached target in xy and no passing required. Lock position
@@ -95,7 +95,8 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 	} else {
 		// Vehicle needs to pass waypoint
 		// Ensure that vehicle never gets stuck because of too low target-speed
-		_speed_at_target = math::max(_speed_at_target, 0.5f);
+		const float min_speed_along_track = 0.5f;
+		_speed_at_target = math::max(_speed_at_target, min_speed_along_track);
 
 		// Get various path specific vectors.
 		Vector2f u_prev_to_dest = Vector2f(&(_target - _prev_wp)(0)).unit_or_zero();
@@ -158,6 +159,9 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 			    && (speed_sp_prev_track > _speed_at_target)) {
 				speed_sp_track = speed_sp_prev_track;
 			}
+
+			// Ensure that speed is never smaller than minimum to prevent from getting stuck
+			speed_sp_track = math::max(speed_sp_track, min_speed_along_track);
 
 		} else {
 

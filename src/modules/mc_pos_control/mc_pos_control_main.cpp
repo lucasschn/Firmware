@@ -268,7 +268,7 @@ private:
 	 * Thrust is adjusted to support the land-detector during detection.
 	 * @param thrust_setpoint gets adjusted based on land-detector state
 	 */
-	void limit_thrust_during_landing(float *thrust_sepoint);
+	void limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint);
 
 	/**
 	 * Start flightasks based on navigation state.
@@ -736,12 +736,6 @@ MulticopterPositionControl::task_main()
 				_flight_tasks.reActivate();
 			}
 
-			// Adjust thrust setpoint based on landdetector only if the
-			// vehicle is NOT in pure Manual mode and NOT in smooth takeoff
-			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
-				limit_thrust_during_landing(setpoint.thrust);
-			}
-
 			// limit altitude only if local position is valid
 			if (PX4_ISFINITE(_states.position(2))) {
 				limit_altitude(setpoint);
@@ -773,6 +767,7 @@ MulticopterPositionControl::task_main()
 			_control.generateThrustYawSetpoint(_dt);
 
 			// Fill local position, velocity and thrust setpoint.
+			// This message corresponds of setpoints that was demanded.
 			vehicle_local_position_setpoint_s local_pos_sp{};
 			local_pos_sp.timestamp = hrt_absolute_time();
 			local_pos_sp.x = _control.getPosSp()(0);
@@ -786,11 +781,20 @@ MulticopterPositionControl::task_main()
 			local_pos_sp.vz = _control.getVelSp()(2);
 			_control.getThrustSetpoint().copyTo(local_pos_sp.thrust);
 
-			// Publish local position setpoint (for logging only) and attitude setpoint (for attitude controller).
+			// Publish local position setpoint
+			// This message will be used by other modules (such as Landdetector) to determine
+			// vehicle intention.
 			publish_local_pos_sp(local_pos_sp);
 
+			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
+			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
+			// Only adust thrust output if the desired setpoint.thrust[2] is not finite.
+			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
+				limit_thrust_during_landing(local_pos_sp);
+			}
+
 			// Fill attitude setpoint. Attitude is computed from yaw and thrust setpoint.
-			_att_sp = ControlMath::thrustToAttitude(_control.getThrustSetpoint(), _control.getYawSetpoint());
+			_att_sp = ControlMath::thrustToAttitude(matrix::Vector3f(local_pos_sp.thrust), local_pos_sp.yaw);
 			_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
 			_att_sp.fw_control_yaw = false;
 			_att_sp.disable_mc_yaw_control = false;
@@ -1040,30 +1044,24 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 }
 
 void
-MulticopterPositionControl::limit_thrust_during_landing(float *thr_sp)
+MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint)
 {
 	if (_vehicle_land_detected.ground_contact) {
 		// Set thrust in xy to zero
-		thr_sp[0] = 0.0f;
-		thr_sp[1] = 0.0f;
-
+		setpoint.thrust[0] = 0.0f;
+		setpoint.thrust[1] = 0.0f;
+		// set yaw-sp to current yaw
+		setpoint.yaw = _states.yaw;
 		// FIXME: only to recover previous bug that made landing dection super fast
-		thr_sp[2] = 0.0f;
-		_control.resetIntegralZ();
-
-		// Reset integral in xy is required because PID-controller does
-		// know about the overwrite and would therefore increase the intragral term
-		_control.resetIntegralXY();
+		setpoint.thrust[2] = 0.0f;
 	}
 
 	if (_vehicle_land_detected.maybe_landed) {
+		// set yaw-sp to current yaw
+		setpoint.yaw = _states.yaw;
 		// we set thrust to zero
 		// this will help to decide if we are actually landed or not
-		thr_sp[0] = thr_sp[1] = thr_sp[2] = 0.0f;
-		// We need to reset all integral terms otherwise the PID-controller
-		// will continue to integrate
-		_control.resetIntegralXY();
-		_control.resetIntegralZ();
+		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 	}
 }
 

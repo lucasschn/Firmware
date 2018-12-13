@@ -198,7 +198,7 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 	const float dist = fabsf(_target(2) - _prev_wp(2));
 
 	// If target has not been reached, then compute set-point depending on maximum velocity.
-	if ((dist > SIGMA_NORM) && (fabsf(_position(2) - _target(2)) > 0.1f)) {
+	if ((dist > SIGMA_NORM) && (fabsf(_position_setpoint(2) - _target(2)) > 0.1f)) {
 
 		// get various distances */
 		const float dist_to_prev = fabsf(_position(2) - _prev_wp(2));
@@ -259,7 +259,7 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 
 		// get the sign of vel_sp_z
 		_velocity_setpoint(2) = (flying_upward) ? -speed_sp : speed_sp;
-		_position_setpoint(2) = NAN; // We don't care about position setpoint
+		_position_setpoint(2) = _position(2); // just set position-setpoint to current position
 
 	} else {
 

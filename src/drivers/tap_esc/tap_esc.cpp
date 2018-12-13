@@ -532,8 +532,8 @@ bool TAP_ESC::esc_critical_failure(uint8_t channel_id)
 			critical_error = true;
 			break;
 
-		case ESC_STATUS_ERROR_LOOSE_PROPELLER:
-			mavlink_log_emergency(&_mavlink_log_pub, "motor %d PROP LOOSE", channel_id);
+		case ESC_STATUS_ERROR_LOST_PROPELLER:
+			mavlink_log_emergency(&_mavlink_log_pub, "motor %d PROP LOST", channel_id);
 			critical_error = true;
 			break;
 

@@ -299,6 +299,11 @@ private:
 	bool use_obstacle_avoidance();
 
 	/**
+	 * Reset setpoints to NAN
+	 */
+	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
+
+	/**
 	 * Overwrite setpoint with waypoint coming from obstacle avoidance
 	 */
 	void execute_avoidance_waypoint(vehicle_local_position_setpoint_s &setpoint);
@@ -724,10 +729,8 @@ MulticopterPositionControl::task_main()
 
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
 				// Keep throttle low when landed and NOT in smooth takeoff
+				reset_setpoint_to_nan(setpoint);
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
-				setpoint.x = setpoint.y = setpoint.z = NAN;
-				setpoint.vx = setpoint.vy = setpoint.vz = NAN;
-				setpoint.yawspeed = NAN;
 				setpoint.yaw = _states.yaw;
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
@@ -1073,13 +1076,8 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 	if (!_failsafe_land_hysteresis.get_state() && !force) {
 		// just keep current setpoint and don't do anything.
 
-
-
 	} else {
-		setpoint.x = setpoint.y = setpoint.z = NAN;
-		setpoint.vx = setpoint.vy = setpoint.vz = NAN;
-		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
-		setpoint.yaw = setpoint.yawspeed = NAN;
+		reset_setpoint_to_nan(setpoint);
 
 		if (PX4_ISFINITE(_states.velocity(2))) {
 			// We have a valid velocity in D-direction.
@@ -1137,6 +1135,16 @@ MulticopterPositionControl::execute_avoidance_waypoint(vehicle_local_position_se
 	setpoint.yaw = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
 	setpoint.yawspeed = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
 	Vector3f(NAN, NAN, NAN).copyTo(setpoint.thrust);
+}
+
+void
+MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint)
+{
+	setpoint.x = setpoint.y = setpoint.z = NAN;
+	setpoint.vx = setpoint.vy = setpoint.vz = NAN;
+	setpoint.yaw = setpoint.yawspeed = NAN;
+	setpoint.acc_x = setpoint.acc_y = setpoint.acc_z = NAN;
+	setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
 }
 
 bool

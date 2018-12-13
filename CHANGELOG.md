@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
 * Parameter update within FlightTask (#2931)
 * Keep landing gear up during mission (#2938)
 * ST10C loiter button now fully interrupts safety RTL (#2964)
+* Fixed tap_esc motor feedback ID mapping (#2958)
+* Fixed correcting motor not spinning in FTC (#2958)
 
 
 ## [v1.8.0-1.5.4]

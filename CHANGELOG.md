@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Changed
+* placeholder for #2960
 
 
 ## [v1.8.0-1.5.5]

@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 * Parameter update within FlightTask (#2931)
 * Keep landing gear up during mission (#2938)
+* ST10C loiter button now fully interrupts safety RTL (#2964)
 
 
 ## [v1.8.0-1.5.4]

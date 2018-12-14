@@ -3461,6 +3461,10 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 
 	/* Loiter switch overrides main switch */
 	if (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		// HOTFIX Yuneec: Reset warning action on button push, or we won't be able
+		// to switch out of loiter through RC stick inputs later on.
+		// This has been added specifically because of the ST10C support.
+		warning_action_on = false;
 		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
 
 		if (res == TRANSITION_DENIED) {

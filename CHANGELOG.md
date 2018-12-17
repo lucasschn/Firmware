@@ -34,6 +34,7 @@ All notable changes to this project will be documented in this file.
 * More detailed logging of motor faults (#2463)
 * Regression: fix slow landing (#2959)
 * vehicle_local_position_setpoint logging improvment (#2959)
+* Regression fix: in mission, lock position when position setpoint reached waypoint (#2951)
 
 ### Changed
 

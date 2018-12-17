@@ -88,17 +88,16 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 
 bool FlightTaskOrbit::setRadius(const float r)
 {
-	if (math::isInRange(r, _radius_min, _radius_max)) {
-		// small radius is more important than high velocity for safety
-		if (!checkAcceleration(r, _v, _acceleration_max)) {
-			_v = math::sign(_v) * sqrtf(_acceleration_max * r);
-		}
+	const float r_desired = math::constrain(r, _radius_min, _radius_max);
 
-		_r = r;
-		return true;
+	// small radius is more important than high velocity for safety
+	if (!checkAcceleration(r, _v, _acceleration_max)) {
+		_v = math::sign(_v) * sqrtf(_acceleration_max * r);
 	}
 
-	return false;
+	_r = r_desired;
+
+	return true;
 }
 
 bool FlightTaskOrbit::setVelocity(const float v)

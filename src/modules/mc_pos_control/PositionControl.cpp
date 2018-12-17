@@ -57,14 +57,14 @@ void PositionControl::updateState(const PositionControlStates &states)
 void PositionControl::_setCtrlFlagTrue()
 {
 	for (int i = 0; i <= 2; i++) {
-		_ctrl_pos[i] = _ctrl_vel[i] = true;
+		_is_pos_controlled[i] = _is_vel_controlled[i] = true;
 	}
 }
 
 void PositionControl::_setCtrlFlagFalse()
 {
 	for (int i = 0; i <= 2; i++) {
-		_ctrl_pos[i] = _ctrl_vel[i] = false;
+		_is_pos_controlled[i] = _is_vel_controlled[i] = false;
 	}
 }
 
@@ -148,7 +148,7 @@ bool PositionControl::_interfaceMapping()
 			// Velocity controller is active without position control.
 			// Set integral states and setpoints to 0
 			_pos_sp(i) = _pos(i) = 0.0f;
-			_ctrl_pos[i] = false; // position control-loop is not used
+			_is_pos_controlled[i] = false; // position control-loop is not used
 
 			// thrust setpoint is not supported in velocity control
 			_thr_sp(i) = NAN;
@@ -164,7 +164,7 @@ bool PositionControl::_interfaceMapping()
 			// Set all integral states and setpoints to 0
 			_pos_sp(i) = _pos(i) = 0.0f;
 			_vel_sp(i) = _vel(i) = 0.0f;
-			_ctrl_pos[i] = _ctrl_vel[i] = false; // position/velocity control loops are not used
+			_is_pos_controlled[i] = _is_vel_controlled[i] = false; // position/velocity control loops are not used
 
 			// Reset the Integral term.
 			_thr_int(i) = 0.0f;

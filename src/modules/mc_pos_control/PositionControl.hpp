@@ -159,7 +159,7 @@ public:
 		matrix::Vector3f vel_sp{};
 
 		for (int i = 0; i <= 2; i++) {
-			if (_ctrl_vel[i]) {
+			if (_is_vel_controlled[i]) {
 				vel_sp(i) = _vel_sp(i);
 
 			} else {
@@ -180,7 +180,7 @@ public:
 		matrix::Vector3f pos_sp{};
 
 		for (int i = 0; i <= 2; i++) {
-			if (_ctrl_pos[i]) {
+			if (_is_pos_controlled[i]) {
 				pos_sp(i) = _pos_sp(i);
 
 			} else {
@@ -221,8 +221,8 @@ private:
 	matrix::Vector3f _thr_int{}; /**< thrust integral term */
 	vehicle_constraints_s _constraints{}; /**< variable constraints */
 	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
-	bool _ctrl_pos[3] = {true, true, true}; /**< True if the control-loop for position was used */
-	bool _ctrl_vel[3] = {true, true, true}; /**< True if the control-loop for velocity was used */
+	bool _is_pos_controlled[3] = {true, true, true}; /**< True if the control-loop for position was used */
+	bool _is_vel_controlled[3] = {true, true, true}; /**< True if the control-loop for velocity was used */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_THR_MAX>) MPC_THR_MAX,

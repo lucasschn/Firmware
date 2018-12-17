@@ -84,7 +84,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 	Vector2f pos_sp_to_dest = Vector2f(&(_target - _position_setpoint)(0));
 	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < NAV_ACC_RAD.get();
 
-	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < math::min(NAV_ACC_RAD.get(), 0.5f)) ||
+	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < math::min(NAV_ACC_RAD.get(), SIGMA_NORM)) ||
 	    (!has_reached_altitude && pos_sp_to_dest.length() < NAV_ACC_RAD.get())) {
 
 		// Vehicle reached target in xy and no passing required. Lock position

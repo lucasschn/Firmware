@@ -29,6 +29,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 * Arming without propellers now still spins 5 out of 6 motors (#2463)
 * More detailed logging of motor faults (#2463)
+* Regression: fix slow landing (#2959)
+* vehicle_local_position_setpoint logging improvment (#2959)
 
 ### Changed
 

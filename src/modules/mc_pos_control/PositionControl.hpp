@@ -70,7 +70,7 @@ struct PositionControlStates {
  *
  * 	A setpoint that is NAN is considered as not set.
  * 	If there is a position/velocity- and thrust-setpoint present, then
- *  the thrust-setpoint is ommitted and recomputed from position-velocity-PID-loop.
+ * 	the thrust-setpoint is ommitted and recomputed from position-velocity-PID-loop.
  */
 class PositionControl : public ModuleParams
 {

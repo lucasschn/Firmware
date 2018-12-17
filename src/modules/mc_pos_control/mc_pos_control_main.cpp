@@ -794,7 +794,7 @@ MulticopterPositionControl::task_main()
 
 			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
-			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
+			// Note: only adjust thrust output if there was no thrust setpoint demand in D-direction.
 			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
 				limit_thrust_during_landing(local_pos_sp);
 			}
@@ -1056,13 +1056,13 @@ MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_s
 		// Set thrust in xy to zero
 		setpoint.thrust[0] = 0.0f;
 		setpoint.thrust[1] = 0.0f;
-		_control.resetIntegralXY(); //reuqired to prevent integrator from increasing
+		_control.resetIntegralXY(); // prevent integrator windup
 
 		// set yaw-sp to current yaw
 		setpoint.yaw = _states.yaw;
 		// FIXME: only to recover previous bug that made landing dection super fast
 		setpoint.thrust[2] = 0.0f;
-		_control.resetIntegralZ(); //reuqired to prevent integrator from increasing
+		_control.resetIntegralZ(); // prevent integrator windup
 
 
 	}
@@ -1073,8 +1073,8 @@ MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_s
 		// we set thrust to zero
 		// this will help to decide if we are actually landed or not
 		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
-		_control.resetIntegralXY(); //reuqired to prevent integrator from increasing
-		_control.resetIntegralZ(); //reuqired to prevent integrator from increasing
+		_control.resetIntegralXY(); // prevent integrator windup
+		_control.resetIntegralZ(); // prevent integrator windup
 	}
 }
 

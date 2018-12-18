@@ -2,13 +2,16 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fixed
+* Orbit commands exceeding maximum radius (#2968)
+
 ### Changed
 * placeholder for #2960
 
+### Added
+* Orbit telemetry for UI (#2906)
 
 ## [v1.8.0-1.5.5]
-### Changed
-
 ### Fixed
 * Parameter update within FlightTask (#2931)
 * Keep landing gear up during mission (#2938)

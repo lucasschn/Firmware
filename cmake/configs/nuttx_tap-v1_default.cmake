@@ -23,6 +23,7 @@ set(config_module_list
 	drivers/gimbal_protocol_splitter
 	drivers/magnetometer/ist8310
 	drivers/mavlink_dup
+	drivers/rc_input
 
 	#
 	# System commands

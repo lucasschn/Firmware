@@ -23,6 +23,7 @@ set(config_module_list
 	drivers/gimbal_protocol_splitter
 	drivers/mavlink_dup
 	drivers/pwm_out_sim
+	drivers/rc_input
 
 	#
 	# System commands

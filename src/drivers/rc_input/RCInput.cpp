@@ -66,6 +66,7 @@ RCInput::~RCInput()
 
 	orb_unsubscribe(_adc_sub);
 	orb_unsubscribe(_vehicle_cmd_sub);
+	orb_unsubscribe(_armed_sub);
 
 #ifdef RC_SERIAL_PORT
 	dsm_deinit();
@@ -83,6 +84,7 @@ int
 RCInput::init()
 {
 	_adc_sub = orb_subscribe(ORB_ID(adc_report));
+	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 #ifdef RC_SERIAL_PORT
 
@@ -336,15 +338,42 @@ RCInput::cycle()
 				}
 			}
 		}
-#ifdef RC_SERIAL_PORT
-		_st24_helper.cycle(_rc_in.rc_lost, _armed.armed);
-#endif /* RC_SERIAL_PORT */
+
 
 #endif /* SPEKTRUM_POWER */
 
+// YUNEEC specific
+#ifdef RC_SERIAL_PORT
+		bool armed_updated = false;
+		orb_check(_armed_sub, &armed_updated);
+		actuator_armed_s armed = {};
+
+		if (armed_updated) {
+			orb_copy(ORB_ID(actuator_armed), _armed_sub, &armed);
+		}
+
+		/* vehicle command */
+		bool vehicle_command_updated = false;
+		orb_check(_vehicle_cmd_sub, &vehicle_command_updated);
+
+		if (vehicle_command_updated) {
+			vehicle_command_s vcmd = {};
+			orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub, &vcmd);
+
+			// Check for a pairing command
+			if ((unsigned int)vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR
+			    && !_rc_scan_locked && (int)vcmd.param1 == 1) {
+				_st24_helper.bind();
+			}
+		}
+
+		_st24_helper.cycle(_rc_in.rc_lost, armed.armed);
+#endif /* RC_SERIAL_PORT */
+
 #ifdef ENABLE_RC_HELPER
-		_rc_helper.cycle(_armed.armed);
+		_rc_helper.cycle(armed.armed);
 #endif
+// END YUNEEC specific
 
 		/* update ADC sampling */
 #ifdef ADC_RC_RSSI_CHANNEL

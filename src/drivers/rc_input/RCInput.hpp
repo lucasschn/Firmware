@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_command.h>
 
 // Yuneec
+#include <uORB/topics/actuator_armed.h>
 #include <lib/rc/st24_helper.h>
 #ifdef ENABLE_RC_HELPER
 #  include <lib/rc/rc_helper.h>
@@ -129,6 +130,7 @@ private:
 
 	int		_vehicle_cmd_sub{-1};
 	int		_adc_sub{-1};
+	int		_armed_sub{-1};
 
 	input_rc_s	_rc_in{};
 

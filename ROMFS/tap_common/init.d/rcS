@@ -390,7 +390,7 @@ then
 fi
 
 #
-# Start the RC input driver and allocated the 3 PWM
+# Allocate the 3 PWM
 # one for landing gear in group 0 chan 0
 # two for Sonar in group 1 chan 0 and 1.
 # chan 1 will be reconfigured as capture, but ONLY
@@ -428,6 +428,11 @@ then
 	pwm disarmed -c 1 -p 1500
 	pwm failsafe -c 1 -p 1000
 fi
+
+#
+# Start the RC input driver
+#
+rc_input start
 
 
 

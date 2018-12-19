@@ -49,6 +49,7 @@
 class St24Helper
 {
 public:
+	~St24Helper();
 
 	void init(int rcs_fd);
 

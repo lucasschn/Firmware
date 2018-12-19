@@ -39,6 +39,12 @@
 
 #include <unistd.h>
 
+St24Helper::~St24Helper()
+{
+	orb_unsubscribe(_vehicle_landed_sub);
+	orb_unsubscribe(_vehicle_status_sub);
+}
+
 void St24Helper::init(int rcs_fd)
 {
 	_vehicle_landed_sub = orb_subscribe(ORB_ID(vehicle_land_detected));

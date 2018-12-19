@@ -4,12 +4,16 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Fixed
 * Orbit commands exceeding maximum radius (#2968)
+* Regression fix: slow landing (#2959)
+* vehicle_local_position_setpoint logging improvment (#2959)
+* Regression fix: in mission, lock position when position setpoint reached waypoint (#2951)
 
 ### Changed
 * placeholder for #2960
 
 ### Added
 * Orbit telemetry for UI (#2906)
+* vehicle_local_position_setpoint logging improvment (#2959)
 
 ## [v1.8.0-1.5.5]
 ### Fixed
@@ -32,9 +36,6 @@ All notable changes to this project will be documented in this file.
 ### Added
 * Arming without propellers now still spins 5 out of 6 motors (#2463)
 * More detailed logging of motor faults (#2463)
-* Regression: fix slow landing (#2959)
-* vehicle_local_position_setpoint logging improvment (#2959)
-* Regression fix: in mission, lock position when position setpoint reached waypoint (#2951)
 
 ### Changed
 

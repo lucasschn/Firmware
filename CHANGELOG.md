@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 * placeholder for #2960
+* Increased maximum distance between waypoints from 900m to 4000m (#2978)
 
 ### Added
 * Orbit telemetry for UI (#2906)

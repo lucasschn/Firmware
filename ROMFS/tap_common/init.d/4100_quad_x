@@ -146,6 +146,11 @@ then
 	param set RTL_LAND_DELAY 3.5
 	param set LAND_LOI_DELAY 3.5
 
+	#
+	# Mission settings
+	#
+	param set MIS_DIST_WPS 4000
+
 	# Vehicle model settings
 	#
 	param set LNDMC_ALT_MAX 120.0

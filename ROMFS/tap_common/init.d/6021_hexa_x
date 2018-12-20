@@ -169,6 +169,7 @@ then
 	# Mission settings
 	#
 	param set MIS_YAW_ERR 90.0
+	param set MIS_DIST_WPS 4000
 
 	#
 	# Vehicle model settings

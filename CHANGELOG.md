@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 * Regression fix: slow landing (#2959)
 * vehicle_local_position_setpoint logging improvment (#2959)
 * Regression fix: in mission, lock position when position setpoint reached waypoint (#2951)
+* Regression fix: hickup when stopping in slowed down descend (#2997)
 
 ### Changed
 * placeholder for #2960

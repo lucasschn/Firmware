@@ -47,8 +47,9 @@ bool FlightTaskManualAltitude::initializeSubscriptions(SubscriptionArray &subscr
 		return false;
 	}
 
-	// subscribe to home position, but don't require it
-	subscription_array.get(ORB_ID(home_position), _sub_home_position);
+	if (!subscription_array.get(ORB_ID(home_position), _sub_home_position)) {
+		return false;
+	}
 
 	return true;
 }

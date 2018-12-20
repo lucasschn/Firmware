@@ -1225,6 +1225,7 @@ Mission::heading_sp_update()
 
 			_mission_item.yaw = yaw;
 			pos_sp_triplet->current.yaw = _mission_item.yaw;
+			pos_sp_triplet->current.yaw_valid = PX4_ISFINITE(yaw);
 		}
 
 		// we set yaw directly so we can run this in parallel to the FOH update
@@ -1690,6 +1691,7 @@ Mission::generate_waypoint_from_heading(struct position_setpoint_s *setpoint, fl
 		&(setpoint->lat), &(setpoint->lon));
 	setpoint->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	setpoint->yaw = yaw;
+	setpoint->yaw_valid = PX4_ISFINITE(yaw);
 }
 
 int32_t

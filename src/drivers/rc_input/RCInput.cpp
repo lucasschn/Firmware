@@ -344,19 +344,18 @@ RCInput::cycle()
 
 // YUNEEC specific
 #ifdef RC_SERIAL_PORT
-		bool armed_updated = false;
-		orb_check(_armed_sub, &armed_updated);
+		bool updated = false;
+		orb_check(_armed_sub, &updated);
 		actuator_armed_s armed = {};
 
-		if (armed_updated) {
+		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &armed);
 		}
 
 		/* vehicle command */
-		bool vehicle_command_updated = false;
-		orb_check(_vehicle_cmd_sub, &vehicle_command_updated);
+		orb_check(_vehicle_cmd_sub, &updated);
 
-		if (vehicle_command_updated) {
+		if (updated) {
 			vehicle_command_s vcmd = {};
 			orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub, &vcmd);
 

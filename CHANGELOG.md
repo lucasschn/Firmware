@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [v1.8.0-1.5.7]
 ### Changed
 * Increased maximum distance between waypoints from 900m to 4000m (#2978)
 

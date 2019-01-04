@@ -225,7 +225,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 
 			// Report limited modes
 			if (armed->armed && !status_flags->condition_home_position_valid && man_pos_mode) {
-				mavlink_log_critical(mavlink_log_pub, "No home position. RLT/Land/Mission not possible.");
+				mavlink_log_critical(mavlink_log_pub, "No home position. RTL, Land, Mission not possible");
 			}
 		}
 	}

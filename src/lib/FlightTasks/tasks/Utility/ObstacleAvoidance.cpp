@@ -147,8 +147,8 @@ int ObstacleAvoidance::_getSonarSubIndex(const int *subs)
 }
 
 
-void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw, const Vector3f &_desired_vel_sp,
-				    const float _desired_yawspeed_sp)
+void ObstacleAvoidance::stopInFront(const Vector3f &position, const float yaw, const Vector3f &desired_vel_sp,
+				    const float desired_yawspeed_sp)
 {
 	_updateSubscriptions();
 
@@ -158,27 +158,27 @@ void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw,
 	     || (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE))
 	    && (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL)) {
 
-		struct vehicle_trajectory_waypoint_s _traj_waypoint = {};
-		_traj_waypoint.timestamp = hrt_absolute_time();
-		_traj_waypoint.type = 0;
-		Vector3f(NAN, NAN, NAN).copyTo(_traj_waypoint.waypoints[0].position);
-		_desired_vel_sp.copyTo(_traj_waypoint.waypoints[0].velocity);
-		Vector3f(NAN, NAN, NAN).copyTo(_traj_waypoint.waypoints[0].acceleration);
-		_traj_waypoint.waypoints[0].yaw = NAN;
-		_traj_waypoint.waypoints[0].yaw_speed = _desired_yawspeed_sp;
-		_traj_waypoint.waypoints[0].point_valid = true;
+		struct vehicle_trajectory_waypoint_s traj_waypoint = {};
+		traj_waypoint.timestamp = hrt_absolute_time();
+		traj_waypoint.type = 0;
+		Vector3f(NAN, NAN, NAN).copyTo(traj_waypoint.waypoints[0].position);
+		desired_vel_sp.copyTo(traj_waypoint.waypoints[0].velocity);
+		Vector3f(NAN, NAN, NAN).copyTo(traj_waypoint.waypoints[0].acceleration);
+		traj_waypoint.waypoints[0].yaw = NAN;
+		traj_waypoint.waypoints[0].yaw_speed = desired_yawspeed_sp;
+		traj_waypoint.waypoints[0].point_valid = true;
 
 		// default set obstacle_distance distance unknown
 		_min_obstacle_distance = (float)UINT16_MAX;
 
-		const float altitude_above_home = -_position(2) + _home_position.z;
+		const float altitude_above_home = -position(2) + _home_position.z;
 
 		const bool obstacle_distance_valid = hrt_elapsed_time((hrt_abstime *)&_obstacle_distance.timestamp) <
 						     DISTANCE_STREAM_TIMEOUT_US;
 
 		// if obstacle_distance is published, we always want to calculate the minimum distance to obstacle
 		if (obstacle_distance_valid) {
-			_setMinimumDistance(_yaw);
+			_setMinimumDistance(yaw);
 		}
 
 		// keep a minimum braking distance of start_braking_distance, otherwise give the vehicle at least 1s time to brake
@@ -188,18 +188,18 @@ void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw,
 		// tap specific: fuse obstacle_distance from RealSense and sonar
 		_min_obstacle_distance = _fuseObstacleDistanceSonar(altitude_above_home, safety_margin, brake_distance);
 
-		// anything under the brake distance is considered an obstalce. The vehicle altitude above ground should be at least 1.5m not to detect ground as an obstacle
+		// anything under the brake distance is considered an obstacle. The vehicle altitude above ground should be at least 1.5m not to detect ground as an obstacle
 		const bool obstacle_ahead = _min_obstacle_distance < brake_distance && altitude_above_home > MINIMUM_ALTITUDE;
 
 		if (obstacle_ahead) {
 			// vehicle just detected an obstacle
 			_obstacle_lock_hysteresis.set_state_and_update(true);
-			_yaw_obstacle_lock = _yaw;
+			_yaw_obstacle_lock = yaw;
 		}
 
 		// get velocity setpoint in heading frame
-		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), _yaw);
-		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(_desired_vel_sp(0), _desired_vel_sp(1),
+		matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), yaw);
+		matrix::Vector3f vel_sp_heading = q_yaw.conjugate_inversed(matrix::Vector3f(desired_vel_sp(0), desired_vel_sp(1),
 						  0.0f));
 
 		// adjust velocity setpoint based on obstacle_distance
@@ -207,15 +207,15 @@ void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw,
 
 			// stay in obstacle lock when trying to go forwards without yawing 30 degree away from the last obstacle
 			_obstacle_lock_hysteresis.set_state_and_update(vel_sp_heading(0) > FLT_EPSILON &&
-					fabsf(_yaw - _yaw_obstacle_lock) > math::radians(UNLOCK_YAW));
+					fabsf(yaw - _yaw_obstacle_lock) > math::radians(UNLOCK_YAW));
 
 			// we don't allow movement perpendicular to heading direction
 			vel_sp_heading(1) = 0.0f;
 
 			// default: we only allow movement in heading direction
 			matrix::Vector3f vel_sp_tmp = q_yaw.conjugate(vel_sp_heading);
-			_traj_waypoint.waypoints[0].velocity[0] = vel_sp_tmp(0);
-			_traj_waypoint.waypoints[0].velocity[1] = vel_sp_tmp(1);
+			traj_waypoint.waypoints[0].velocity[0] = vel_sp_tmp(0);
+			traj_waypoint.waypoints[0].velocity[1] = vel_sp_tmp(1);
 
 			if (vel_sp_heading(0) > 0.0f) {
 				// vehicle wants to fly towards obstacle
@@ -223,8 +223,8 @@ void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw,
 				if (_min_obstacle_distance <= safety_margin) {
 					// vehicle is already safety_margin close to obstacle. Don't move forward
 
-					_traj_waypoint.waypoints[0].velocity[0] = 0.0f;
-					_traj_waypoint.waypoints[0].velocity[1] = 0.0f;
+					traj_waypoint.waypoints[0].velocity[0] = 0.0f;
+					traj_waypoint.waypoints[0].velocity[1] = 0.0f;
 
 				} else {
 					// vehicle wants to move forward but is more than safety margin away
@@ -236,8 +236,8 @@ void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw,
 					if (vel_sp_heading(0) > speed_limit && vel_sp_heading(0) >= SIGMA_NORM) {
 
 						// desired heading velocity is above speed limit
-						_traj_waypoint.waypoints[0].velocity[0] = vel_sp_tmp(0) / vel_sp_tmp.length() * speed_limit;
-						_traj_waypoint.waypoints[0].velocity[1] = vel_sp_tmp(1) / vel_sp_tmp.length() * speed_limit;
+						traj_waypoint.waypoints[0].velocity[0] = vel_sp_tmp(0) / vel_sp_tmp.length() * speed_limit;
+						traj_waypoint.waypoints[0].velocity[1] = vel_sp_tmp(1) / vel_sp_tmp.length() * speed_limit;
 					}
 				}
 			}
@@ -245,10 +245,10 @@ void ObstacleAvoidance::stopInFront(const Vector3f &_position, const float _yaw,
 
 		// publish waypoint
 		if (_trajectory_waypoint_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_trajectory_waypoint), _trajectory_waypoint_pub, &_traj_waypoint);
+			orb_publish(ORB_ID(vehicle_trajectory_waypoint), _trajectory_waypoint_pub, &traj_waypoint);
 
 		} else {
-			_trajectory_waypoint_pub = orb_advertise(ORB_ID(vehicle_trajectory_waypoint), &_traj_waypoint);
+			_trajectory_waypoint_pub = orb_advertise(ORB_ID(vehicle_trajectory_waypoint), &traj_waypoint);
 		}
 
 	} else {

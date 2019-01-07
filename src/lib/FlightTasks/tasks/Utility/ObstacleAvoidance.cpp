@@ -166,7 +166,7 @@ void ObstacleAvoidance::stopInFront(const Vector3f &position, const float yaw, c
 		Vector3f(NAN, NAN, NAN).copyTo(traj_waypoint.waypoints[0].acceleration);
 		traj_waypoint.waypoints[0].yaw = NAN;
 		traj_waypoint.waypoints[0].yaw_speed = desired_yawspeed_sp;
-		traj_waypoint.waypoints[0].point_valid = true;
+		traj_waypoint.waypoints[0].point_valid = false;
 
 		// default set obstacle_distance distance unknown
 		_min_obstacle_distance = (float)UINT16_MAX;
@@ -204,6 +204,7 @@ void ObstacleAvoidance::stopInFront(const Vector3f &position, const float yaw, c
 
 		// adjust velocity setpoint based on obstacle_distance
 		if (_obstacle_lock_hysteresis.get_state()) {
+			traj_waypoint.waypoints[0].point_valid = true;
 
 			// stay in obstacle lock when trying to go forwards without yawing 30 degree away from the last obstacle
 			_obstacle_lock_hysteresis.set_state_and_update(vel_sp_heading(0) > FLT_EPSILON &&

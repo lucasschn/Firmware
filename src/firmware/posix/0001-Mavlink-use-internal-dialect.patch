@@ -1,13 +1,25 @@
+From 6a661d5c80983f54637415aea9995d3eb4719af2 Mon Sep 17 00:00:00 2001
+From: Dennis Mannhart <dennis@yuneecresearch.com>
+Date: Mon, 7 Jan 2019 11:43:50 +0100
+Subject: [PATCH] Mavlink: use internal dialect
+
+---
+ include/gazebo_geotagged_images_plugin.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
 diff --git a/include/gazebo_geotagged_images_plugin.h b/include/gazebo_geotagged_images_plugin.h
-index 6cd6a0c..d0d8f29 100644
+index 1e2a2c3..c358ed1 100644
 --- a/include/gazebo_geotagged_images_plugin.h
 +++ b/include/gazebo_geotagged_images_plugin.h
-@@ -17,7 +17,7 @@
- #pragma once
-
+@@ -18,7 +18,7 @@
+ 
  #include <string>
+ #include <opencv2/opencv.hpp>
 -#include <mavlink/v2.0/common/mavlink.h>
 +#include <mavlink/v2.0/yuneec/mavlink.h>
  #include <gazebo/common/Plugin.hh>
  #include <gazebo/sensors/CameraSensor.hh>
  #include <gazebo/gazebo.hh>
+-- 
+2.17.1
+

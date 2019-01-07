@@ -312,23 +312,20 @@ float ObstacleAvoidance::_fuseObstacleDistanceSonar(float altitude_above_home, f
 	// sonar: anything but maximum distance measurement is considered an obstacle
 	const bool obstacle_ahead_sonar = _sonar_measurement.current_distance < _sonar_measurement.max_distance;
 
-	if (obstacle_ahead || (valid_sonar_measurement && obstacle_ahead_sonar)) {
+	if (!obstacle_ahead && valid_sonar_measurement && obstacle_ahead_sonar) {
 
-		if (!obstacle_ahead) {
+		// sonar only detected obstacle
+		minimum_distance_fused = _sonar_measurement.current_distance;
 
-			// sonar only detected obstacle
-			minimum_distance_fused = _sonar_measurement.current_distance;
+		// if only the sonar is active, increase safety margin to max_distance so that the UAV
+		// starts braking as soon as the obstacle is detected
+		safety_margin = _sonar_measurement.max_distance;
 
-			// if only the sonar is active, increase safety margin to max_distance so that the UAV
-			// starts braking as soon as the obstacle is detected
-			safety_margin = _sonar_measurement.max_distance;
+	} else if (obstacle_ahead && obstacle_ahead_sonar && (_sonar_measurement.current_distance <= safety_margin)) {
+		// if both sonar and obstacle_distance detect obstacle, then only consider
+		// sonar if sonar distant measurement is below safety margin
+		minimum_distance_fused = _sonar_measurement.current_distance;
 
-		} else if (obstacle_ahead && obstacle_ahead_sonar && (_sonar_measurement.current_distance <= safety_margin)) {
-			// if both sonar and obstacle_distance detect obstacle, then only consider
-			// sonar if sonar distant measurement is below safety margin
-			minimum_distance_fused = _sonar_measurement.current_distance;
-
-		}
 	}
 
 	return minimum_distance_fused;

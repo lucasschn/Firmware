@@ -1052,29 +1052,15 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 void
 MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint)
 {
-	if (_vehicle_land_detected.ground_contact) {
-		// Set thrust in xy to zero
-		setpoint.thrust[0] = 0.0f;
-		setpoint.thrust[1] = 0.0f;
-		_control.resetIntegralXY(); // prevent integrator windup
-
-		// set yaw-sp to current yaw
-		setpoint.yaw = _states.yaw;
-		// FIXME: only to recover previous bug that made landing dection super fast
-		setpoint.thrust[2] = 0.0f;
-		_control.resetIntegralZ(); // prevent integrator windup
-
-
-	}
-
-	if (_vehicle_land_detected.maybe_landed) {
-		// set yaw-sp to current yaw
-		setpoint.yaw = _states.yaw;
-		// we set thrust to zero
-		// this will help to decide if we are actually landed or not
+	if (_vehicle_land_detected.ground_contact
+	    || _vehicle_land_detected.maybe_landed) {
+		// we set thrust to zero, this will help to decide if we are actually landed or not
 		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
-		_control.resetIntegralXY(); // prevent integrator windup
-		_control.resetIntegralZ(); // prevent integrator windup
+		// set yaw-sp to current yaw to avoid any corrections
+		setpoint.yaw = _states.yaw;
+		// prevent any integrator windup
+		_control.resetIntegralXY();
+		_control.resetIntegralZ();
 	}
 }
 

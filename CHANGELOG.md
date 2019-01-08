@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 * Drone takes off when obstacle avoidance is activated after arming, even without throttle input (#3042)
 * Drone won't disarm when landing with obstacle avoidance active (#3042)
+* "Tuning" the gimbal feedforward scale for less offset in orbit (#3047)
 
 
 ## [v1.8.0-1.5.7]

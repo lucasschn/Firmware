@@ -1208,6 +1208,8 @@ Commander::run()
 {
 	bool sensor_fail_tune_played = false;
 	bool arm_tune_played = false;
+	bool low_bat_tune_played = false;
+	bool crit_bat_tune_played = false;
 	bool was_landed = true;
 	bool was_falling = false;
 	bool was_armed = false;
@@ -3039,16 +3041,18 @@ Commander::run()
 			// set_tune(TONE_ARMING_WARNING_TUNE); intentionally commented out
 			arm_tune_played = true;
 
-		} else if (!status_flags.usb_connected &&
+		} else if (!crit_bat_tune_played && !status_flags.usb_connected &&
 			   (status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			/* play tune on battery critical */
 			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
+			crit_bat_tune_played = true;
 
-		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
+		} else if (!low_bat_tune_played && (status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (battery.warning == battery_status_s::BATTERY_WARNING_LOW)) {
 			/* play tune on battery warning */
 			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
+			low_bat_tune_played = true;
 
 		} else if (status.failsafe) {
 			tune_failsafe(true);

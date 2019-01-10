@@ -3,18 +3,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Changed
-* New (less annoying) tune for low-battery warning (#3095)
-* Only rotate gimbal to face towards ROI, not the entire drone (#3121)
 * Changed minimum altitude for OBS. avoidance from 1.5m to 2.0m (#2675)
 
 ### Fixed
-* The drone wouldn't face straight forward when flying a survey after a ROI mission (#3121)
+* [Regression] Play low-battery warning tunes only once (#3073)
 
-### Added
-* Logging the new separate landing gear status message (#3117)
+
+## [v1.8.0-1.5.11]
+### Changed
+* New (less annoying) tune for low-battery warning (#3095)
+* Only rotate gimbal to face towards ROI, not the entire drone (#3121)
 
 ### Fixed
+* The drone wouldn't face straight forward when flying a survey after a ROI mission (#3121)
 * Don't run motor-check in HITL (#3120, #3089)
+
+### Added
+* Added landing gear state to logger (#3111, #3117)
 
 
 ## [v1.8.0-1.5.10]

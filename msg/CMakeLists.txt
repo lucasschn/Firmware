@@ -87,6 +87,7 @@ set(msg_files
 	power_button_state.msg
 	pwm_input.msg
 	qshell_req.msg
+	qshell_retval.msg
 	realsense_distance_info.msg
 	rtl_time_estimate.msg
 	rate_ctrl_status.msg

@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fixed
+* Brake at waypoint in mission if stop is required (#3076)
+
 
 ## [v1.8.0-1.5.8]
 ### Fixed
@@ -10,6 +13,7 @@ All notable changes to this project will be documented in this file.
 * "Tuning" the gimbal feedforward scale for less offset in orbit (#3047)
 * Prevent error tunes from being spammed while connecting to the drone (#3052)
 * Slow landing detection problems (#3054)
+
 
 
 ## [v1.8.0-1.5.7]

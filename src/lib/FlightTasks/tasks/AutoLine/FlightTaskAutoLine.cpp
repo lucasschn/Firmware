@@ -136,7 +136,8 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 
 			float acceptance_radius = NAV_ACC_RAD.get();
 
-			if (_speed_at_target < 0.01f) {
+			if (_speed_at_target < min_speed_along_track + 0.01f) {
+
 				// If vehicle wants to stop at the target, then set acceptance radius to zero as well.
 				acceptance_radius = 0.0f;
 			}

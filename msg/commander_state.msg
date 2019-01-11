@@ -1,4 +1,6 @@
 # Main state, i.e. what user wants. Controlled by RC or from ground station via telemetry link.
+uint64 timestamp			# time since system start (microseconds)
+
 uint8 MAIN_STATE_MANUAL = 0
 uint8 MAIN_STATE_ALTCTL = 1
 uint8 MAIN_STATE_POSCTL = 2

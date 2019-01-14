@@ -60,7 +60,8 @@
 	branch = master
 [submodule "Tools/Maneuvers"]
 	path = Tools/Maneuvers
-	url = https://github.com/Stifael/px4maneuvers.git
-[submodule "integrationtests/tests/ulogtests/external/uloganalysis"]
-	path = integrationtests/tests/ulogtests/external/uloganalysis
-	url = https://github.com/Stifael/uloganalysis.git
+	url = https://github.com/YUNEEC/maneuvers.git
+	name = maneuvers
+[submodule "pyulgresample"]
+	path = integrationtests/ulogtests/tests/external/pyulgresample
+	url = https://github.com/YUNEEC/pyulgresample.git

@@ -137,9 +137,8 @@ then
 	# now load from SD card, which can override the temp calib params
 	param select ${PARAM_FILE}
 	# we need to use param import (instead of load), because load will cause a reset
-	if param load
+	if !param load
 	then
-	else
 		# Param load failed
 		# wipe the SD card to restore the system
 		mount -t vfat /dev/mmcsd0 /fs/microsd

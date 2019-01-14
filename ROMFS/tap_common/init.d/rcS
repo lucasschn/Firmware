@@ -86,11 +86,6 @@ set PARAM_FILE /fs/microsd/params
 uorb start
 
 #
-# Start the tone_alarm driver.
-#
-tone_alarm start
-
-#
 # Try to mount the microSD card.
 #
 if mount -t vfat /dev/mmcsd0 /fs/microsd

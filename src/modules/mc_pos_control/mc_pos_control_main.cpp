@@ -681,9 +681,10 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			// desired waypoints for obstacle avoidance:
-			// point_0 contains the current position with the desired velocity
-			// point_1 contains _pos_sp_triplet.current if valid
+			/* desired waypoints for obstacle avoidance:
+			 * point_0 contains the current position with the desired velocity
+			 * point_1 contains _pos_sp_triplet.current if valid
+			 */
 			update_avoidance_waypoint_desired(_states, setpoint);
 
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
@@ -1131,6 +1132,7 @@ MulticopterPositionControl::execute_avoidance_waypoint(vehicle_local_position_se
 	setpoint.vx = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[0];
 	setpoint.vy = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[1];
 	setpoint.vz = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[2];
+
 	setpoint.acc_x = setpoint.acc_y = setpoint.acc_z = NAN;
 
 	setpoint.yaw = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;

@@ -295,16 +295,6 @@ sh /etc/init.d/rc.autostart
 param set COM_RC_LOSS_MAN 1
 
 #
-# Play startup tune
-#
-if [ ${NEW_DEFAULTS} == yes ]
-then
-	# TODO: play update tune?
-else
-	tune_control play -t 1 -s 30
-fi
-
-#
 # If autoconfig parameter was set, reset it and save parameters
 #
 if [ ${AUTOCNF} == yes ]
@@ -462,6 +452,15 @@ fi
 #
 load_mon start
 
+#
+# Play startup tune
+#
+if [ ${NEW_DEFAULTS} == yes ]
+then
+	# TODO: play update tune?
+else
+	tune_control play -t 1 -s 30
+fi
 
 # mavlink baudrate for Gimbal UART
 if param compare SYS_COMPANION 57600

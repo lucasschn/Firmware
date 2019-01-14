@@ -817,7 +817,6 @@ MulticopterPositionControl::task_main()
 			_old_landing_gear_position = gear.landing_gear;
 
 		} else {
-
 			// no flighttask is active: set attitude setpoint to idle
 			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _local_pos.yaw;

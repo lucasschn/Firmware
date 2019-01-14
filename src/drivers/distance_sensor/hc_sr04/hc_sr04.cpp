@@ -115,7 +115,7 @@ int static cmp(const void *a, const void *b)
 	return (*(const float *)a > *(const float *)b);
 }
 
-class HC_SR04 : public device::CDev
+class HC_SR04 : public cdev::CDev
 {
 public:
 	HC_SR04(uint8_t rotation, bool enable_median_filter, bool enable_obsavoid_switch);
@@ -162,10 +162,10 @@ private:
 
 	float				_min_distance;
 	float				_max_distance;
-	float 				_mf_window[_MF_WINDOW_SIZE] = {};
-	float				_mf_window_sorted[_MF_WINDOW_SIZE] = {};
+	float 				_mf_window[_MF_WINDOW_SIZE]{};
+	float				_mf_window_sorted[_MF_WINDOW_SIZE]{};
 	int 				_mf_cycle_counter;
-	work_s				_work = {};
+	work_s				_work{};
 	ringbuffer::RingBuffer	*_reports;
 	volatile enum {
 		Uninitialized = 0,
@@ -273,7 +273,7 @@ private:
 extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[]);
 
 HC_SR04::HC_SR04(uint8_t rotation, bool enable_median_filter, bool enable_obsavoid_switch) :
-	CDev("HC_SR04", SR04_DEVICE_PATH),
+	CDev(SR04_DEVICE_PATH),
 	_min_distance(SR04_MIN_DISTANCE),
 	_max_distance(SR04_MAX_DISTANCE),
 	_mf_cycle_counter(0),
@@ -294,8 +294,6 @@ HC_SR04::HC_SR04(uint8_t rotation, bool enable_median_filter, bool enable_obsavo
 	_pwm_output_active(false)
 
 {
-	/* enable debug() calls */
-	_debug_enabled = false;
 }
 
 HC_SR04::~HC_SR04()

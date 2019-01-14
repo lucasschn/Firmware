@@ -47,7 +47,7 @@
 			test->argv = argv;							\
 			bool success = test->run_tests();			\
 			test->print_results();						\
-			delete test;						\
+			delete test;                                              \
 			return success ? 0 : -1;					\
 		}												\
 	}

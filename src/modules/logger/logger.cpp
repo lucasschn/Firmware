@@ -624,12 +624,14 @@ void Logger::add_default_topics()
 	// add_topic("mission_result");  // NOTE(YUNEEC): Saving memory
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
+	add_topic("radio_status");
 	// add_topic("rate_ctrl_status", 30);  // NOTE(YUNEEC): Saving memory
 	add_topic("rtl_time_estimate", 1);
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
+	add_topic("telemetry_status");
 	add_topic("vehicle_attitude", 30);
 	add_topic("vehicle_attitude_setpoint", 100);
 	add_topic("vehicle_command");

@@ -45,6 +45,16 @@ set +e
 # USART6        /dev/ttyS2      GPS
 #
 
+#------------------------------------------------------------------------------
+#
+# UART mapping on NXPhlitev3:
+#
+# LPUART0		/dev/ttyS0		P16 CONSOLE
+# UART0			/dev/ttyS1		P7  IR
+# UART1			/dev/ttyS2		P14-3, P15-2 RC input
+# UART2			/dev/ttyS3		P3 GPS
+# UART4			/dev/ttyS3		P10 TELEM1 (flow control)
+
 #
 # Set default paramter values.
 #
@@ -83,7 +93,7 @@ set PWM_RATE                    p:PWM_RATE
 set SDCARD_MIXERS_PATH          /fs/microsd/etc/mixers
 set USE_IO                      no
 set VEHICLE_TYPE                none
-
+set TUNE_ERR                    "ML<<CP4CP4CP4CP4CP4"
 #
 # Mount the procfs.
 #
@@ -569,6 +579,7 @@ unset PWM_MIN
 unset SDCARD_MIXERS_PATH
 unset USE_IO
 unset VEHICLE_TYPE
+unset TUNE_ERR
 
 #
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running.

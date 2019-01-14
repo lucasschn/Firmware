@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *   Author: @author David Sidrane <david_s5@nscdg.com>
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,29 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file board_mcu_version.c
- * Implementation of Kinetis based SoC version API
+ * @author David Sidrane <david_s5@nscdg.com>
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-
-#include "up_arch.h"
-#include "chip/kinetis_sim.h"
-
-#define CHIP_TAG     "Kinetis K??"
-#define CHIP_TAG_LEN sizeof(CHIP_TAG)-1
-
-int board_mcu_version(char *rev, const char **revstr, const char **errata)
-{
-	uint32_t sim_sdid = getreg32(KINETIS_SIM_SDID);
-	static char chip[sizeof(CHIP_TAG)] = CHIP_TAG;
-
-	chip[CHIP_TAG_LEN - 2] = '0' + ((sim_sdid & SIM_SDID_FAMILYID_MASK) >> SIM_SDID_FAMILYID_SHIFT);
-	chip[CHIP_TAG_LEN - 1] = '0' + ((sim_sdid & SIM_SDID_SUBFAMID_MASK) >> SIM_SDID_SUBFAMID_SHIFT);
-	*revstr = chip;
-	*rev = '0' + ((sim_sdid & SIM_SDID_REVID_MASK) >> SIM_SDID_REVID_SHIFT);
-	*errata = NULL;
-
-	return 0;
-}
+#pragma once
+#if defined(UAVCAN_KINETIS_NUTTX)
+#  include <uavcan_kinetis/uavcan_kinetis.hpp>
+#elif defined(UAVCAN_STM32_NUTTX)
+#  include <uavcan_stm32/uavcan_stm32.hpp>
+#else
+#  error "Unsupported driver"
+#endif

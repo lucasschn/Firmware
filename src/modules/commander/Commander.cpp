@@ -640,10 +640,6 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 			transition_result_t main_ret = TRANSITION_NOT_CHANGED;
 
-			/* set HIL state */
-			hil_state_t new_hil_state = (base_mode & VEHICLE_MODE_FLAG_HIL_ENABLED) ? vehicle_status_s::HIL_STATE_ON : vehicle_status_s::HIL_STATE_OFF;
-			transition_result_t hil_ret = hil_state_transition(new_hil_state, status_pub, status_local, &mavlink_log_pub);
-
 			/* If parameter COM_LOW_BAT_ACT configures an automatic low battery reaction (not only Warning 0) prevent switching out of it unless switching to MANUAL, AUTO_RTL (critical battery only) or AUTO_LAND. */
 			bool no_mode_switch_low_battery = low_bat_action != 0 && critical_battery_voltage_actions_done &&
 					(emergency_battery_voltage_actions_done || custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_RTL) &&
@@ -780,7 +776,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 				}
 			}
 
-			if ((hil_ret != TRANSITION_DENIED) && (arming_ret != TRANSITION_DENIED) && (main_ret != TRANSITION_DENIED)) {
+			if ((arming_ret != TRANSITION_DENIED) && (main_ret != TRANSITION_DENIED)) {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -3619,7 +3615,6 @@ set_control_mode()
 	/* set vehicle_control_mode according to set_navigation_state */
 	control_mode.flag_armed = armed.armed;
 	control_mode.flag_external_manual_override_ok = (!status.is_rotary_wing && !status.is_vtol);
-	control_mode.flag_system_hil_enabled = status.hil_state == vehicle_status_s::HIL_STATE_ON;
 	control_mode.flag_control_offboard_enabled = false;
 
 	switch (status.nav_state) {

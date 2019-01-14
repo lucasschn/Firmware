@@ -33,6 +33,5 @@
 
 px4_add_library(tunes
 	tunes.cpp
-	# default_tunes.cpp
-	yuneec_tunes.cpp
+	default_tunes.cpp
 )

@@ -33,22 +33,10 @@
 
 #pragma once
 
+#define PX4_DEFINE_TUNE(ordinal,name,tune,interruptable) name,
 enum class TuneID {
-	CUSTOM = 0,
-	STARTUP,
-	ERROR_TUNE,
-	NOTIFY_POSITIVE,
-	NOTIFY_NEUTRAL,
-	NOTIFY_NEGATIVE,
-	ARMING_WARNING,
-	BATTERY_WARNING_SLOW,
-	BATTERY_WARNING_FAST,
-	GPS_WARNING,
-	ARMING_FAILURE,
-	PARACHUTE_RELEASE,
-	EKF_WARNING,
-	BARO_WARNING,
-	SINGLE_BEEP,
-	HOME_SET,
-	SHUTDOWN
+// #include "tune_definition.desc"
+#include "tune_definition_yuneec.desc"
+	NONE = -1
 };
+#undef PX4_DEFINE_TUNE

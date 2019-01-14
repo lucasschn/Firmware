@@ -79,6 +79,18 @@ set START_LOGGER 0
 set PARAM_FILE /fs/microsd/params
 
 #
+# Start the ORB (first app to start)
+# tone_alarm and tune_control
+# is dependent.
+#
+uorb start
+
+#
+# Start the tone_alarm driver.
+#
+tone_alarm start
+
+#
 # Try to mount the microSD card.
 #
 if mount -t vfat /dev/mmcsd0 /fs/microsd
@@ -104,7 +116,7 @@ else
 			unset DATAMAN_OPT
 		else
 			echo "ERROR [init] Format failed"
-			#tone_alarm MNBG
+			#tune_control play -t 17
 			set LOG_FILE /dev/null
 			set PARAM_FILE /dev/null
 		fi
@@ -116,11 +128,6 @@ else
 		reboot shutdown
 	fi
 fi
-
-#
-# Start the ORB (first app to start)
-#
-uorb start
 
 #
 # Start the MTD
@@ -704,8 +711,14 @@ then
 	realsense start -d ${REALSENSE_PORT}
 fi
 
+# There is no further script processing, so we can free some RAM
+# XXX potentially unset all script variables.
 unset REALSENSE_PORT
 unset DEFAULTS_VER
 unset RELEASE_VER
+#unset TUNE_ERR
+unset LOG_FILE
+unset DATAMAN_OPT
 
+# Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete

@@ -216,7 +216,7 @@ protected:
 	 * Desired waypoints.
 	 * Goals set by the FCU to be sent to the obstacle avoidance system.
 	 */
-	vehicle_trajectory_waypoint_s _desired_waypoint;
+	vehicle_trajectory_waypoint_s _desired_waypoint{};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,

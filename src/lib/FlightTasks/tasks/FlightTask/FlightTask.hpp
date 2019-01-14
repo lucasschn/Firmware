@@ -120,7 +120,7 @@ public:
 	 * Get avoidance desired waypoint
 	 * @return desired waypoints
 	 */
-	const vehicle_trajectory_waypoint_s getAvoidanceWaypoint() {return _desired_waypoint;};
+	const vehicle_trajectory_waypoint_s &getAvoidanceWaypoint() { return _desired_waypoint; }
 
 	/**
 	 * Empty setpoint.

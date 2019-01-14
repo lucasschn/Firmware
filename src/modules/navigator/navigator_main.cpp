@@ -46,26 +46,24 @@
 #include "navigator.h"
 
 #include <cfloat>
-#include <sys/ioctl.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
+#include <lib/mathlib/mathlib.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/position_controller_landing_status.h>
+#include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/transponder_report.h>
 #include <uORB/uORB.h>
 
 /**
@@ -77,6 +75,8 @@ extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 
 #define GEOFENCE_CHECK_INTERVAL 200000 // 0.2 second
 #define TARGET_MOTION_CHECK_INTERVAL 1000000 // 1 second
+
+using namespace time_literals;
 
 namespace navigator
 {
@@ -214,17 +214,6 @@ Navigator::home_position_update(bool force)
 }
 
 void
-Navigator::fw_pos_ctrl_status_update(bool force)
-{
-	bool updated = false;
-	orb_check(_fw_pos_ctrl_status_sub, &updated);
-
-	if (updated || force) {
-		orb_copy(ORB_ID(fw_pos_ctrl_status), _fw_pos_ctrl_status_sub, &_fw_pos_ctrl_status);
-	}
-}
-
-void
 Navigator::vehicle_status_update()
 {
 	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
@@ -298,7 +287,7 @@ Navigator::run()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_fw_pos_ctrl_status_sub = orb_subscribe(ORB_ID(fw_pos_ctrl_status));
+	_pos_ctrl_landing_status_sub = orb_subscribe(ORB_ID(position_controller_landing_status));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
@@ -324,7 +313,6 @@ Navigator::run()
 	local_reference_update();
 	gps_position_update();
 	home_position_update(true);
-	fw_pos_ctrl_status_update(true);
 	obstacle_avoidance_update();
 	manual_update();
 	target_motion_update();
@@ -430,11 +418,7 @@ Navigator::run()
 		}
 
 		/* navigation capabilities updated */
-		orb_check(_fw_pos_ctrl_status_sub, &updated);
-
-		if (updated) {
-			fw_pos_ctrl_status_update();
-		}
+		_position_controller_status_sub.update();
 
 		/* home position updated */
 		orb_check(_home_pos_sub, &updated);
@@ -933,8 +917,6 @@ Navigator::run()
 		}
 
 		if (_pos_sp_triplet_updated) {
-			_pos_sp_triplet.timestamp = hrt_absolute_time();
-
 			// Map to local frame
 			// This is not used anywhere yet. The goal is to free the position controller
 			// from any global computation.
@@ -952,12 +934,10 @@ Navigator::run()
 			_pos_sp_triplet.next.z = - (_pos_sp_triplet.next.alt - get_local_reference_alt());
 
 			publish_position_setpoint_triplet();
-			_pos_sp_triplet_updated = false;
 		}
 
 		if (_mission_result_updated) {
 			publish_mission_result();
-			_mission_result_updated = false;
 		}
 
 		perf_end(_loop_perf);
@@ -966,7 +946,7 @@ Navigator::run()
 	orb_unsubscribe(_global_pos_sub);
 	orb_unsubscribe(_local_pos_sub);
 	orb_unsubscribe(_gps_pos_sub);
-	orb_unsubscribe(_fw_pos_ctrl_status_sub);
+	orb_unsubscribe(_pos_ctrl_landing_status_sub);
 	orb_unsubscribe(_vstatus_sub);
 	orb_unsubscribe(_land_detected_sub);
 	orb_unsubscribe(_home_pos_sub);
@@ -1021,10 +1001,12 @@ Navigator::print_status()
 void
 Navigator::publish_position_setpoint_triplet()
 {
-	/* do not publish an empty triplet */
+	// do not publish an invalid setpoint
 	if (!_pos_sp_triplet.current.valid) {
 		return;
 	}
+
+	_pos_sp_triplet.timestamp = hrt_absolute_time();
 
 	/* lazily publish the position setpoint triplet only once available */
 	if (_pos_sp_triplet_pub != nullptr) {
@@ -1033,6 +1015,8 @@ Navigator::publish_position_setpoint_triplet()
 	} else {
 		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
 	}
+
+	_pos_sp_triplet_updated = false;
 }
 
 float
@@ -1151,10 +1135,11 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	// when in fixed wing mode
 	// this might need locking against a commanded transition
 	// so that a stale _vstatus doesn't trigger an accepted mission item.
-	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode) {
-		if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) < 5000000) && (_fw_pos_ctrl_status.turn_distance > radius)) {
-			radius = _fw_pos_ctrl_status.turn_distance;
-		}
+
+	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
+
+	if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp) && pos_ctrl_status.acceptance_radius > radius) {
+		radius = pos_ctrl_status.acceptance_radius;
 	}
 
 	return radius;
@@ -1316,15 +1301,24 @@ void Navigator::check_traffic()
 bool
 Navigator::abort_landing()
 {
+	// only abort if currently landing and position controller status updated
 	bool should_abort = false;
 
-	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode) {
-		if (hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) < 1000000) {
+	if (_pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-			if (get_position_setpoint_triplet()->current.valid
-			    && get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		bool updated = false;
 
-				should_abort = _fw_pos_ctrl_status.abort_landing;
+		orb_check(_pos_ctrl_landing_status_sub, &updated);
+
+		if (updated) {
+			position_controller_landing_status_s landing_status = {};
+
+			// landing status from position controller must be newer than navigator's last position setpoint
+			if (orb_copy(ORB_ID(position_controller_landing_status), _pos_ctrl_landing_status_sub, &landing_status) == PX4_OK) {
+				if (landing_status.timestamp > _pos_sp_triplet.timestamp) {
+					should_abort = landing_status.abort_landing;
+				}
 			}
 		}
 	}
@@ -1416,6 +1410,8 @@ Navigator::publish_mission_result()
 	_mission_result.item_do_jump_changed = false;
 	_mission_result.item_changed_index = 0;
 	_mission_result.item_do_jump_remaining = 0;
+
+	_mission_result_updated = false;
 }
 
 void

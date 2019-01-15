@@ -3,44 +3,23 @@ Tests that can be applied to real test-flights as well
 as simulated test-flights
 """
 
-from uloganalysis import attitudeanalysis as attanl
-from uloganalysis import positionanalysis as posanl
-from uloganalysis import ulogconv
-from uloganalysis import loginfo
+from pyulgresample import attitude
+from pyulgresample import localposition as lpos
+from pyulgresample import ulogconv
+from pyulgresample import loginfo
 import pyulog
 import os
 import numpy as np
 import pytest
 
 
-def setup_dataframe(self, filepath, topics):
-    # Check if any of the topics exist in the topics exists in the log file
+def setup_dataframe(filepath, dfulgClass, topics):
     try:
-        self.ulog = pyulog.ULog(filepath, topics)
-    except:
-        print(
-            "Not a single topic that is needed for this test exists in the provided ulog file. Abort test"
-        )
-        assert False
+        dfulg = dfulgClass.create(filepath, topics)
+        return dfulg
 
-    # Check for every topic separately if it exists in the log file
-    for i in range(len(self.ulog.data_list)):
-        if self.ulog.data_list[i].name in topics:
-            idx = topics.index(self.ulog.data_list[i].name)
-            topics.pop(idx)
-
-    if len(topics) > 0:
-        print(
-            "\033[93m"
-            + "The following topics do not exist in the provided ulog file: "
-            + "\033[0m"
-        )
-        print(topics)
-        pytest.skip("Skip this test because topics are missing")
-    else:
-        self.df = ulogconv.merge(ulogconv.createPandaDict(self.ulog))
-
-    # return self
+    except Exception:
+        pytest.skip("Could not create dfulg object")
 
 
 class TestAttitude:
@@ -48,30 +27,28 @@ class TestAttitude:
     Test Attitude related constraints
     """
 
+    @classmethod
+    def setup_class(cls):
+        cls._dfulgClass = attitude.dfUlgAttitude
+        cls._topics = attitude.dfUlgAttitude.get_required_topics()
+        cls._topics.append("vehicle_status")
+
     def test_tilt_desired(self, filepath):
-
-        topics = [
-            "vehicle_attitude",
-            "vehicle_attitude_setpoint",
-            "vehicle_status",
-        ]
-
-        setup_dataframe(self, filepath, topics)
+        dfulg = setup_dataframe(filepath, self._dfulgClass, self._topics)
 
         # During Manual / Stabilized and Altitude, the tilt threshdol should not exceed
         # MPC_MAN_TILT_MAX
-
-        attanl.add_desired_tilt(self.df)
+        attitude.add_desired_tilt(dfulg.df)
         man_tilt = (
-            loginfo.get_param(self.ulog, "MPC_MAN_TILT_MAX", 0) * np.pi / 180
+            loginfo.get_param(dfulg.ulog, "MPC_MAN_TILT_MAX", 0) * np.pi / 180
         )
-        assert self.df[
+        assert dfulg.df[
             (
-                (self.df.T_vehicle_status_0__F_nav_state == 0)
-                | (self.df.T_vehicle_status_0__F_nav_state == 1)
+                (dfulg.df.T_vehicle_status_0__F_nav_state == 0)
+                | (dfulg.df.T_vehicle_status_0__F_nav_state == 1)
             )
             & (
-                self.df.T_vehicle_attitude_setpoint_0__NF_tilt_desired
+                dfulg.df.T_vehicle_attitude_setpoint_0__NF_tilt_desired
                 > man_tilt
             )
         ].empty
@@ -83,30 +60,33 @@ class TestRTLHeight:
     # check the height above ground while the drone returns to home. compare it with
     # the allowed maximum or minimum heights, until the drone has reached home and motors have been turned off
 
+    @classmethod
+    def setup_class(cls):
+        cls._dfulgClass = attitude.dfUlgAttitude
+        cls._topics = attitude.dfUlgAttitude.get_required_topics()
+        cls._topics.extend(["vehicle_local_position", "vehicle_status"])
+
     def test_rtl(self, filepath):
-
-        topics = ["vehicle_local_position", "vehicle_status"]
-
-        setup_dataframe(self, filepath, topics)
+        dfulg = setup_dataframe(filepath, self._dfulgClass, self._topics)
 
         # drone parameters: below rtl_min_dist, the drone follows different rules than outside of it.
-        rtl_min_dist = loginfo.get_param(self.ulog, "RTL_MIN_DIST", 0)
-        rtl_return_alt = loginfo.get_param(self.ulog, "RTL_RETURN_ALT", 0)
-        rtl_cone_dist = loginfo.get_param(self.ulog, "RTL_CONE_DIST", 0)
+        rtl_min_dist = loginfo.get_param(dfulg.ulog, "RTL_MIN_DIST", 0)
+        rtl_return_alt = loginfo.get_param(dfulg.ulog, "RTL_RETURN_ALT", 0)
+        rtl_cone_dist = loginfo.get_param(dfulg.ulog, "RTL_CONE_DIST", 0)
 
         NAVIGATION_STATE_AUTO_RTL = (
             5
         )  # see https://github.com/PX4/Firmware/blob/master/msg/vehicle_status.msg
         thresh = 1  # Threshold for position inaccuracies, in meters
 
-        posanl.add_horizontal_distance(self.df)
+        lpos.add_horizontal_distance(dfulg.df)
 
         # Run the test every time that RTL was triggered
-        self.df["T_vehicle_status_0__F_nav_state_group2"] = (
-            self.df.T_vehicle_status_0__F_nav_state
-            != self.df.T_vehicle_status_0__F_nav_state.shift()
+        dfulg.df["T_vehicle_status_0__F_nav_state_group2"] = (
+            dfulg.df.T_vehicle_status_0__F_nav_state
+            != dfulg.df.T_vehicle_status_0__F_nav_state.shift()
         ).cumsum()
-        state_group = self.df.groupby(
+        state_group = dfulg.df.groupby(
             ["T_vehicle_status_0__F_nav_state_group2"]
         )
         for g, d in state_group:
@@ -156,21 +136,3 @@ class TestRTLHeight:
                     height_at_RTL > rtl_return_alt
                 ):
                     assert max_height_during_RTL < height_at_RTL + thresh
-
-
-# class TestSomething:
-#
-# def test_1(self, filepath):
-#     topics = [
-#         "topic1",
-#         "topic2",
-#     ]
-#    setup_dataframe(self, filepath)
-#        assert True
-#    def test_2(self, filepath):
-#     topics = [
-#         "topic1",
-#         "topic2",
-#     ]
-# setup_dataframe(self, filepath)
-#        assert True

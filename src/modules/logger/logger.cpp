@@ -607,7 +607,6 @@ void Logger::add_default_topics()
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_outputs", 100);
 	add_topic("airspeed", 200);
-	// add_topic("att_pos_mocap", 50);   // NOTE(YUNEEC): Saving memory
 	add_topic("battery_status", 50);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
@@ -619,7 +618,6 @@ void Logger::add_default_topics()
 	add_topic("estimator_status", 200);
 	// add_topic("home_position");  // NOTE(YUNEEC): Saving memory
 	add_topic("input_rc", 200);
-	// add_topic("landing_target_pose");  // NOTE(YUNEEC): Saving memory
 	add_topic("manual_control_setpoint", 200);
 	// add_topic("mission");  // NOTE(YUNEEC): Saving memory
 	// add_topic("mission_result");  // NOTE(YUNEEC): Saving memory
@@ -633,6 +631,7 @@ void Logger::add_default_topics()
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
 	add_topic("telemetry_status");
+	// add_topic("vehicle_air_data", 200);  // NOTE(YUNEEC): Saving memory
 	add_topic("vehicle_attitude", 30);
 	add_topic("vehicle_attitude_setpoint", 100);
 	add_topic("vehicle_command");
@@ -641,6 +640,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
+	add_topic("vehicle_magnetometer", 200);
 	add_topic("flighttask_setpoint", 100);
 	add_topic("position_control_setpoint_input", 50);
 	add_topic("vehicle_constraints", 50);

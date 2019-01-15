@@ -952,6 +952,7 @@ def main():
 
             baud_flightstack = [int(x) for x in args.baud_flightstack.split(',')]
 
+            successful = False
             for port in portlist:
 
                 # print("Trying %s" % port)
@@ -1018,6 +1019,9 @@ def main():
                     # ok, we have a bootloader, try flashing it
                     up.upload(fw, force=args.force, boot_delay=args.boot_delay)
 
+                    # if we made this far without raising exceptions, the upload was successful
+                    successful = True
+
                 except RuntimeError as ex:
                     # print the error
                     print("\nERROR: %s" % ex.args)
@@ -1031,7 +1035,10 @@ def main():
                     up.close()
 
                 # we could loop here if we wanted to wait for more boards...
-                sys.exit(0)
+                if successful:
+                    sys.exit(0)
+                else:
+                    sys.exit(1)
 
             # Delay retries to < 20 Hz to prevent spin-lock from hogging the CPU
             time.sleep(0.05)

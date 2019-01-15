@@ -174,7 +174,7 @@ protected:
 	/*
 	 * Check and update local position
 	 */
-	bool _evaluateVehicleLocalPosition();
+	void _evaluateVehicleLocalPosition();
 
 	/**
 	 * Set dynamic constraints

@@ -59,8 +59,7 @@ if __name__ == "__main__":
 
     # read yaml
     yaml_file = open(
-        os.path.dirname(__file__) + "/configs/" + args.maneuver_name + ".yml",
-        "r",
+        os.path.dirname(__file__) + "/configs/" + args.maneuver_name + ".yml", "r"
     )
     config = yaml.load(yaml_file)
 
@@ -154,17 +153,12 @@ if __name__ == "__main__":
                 deselected_tests += " and"
 
             deselected_tests += " not (" + test_struct["TestClass"]
-            if (
-                "TestMethod" in test_struct
-                and test_struct["TestMethod"] is not None
-            ):
+            if "TestMethod" in test_struct and test_struct["TestMethod"] is not None:
                 for t in test_struct["TestMethod"]:
                     deselected_tests += " and " + t
             deselected_tests += ")"
 
-    testfile = (
-        px4_src_dir + "/integrationtests/tests/ulogtests/tests/test_general.py"
-    )
+    testfile = px4_src_dir + "/integrationtests/tests/ulogtests/tests/test_general.py"
     logdir = os.getcwd() + "/log/"
     log_folders = os.listdir(logdir)
 

@@ -34,35 +34,33 @@
 
 /**
  * @file board_identity.c
- * Implementation of Kientis based Board identity API
+ * Implementation of Non Arch specific Board identity API
  */
 
 #include <px4_config.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <chip/kinetis_memorymap.h>
-#include <chip/kinetis_sim.h>
-
+#if defined(BOARD_OVERRIDE_UUID) || defined(BOARD_OVERRIDE_MFGUID) || defined(BOARD_OVERRIDE_PX4_GUID)
 static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID;
-
-#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00ff0000) >> 8) | (((x) & 0x0000ff00) << 8) | ((x) << 24))
-
-void board_get_uuid(uuid_byte_t uuid_bytes)
-{
-	uint32_t *chip_uuid = (uint32_t *) KINETIS_SIM_UIDH;
-	uint32_t *uuid_words = (uint32_t *) uuid_bytes;
-
-	for (unsigned int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
-		uint32_t current_uuid_bytes = SWAP_UINT32(chip_uuid[i]);
-		memcpy(uuid_words, &current_uuid_bytes, sizeof(uint32_t));
-		++uuid_words;
-	}
-}
+static const char board_uuid[17] = BOARD_OVERRIDE_UUID;
 
 void board_get_uuid32(uuid_uint32_t uuid_words)
 {
-	board_get_uuid(*(uuid_byte_t *) uuid_words);
+	unsigned int len = strlen(board_uuid);
+
+	if (len > PX4_CPU_UUID_BYTE_LENGTH) {
+		len = PX4_CPU_UUID_BYTE_LENGTH;
+	}
+
+	uint8_t *bp = (uint8_t *) uuid_words;
+
+	for (unsigned int i = 0; i < len; i++) {
+		*bp++ = board_uuid[i];
+	}
+
+	for (unsigned int i = len; i < PX4_CPU_UUID_BYTE_LENGTH; i++) {
+		*bp++ = '0';
+	}
 }
 
 int board_get_uuid32_formated(char *format_buffer, int size,
@@ -71,12 +69,11 @@ int board_get_uuid32_formated(char *format_buffer, int size,
 {
 	uuid_uint32_t uuid;
 	board_get_uuid32(uuid);
-
 	int offset = 0;
 	int sep_size = seperator ? strlen(seperator) : 0;
 
-	for (unsigned int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
-		offset += snprintf(&format_buffer[offset], size - ((i * 2 * sizeof(uint32_t)) + 1), format, uuid[i]);
+	for (unsigned i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
+		offset += snprintf(&format_buffer[offset], size - offset, format, uuid[i]);
 
 		if (sep_size && i < PX4_CPU_UUID_WORD32_LENGTH - 1) {
 			strcat(&format_buffer[offset], seperator);
@@ -87,50 +84,17 @@ int board_get_uuid32_formated(char *format_buffer, int size,
 	return 0;
 }
 
-int board_get_mfguid(mfguid_t mfgid)
-{
-	board_get_uuid(* (uuid_byte_t *) mfgid);
-	return PX4_CPU_MFGUID_BYTE_LENGTH;
-}
-
 int board_get_mfguid_formated(char *format_buffer, int size)
 {
-	mfguid_t mfguid;
-
-	board_get_mfguid(mfguid);
-	int offset  = 0;
-
-	for (unsigned int i = 0; i < PX4_CPU_MFGUID_BYTE_LENGTH; i++) {
-		offset += snprintf(&format_buffer[offset], size - offset, "%02x", mfguid[i]);
-	}
-
-	return offset;
+	board_get_uuid32_formated(format_buffer, size, "%02x", NULL);
+	return strlen(format_buffer);
 }
 
-int board_get_px4_guid(px4_guid_t px4_guid)
-{
-	uint8_t  *pb = (uint8_t *) &px4_guid[0];
-	*pb++ = (soc_arch_id >> 8) & 0xff;
-	*pb++ = (soc_arch_id & 0xff);
-	board_get_uuid(pb);
-	return PX4_GUID_BYTE_LENGTH;
-}
 
 int board_get_px4_guid_formated(char *format_buffer, int size)
 {
-	px4_guid_t px4_guid;
-	board_get_px4_guid(px4_guid);
-	int offset  = 0;
-
-	/* size should be 2 per byte + 1 for termination
-	 * So it needs to be odd
-	 */
-	size = size & 1 ? size : size - 1;
-
-	/* Discard from MSD */
-	for (unsigned i = PX4_GUID_BYTE_LENGTH - size / 2; offset < size && i < PX4_GUID_BYTE_LENGTH; i++) {
-		offset += snprintf(&format_buffer[offset], size - offset, "%02x", px4_guid[i]);
-	}
-
-	return offset;
+	int offset = snprintf(format_buffer, size, "%04x", soc_arch_id);
+	size -= offset;
+	return board_get_mfguid_formated(&format_buffer[offset], size);
 }
+#endif

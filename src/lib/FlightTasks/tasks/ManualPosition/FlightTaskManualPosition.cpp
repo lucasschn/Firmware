@@ -91,8 +91,8 @@ void FlightTaskManualPosition::_scaleSticks()
 	// Use same scaling as for FlightTaskManualAltitude
 	FlightTaskManualAltitude::_scaleSticks();
 
-	// Constrain length of stick inputs to 1 for xy
-	Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
+	/* Constrain length of stick inputs to 1 for xy*/
+	Vector2f stick_xy(&_sticks_expo(0));
 
 	// Yuneec specific speed scale (turtle slider)
 	stick_xy *=	math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f);
@@ -135,8 +135,8 @@ void FlightTaskManualPosition::_scaleSticks()
 void FlightTaskManualPosition::_updateXYlock()
 {
 	/* If position lock is not active, position setpoint is set to NAN.*/
-	const float vel_xy_norm = Vector2f(&_velocity(0)).length();
-	const bool apply_brake = Vector2f(&_velocity_setpoint(0)).length() < FLT_EPSILON;
+	const float vel_xy_norm = Vector2f(_velocity).length();
+	const bool apply_brake = Vector2f(_velocity_setpoint).length() < FLT_EPSILON;
 	const bool stopped = (MPC_HOLD_MAX_XY.get() < FLT_EPSILON || vel_xy_norm < MPC_HOLD_MAX_XY.get());
 
 	if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(0))) {

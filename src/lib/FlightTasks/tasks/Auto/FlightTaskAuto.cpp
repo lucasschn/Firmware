@@ -124,7 +124,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
-	matrix::Vector3f tmp_target;
+	Vector3f tmp_target;
 
 	if (!PX4_ISFINITE(_sub_triplet_setpoint->get().current.lat)
 	    || !PX4_ISFINITE(_sub_triplet_setpoint->get().current.lon)) {
@@ -236,18 +236,18 @@ bool FlightTaskAuto::_evaluateTriplets()
 void FlightTaskAuto::_set_heading_from_mode()
 {
 
-	matrix::Vector2f v; // Vector that points towards desired location
+	Vector2f v; // Vector that points towards desired location
 
 	switch (MPC_YAW_MODE.get()) {
 
 	case 0: { // Heading points towards the current waypoint.
-			v = Vector2f(_target(0), _target(1)) - Vector2f(_position(0), _position(1));
+			v = Vector2f(_target) - Vector2f(_position);
 			break;
 		}
 
 	case 1: { // Heading points towards home.
 			if (_sub_home_position->get().valid_hpos) {
-				v = Vector2f(_sub_home_position->get().x, _sub_home_position->get().y) - Vector2f(&_position(0));
+				v = Vector2f(&_sub_home_position->get().x) - Vector2f(_position);
 			}
 
 			break;
@@ -255,7 +255,7 @@ void FlightTaskAuto::_set_heading_from_mode()
 
 	case 2: { // Heading point away from home.
 			if (_sub_home_position->get().valid_hpos) {
-				v = Vector2f(&_position(0)) - Vector2f(_sub_home_position->get().x, _sub_home_position->get().y);
+				v = Vector2f(_position) - Vector2f(&_sub_home_position->get().x);
 			}
 
 			break;
@@ -319,13 +319,13 @@ void FlightTaskAuto::_checkAvoidanceProgress()
 	pos_control_status.timestamp = hrt_absolute_time();
 
 	// vector from previous triplet to current target
-	Vector2f prev_to_target = Vector2f(_triplet_target(0) - _triplet_prev_wp(0), _triplet_target(1) - _triplet_prev_wp(1));
+	Vector2f prev_to_target = Vector2f(_triplet_target - _triplet_prev_wp);
 	// vector from previous triplet to the vehicle projected position on the line previous-target triplet
-	Vector2f prev_to_closest_pt = Vector2f(_closest_pt(0) - _triplet_prev_wp(0), _closest_pt(1) - _triplet_prev_wp(1));
+	Vector2f prev_to_closest_pt = _closest_pt - Vector2f(_triplet_prev_wp);
 	// fraction of the previous-tagerget line that has been flown
 	const float prev_curr_travelled = prev_to_closest_pt.length() / prev_to_target.length();
 
-	Vector2f pos_to_target = Vector2f(_triplet_target(0) - _position(0), _triplet_target(1) - _position(1));
+	Vector2f pos_to_target = Vector2f(_triplet_target - _position);
 
 	if (prev_curr_travelled > 1.0f) {
 		// if the vehicle projected position on the line previous-target is past the target waypoint,
@@ -421,7 +421,7 @@ void FlightTaskAuto::_setDynamicConstraints()
 	}
 }
 
-matrix::Vector2f FlightTaskAuto::_getTargetVelocityXY()
+Vector2f FlightTaskAuto::_getTargetVelocityXY()
 {
 	// guard against any bad velocity values
 	const float vx = _sub_triplet_setpoint->get().current.vx;
@@ -430,22 +430,22 @@ matrix::Vector2f FlightTaskAuto::_getTargetVelocityXY()
 			      _sub_triplet_setpoint->get().current.velocity_valid;
 
 	if (velocity_valid) {
-		return matrix::Vector2f(vx, vy);
+		return Vector2f(vx, vy);
 
 	} else {
 		// just return zero speed
-		return matrix::Vector2f{};
+		return Vector2f{};
 	}
 }
 
 State FlightTaskAuto::_getCurrentState()
 {
 	// Calculate the vehicle current state based on the Navigator triplets and the current position.
-	Vector2f u_prev_to_target = Vector2f(&(_triplet_target - _triplet_prev_wp)(0)).unit_or_zero();
-	Vector2f pos_to_target = Vector2f(&(_triplet_target - _position)(0));
-	Vector2f prev_to_pos = Vector2f(&(_position - _triplet_prev_wp)(0));
+	Vector2f u_prev_to_target = Vector2f(_triplet_target - _triplet_prev_wp).unit_or_zero();
+	Vector2f pos_to_target(_triplet_target - _position);
+	Vector2f prev_to_pos(_position - _triplet_prev_wp);
 	// Calculate the closest point to the vehicle position on the line prev_wp - target
-	_closest_pt = Vector2f(&_triplet_prev_wp(0)) + u_prev_to_target * (prev_to_pos * u_prev_to_target);
+	_closest_pt = Vector2f(_triplet_prev_wp) + u_prev_to_target * (prev_to_pos * u_prev_to_target);
 
 	State return_state = State::none;
 
@@ -457,7 +457,7 @@ State FlightTaskAuto::_getCurrentState()
 		// Current position is more than cruise speed in front of previous setpoint.
 		return_state = State::previous_infront;
 
-	} else if (Vector2f(Vector2f(&_position(0)) - _closest_pt).length() > _mc_cruise_speed) {
+	} else if (Vector2f(Vector2f(_position) - _closest_pt).length() > _mc_cruise_speed) {
 		// Vehicle is more than cruise speed off track.
 		return_state = State::offtrack;
 
@@ -489,7 +489,7 @@ void FlightTaskAuto::_updateInternalWaypoints()
 
 	case State::offtrack:
 		_next_wp = _triplet_target;
-		_target = matrix::Vector3f(_closest_pt(0), _closest_pt(1), _triplet_target(2));
+		_target = Vector3f(_closest_pt(0), _closest_pt(1), _triplet_target(2));
 		_prev_wp = _position;
 		break;
 
@@ -505,7 +505,7 @@ void FlightTaskAuto::_updateInternalWaypoints()
 	}
 }
 
-bool FlightTaskAuto::_compute_heading_from_2D_vector(float &heading, matrix::Vector2f v)
+bool FlightTaskAuto::_compute_heading_from_2D_vector(float &heading, Vector2f v)
 {
 	if (PX4_ISFINITE(v.length()) && v.length() > SIGMA_NORM) {
 		v.normalize();

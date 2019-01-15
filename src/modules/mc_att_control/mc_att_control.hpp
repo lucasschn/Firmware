@@ -104,20 +104,24 @@ private:
 	void		sensor_bias_poll();
 	void		vehicle_land_detected_poll();
 	void		sensor_correction_poll();
-	void		vehicle_attitude_poll();
+	bool		vehicle_attitude_poll();
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_control_mode_poll();
-	void		vehicle_manual_poll();
+	bool		vehicle_manual_poll();
 	void		vehicle_motor_limits_poll();
-	void		vehicle_rates_setpoint_poll();
+	bool		vehicle_rates_setpoint_poll();
 	void		vehicle_status_poll();
 	void		engine_failure_poll();
 	void 		landing_gear_state_poll();
 
+	void		publish_actuator_controls();
+	void		publish_rates_setpoint();
+	void		publish_rate_controller_status();
+
 	/**
 	 * Attitude controller.
 	 */
-	void		control_attitude(float dt);
+	void		control_attitude();
 
 	/**
 	 * Attitude rates controller.

@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Fixed
 * Brake at waypoint in mission if stop is required (#3076)
+* Setting COM_ARM_SWISBTN parameter to avoid problems with the arm button (#3085)
 
 
 ## [v1.8.0-1.5.8]

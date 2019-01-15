@@ -1034,8 +1034,8 @@ MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const fl
 		_smooth_velocity_takeoff = PX4_ISFINITE(vz_sp) && vz_sp < -0.3f;
 
 		if ((PX4_ISFINITE(z_sp) && z_sp < _states.position(2) - min_altitude) ||  _smooth_velocity_takeoff) {
-			// Start smooth takeoff because theres a position or vvelocity setpoint commanding to ascend.
-			// 0.7m/s starts low enough to ommit a jump with normal tuning, a more general logic would be better
+			// There is a position setpoint above current position or velocity setpoint larger than
+			// takeoff speed. Enable smooth takeoff.
 			_in_smooth_takeoff = true;
 			_takeoff_speed = -0.7f;
 			_takeoff_reference_z = _states.position(2);

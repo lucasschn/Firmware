@@ -136,6 +136,7 @@ then
 		param set COM_RC_OVERRIDE 1
 		param set COM_RC_LOSS_T 3.0
 		param set COM_DL_LOSS_T 10
+		param set COM_ARM_SWISBTN 1
 
 		# allow receiving team mode input
 		param set RC_LINK_MODE 3

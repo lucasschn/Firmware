@@ -120,7 +120,7 @@ then
 	param set BAT_EMERGEN_THR 0.21
 	param set BAT_V_LOAD_DROP 0.18
 
-	#RC
+	# RC
 	param set COM_RC_LOSS_T 1.5
 	param set COM_RC_OVERRIDE 1
 	param set COM_RC_LOSS_MAN 1

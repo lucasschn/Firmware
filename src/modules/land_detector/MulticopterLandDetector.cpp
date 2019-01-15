@@ -101,7 +101,6 @@ void MulticopterLandDetector::_initialize_topics()
 	_vehicleLocalPositionSetpointSub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_actuatorsSub = orb_subscribe(ORB_ID(actuator_controls_0));
-	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));

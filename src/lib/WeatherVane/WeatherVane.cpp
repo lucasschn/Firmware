@@ -32,49 +32,51 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskAutoMapper.hpp
+ * @file WeatherVane.cpp
+ * Weathervane controller.
  *
- * Abstract Flight task which generates local setpoints
- * based on the triplet type.
  */
 
-#pragma once
+#include "WeatherVane.hpp"
+#include <mathlib/mathlib.h>
 
-#include "FlightTaskAuto.hpp"
 
-class FlightTaskAutoMapper : public FlightTaskAuto
+WeatherVane::WeatherVane() :
+	ModuleParams(nullptr)
 {
-public:
-	FlightTaskAutoMapper() = default;
-	virtual ~FlightTaskAutoMapper() = default;
-	bool activate() override;
-	bool update() override;
+	_R_sp_prev = matrix::Dcmf();
+}
 
-protected:
+void WeatherVane::update(const matrix::Quatf &q_sp_prev, float yaw)
+{
+	_R_sp_prev = matrix::Dcmf(q_sp_prev);
+	_yaw = yaw;
+}
 
-	float _alt_above_ground{0.0f}; /**< If home provided, then it is altitude above home, otherwise it is altitude above local position reference. */
+float WeatherVane::get_weathervane_yawrate()
+{
+	// direction of desired body z axis represented in earth frame
+	matrix::Vector3f body_z_sp(_R_sp_prev(0, 2), _R_sp_prev(1, 2), _R_sp_prev(2, 2));
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED,
-					(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND,
-					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which speed limit downwards reaches maximum speed
-					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
-					(ParamFloat<px4::params::MPC_TKO_SPEED>) MPC_TKO_SPEED
-				       );
+	// rotate desired body z axis into new frame which is rotated in z by the current
+	// heading of the vehicle. we refer to this as the heading frame.
+	matrix::Dcmf R_yaw = matrix::Eulerf(0.0f, 0.0f, -_yaw);
+	body_z_sp = R_yaw * body_z_sp;
+	body_z_sp.normalize();
 
-	virtual void _generateSetpoints() = 0; /**< Generate velocity and position setpoint for following line. */
+	float roll_sp = -asinf(body_z_sp(1));
 
-	void _generateIdleSetpoints();
-	void _generateLandSetpoints();
-	void _generateVelocitySetpoints();
-	void _generateTakeoffSetpoints();
+	float roll_exceeding_treshold = 0.0f;
+	float min_roll_rad = math::radians(_wv_min_roll.get());
 
-	void _updateAltitudeAboveGround(); /**< Computes altitude above ground based on sensors available. */
-	void updateParams() override; /**< See ModuleParam class */
+	if (roll_sp > min_roll_rad) {
+		roll_exceeding_treshold = roll_sp - min_roll_rad;
 
-private:
+	} else if (roll_sp < -min_roll_rad) {
+		roll_exceeding_treshold = roll_sp + min_roll_rad;
 
-	void _reset(); /**< Resets member variables to current vehicle state */
-	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
-	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
-};
+	}
+
+	return math::constrain(roll_exceeding_treshold * _wv_gain.get(), -math::radians(_wv_max_yaw_rate.get()),
+			       math::radians(_wv_max_yaw_rate.get()));
+}

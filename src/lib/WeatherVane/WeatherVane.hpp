@@ -32,49 +32,51 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskAutoMapper.hpp
+ * @file WeatherVane.hpp
+ * @author Ivo Drescher
+ * @author Roman Bapst <roman@auterion.com>
  *
- * Abstract Flight task which generates local setpoints
- * based on the triplet type.
+ * Weathervane controller.
+ *
  */
 
 #pragma once
 
-#include "FlightTaskAuto.hpp"
+#include <px4_module_params.h>
+#include <matrix/matrix/math.hpp>
 
-class FlightTaskAutoMapper : public FlightTaskAuto
+class WeatherVane : public ModuleParams
 {
 public:
-	FlightTaskAutoMapper() = default;
-	virtual ~FlightTaskAutoMapper() = default;
-	bool activate() override;
-	bool update() override;
+	WeatherVane();
 
-protected:
+	~WeatherVane() = default;
 
-	float _alt_above_ground{0.0f}; /**< If home provided, then it is altitude above home, otherwise it is altitude above local position reference. */
+	void activate() {_is_active = true;}
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED,
-					(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND,
-					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which speed limit downwards reaches maximum speed
-					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
-					(ParamFloat<px4::params::MPC_TKO_SPEED>) MPC_TKO_SPEED
-				       );
+	void deactivate() {_is_active = false;}
 
-	virtual void _generateSetpoints() = 0; /**< Generate velocity and position setpoint for following line. */
+	bool is_active() {return _is_active;}
 
-	void _generateIdleSetpoints();
-	void _generateLandSetpoints();
-	void _generateVelocitySetpoints();
-	void _generateTakeoffSetpoints();
+	bool weathervane_enabled() { return _wv_enabled.get(); }
 
-	void _updateAltitudeAboveGround(); /**< Computes altitude above ground based on sensors available. */
-	void updateParams() override; /**< See ModuleParam class */
+	void update(const matrix::Quatf &q_sp_prev, float yaw);
+
+	float get_weathervane_yawrate();
+
+	void update_parameters() { ModuleParams::updateParams(); }
 
 private:
+	matrix::Dcmf _R_sp_prev;	// previous attitude setpoint rotation matrix
+	float _yaw = 0.0f;			// current yaw angle
 
-	void _reset(); /**< Resets member variables to current vehicle state */
-	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
-	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
+	bool _is_active = true;
+
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::WV_EN>) _wv_enabled,
+		(ParamFloat<px4::params::WV_ROLL_MIN>) _wv_min_roll,
+		(ParamFloat<px4::params::WV_GAIN>) _wv_gain,
+		(ParamFloat<px4::params::WV_YRATE_MAX>) _wv_max_yaw_rate
+	)
+
 };

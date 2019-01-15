@@ -52,6 +52,11 @@ public:
 	bool updateInitialize() override;
 	bool update() override;
 
+	/**
+	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
+	 */
+	void setYawHandler(WeatherVane *ext_yaw_handler) override {_ext_yaw_handler = ext_yaw_handler;}
+
 protected:
 	virtual void _updateSetpoints(); /**< updates all setpoints*/
 	virtual void _scaleSticks(); /**< scales sticks to yaw and thrust */
@@ -72,4 +77,7 @@ private:
 	float _throttleCurve(); /**< piecewise linear mapping from stick to throttle */
 
 	float _throttle{}; /** mapped from stick z */
+
+	WeatherVane *_ext_yaw_handler =
+		nullptr;	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 };

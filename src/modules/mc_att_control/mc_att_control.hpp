@@ -244,8 +244,6 @@ private:
 		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _board_offset_y,
 		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _board_offset_z,
 
-		(ParamFloat<px4::params::VT_WV_YAWR_SCL>) _vtol_wv_yaw_rate_scale,		/**< Scale value [0, 1] for yaw rate setpoint  */
-
 		(ParamFloat<px4::params::FTC_ROLLRATE_P>) _ftc_rollrate_p,
 		(ParamFloat<px4::params::FTC_ROLLRATE_I>) _ftc_rollrate_i,
 		(ParamFloat<px4::params::FTC_ROLLRATE_D>) _ftc_rollrate_d,

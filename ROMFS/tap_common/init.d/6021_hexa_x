@@ -14,7 +14,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-if [ ${AUTOCNF} == yes -o ${NEW_DEFAULTS} == yes ]
+if [ ${AUTOCNF} = yes -o ${NEW_DEFAULTS} = yes ]
 then
 	param set MAV_TYPE 13
 
@@ -278,7 +278,7 @@ tap_esc_config log_versions -d ${ESC_TTY} -n 6
 # First re-send ESC configuration and verify to make sure everything is setup
 if tap_esc_config send_basic_config -d ${ESC_TTY} -n 6 -v
 then
-	if [ ${HITL_ON} == no ]
+	if [ ${HITL_ON} = no ]
 	then
 		tap_esc start -d ${ESC_TTY} -n 6
 	else

@@ -1875,7 +1875,7 @@ Commander::run()
 				}
 
 				if ((PX4_ISFINITE(land_detector.alt_max) && land_detector.alt_max > 0.0f) && (!PX4_ISFINITE(max_altitude) || (fabsf(max_altitude - land_detector.alt_max) > FLT_EPSILON))) {
-					mavlink_and_console_log_info(&mavlink_log_pub, "Altitude limit: %i meters above home", (uint64_t)land_detector.alt_max);
+					mavlink_and_console_log_info(&mavlink_log_pub, "Altitude limit: %llu meters above home", (uint64_t)land_detector.alt_max);
 				}
 			}
 
@@ -2427,7 +2427,7 @@ Commander::run()
 
 		} else {
 			if (!status_flags.rc_input_blocked && !status.rc_signal_lost) {
-				mavlink_log_critical(&mavlink_log_pub, "MANUAL CONTROL LOST (at t=%llums).", hrt_absolute_time() / 1000);
+				mavlink_log_critical(&mavlink_log_pub, "MANUAL CONTROL LOST (at t=%" PRIu64 "ms)", hrt_absolute_time() / 1000);
 				status.rc_signal_lost = true;
 				rc_signal_lost_timestamp = sp_man.timestamp;
 				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, status);
@@ -3889,7 +3889,7 @@ print_reject_arm(const char *msg)
 
 	if (t - last_print_mode_reject_time > PRINT_ARM_REJECT_INTERVAL) {
 		last_print_mode_reject_time = t;
-		mavlink_log_critical(&mavlink_log_pub, msg);
+		mavlink_log_critical(&mavlink_log_pub, "%s", msg);
 		tune_negative(true);
 	}
 }

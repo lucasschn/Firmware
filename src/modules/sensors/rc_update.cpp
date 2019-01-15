@@ -465,7 +465,7 @@ RCUpdate::print_rc_error_message(const char *str)
 	// print every 15 seconds
 	if (now - _last_msg > 15_s) {
 		_last_msg = now;
-		mavlink_log_critical(&_mavlink_log_pub, str);
+		mavlink_log_critical(&_mavlink_log_pub, "%s", str);
 	}
 }
 

@@ -256,7 +256,7 @@ TAP_ESC_UPLOADER::upload(const char *filenames[])
 	ret = tap_esc_common::initialise_uart(_device, _esc_fd);
 
 	if (ret < 0) {
-		PX4_INFO("initialise uart failed %s");
+		PX4_INFO("initialise uart failed");
 		return ret;
 	}
 
@@ -305,7 +305,7 @@ TAP_ESC_UPLOADER::log_versions()
 	int ret = tap_esc_common::initialise_uart(_device, _esc_fd);
 
 	if (ret < 0) {
-		PX4_INFO("initialise uart failed %s");
+		PX4_INFO("initialise uart failed");
 		return ret;
 	}
 
@@ -373,7 +373,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 	ret = tap_esc_common::initialise_uart(_device, _esc_fd);
 
 	if (ret < 0) {
-		PX4_INFO("initialise uart failed %s");
+		PX4_INFO("initialise uart failed");
 		return ret;
 	}
 
@@ -419,7 +419,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 						     (double)temp_revision / 100);
 
 		} else {
-			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found firmware revision failed");
+			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found firmware revision failed", esc_id);
 		}
 
 		/* get device hardware revision */
@@ -429,7 +429,7 @@ TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found board revision: %02x", esc_id, temp_revision);
 
 		}  else {
-			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found board revision failed");
+			mavlink_and_console_log_info(&_mavlink_log_pub, "esc_id %d found board revision failed", esc_id);
 		}
 
 		/* compare esc flash crc with .bin file crc */
@@ -837,13 +837,13 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 			val = _uploader_packet.d.hardware_id_packet.targetSystemId;
 
 		} else if (_uploader_packet.msg_id == PROTO_FAILED) {
-			PX4_INFO("get device hardware id failed, myID: 0x%02x, esc_id: 0x%02x, tar: 0x%02x, tar: 0x%02x",
+			PX4_INFO("get device hardware id failed, myID: 0x%02x, esc_id: 0x%02x, tar: 0x%02x",
 				_uploader_packet.d.hardware_id_packet.myID, esc_id,
 				_uploader_packet.d.hardware_id_packet.targetSystemId);
 			return -EIO;
 
 		} else if (_uploader_packet.msg_id == PROTO_INVALID) {
-			PX4_INFO("get device hardware id invalid, myID: 0x%02x, esc_id: 0x%02x, tar: 0x%02x, tar: 0x%02x",
+			PX4_INFO("get device hardware id invalid, myID: 0x%02x, esc_id: 0x%02x, tar: 0x%02x",
 				_uploader_packet.d.hardware_id_packet.myID, esc_id,
 				_uploader_packet.d.hardware_id_packet.targetSystemId);
 			return -EIO;

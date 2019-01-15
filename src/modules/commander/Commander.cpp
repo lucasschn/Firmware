@@ -1875,7 +1875,7 @@ Commander::run()
 				}
 
 				if ((PX4_ISFINITE(land_detector.alt_max) && land_detector.alt_max > 0.0f) && (!PX4_ISFINITE(max_altitude) || (fabsf(max_altitude - land_detector.alt_max) > FLT_EPSILON))) {
-					mavlink_and_console_log_info(&mavlink_log_pub, "Altitude limit: %llu meters above home", (uint64_t)land_detector.alt_max);
+					mavlink_and_console_log_info(&mavlink_log_pub, "Altitude limit: %lu meters above home", (uint64_t)land_detector.alt_max);
 				}
 			}
 

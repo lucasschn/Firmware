@@ -68,7 +68,7 @@ void vehicle_local_position_uORB_topic::dump()
 DECLARE_UORB_SUB(vehicle_global_position)
 void vehicle_global_position_uORB_topic::dump()
 {
-	PX4_DEBUG("lat = %f, lon = %f, alt =%f, eph = %f, epv = %f, timestamp = %llu",
+	PX4_DEBUG("lat = %f, lon = %f, alt =%f, eph = %f, epv = %f, timestamp = %lu",
 		  vehicle_global_position_status.lat,
 		  vehicle_global_position_status.lon,
 		  vehicle_global_position_status.alt,

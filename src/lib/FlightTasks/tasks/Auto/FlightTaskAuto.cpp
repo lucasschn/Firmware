@@ -136,7 +136,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		} else {
 			tmp_target(0) = _lock_position_xy(0);
 			tmp_target(1) = _lock_position_xy(1);
-			_lock_position_xy *= NAN;
+			_lock_position_xy.setAll(NAN);
 		}
 
 	} else {
@@ -240,32 +240,29 @@ void FlightTaskAuto::_set_heading_from_mode()
 
 	switch (MPC_YAW_MODE.get()) {
 
-	case 0: { // Heading points towards the current waypoint.
-			v = Vector2f(_target) - Vector2f(_position);
-			break;
+	case 0: // Heading points towards the current waypoint.
+		v = Vector2f(_target) - Vector2f(_position);
+		break;
+
+	case 1: // Heading points towards home.
+		if (_sub_home_position->get().valid_hpos) {
+			v = Vector2f(&_sub_home_position->get().x) - Vector2f(_position);
 		}
 
-	case 1: { // Heading points towards home.
-			if (_sub_home_position->get().valid_hpos) {
-				v = Vector2f(&_sub_home_position->get().x) - Vector2f(_position);
-			}
+		break;
 
-			break;
+	case 2: // Heading point away from home.
+		if (_sub_home_position->get().valid_hpos) {
+			v = Vector2f(_position) - Vector2f(&_sub_home_position->get().x);
 		}
 
-	case 2: { // Heading point away from home.
-			if (_sub_home_position->get().valid_hpos) {
-				v = Vector2f(_position) - Vector2f(&_sub_home_position->get().x);
-			}
+		break;
 
-			break;
-		}
-
-	case 3: { // Along trajectory.
-			// The heading depends on the kind of setpoint generation. This needs to be implemented
-			// in the subclasses where the velocity setpoints are generated.
-			v *= NAN;
-		}
+	case 3: // Along trajectory.
+		// The heading depends on the kind of setpoint generation. This needs to be implemented
+		// in the subclasses where the velocity setpoints are generated.
+		v.setAll(NAN);
+		break;
 	}
 
 	if (PX4_ISFINITE(v.length())) {

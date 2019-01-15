@@ -157,16 +157,22 @@ void FlightTaskManualStabilized::_updateSetpoints()
 
 float FlightTaskManualStabilized::_throttleCurve()
 {
-	/* Scale stick z from [-1,1] to [min thrust, max thrust]
-	 * with hover throttle at 0.5 stick */
+	// Scale stick z from [-1,1] to [min thrust, max thrust]
 	float throttle = -((_sticks(2) - 1.0f) * 0.5f);
 
-	if (throttle < 0.5f) {
-		return (MPC_THR_HOVER.get() - MPC_MANTHR_MIN.get()) / 0.5f * throttle + MPC_MANTHR_MIN.get();
+	switch (_throttle_curve.get()){
+		case 1: // no rescaling
+			return throttle;
 
-	} else {
-		return (MPC_THR_MAX.get() - MPC_THR_HOVER.get()) / 0.5f * (throttle - 1.0f) + MPC_THR_MAX.get();
+		default: // 0 or other: rescale to hover throttle at 0.5 stick
+			if (throttle < 0.5f) {
+				return (MPC_THR_HOVER.get() - MPC_MANTHR_MIN.get()) / 0.5f * throttle + MPC_MANTHR_MIN.get();
+
+			} else {
+				return (MPC_THR_MAX.get() - MPC_THR_HOVER.get()) / 0.5f * (throttle - 1.0f) + MPC_THR_MAX.get();
+			}
 	}
+
 }
 
 bool FlightTaskManualStabilized::update()

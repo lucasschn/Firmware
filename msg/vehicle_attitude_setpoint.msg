@@ -1,4 +1,6 @@
 uint64 timestamp		# time since system start (microseconds)
+int8 LANDING_GEAR_UP = 1	# landing gear up  TODO(ALESSANDRO): This has been added to enable upstream merging. Remove afterwards!!!
+int8 LANDING_GEAR_DOWN = -1	# landing gear down  TODO(ALESSANDRO): This has been added to enable upstream merging. Remove afterwards!!!
 
 float32 roll_body		# body angle in NED frame (can be NaN for FW)
 float32 pitch_body		# body angle in NED frame (can be NaN for FW)
@@ -22,5 +24,7 @@ uint8 apply_flaps       	# flap config specifier
 uint8 FLAPS_OFF = 0     	# no flaps
 uint8 FLAPS_LAND = 1    	# landing config flaps
 uint8 FLAPS_TAKEOFF = 2 	# take-off config flaps
+
+float32 landing_gear  # TODO(ALESSANDRO): This has been added to enable upstream merging. Remove afterwards!!!
 
 # TOPICS vehicle_attitude_setpoint mc_virtual_attitude_setpoint fw_virtual_attitude_setpoint

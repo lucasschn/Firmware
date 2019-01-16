@@ -43,7 +43,7 @@ using namespace matrix;
 
 bool FlightTaskManualAltitude::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
-	if (!FlightTaskManualStabilized::initializeSubscriptions(subscription_array)) {
+	if (!FlightTaskManual::initializeSubscriptions(subscription_array)) {
 		return false;
 	}
 
@@ -62,7 +62,7 @@ bool FlightTaskManualAltitude::updateInitialize()
 
 void FlightTaskManualAltitude::_setDynamicConstraints()
 {
-	FlightTaskManualStabilized::_setDynamicConstraints();
+	FlightTaskManual::_setDynamicConstraints();
 
 	_constraints.tilt = math::radians(MPC_MAN_TILT_MAX.get());
 
@@ -107,9 +107,9 @@ void FlightTaskManualAltitude::_scaleSticks()
 	_yawspeed_setpoint = _sticks_expo(3) * math::radians(MPC_MAN_Y_MAX.get());
 
 	// scale horizontal velocity with expo curve stick input
-	const float vel_max_z = (_sticks_expo(2) > FLT_EPSILON) ? _constraints.speed_down : _constraints.speed_up
-	 * math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f); // Yuneec specific speed scale
-	 * math::max(vel_max_z, MPC_LAND_SPEED.get()); // the pilot can command a minimal vertical speed to land
+	float vel_max_z = (_sticks_expo(2) > FLT_EPSILON) ? _constraints.speed_down : _constraints.speed_up;
+	vel_max_z *= math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f); // Yuneec specific speed scale
+	vel_max_z *= math::max(vel_max_z, MPC_LAND_SPEED.get()); // the pilot can command a minimal vertical speed to land
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
 }
 

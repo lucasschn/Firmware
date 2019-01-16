@@ -129,6 +129,7 @@ private:
 	int		_control_mode_sub{-1};		/**< vehicle control mode subscription */
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_local_pos_sub{-1};			/**< vehicle local position */
+	int		_att_sub{-1};				/**< vehicle attitude */
 	int		_home_pos_sub{-1}; 			/**< home position */
 	int		_traj_wp_avoidance_sub{-1};	/**< trajectory waypoint */
 
@@ -180,7 +181,7 @@ private:
 
 	FlightTasks _flight_tasks; /**< class that generates position controller tracking setpoints*/
 	PositionControl _control; /**< class that handles the core PID position controller */
-	PositionControlStates _states; /**< structure that contains required state information for position control */
+	PositionControlStates _states{}; /**< structure that contains required state information for position control */
 
 	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
 
@@ -464,6 +465,15 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	}
 
+	orb_check(_att_sub, &updated);
+
+	if (updated) {
+		vehicle_attitude_s att;
+		if (orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att) == PX4_OK && PX4_ISFINITE(att.q[0])) {
+			_states.yaw = Eulerf(Quatf(att.q)).psi();
+		}
+	}
+
 	orb_check(_home_pos_sub, &updated);
 
 	if (updated) {
@@ -582,9 +592,6 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 
 	}
 
-	if (PX4_ISFINITE(_local_pos.yaw)) {
-		_states.yaw = _local_pos.yaw;
-	}
 }
 
 void
@@ -596,6 +603,7 @@ MulticopterPositionControl::run()
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(vehicle_trajectory_waypoint));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -653,7 +661,7 @@ MulticopterPositionControl::run()
 				_wv_controller->deactivate();
 			}
 
-			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _local_pos.yaw);
+			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _states.yaw);
 		}
 
 		if (_control_mode.flag_armed) {
@@ -844,7 +852,7 @@ MulticopterPositionControl::run()
 		} else {
 			// no flighttask is active: set attitude setpoint to idle
 			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
-			_att_sp.yaw_body = _local_pos.yaw;
+			_att_sp.yaw_body = _states.yaw;
 			_att_sp.yaw_sp_move_rate = 0.0f;
 			_att_sp.fw_control_yaw = false;
 			_att_sp.apply_flaps = false;
@@ -860,6 +868,7 @@ MulticopterPositionControl::run()
 	orb_unsubscribe(_control_mode_sub);
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_local_pos_sub);
+	orb_unsubscribe(_att_sub);
 	orb_unsubscribe(_home_pos_sub);
 	orb_unsubscribe(_traj_wp_avoidance_sub);
 }
@@ -869,6 +878,27 @@ MulticopterPositionControl::start_flight_task()
 {
 	bool task_failure = false;
 	int prev_failure_count = _task_failure_count;
+
+	if (!_vehicle_status.is_rotary_wing) {
+		_flight_tasks.switchTask(FlightTaskIndex::None);
+		return;
+	}
+
+	if (_vehicle_status.in_transition_mode) {
+		int error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
+
+		if (error != 0) {
+			PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
+			task_failure = true;
+			_task_failure_count++;
+
+		} else {
+			// we want to be in this mode, reset the failure count
+			_task_failure_count = 0;
+		}
+
+		return;
+	}
 
 	// offboard
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
@@ -937,6 +967,10 @@ MulticopterPositionControl::start_flight_task()
 
 		case 2:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::Sport);
+			break;
+
+		case 3:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
 			break;
 
 		default:

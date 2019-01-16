@@ -31,13 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskUtility
-	ManualSmoothingZ.cpp
-	ManualSmoothingXY.cpp
-	ObstacleAvoidance.cpp
-	StraightLine.cpp
-	VelocitySmoothing.cpp
+px4_add_library(FlightTaskTransition
+	FlightTaskTransition.cpp
 )
 
-target_link_libraries(FlightTaskUtility PUBLIC FlightTask)
-target_include_directories(FlightTaskUtility PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FlightTaskTransition PUBLIC FlightTask)
+target_include_directories(FlightTaskTransition PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

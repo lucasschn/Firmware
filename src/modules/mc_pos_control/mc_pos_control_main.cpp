@@ -828,7 +828,7 @@ MulticopterPositionControl::run()
 			local_pos_sp.vz = _control.getVelSp()(2);
 			_control.getThrustSetpoint().copyTo(local_pos_sp.thrust);
 
-			// Publish local position setpoint (for logging only) and attitude setpoint (for attitude controller).
+			// Publish local position setpoint (for logging only)
 			publish_local_pos_sp(local_pos_sp);
 
 			// Fill attitude setpoint. Attitude is computed from yaw and thrust setpoint.
@@ -888,6 +888,7 @@ void
 MulticopterPositionControl::start_flight_task()
 {
 	bool task_failure = false;
+	bool should_disable_task = true;
 	int prev_failure_count = _task_failure_count;
 
 	if (!_vehicle_status.is_rotary_wing) {
@@ -896,6 +897,7 @@ MulticopterPositionControl::start_flight_task()
 	}
 
 	if (_vehicle_status.in_transition_mode) {
+		should_disable_task = false;
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
 
 		if (error != 0) {
@@ -919,6 +921,7 @@ MulticopterPositionControl::start_flight_task()
 		_control_mode.flag_control_velocity_enabled ||
 		_control_mode.flag_control_acceleration_enabled)) {
 
+		should_disable_task = false;
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
 
 		if (error != 0) {
@@ -936,6 +939,7 @@ MulticopterPositionControl::start_flight_task()
 
 	// Auto-follow me
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
+		should_disable_task = false;
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
 
 		if (error != 0) {
@@ -951,7 +955,8 @@ MulticopterPositionControl::start_flight_task()
 		}
 
 	} else if (_control_mode.flag_control_auto_enabled) {
-		// Auto relate maneuvers
+		// Auto related maneuvers
+		should_disable_task = false;
 		int error = 0;
 		switch (MPC_AUTO_MODE.get()) {
 		case 0:
@@ -984,6 +989,8 @@ MulticopterPositionControl::start_flight_task()
 
 	// manual position control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL || task_failure) {
+
+		should_disable_task = false;
 		int error = 0;
 
 		switch (MPC_POS_MODE.get()) {
@@ -1030,6 +1037,7 @@ MulticopterPositionControl::start_flight_task()
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
 			break;
 		}
+		should_disable_task = false;
 
 		if (error != 0) {
 			if (prev_failure_count == 0) {
@@ -1047,6 +1055,7 @@ MulticopterPositionControl::start_flight_task()
 	// manual stabilized control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
 	    ||  _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_STAB || task_failure) {
+		should_disable_task = false;
 		int error = _flight_tasks.switchTask(FlightTaskIndex::ManualStabilized);
 
 		if (error != 0) {
@@ -1073,6 +1082,8 @@ MulticopterPositionControl::start_flight_task()
 			// No task was activated.
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
+	} else if (should_disable_task) {
+		_flight_tasks.switchTask(FlightTaskIndex::None);
 	}
 }
 

@@ -271,7 +271,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 				static bool printed_once = false;
 
 				if (space < _rotor_count && printed_once) {
-					PX4_INFO("FTC HAPPENING!");
+					printf("FTC RUNNING!");
 					printed_once =  true;
 				}
 

@@ -100,6 +100,9 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
+
 private:
 
 	/* --- yuneec specific declarations */
@@ -602,6 +605,17 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 
 }
 
+int
+MulticopterPositionControl::print_status()
+{
+	if (_flight_tasks.isAnyTaskActive()) {
+		PX4_INFO("Running, active flight task: %i", _flight_tasks.getActiveTask());
+	} else {
+		PX4_INFO("Running, no flight task active");
+	}
+	return 0;
+}
+
 void
 MulticopterPositionControl::run()
 {
@@ -661,8 +675,8 @@ MulticopterPositionControl::run()
 		if (_wv_controller != nullptr) {
 
 			// in manual mode we just want to use weathervane if position is controlled as well
-			if (_wv_controller->weathervane_enabled() && !(_control_mode.flag_control_manual_enabled
-					&& !_control_mode.flag_control_position_enabled)) {
+			if (_wv_controller->weathervane_enabled() && (!_control_mode.flag_control_manual_enabled
+					|| _control_mode.flag_control_position_enabled)) {
 				_wv_controller->activate();
 
 			} else {
@@ -891,6 +905,7 @@ MulticopterPositionControl::start_flight_task()
 	bool should_disable_task = true;
 	int prev_failure_count = _task_failure_count;
 
+	// Do not run any flight task for VTOLs in fixed-wing mode
 	if (!_vehicle_status.is_rotary_wing) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
 		return;
@@ -901,7 +916,9 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
 
 		if (error != 0) {
-			PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
+			if (prev_failure_count == 0) {
+				PX4_WARN("Transition activation failed with error: %s", _flight_tasks.errorToString(error));
+			}
 			task_failure = true;
 			_task_failure_count++;
 
@@ -1048,25 +1065,6 @@ MulticopterPositionControl::start_flight_task()
 
 		} else {
 			check_failure(task_failure, vehicle_status_s::NAVIGATION_STATE_ALTCTL);
-			task_failure = false;
-		}
-	}
-
-	// manual stabilized control
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
-	    ||  _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_STAB || task_failure) {
-		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::ManualStabilized);
-
-		if (error != 0) {
-			if (prev_failure_count == 0) {
-				PX4_WARN("Stabilized-Ctrl failed with error: %s", _flight_tasks.errorToString(error));
-			}
-			task_failure = true;
-			_task_failure_count++;
-
-		} else {
-			check_failure(task_failure, vehicle_status_s::NAVIGATION_STATE_STAB);
 			task_failure = false;
 		}
 	}

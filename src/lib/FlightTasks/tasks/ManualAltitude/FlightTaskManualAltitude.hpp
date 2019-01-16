@@ -39,22 +39,29 @@
 
 #pragma once
 
-#include "FlightTaskManualStabilized.hpp"
+#include "FlightTaskManual.hpp"
 #include <uORB/topics/home_position.h>
 
-class FlightTaskManualAltitude : public FlightTaskManualStabilized
+class FlightTaskManualAltitude : public FlightTaskManual
 {
 public:
 	FlightTaskManualAltitude() = default;
 	virtual ~FlightTaskManualAltitude() = default;
 	bool activate() override;
 	bool updateInitialize() override;
+	bool update() override;
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 
 protected:
-	void _updateSetpoints() override; /**< updates all setpoints */
-	void _scaleSticks() override; /**< scales sticks to velocity in z */
+	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
+	virtual void _updateSetpoints(); /**< updates all setpoints */
+	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
 	void _setDynamicConstraints() override;
+
+	/**
+	 * rotates vector into local frame
+	 */
+	void _rotateIntoHeadingFrame(matrix::Vector2f &vec);
 
 	/**
 	 *  Check and sets for position lock.
@@ -63,11 +70,13 @@ protected:
 	 */
 	void _updateAltitudeLock();
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualStabilized,
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManual,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z,
 					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) MPC_HOLD_MAX_XY,
 					(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P,
+					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) MPC_MAN_Y_MAX, /**< scaling factor from stick to yaw rate */
+					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX, /**< maximum tilt allowed for manual flight */
 					(ParamFloat<px4::params::MPC_VEL_MAN_UP>) MPC_VEL_MAN_UP,
 					(ParamFloat<px4::params::MPC_VEL_MAN_DN>) MPC_VEL_MAN_DN,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which to start downwards slowdown

@@ -667,8 +667,7 @@ void TAP_ESC::cycle()
 
 			// Motor startup check: did at least 4 motors spin up correctly within the first second after arming
 			// otherwise we might be armed but the motors didn't start and if they suddenly start it's dangerous
-			const bool armed_more_than_a_second = ((hrt_absolute_time() / 1000) - _armed.armed_time_ms) > 1000;
-			if (armed_more_than_a_second && !_motor_start_check_done) {
+			if (!_motor_start_check_done && ((hrt_absolute_time() / 1000) - _armed.armed_time_ms) > 1000) {
 				_motor_start_check_done = true;
 				uint8_t started_motors_count = 0;
 
@@ -681,7 +680,7 @@ void TAP_ESC::cycle()
 				_motor_start_problem = started_motors_count < 4;
 
 				if (_motor_start_problem) {
-					mavlink_log_emergency(&_mavlink_log_pub, "Motor start problem: please wait and retry");
+					mavlink_log_emergency(&_mavlink_log_pub, "Motors failed to start, power off and try again");
 				}
 			}
 
@@ -730,10 +729,6 @@ void TAP_ESC::cycle()
 
 			_outputs.noutputs = num_outputs;
 
-			// reset motor start check
-			_motor_start_problem = false;
-			_motor_start_check_done = false;
-
 			/* check for motor test commands */
 			bool test_motor_updated;
 			orb_check(_test_motor_sub, &test_motor_updated);
@@ -775,6 +770,7 @@ void TAP_ESC::cycle()
 
 	// Never let motors spin in HITL
 	// Never let motors spin when manual killswitch is engaged
+	// Stop motors immediately if a startup problem has been detected
 	// TODO: Also stop for _armed.lockdown?
 	// NOTE: Ignore armed state because that would break motor_tests, which work
 	// without arming.
@@ -875,6 +871,10 @@ void TAP_ESC::cycle()
 
 			// Also clear any motor failure flags
 			_esc_feedback.engine_failure_report.motor_state = 0;
+
+			// reset motor start check
+			_motor_start_problem = false;
+			_motor_start_check_done = false;
 		}
 	}
 

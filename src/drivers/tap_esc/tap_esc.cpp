@@ -166,6 +166,10 @@ private:
 	LedController 	_led_controller;
 	int 		_led_control_sub = -1;
 
+	// Motor startup check members
+	bool _motor_start_problem = false; ///< True if motors did not spin up according to reported rpm
+	bool _motor_start_check_done = false; ///< True if motors were checked to be running after arming
+
 	// FTC related members (not upstream)
 	FaultTolerantControl 	*_fault_tolerant_control = nullptr;
 	int			_first_failing_motor = -1;  ///< First motor to show critical failure
@@ -661,6 +665,26 @@ void TAP_ESC::cycle()
 				}
 			}
 
+			// Motor startup check: did at least 4 motors spin up correctly within the first second after arming
+			// otherwise we might be armed but the motors didn't start and if they suddenly start it's dangerous
+			const bool armed_more_than_a_second = ((hrt_absolute_time() / 1000) - _armed.armed_time_ms) > 1000;
+			if (armed_more_than_a_second && !_motor_start_check_done) {
+				_motor_start_check_done = true;
+				uint8_t started_motors_count = 0;
+
+				for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
+					if (_esc_feedback.esc[channel_id].esc_rpm > 1000) {
+						started_motors_count++;
+					}
+				}
+
+				_motor_start_problem = started_motors_count < 4;
+
+				if (_motor_start_problem) {
+					mavlink_log_emergency(&_mavlink_log_pub, "Motor start problem: please wait and retry");
+				}
+			}
+
 			// Check for motor failures and if enabled engage fault-tolerant-control
 			for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
 				if (esc_critical_failure(channel_id) && _fault_tolerant_control != nullptr) {
@@ -706,6 +730,10 @@ void TAP_ESC::cycle()
 
 			_outputs.noutputs = num_outputs;
 
+			// reset motor start check
+			_motor_start_problem = false;
+			_motor_start_check_done = false;
+
 			/* check for motor test commands */
 			bool test_motor_updated;
 			orb_check(_test_motor_sub, &test_motor_updated);
@@ -750,7 +778,7 @@ void TAP_ESC::cycle()
 	// TODO: Also stop for _armed.lockdown?
 	// NOTE: Ignore armed state because that would break motor_tests, which work
 	// without arming.
-	if (!_hitl && !_armed.manual_lockdown) {
+	if (!_hitl && !_armed.manual_lockdown && !_motor_start_problem) {
 
 		// Remap motor ID schemes: PX4 -> Yuneec
 		for (uint8_t num = 0; num < _channels_count; num++) {

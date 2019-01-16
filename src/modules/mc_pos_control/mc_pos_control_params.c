@@ -279,6 +279,26 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
+* Proportional gain for horizontal trajectory position error
+*
+* @min 0.1
+* @max 5.0
+* @decimal 1
+* @group Multicopter Position Control
+*/
+PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.3f);
+
+/**
+* Proportional gain for vertical trajectory position error
+*
+* @min 0.1
+* @max 5.0
+* @decimal 1
+* @group Multicopter Position Control
+*/
+PARAM_DEFINE_FLOAT(MPC_Z_TRAJ_P, 0.3f);
+
+/**
  * Vertical speed for any auto mode
  *
  * Normal vertical speed in AUTO modes (includes
@@ -704,6 +724,26 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
+
+/**
+ * Auto sub-mode.
+ *
+ * The supported sub-modes are:
+ * 0 Direct line tracking, no smoothing
+ *
+ * 1 Not used
+ *
+ * 2 Not used
+ *
+ * 3 Jerk-limited trajectory
+ *
+ * @value 0 Default line tracking
+ * @value 1 N/A
+ * @value 2 N/A
+ * @value 3 Jerk-limited trajectory
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_AUTO_MODE, 3);
 
 /**
  * Delay from idle state to arming state.

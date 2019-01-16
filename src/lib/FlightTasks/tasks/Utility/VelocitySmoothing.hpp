@@ -77,11 +77,15 @@ public:
 
 	/**
 	 * Generate the trajectory (acceleration, velocity and position) by integrating the current jerk
-	 * @param pos Current vehicle's position (used for position error clamping)
+	 * @param dt optional integration period. If not given, the integration period provided during updateDuration call is used.
+	 * 	A dt different from the one given during the computation of T1-T3 can be used to fast-forward or slow-down the trajectory.
+	 * @param acc_setpoint_smooth returned smoothed acceleration setpoint
 	 * @param vel_setpoint_smooth returned smoothed velocity setpoint
 	 * @param pos_setpoint_smooth returned smoothed position setpoint
 	 */
-	void integrate(float pos, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
+	void integrate(float &accel_setpoint_smooth, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
+	void integrate(float dt, float integration_scale_factor, float &accel_setpoint_smooth, float &vel_setpoint_smooth,
+		       float &pos_setpoint_smooth);
 
 	/* Get / Set constraints (constraints can be updated at any time) */
 	float getMaxJerk() const { return _max_jerk; }
@@ -93,6 +97,14 @@ public:
 	float getMaxVel() const { return _max_vel; }
 	void setMaxVel(float max_vel) { _max_vel = max_vel; }
 
+	float getCurrentJerk() const { return _jerk; }
+	void setCurrentAcceleration(const float accel) { _accel = accel; }
+	float getCurrentAcceleration() const { return _accel; }
+	void setCurrentVelocity(const float vel) { _vel = vel; }
+	float getCurrentVelocity() const { return _vel; }
+	void setCurrentPosition(const float pos) { _pos = pos; }
+	float getCurrentPosition() const { return _pos; }
+
 	/**
 	 * Synchronize several trajectories to have the same total time. This is required to generate
 	 * straight lines.
@@ -102,9 +114,10 @@ public:
 	 */
 	static void timeSynchronization(VelocitySmoothing *traj, int n_traj);
 
-private:
 	float getTotalTime() const { return _T1 + _T2 + _T3; }
 	float getVelSp() const { return _vel_sp; }
+
+private:
 
 	/**
 	 * Compute T1, T2, T3 depending on the current state and velocity setpoint.
@@ -120,6 +133,8 @@ private:
 	 * Compute increasing acceleration time using total time constraint
 	 */
 	inline float computeT1(float T123, float accel_prev, float vel_prev, float vel_setpoint, float max_jerk);
+	inline float saturateT1ForAccel(float accel_prev, float max_jerk, float T1);
+	inline float recomputeMaxJerk(float accel_prev, float max_jerk, float T1);
 	/**
 	 * Compute constant acceleration time
 	 */
@@ -136,12 +151,12 @@ private:
 	/**
 	 * Integrate the jerk, acceleration and velocity to get the new setpoints and states.
 	 */
-	inline void integrateT(float jerk, float accel_prev, float vel_prev, float pos_prev,
+	inline void integrateT(float dt, float jerk, float accel_prev, float vel_prev, float pos_prev,
 			       float &accel_out, float &vel_out, float &pos_out);
 
 	/* Inputs */
 	float _vel_sp;
-	float _dt = 0.f;
+	float _dt = 1.f;
 
 	/* Constraints */
 	float _max_jerk = 22.f;
@@ -149,10 +164,10 @@ private:
 	float _max_vel = 6.f;
 
 	/* State (previous setpoints) */
-	float _jerk;
-	float _accel;
-	float _vel;
-	float _pos;
+	float _jerk = 0.f;
+	float _accel = 0.f;
+	float _vel = 0.f;
+	float _pos = 0.f;
 
 	float _max_jerk_T1 = 0.f; ///< jerk during phase T1 (with correct sign)
 

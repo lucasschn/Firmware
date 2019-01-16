@@ -116,6 +116,7 @@ private:
 	bool 		_in_smooth_takeoff = false; 		/**<true if takeoff ramp is applied */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
+	orb_advert_t	_traj_sp_pub{nullptr};		/**< trajectory setpoints publication */
 	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
 	orb_advert_t 	_pub_vehicle_command{nullptr};           /**< vehicle command publication */
 	orb_advert_t 	_flighttask_sp_pub{nullptr}; /**< flighttask setpoint publication for logging (only for logging)*/
@@ -169,6 +170,7 @@ private:
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
 		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
+		(ParamInt<px4::params::MPC_AUTO_MODE>) MPC_AUTO_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
 		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO, /**< time constant for smooth takeoff ramp */
 		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, /**< enable obstacle avoidance */
@@ -248,6 +250,12 @@ private:
 	 * This is only required for logging.
 	 */
 	void publish_local_pos_sp(const vehicle_local_position_setpoint_s &local_pos_sp);
+
+	/**
+	 * Publish local position setpoint.
+	 * This is only required for logging.
+	 */
+	void publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj);
 
 	/**
 	 * Checks if smooth takeoff is initiated.
@@ -800,8 +808,11 @@ MulticopterPositionControl::run()
 			setpoint.timestamp = hrt_absolute_time();
 			orb_publish_auto(ORB_ID(position_control_setpoint_input), &_position_control_setpoint_input_pub, &setpoint,
 					 nullptr, ORB_PRIO_DEFAULT);
+
 			// Generate desired thrust and yaw.
 			_control.generateThrustYawSetpoint(_dt);
+
+			publish_trajectory_sp(setpoint);
 
 			// Fill local position, velocity and thrust setpoint.
 			vehicle_local_position_setpoint_s local_pos_sp{};
@@ -941,7 +952,22 @@ MulticopterPositionControl::start_flight_task()
 
 	} else if (_control_mode.flag_control_auto_enabled) {
 		// Auto relate maneuvers
-		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+		int error = 0;
+		switch (MPC_AUTO_MODE.get()) {
+		case 0:
+		case 1:
+		case 2:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+			break;
+
+		case 3:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
+			break;
+
+		default:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+			break;
+		}
 
 		if (error != 0) {
 			if (prev_failure_count == 0) {
@@ -1257,6 +1283,18 @@ MulticopterPositionControl::publish_attitude()
 
 	} else if (_attitude_setpoint_id) {
 		_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+	}
+}
+
+void
+MulticopterPositionControl::publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj)
+{
+	// publish trajectory
+	if (_traj_sp_pub != nullptr) {
+		orb_publish(ORB_ID(trajectory_setpoint), _traj_sp_pub, &traj);
+
+	} else {
+		_traj_sp_pub = orb_advertise(ORB_ID(trajectory_setpoint), &traj);
 	}
 }
 

@@ -32,42 +32,50 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskManualPositionSmoothVel.hpp
+ * @file FlightTaskAutoMapper2.hpp
  *
- * Flight task for smooth manual controlled position.
+ * Abstract Flight task which generates local setpoints
+ * based on the triplet type.
  */
 
 #pragma once
 
-#include "FlightTaskManualPosition.hpp"
-#include "VelocitySmoothing.hpp"
+#include "FlightTaskAuto.hpp"
 
-class FlightTaskManualPositionSmoothVel : public FlightTaskManualPosition
+class FlightTaskAutoMapper2 : public FlightTaskAuto
 {
 public:
-	FlightTaskManualPositionSmoothVel() = default;
-
-	virtual ~FlightTaskManualPositionSmoothVel() = default;
-
+	FlightTaskAutoMapper2() = default;
+	virtual ~FlightTaskAutoMapper2() = default;
 	bool activate() override;
-	void reActivate() override;
+	bool update() override;
 
 protected:
 
-	virtual void _updateSetpoints() override;
+	float _alt_above_ground{0.0f}; /**< If home provided, then it is altitude above home, otherwise it is altitude above local position reference. */
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
-					(ParamFloat<px4::params::MPC_JERK_MIN>) _jerk_min, /**< Minimum jerk (velocity-based if > 0) */
-					(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max,
-					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) MPC_ACC_UP_MAX,
-					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX
-				       )
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED,
+					(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND,
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which speed limit downwards reaches maximum speed
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
+					(ParamFloat<px4::params::MPC_TKO_SPEED>) MPC_TKO_SPEED
+				       );
+
+	virtual void _generateSetpoints() = 0; /**< Generate velocity and position setpoint for following line. */
+
+	void _prepareIdleSetpoints();
+	void _prepareLandSetpoints();
+	void _prepareVelocitySetpoints();
+	void _prepareTakeoffSetpoints();
+	void _preparePositionSetpoints();
+
+	void _updateAltitudeAboveGround(); /**< Computes altitude above ground based on sensors available. */
+	void updateParams() override; /**< See ModuleParam class */
+
 private:
 
-	enum class Axes {XY, XYZ};
-	void reset(Axes axes);
-	VelocitySmoothing _smoothing[3]; ///< Smoothing in x, y and z directions
-	matrix::Vector3f _vel_sp_smooth;
-	bool _position_lock_xy_active{false};
-	matrix::Vector2f _position_setpoint_xy_locked;
+	void _reset(); /**< Resets member variables to current vehicle state */
+	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
+	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
 };

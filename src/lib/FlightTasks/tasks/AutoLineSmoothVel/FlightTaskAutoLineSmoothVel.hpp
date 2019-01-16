@@ -32,42 +32,48 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskManualPositionSmoothVel.hpp
+ * @file FlightTaskAutoLineSmoothVel.hpp
  *
- * Flight task for smooth manual controlled position.
+ * Flight task for autonomous, gps driven mode. The vehicle flies
+ * along a straight line in between waypoints.
  */
 
 #pragma once
 
-#include "FlightTaskManualPosition.hpp"
+#include "FlightTaskAutoMapper2.hpp"
 #include "VelocitySmoothing.hpp"
 
-class FlightTaskManualPositionSmoothVel : public FlightTaskManualPosition
+class FlightTaskAutoLineSmoothVel : public FlightTaskAutoMapper2
 {
 public:
-	FlightTaskManualPositionSmoothVel() = default;
-
-	virtual ~FlightTaskManualPositionSmoothVel() = default;
+	FlightTaskAutoLineSmoothVel() = default;
+	virtual ~FlightTaskAutoLineSmoothVel() = default;
 
 	bool activate() override;
 	void reActivate() override;
 
 protected:
 
-	virtual void _updateSetpoints() override;
-
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
-					(ParamFloat<px4::params::MPC_JERK_MIN>) _jerk_min, /**< Minimum jerk (velocity-based if > 0) */
-					(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max,
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper2,
+					(ParamFloat<px4::params::MIS_YAW_ERR>) MIS_YAW_ERR, // yaw-error threshold
+					(ParamFloat<px4::params::MPC_ACC_HOR>) MPC_ACC_HOR, // acceleration in flight
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) MPC_ACC_UP_MAX,
-					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX
-				       )
-private:
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX,
+					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) MPC_ACC_HOR_MAX,
+					(ParamFloat<px4::params::MPC_JERK_MIN>) MPC_JERK_MIN,
+					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) MPC_XY_TRAJ_P,
+					(ParamFloat<px4::params::MPC_Z_TRAJ_P>) MPC_Z_TRAJ_P
+				       );
 
-	enum class Axes {XY, XYZ};
-	void reset(Axes axes);
-	VelocitySmoothing _smoothing[3]; ///< Smoothing in x, y and z directions
-	matrix::Vector3f _vel_sp_smooth;
-	bool _position_lock_xy_active{false};
-	matrix::Vector2f _position_setpoint_xy_locked;
+	void _generateSetpoints() override; /**< Generate setpoints along line. */
+	void _setDynamicConstraints() override;
+
+	inline float constrain_one_side(float val, float constrain);
+	void _generateHeading();
+	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
+	void _updateTrajConstraints();
+	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
+	void _generateTrajectory();
+	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
+	float _yaw_sp_prev;
 };

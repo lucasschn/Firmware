@@ -2,7 +2,7 @@
 simulation_setup:
     world: 'iris'
     sim: 'gazebo'
-    headless: True
+    headless: False
     start_script: 'rcS'
 
 # All tests listed here will NOT be run

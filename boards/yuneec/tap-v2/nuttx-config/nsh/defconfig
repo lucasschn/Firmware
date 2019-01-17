@@ -674,8 +674,8 @@ CONFIG_RAM_SIZE=196608
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_TAP_V2=y
-CONFIG_ARCH_BOARD="tap-v2"
+CONFIG_ARCH_BOARD_YUNEEC_TAP_V2=y
+CONFIG_ARCH_BOARD="yuneec_tap-v2"
 
 #
 # Custom Board Configuration

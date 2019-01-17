@@ -13,6 +13,7 @@
 #include <containers/List.hpp>
 #include <platforms/px4_tasks.h>
 #include <string.h>
+#include <unistd.h>
 
 #undef PX4_DEBUG
 #define PX4_DEBUG PX4_INFO

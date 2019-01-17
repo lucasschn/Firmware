@@ -48,6 +48,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <termios.h>
+#include <unistd.h>
 
 #ifndef B460800
 #define B460800 460800

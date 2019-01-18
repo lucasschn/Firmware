@@ -54,7 +54,7 @@ px4_add_board(
 		px4fmu
 		# px4io
 		rc_input
-		# realsense # TODO: Fix compiling
+		realsense
 		# rgbled
 		# rgbled_ncp5623c
 		rgbled_pwm

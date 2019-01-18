@@ -43,7 +43,7 @@ fi
 if ver hwcmp TAP_V2 TAP_V3 TAP_V4
 then
 	# internal SPI bus
-	mpu6000 -s -R ${IMU_ROTATION} -T 20602 -a 16 start
+	mpu6000 -s -R ${IMU_ROTATION} -T 20602 start
 fi
 
 unset IMU_ROTATION

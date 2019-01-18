@@ -1,9 +1,8 @@
 /****************************************************************************
- * nuttx-configs/px4nfmu-v5/scripts/script.ld
+ * scripts/ld.script
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,80 +33,52 @@
  *
  ****************************************************************************/
 
-/* The STM32F765IIT6 has 2048 KiB of main FLASH memory.  This FLASH memory
- * can be accessed from either the AXIM interface at address 0x0800:0000 or
- * from the ITCM interface at address 0x0020:0000.
+/* The STM32F405RG has 1024Kb of FLASH beginning at address 0x0800:0000 and
+ * 192Kb of SRAM. SRAM is split up into three blocks:
  *
- * Additional information, including the option bytes, is available at at
- * FLASH at address 0x1ff0:0000 (AXIM) or 0x0010:0000 (ITCM).
- *
- * In the STM32F765IIT6, two different boot spaces can be selected through
- * the BOOT pin and the boot base address programmed in the BOOT_ADD0 and
- * BOOT_ADD1 option bytes:
- *
- *   1) BOOT=0: Boot address defined by user option byte BOOT_ADD0[15:0].
- *      ST programmed value: Flash on ITCM at 0x0020:0000
- *   2) BOOT=1: Boot address defined by user option byte BOOT_ADD1[15:0].
- *      ST programmed value: System bootloader at 0x0010:0000
- *
- * NuttX does not modify these option byes.  On the unmodified NUCLEO-144
- * board, the BOOT0 pin is at ground so by default, the STM32F765IIT6 will
- * boot from address 0x0020:0000 in ITCM FLASH.
- *
- * The STM32F765IIT6 also has 512 KiB of data SRAM (in addition to ITCM SRAM).
- * SRAM is split up into three blocks:
- *
- *   1) 128 KiB of DTCM SRM beginning at address 0x2000:0000
- *   2) 368 KiB of SRAM1 beginning at address 0x2002:0000
- *   3)  16 KiB of SRAM2 beginning at address 0x2007:c000
+ * 1) 112Kb of SRAM beginning at address 0x2000:0000
+ * 2)  16Kb of SRAM beginning at address 0x2001:c000
+ * 3)  64Kb of CCM SRAM beginning at address 0x1000:0000
  *
  * When booting from FLASH, FLASH memory is aliased to address 0x0000:0000
  * where the code expects to begin execution by jumping to the entry point in
  * the 0x0800:0000 address range.
  *
- * Bootloader reserves the first 32K bank (2 Mbytes Flash memory single bank)
- * organization (256 bits read width)
+ * The first 16 KiB of flash is reserved for the bootloader.
+ * The second 16 KiB is retained to be compatable with the other
+ * exiting TAP bootloader.
+ * Paramater storage will use the next 2 16KiB Sectors.
+ * The PX4 code is located at 64 KiB
  */
 
 MEMORY
 {
-    itcm  (rwx) : ORIGIN = 0x00208000, LENGTH = 2016K
-    flash (rx)  : ORIGIN = 0x08008000, LENGTH = 2016K
-    dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
-    sram1 (rwx) : ORIGIN = 0x20020000, LENGTH = 368K
-    sram2 (rwx) : ORIGIN = 0x2007c000, LENGTH = 16K
+    flash (rx)   : ORIGIN = 0x08010000, LENGTH = 960K
+    sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 128K
+    ccsram (rwx) : ORIGIN = 0x10000000, LENGTH = 64K
 }
 
 OUTPUT_ARCH(arm)
-EXTERN(_vectors)
-ENTRY(_stext)
+
+ENTRY(__start)		/* treat __start as the anchor for dead code stripping */
+EXTERN(_vectors)	/* force the vectors to be included in the output */
 
 /*
  * Ensure that abort() is present in the final object.  The exception handling
  * code pulled in by libgcc.a requires it (and that code cannot be easily avoided).
  */
 EXTERN(abort)
-EXTERN(_bootdelay_signature)
 
 SECTIONS
 {
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
-		. = ALIGN(32);
-		/*
-		This signature provides the bootloader with a way to delay booting
-		*/
-		_bootdelay_signature = ABSOLUTE(.);
-		FILL(0xffecc2925d7d05c5)
-		. += 8;
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
 		*(.rodata .rodata.*)
 		*(.gnu.linkonce.t.*)
-		*(.glue_7)
-		*(.glue_7t)
 		*(.got)
 		*(.gcc_except_table)
 		*(.gnu.linkonce.r.*)
@@ -123,11 +94,11 @@ SECTIONS
 	/*
 	 * Init functions (static constructors and the like)
 	 */
-	.init_section : {
-		_sinit = ABSOLUTE(.);
-		KEEP(*(.init_array .init_array.*))
-		_einit = ABSOLUTE(.);
-	} > flash
+        .init_section : {
+                _sinit = ABSOLUTE(.);
+                KEEP(*(.init_array .init_array.*))
+                _einit = ABSOLUTE(.);
+        } > flash
 
 	/*
 	 * Construction data for parameters.
@@ -156,7 +127,7 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > sram1 AT > flash
+	} > sram AT > flash
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
@@ -165,7 +136,7 @@ SECTIONS
 		*(COMMON)
 		. = ALIGN(4);
 		_ebss = ABSOLUTE(.);
-	} > sram1
+	} > sram
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }

@@ -505,9 +505,9 @@ CONFIG_RAM_SIZE=245760
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_TAP_V3=y
-CONFIG_ARCH_BOARD="tap-v3"
+CONFIG_ARCH_BOARD_YUNEEC_TAP_V3=y
 
+CONFIG_ARCH_BOARD="yuneec_tap-v3"
 #
 # Common Board Options
 #

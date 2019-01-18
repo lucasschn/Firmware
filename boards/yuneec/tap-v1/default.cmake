@@ -1,15 +1,12 @@
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR yuneec
-	MODEL tap-v2
+	MODEL tap-v1
 	LABEL default
 	ARCH cortex-m4
 	ROMFS
 	ROMFSROOT tap_common
-	# IO px4_io-v2_default  # TODO: Do we need this for copying the ESC firmware bin?
-	# TAP_ESC H520  # TODO:  Copy ESC firmware binary
 	TESTING
-	# UAVCAN_INTERFACES 2  # TODO: Doesn't have any UAVCAN interfaces, right?
 
 	SERIAL_PORTS
 		# GPS1:/dev/ttyS0
@@ -18,15 +15,15 @@ px4_add_board(
 		# TEL4:/dev/ttyS3
 
 	DRIVERS
-		# barometer # all available barometer drivers
-		barometer/ms5611
-		barometer/mpc2520
+		barometer # all available barometer drivers
+		# barometer/ms5611
+		# barometer/mpc2520
 		# batt_smbus
 		# blinkm
 		camera_trigger
-		# differential_pressure # all available differential pressure drivers
+		differential_pressure # all available differential pressure drivers
 		# distance_sensor # all available distance sensor drivers
-		distance_sensor/hc_sr04
+		# distance_sensor/hc_sr04
 		gps
 		#heater
 		#imu # all available imu drivers
@@ -110,7 +107,7 @@ px4_add_board(
 		pwm
 		reboot
 		# reflect
-		sd_bench
+		# sd_bench
 		# shutdown
 		tap_esc_config
 		# tests # tests and test runner

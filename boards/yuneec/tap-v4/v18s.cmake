@@ -1,13 +1,16 @@
+
+# FMUv3 is FMUv2 with access to the full 2MB flash
+
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR yuneec
-	MODEL tap-v2
-	LABEL default
+	MODEL tap-v4
+	LABEL v18s
 	ARCH cortex-m4
 	ROMFS
 	ROMFSROOT tap_common
 	# IO px4_io-v2_default  # TODO: Do we need this for copying the ESC firmware bin?
-	# TAP_ESC H520  # TODO:  Copy ESC firmware binary
+	# TAP_ESC V18S  # TODO:  Copy ESC firmware binary
 	TESTING
 	# UAVCAN_INTERFACES 2  # TODO: Doesn't have any UAVCAN interfaces, right?
 
@@ -54,6 +57,7 @@ px4_add_board(
 		px4fmu
 		# px4io
 		rc_input
+		# realsense
 		# rgbled
 		# rgbled_ncp5623c
 		rgbled_pwm
@@ -65,6 +69,7 @@ px4_add_board(
 		# telemetry # all available telemetry drivers
 		# test_ppm
 		vmount
+		yuneec_flow
 
 	MODULES
 		# attitude_estimator_q

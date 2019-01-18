@@ -1,7 +1,7 @@
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR yuneec
-	MODEL tap-v2
+	MODEL tap-v3
 	LABEL default
 	ARCH cortex-m4
 	ROMFS
@@ -54,6 +54,7 @@ px4_add_board(
 		px4fmu
 		# px4io
 		rc_input
+		# realsense # TODO: Fix compiling
 		# rgbled
 		# rgbled_ncp5623c
 		rgbled_pwm

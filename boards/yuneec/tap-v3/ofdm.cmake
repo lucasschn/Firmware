@@ -1,8 +1,10 @@
+add_definitions("-DENABLE_RC_HELPER")
+
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR yuneec
-	MODEL tap-v2
-	LABEL default
+	MODEL tap-v3
+	LABEL ofdm
 	ARCH cortex-m4
 	ROMFS
 	ROMFSROOT tap_common
@@ -54,6 +56,7 @@ px4_add_board(
 		px4fmu
 		# px4io
 		rc_input
+		realsense
 		# rgbled
 		# rgbled_ncp5623c
 		rgbled_pwm

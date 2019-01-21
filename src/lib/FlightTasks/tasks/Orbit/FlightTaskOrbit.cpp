@@ -102,8 +102,8 @@ bool FlightTaskOrbit::sendTelemetry()
 	_orbit_status.radius = math::signNoZero(_v) * _r;
 	_orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
 
-	if (globallocalconverter_toglobal(_center(0), _center(1), _position_setpoint(2),
-					  &_orbit_status.x, &_orbit_status.y, &_orbit_status.z)) {
+	if (globallocalconverter_toglobal(_center(0), _center(1), _position_setpoint(2),  &_orbit_status.x, &_orbit_status.y,
+					  &_orbit_status.z)) {
 		return false; // don't send the message if the transformation failed
 	}
 

@@ -1887,6 +1887,8 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 	case MAVLINK_MODE_CONFIG:
 		// Enable a number of interesting streams we want via USB
+		configure_stream_local("GPS", 1.0f);  // Yuneec-specific
+		configure_stream_local("POSITION_TARGET_LOCAL_NED", 5.0f);  // Yuneec-specific
 		configure_stream_local("ACTUATOR_CONTROL_TARGET0", 30.0f);
 		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
 		configure_stream_local("ALTITUDE", 10.0f);
@@ -1925,10 +1927,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("VISION_POSITION_ESTIMATE", 10.0f);
 		configure_stream_local("WIND_COV", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.f);
-
-		configure_stream_local("GPS", 1.0f);  // Yuneec-specific
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 5.0f);  // Yuneec-specific
-
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:

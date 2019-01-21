@@ -3,8 +3,8 @@ px4_add_board(
 	VENDOR yuneec
 	MODEL tap-v2
 	LABEL default
-	ARCH cortex-m4
-	ROMFS
+	TOOLCHAIN arm-none-eabi
+	ARCHITECTURE cortex-m4
 	ROMFSROOT tap_common
 	# IO px4_io-v2_default  # TODO: Do we need this for copying the ESC firmware bin?
 	# TAP_ESC H520  # TODO:  Copy ESC firmware binary

@@ -3,8 +3,8 @@ px4_add_board(
 	VENDOR yuneec
 	MODEL tap-v1
 	LABEL default
-	ARCH cortex-m4
-	ROMFS
+	TOOLCHAIN arm-none-eabi
+	ARCHITECTURE cortex-m4
 	ROMFSROOT tap_common
 	TESTING
 

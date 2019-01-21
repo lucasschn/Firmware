@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,25 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if ("${PX4_BOARD}" STREQUAL "bbblue")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 
-	px4_add_module(
-		MODULE drivers__bbblue_adc
-		MAIN bbblue_adc
-		COMPILE_FLAGS
-		SRCS
-			bbblue_adc.cpp
-			
-			# Previous board specific code is now precluded from build after
-			# the following was added to Frimware/CMakeLists.txt:
-			#
-			# 		add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
-			#
-			# so include bbblue board specific code here:
-			../boards/bbblue/init.c
-		DEPENDS
-			platforms__common
+px4_add_module(
+	MODULE drivers__navio_rgbled
+	MAIN navio_rgbled
+	SRCS
+		navio_rgbled.cpp
+	DEPENDS
+		led
+		linux_gpio
 	)
-endif()
+
+#add_subdirectory(test)

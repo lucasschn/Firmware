@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,9 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(airspeed)
-add_subdirectory(device)
-add_subdirectory(led)
-add_subdirectory(linux_gpio)
-add_subdirectory(smbus)
+px4_add_module(
+	MODULE drivers__pca8574
+	MAIN pca8574
+	COMPILE_FLAGS
+	SRCS
+		pca8574.cpp
+	DEPENDS
+	)

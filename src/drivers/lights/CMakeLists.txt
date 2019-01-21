@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-add_subdirectory(airspeed)
-add_subdirectory(device)
-add_subdirectory(led)
-add_subdirectory(linux_gpio)
-add_subdirectory(smbus)
+add_subdirectory(blinkm)
+add_subdirectory(oreoled
+add_subdirectory(pca8574)
+add_subdirectory(rgbled)
+add_subdirectory(rgbled_ncp5623c)
+add_subdirectory(rgbled_pwm)

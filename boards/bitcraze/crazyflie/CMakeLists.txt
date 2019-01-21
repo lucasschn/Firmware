@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,14 +31,4 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE drivers__navio_rgbled
-	MAIN navio_rgbled
-	SRCS
-		navio_rgbled.cpp
-	DEPENDS
-		drivers__linux_gpio
-		led
-	)
-
-#add_subdirectory(test)
+add_subdirectory(syslink)

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,8 +31,14 @@
 #
 ############################################################################
 
-add_subdirectory(airspeed)
-add_subdirectory(device)
-add_subdirectory(led)
-add_subdirectory(linux_gpio)
-add_subdirectory(smbus)
+px4_add_module(
+	MODULE modules__uavcanesc__nshterm
+	MAIN nshterm
+	STACK_MAIN 1500
+	COMPILE_FLAGS
+		-Wno-deprecated-declarations
+	SRCS
+	 nshterm.c
+    PRIORITY "SCHED_PRIORITY_DEFAULT-30"
+	DEPENDS
+	)

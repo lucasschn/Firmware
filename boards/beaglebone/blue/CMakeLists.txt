@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,17 +31,4 @@
 #
 ############################################################################
 
-include_directories(../../../../lib/DriverFramework/drivers)
-
-px4_add_module(
-	MODULE platforms__posix__drivers__bebop_flow
-	MAIN bebop_flow
-	SRCS
-		bebop_flow.cpp
-		video_device.cpp
-		dump_pgm.cpp
-	DEPENDS
-		git_driverframework
-		df_driver_framework
-		df_mt9v117
-	)
+add_subdirectory(bbblue_adc)

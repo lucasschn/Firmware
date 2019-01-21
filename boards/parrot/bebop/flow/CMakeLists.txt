@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE modules__syslink
-	MAIN syslink
-	STACK_MAIN 1300
-	SRCS
-		syslink_main.cpp
-		syslink_bridge.cpp
-		syslink_memory.cpp
-		syslink_params.c
-		syslink.c
-	DEPENDS
-	)
 
+px4_add_module(
+	MODULE drivers__bebop_flow
+	MAIN bebop_flow
+	INCLUDES
+		${PX4_SOURCE_DIR}/src/lib/DriverFramework/drivers
+	SRCS
+		bebop_flow.cpp
+		video_device.cpp
+		dump_pgm.cpp
+	DEPENDS
+		git_driverframework
+		df_driver_framework
+		df_mt9v117
+	)

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2016  Intel Corporation. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,11 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__aerofc_adc
-	MAIN aerofc_adc
-	COMPILE_FLAGS
-	SRCS
-		aerofc_adc.cpp
-	DEPENDS
-	)
+
+add_subdirectory(navio_adc)
+add_subdirectory(navio_rgbled)
+add_subdirectory(navio_sysfs_rc_in)

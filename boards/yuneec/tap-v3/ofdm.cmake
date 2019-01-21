@@ -53,7 +53,7 @@ px4_add_board(
 		# protocol_splitter
 		gimbal_protocol_splitter
 		# pwm_input
-		pwm_out_sim
+		# pwm_out_sim
 		# px4flow
 		px4fmu
 		# px4io

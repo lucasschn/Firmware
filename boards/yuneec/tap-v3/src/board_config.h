@@ -639,31 +639,6 @@ Start px4/fmu-v5/src/board_config.h
 
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
-#define BOARD_FMU_GPIO_TAB { \
-		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,              0}, \
-		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,              0}, \
-		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,              0}, \
-		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,              0}, \
-		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,              0}, \
-		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,              0}, \
-		{GPIO_GPIO6_INPUT,       GPIO_GPIO6_OUTPUT,              0}, \
-		{GPIO_GPIO7_INPUT,       GPIO_GPIO7_OUTPUT,              0}, \
-		{GPIO_nPOWER_IN_A,       0,                              0}, \
-		{GPIO_nPOWER_IN_B,       0,                              0}, \
-		{GPIO_nPOWER_IN_C,       0,                              0}, \
-		{0,                      GPIO_xVDD_5V_PERIPH_EN,         0}, \
-		{GPIO_nVDD_5V_PERIPH_OC, 0,                              0}, \
-		{0,                      GPIO_nVDD_5V_HIPOWER_EN,        0}, \
-		{GPIO_nVDD_5V_HIPOWER_OC,0,                              0}, \
-		{0,                      GPIO_VDD_3V3_SENSORS_EN,        0}, \
-		{0,                      GPIO_VDD_3V3_SPEKTRUM_POWER_EN, 0}, \
-		{0,                      GPIO_VDD_5V_RC_EN,              0}, \
-		{0,                      GPIO_VDD_5V_WIFI_EN,            0}, \
-		{0,                      GPIO_VDD_3V3_SD_CARD_EN,        0}, \
-		{0,                      GPIO_HW_REV_DRIVE,              0}, \
-		{0,                      GPIO_HW_VER_DRIVE,              0}, \
-	}
-
 /*
  * GPIO numbers.
  *

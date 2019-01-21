@@ -251,14 +251,6 @@
 
 #define BOARD_HAS_POWER_CONTROL	1
 
-#define BOARD_FMU_GPIO_TAB { \
-		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0}, \
-		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0}, \
-		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0}, \
-		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0}, \
-		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
-		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, }
-
 /* This board provides a DMA pool and APIs */
 
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

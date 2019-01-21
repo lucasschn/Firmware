@@ -85,7 +85,6 @@
 
 #include <board_config.h>
 #include <drivers/drv_input_capture.h>
-#include <drivers/drv_gpio.h>
 #include <drivers/drv_pwm_output.h>
 
 #include <DevMgr.hpp>
@@ -107,6 +106,8 @@
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
+
+#define PX4FMU_DEVICE_PATH	"/dev/px4fmu" // TODO(YUNEEC): This looks wrong
 
 using namespace DriverFramework;
 

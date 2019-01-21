@@ -342,7 +342,7 @@ int commander_main(int argc, char *argv[])
 		unsigned i;
 
 		for (i = 0; i < max_wait_steps; i++) {
-			usleep(max_wait_us / max_wait_steps);
+			px4_usleep(max_wait_us / max_wait_steps);
 
 			if (thread_running) {
 				break;
@@ -1799,7 +1799,7 @@ Commander::run()
 					 * so lets reset to a classic non-usb state.
 					 */
 					mavlink_log_critical(&mavlink_log_pub, "USB disconnected, rebooting.")
-					usleep(400000);
+					px4_usleep(400000);
 					px4_shutdown_request(true, false);
 				}
 			}
@@ -2402,8 +2402,8 @@ Commander::run()
 										     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
 						if (arming_ret != TRANSITION_CHANGED) {
-							usleep(100000);
-							print_reject_arm("NOT ARMING: preflight checks failed.");
+							px4_usleep(100000);
+							print_reject_arm("NOT ARMING: Preflight checks failed");
 						}else{ // NOTE: Yuneec-specific block
 							/* don't allow to switch to disarm if the arming button still is pressed */
 							arming_button_switch_allowed = false;
@@ -2916,7 +2916,7 @@ Commander::run()
 
 		arm_auth_update(now, params_updated || param_init_forced);
 
-		usleep(COMMANDER_MONITORING_INTERVAL);
+		px4_usleep(COMMANDER_MONITORING_INTERVAL);
 	}
 
 	thread_should_exit = true;
@@ -4017,7 +4017,6 @@ void *commander_low_prio_loop(void *arg)
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1];
 
-	/* use the gyro to pace output - XXX BROKEN if we are using the L3GD20 */
 	fds[0].fd = cmd_sub;
 	fds[0].events = POLLIN;
 
@@ -4054,19 +4053,19 @@ void *commander_low_prio_loop(void *arg)
 
 					if (((int)(cmd.param1)) == 1) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						usleep(100000);
+						px4_usleep(100000);
 						/* reboot */
 						px4_shutdown_request(true, false);
 
 					} else if (((int)(cmd.param1)) == 2) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						usleep(100000);
+						px4_usleep(100000);
 						/* shutdown */
 						px4_shutdown_request(false, false);
 
 					} else if (((int)(cmd.param1)) == 3) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						usleep(100000);
+						px4_usleep(100000);
 						/* reboot to bootloader */
 						px4_shutdown_request(true, true);
 
@@ -4219,7 +4218,7 @@ void *commander_low_prio_loop(void *arg)
 #ifdef __PX4_QURT
 						// TODO FIXME: on snapdragon the save happens too early when the params
 						// are not set yet. We therefore need to wait some time first.
-						usleep(1000000);
+						px4_usleep(1000000);
 #endif
 
 						int ret = param_save_default();
@@ -4601,7 +4600,7 @@ void Commander::battery_status_check()
 
 				if (battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
 					mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
-					usleep(300000); // 3 seconds
+					px4_usleep(300000);
 
 					int ret_val = px4_shutdown_request(false, false);
 
@@ -4609,7 +4608,7 @@ void Commander::battery_status_check()
 						mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
 
 					} else {
-						while (1) { usleep(1); }
+						while (1) { px4_usleep(1); }
 					}
 				}
 			}

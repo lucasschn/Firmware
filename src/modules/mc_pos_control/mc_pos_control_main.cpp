@@ -72,6 +72,8 @@
 #include <uORB/topics/landing_gear.h>
 /* --- END yuneec specific */
 
+using namespace time_literals;
+
 /**
  * Multicopter position control app start / stop handling function
  */
@@ -171,7 +173,7 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
-		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
+		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, /**< downwards speed limited below this altitude */
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
 		(ParamInt<px4::params::MPC_AUTO_MODE>) MPC_AUTO_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
@@ -184,21 +186,21 @@ private:
 	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
-	FlightTasks _flight_tasks; /**< class that generates position controller tracking setpoints*/
-	PositionControl _control; /**< class that handles the core PID position controller */
-	PositionControlStates _states{}; /**< structure that contains required state information for position control */
+	FlightTasks _flight_tasks; /**< class generating position controller setpoints depending on vehicle task */
+	PositionControl _control; /**< class for core PID position control */
+	PositionControlStates _states{}; /**< structure containing vehicle state information for position control */
 
 	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
 
 	bool _in_failsafe = false; /**< true if failsafe was entered within current cycle */
 
 	/** Timeout in us for trajectory data to get considered invalid */
-	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500000;
-	/**< number of tries before switching to a failsafe flight task */
+	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
+	/** number of tries before switching to a failsafe flight task */
 	static constexpr int NUM_FAILURE_TRIES = 10;
-	/**< If Flighttask fails, keep 0.2 seconds the current setpoint before going into failsafe land */
-	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 200000;
-	/**< During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
+	/** If Flighttask fails, keep 0.2 seconds the current setpoint before going into failsafe land */
+	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 200_ms;
+	/** During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
 	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
 
 	/**
@@ -218,12 +220,12 @@ private:
 	 * Parameter update can be forced when argument is true.
 	 * @param force forces parameter update.
 	 */
-	int		parameters_update(bool force);
+	int parameters_update(bool force);
 
 	/**
 	 * Check for changes in subscribed topics.
 	 */
-	void		poll_subscriptions();
+	void poll_subscriptions();
 
 	/**
 	 * Check for validity of positon/velocity states.
@@ -393,7 +395,7 @@ MulticopterPositionControl::warn_rate_limited(const char *string)
 {
 	hrt_abstime now = hrt_absolute_time();
 
-	if (now - _last_warn > 200000) {
+	if (now - _last_warn > 200_ms) {
 		PX4_WARN("%s", string);
 		_last_warn = now;
 	}
@@ -422,7 +424,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		_land_speed.set(math::min(_land_speed.get(), _vel_max_down.get()));
 
 		// set trigger time for arm hysteresis
-		_arm_hysteresis.set_hysteresis_time_from(false, (int)(MPC_IDLE_TKO.get() * 1000000.0f));
+		_arm_hysteresis.set_hysteresis_time_from(false, (int)(MPC_IDLE_TKO.get() * (float)1_s));
 
 		if (_wv_controller != nullptr) {
 			_wv_controller->update_parameters();
@@ -619,7 +621,9 @@ MulticopterPositionControl::print_status()
 void
 MulticopterPositionControl::run()
 {
-	// do subscriptions
+	hrt_abstime time_stamp_last_loop = hrt_absolute_time(); // time stamp of last loop iteration
+
+	// initialize all subscriptions
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -631,41 +635,32 @@ MulticopterPositionControl::run()
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 
+	// get initial values for all parameters and subscribtions
 	parameters_update(true);
-
-	// get an initial update for all sensor and status data
 	poll_subscriptions();
 
-	hrt_abstime t_prev = 0;
+	// setup file descriptor to poll the local position as loop wakeup source
+	px4_pollfd_struct_t poll_fd = {.fd = _local_pos_sub};
 
-	// wakeup source
-	px4_pollfd_struct_t fds[1];
-
-	fds[0].fd = _local_pos_sub;
-	fds[0].events = POLLIN;
+	poll_fd.events = POLLIN;
 
 	while (!should_exit()) {
-		// wait for up to 20ms for data
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 20);
-
-		// pret == 0: go through the loop anyway to copy manual input at 50 Hz.
-
+		// poll for new data on the local position state topic (wait for up to 20ms)
+		const int poll_return = px4_poll(&poll_fd, 1, 20);
+		// poll_return == 0: go through the loop anyway to copy manual input at 50 Hz
 		// this is undesirable but not much we can do
-		if (pret < 0) {
-			PX4_ERR("poll error %d, %d", pret, errno);
+		if (poll_return < 0) {
+			PX4_ERR("poll error %d %d", poll_return, errno);
 			continue;
 		}
 
 		poll_subscriptions();
-
 		parameters_update(false);
 
-		hrt_abstime t = hrt_absolute_time();
-		const float dt = t_prev != 0 ? (t - t_prev) / 1e6f : 0.004f;
-		t_prev = t;
-
-		// set dt for control blocks
-		setDt(dt);
+		// set _dt in controllib Block - the time difference since the last loop iteration in seconds
+		const hrt_abstime time_stamp_current = hrt_absolute_time();
+		setDt((time_stamp_current - time_stamp_last_loop) / 1e6f);
+		time_stamp_last_loop = time_stamp_current;
 
 		const bool was_in_failsafe = _in_failsafe;
 		_in_failsafe = false;

@@ -791,6 +791,11 @@ MulticopterPositionControl::run()
 				limit_altitude(setpoint);
 			}
 
+			// adjust setpoints based on avoidance
+			if (use_obstacle_avoidance()) {
+				execute_avoidance_waypoint(setpoint);
+			}
+
 			// Update states, setpoints and constraints.
 			_control.updateConstraints(constraints);
 			_control.updateState(_states);
@@ -798,11 +803,6 @@ MulticopterPositionControl::run()
 			// for logging only: publish constraints
 			constraints.timestamp = hrt_absolute_time();
 			orb_publish_auto(ORB_ID(vehicle_constraints), &_constraints_pub, &constraints, nullptr, ORB_PRIO_DEFAULT);
-
-			// adjust setpoints based on avoidance
-			if (use_obstacle_avoidance()) {
-				execute_avoidance_waypoint(setpoint);
-			}
 
 			// update position controller setpoints
 			if (!_control.updateSetpoint(setpoint)) {
@@ -1264,14 +1264,24 @@ MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoin
 bool
 MulticopterPositionControl::use_obstacle_avoidance()
 {
-	/* check that external obstacle avoidance is sending data and that the first point is valid */
-	return (((_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON)
-		 || (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE))
-		&& (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) < TRAJECTORY_STREAM_TIMEOUT_US)
-		&& (_traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true)
-		&& ((_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) ||
-		    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) ||
-		    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL)));
+	if (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON
+		 || _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE) {
+		const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) > TRAJECTORY_STREAM_TIMEOUT_US;
+		const bool avoidance_point_valid = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
+		const bool in_mission = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+		const bool in_rtl = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+		const bool in_pos_ctl = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL;
+
+		// switch to hold mode to stop when we loose external avoidance data during a mission
+		if (avoidance_data_timeout && in_mission) {
+			send_vehicle_cmd_do(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+		}
+
+		if ((in_mission || in_rtl || in_pos_ctl) && !avoidance_data_timeout && avoidance_point_valid) {
+			return true;
+		}
+	}
+	return false;
 }
 
 void
@@ -1359,6 +1369,11 @@ void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 		command.param2 = (float)PX4_CUSTOM_MAIN_MODE_ALTCTL;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+		command.param2 = (float)PX4_CUSTOM_MAIN_MODE_AUTO;
+		command.param3 = (float)PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
 		break;
 
 	default: //vehicle_status_s::NAVIGATION_STATE_POSCTL

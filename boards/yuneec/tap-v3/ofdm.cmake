@@ -24,7 +24,6 @@ px4_add_board(
 		barometer/ms5611
 		barometer/mpc2520
 		# batt_smbus
-		# blinkm
 		camera_trigger
 		# differential_pressure # all available differential pressure drivers
 		# distance_sensor # all available distance sensor drivers
@@ -38,13 +37,16 @@ px4_add_board(
 		imu/mpu6000
 		# imu/mpu9250
 		# irlock
+		#lights/blinkm
+		#lights/oreoled
+		#lights/rgbled
+		lights/rgbled_pwm
 		# magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		magnetometer/ist8310
 		#md25
 		mavlink_dup
 		# mkblctrl
-		# oreoled
 		# pca8574
 		# pca9685
 		#pmw3901
@@ -57,9 +59,7 @@ px4_add_board(
 		# px4io
 		rc_input
 		realsense
-		# rgbled
 		# rgbled_ncp5623c
-		rgbled_pwm
 		# roboclaw
 		stm32
 		stm32/adc
@@ -67,7 +67,7 @@ px4_add_board(
 		tap_esc
 		# telemetry # all available telemetry drivers
 		# test_ppm
-		vmount
+		#uavcan
 
 	MODULES
 		# attitude_estimator_q
@@ -92,7 +92,7 @@ px4_add_board(
 		navigator
 		# position_estimator_inav
 		sensors
-		# uavcan
+		vmount
 		vtol_att_control
 		# wind_estimator
 

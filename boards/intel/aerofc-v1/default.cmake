@@ -3,8 +3,8 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR intel
 	MODEL aerofc-v1
-	ARCH cortex-m4
-	ROMFS
+	TOOLCHAIN arm-none-eabi
+	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 
 	SERIAL_PORTS

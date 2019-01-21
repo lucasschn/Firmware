@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,46 +32,39 @@
  ****************************************************************************/
 
 /**
- * @file hello_start_posix.cpp
+ * @file hrt_test_start_posix.cpp
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Mark Charlebois <mcharleb@gmail.com>
  */
-#include "hello_example.h"
+#include "hrt_test.h"
 
-#include <px4_log.h>
-#include <px4_app.h>
-#include <px4_tasks.h>
 #include <stdio.h>
 #include <string.h>
 #include <sched.h>
 
-#define SCHED_DEFAULT	SCHED_FIFO
-#define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
-//#define SCHED_PRIORITY_DEFAULT sched_get_priority_max(SCHED_FIFO)
+#include <px4_log.h>
+#include <px4_app.h>
+#include <px4_tasks.h>
 
 static int daemon_task;             /* Handle of deamon task / thread */
 
-//using namespace px4;
-
-extern "C" __EXPORT int hello_main(int argc, char *argv[]);
-int hello_main(int argc, char *argv[])
+extern "C" __EXPORT int hrt_test_main(int argc, char *argv[]);
+int hrt_test_main(int argc, char *argv[])
 {
-
 	if (argc < 2) {
-		PX4_WARN("usage: hello {start|stop|status}\n");
+		PX4_WARN("usage: hrt_test_main {start|stop|status}\n");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (HelloExample::appState.isRunning()) {
+		if (HRTTest::appState.isRunning()) {
 			PX4_INFO("already running\n");
 			/* this is not an error */
 			return 0;
 		}
 
-		daemon_task = px4_task_spawn_cmd("hello",
+		daemon_task = px4_task_spawn_cmd("hrttest",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 5,
 						 2000,
@@ -82,12 +75,12 @@ int hello_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		HelloExample::appState.requestExit();
+		HRTTest::appState.requestExit();
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (HelloExample::appState.isRunning()) {
+		if (HRTTest::appState.isRunning()) {
 			PX4_INFO("is running\n");
 
 		} else {
@@ -97,6 +90,6 @@ int hello_main(int argc, char *argv[])
 		return 0;
 	}
 
-	PX4_WARN("usage: hello_main {start|stop|status}\n");
+	PX4_WARN("usage: hrttest_main {start|stop|status}\n");
 	return 1;
 }

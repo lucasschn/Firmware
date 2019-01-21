@@ -3,9 +3,8 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR px4
 	MODEL fmu-v2
-	LABEL default
-	ARCH cortex-m4
-	ROMFS
+	TOOLCHAIN arm-none-eabi
+	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
@@ -113,6 +112,7 @@ px4_add_board(
 	EXAMPLES
 		#bottle_drop # OBC challenge
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#hello
 		#hwtest # Hardware test
 		#px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
 		#px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app

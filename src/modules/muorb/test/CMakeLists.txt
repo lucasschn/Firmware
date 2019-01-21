@@ -31,11 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE platforms__posix__tests__hello
-	MAIN hello
+	MODULE modules__muorb__test__muorb_test
+	MAIN muorb_test
 	SRCS
-		hello_main.cpp
-		hello_start_posix.cpp
-		hello_example.cpp
+		muorb_test_main.cpp
+		muorb_test_start_posix.cpp
+		muorb_test_example.cpp
 	DEPENDS
 	)

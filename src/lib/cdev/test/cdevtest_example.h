@@ -41,14 +41,14 @@
 
 #include <px4_app.h>
 
-class VCDevNode;
+class CDevNode;
 
-class VCDevExample
+class CDevExample
 {
 public:
-	VCDevExample() : _node(0) {}
+	CDevExample() : _node(0) {}
 
-	~VCDevExample();
+	~CDevExample();
 
 	int main();
 
@@ -57,5 +57,5 @@ public:
 private:
 	int do_poll(int fd, int timeout, int iterations, int delayms_after_poll);
 
-	VCDevNode *_node;
+	CDevNode *_node;
 };

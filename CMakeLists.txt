@@ -134,6 +134,7 @@ define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
 
 set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
 
+include(px4_add_module)
 set(config_module_list)
 set(config_df_driver_list)
 
@@ -212,7 +213,7 @@ endif()
 message(STATUS "PX4 config file: ${PX4_CONFIG_FILE}")
 include(px4_add_board)
 include(${PX4_CONFIG_FILE})
-message(STATUS "PX4 config: ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}")
+message(STATUS "PX4 config: ${PX4_CONFIG}")
 message(STATUS "PX4 platform: ${PX4_PLATFORM}")
 
 # external modules
@@ -275,6 +276,11 @@ endif()
 # Setup install paths
 if (${PX4_PLATFORM} STREQUAL "posix")
 
+	# This makes it possible to dynamically load code which depends on symbols
+	# inside the px4 executable.
+	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+	set(CMAKE_ENABLE_EXPORTS ON)
+
 	include(coverage)
 	include(sanitizers)
 
@@ -289,19 +295,6 @@ if (${PX4_PLATFORM} STREQUAL "posix")
 	enable_testing()
 	include(CTest)
 endif()
-
-#=============================================================================
-# require px4 module interface
-set(px4_required_interface
-	px4_os_prebuild_targets
-	px4_os_add_flags
-	px4_add_board
-	)
-foreach(cmd ${px4_required_interface})
-	if (NOT COMMAND ${cmd})
-		message(FATAL_ERROR "${CONFIG} must implement ${cmd}")
-	endif()
-endforeach()
 
 #=============================================================================
 # ccache
@@ -352,19 +345,9 @@ endif()
 #=============================================================================
 # build flags
 #
-px4_os_add_flags(
-	BOARD ${PX4_BOARD}
-	C_FLAGS c_flags
-	CXX_FLAGS cxx_flags
-	OPTIMIZATION_FLAGS optimization_flags
-	EXE_LINKER_FLAGS exe_linker_flags
-	INCLUDE_DIRS include_dirs
-	LINK_DIRS link_dirs
-	DEFINITIONS definitions)
-
-px4_join(OUT CMAKE_EXE_LINKER_FLAGS LIST "${CMAKE_EXE_LINKER_FLAGS};${exe_linker_flags}" GLUE " ")
-px4_join(OUT CMAKE_C_FLAGS LIST "${CMAKE_C_FLAGS};${c_flags};${optimization_flags}" GLUE " ")
-px4_join(OUT CMAKE_CXX_FLAGS LIST "${CMAKE_CXX_FLAGS};${cxx_flags};${optimization_flags}" GLUE " ")
+include(px4_add_common_flags)
+px4_add_common_flags()
+px4_os_add_flags()
 
 #=============================================================================
 # message, and airframe generation
@@ -425,7 +408,10 @@ endif()
 # subdirectories
 #
 add_library(parameters_interface INTERFACE)
+
+include(px4_add_library)
 add_subdirectory(src/lib EXCLUDE_FROM_ALL)
+
 add_subdirectory(src/platforms/common EXCLUDE_FROM_ALL)
 add_subdirectory(src/modules/systemlib EXCLUDE_FROM_ALL) # TODO: split into libraries in platform layer
 add_subdirectory(src/modules/uORB EXCLUDE_FROM_ALL) # TODO: platform layer
@@ -546,14 +532,14 @@ add_custom_target(all_metadata
 #
 # Important to having packaging at end of cmake file.
 #
-set(CPACK_PACKAGE_NAME ${PROJECT_NAME}-${CONFIG})
+set(CPACK_PACKAGE_NAME ${PROJECT_NAME}-${PX4_CONFIG})
 set(CPACK_PACKAGE_VERSION ${PX4_GIT_TAG})
 set(CPACK_PACKAGE_CONTACT ${package-contact})
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF) # TODO: review packaging for linux boards
 set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "The PX4 Pro autopilot.")
-set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${PX4_GIT_TAG}")
+set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PX4_CONFIG}-${PX4_GIT_TAG}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PX4_GIT_TAG}")
 set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
 set(CPACK_PACKAGING_INSTALL_PREFIX "")

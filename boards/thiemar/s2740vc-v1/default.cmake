@@ -31,7 +31,8 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR thiemar
 	MODEL s2740vc-v1
-	ARCH cortex-m4
+	TOOLCHAIN arm-none-eabi
+	ARCHITECTURE cortex-m4
 
 	DRIVERS
 		bootloaders

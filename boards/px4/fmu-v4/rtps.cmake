@@ -4,8 +4,8 @@ px4_add_board(
 	VENDOR px4
 	MODEL fmu-v4
 	LABEL rtps
-	ARCH cortex-m4
-	ROMFS
+	TOOLCHAIN arm-none-eabi
+	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 	TESTING
 	UAVCAN_INTERFACES 1
@@ -103,6 +103,7 @@ px4_add_board(
 	EXAMPLES
 		bottle_drop # OBC challenge
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		hello
 		hwtest # Hardware test
 		#matlab_csv_serial
 		#publisher

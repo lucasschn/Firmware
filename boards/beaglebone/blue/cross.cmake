@@ -4,8 +4,8 @@ px4_add_board(
 	MODEL blue
 	LABEL cross
 	PLATFORM posix
-	ARCH cortex-a8
-	TOOLCHAIN Toolchain-arm-linux-gnueabihf
+	ARCHITECTURE cortex-a8
+	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 
 	DRIVERS
@@ -76,6 +76,7 @@ px4_add_board(
 	EXAMPLES
 		bottle_drop # OBC challenge
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		hello
 		#hwtest # Hardware test
 		px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
 		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app

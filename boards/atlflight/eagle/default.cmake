@@ -3,7 +3,10 @@
 
 include(px4_git)
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon")
-list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon")
+list(APPEND CMAKE_MODULE_PATH
+	"${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon"
+	"${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon/toolchain"
+	)
 
 # Get $QC_SOC_TARGET from environment if existing.
 if (DEFINED ENV{QC_SOC_TARGET})
@@ -22,18 +25,25 @@ set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 set(CONFIG_SHMEM "1")
 add_definitions(-DORB_COMMUNICATOR)
 
-# This definition allows to differentiate if this just the usual POSIX build
-# or if it is for the Snapdragon.
-add_definitions(-D__PX4_POSIX_EAGLE)
+# atlflight toolchain doesn't properly set the compiler, so these aren't set automatically
+add_compile_options($<$<COMPILE_LANGUAGE:C>:-std=gnu99>)
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=gnu++11>)
+
+add_definitions(
+	-D__PX4_POSIX_EAGLE
+	-D__PX4_LINUX
+
+	# For DriverFramework
+	-D__DF_LINUX
+)
 
 px4_add_board(
 	PLATFORM posix
 	VENDOR atlflight
 	MODEL eagle
 	LABEL default
-	TESTING
-	TOOLCHAIN
-		toolchain/Toolchain-arm-linux-gnueabihf
+	#TESTING
+	TOOLCHAIN arm-linux-gnueabihf
 
 	DRIVERS
 		#barometer # all available barometer drivers
@@ -53,6 +63,7 @@ px4_add_board(
 
 	MODULES
 		muorb/krait
+		muorb/test
 
 		attitude_estimator_q
 		camera_feedback
@@ -98,18 +109,18 @@ px4_add_board(
 		reboot
 		sd_bench
 		shutdown
-		tests # tests and test runner
+		#tests # tests and test runner
 		top
 		topic_listener
 		tune_control
 		ver
 
 	EXAMPLES
-		bottle_drop # OBC challenge
-		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#bottle_drop # OBC challenge
+		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hwtest # Hardware test
-		px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
-		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
-		rover_steering_control # Rover example app
-		segway
+		#px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
+		#px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
+		#rover_steering_control # Rover example app
+		#segway
 	)

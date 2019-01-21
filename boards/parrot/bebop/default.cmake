@@ -3,8 +3,8 @@ px4_add_board(
 	VENDOR parrot
 	MODEL bebop
 	PLATFORM posix
-	ARCH cortex-a53
-	TOOLCHAIN Toolchain-arm-linux-gnueabihf
+	ARCHITECTURE cortex-a53
+	TOOLCHAIN arm-linux-gnueabihf
 
 	DRIVERS
 		gps

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,37 +32,40 @@
  ****************************************************************************/
 
 /**
- * @file hrt_test_start_posix.cpp
+ * @file cdevtest_start.cpp
  *
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Mark Charlebois <mcharleb@gmail.com>
  */
-#include "hrt_test.h"
-#include <px4_log.h>
+#include "cdevtest_example.h"
+
 #include <px4_app.h>
 #include <px4_tasks.h>
 #include <stdio.h>
 #include <string.h>
-#include <sched.h>
 
 static int daemon_task;             /* Handle of deamon task / thread */
 
-extern "C" __EXPORT int hrt_test_main(int argc, char *argv[]);
-int hrt_test_main(int argc, char *argv[])
+//using namespace px4;
+
+extern "C" __EXPORT int cdev_test_main(int argc, char *argv[]);
+int cdev_test_main(int argc, char *argv[])
 {
+
 	if (argc < 2) {
-		PX4_WARN("usage: hrt_test_main {start|stop|status}\n");
+		printf("usage: cdevtest {start|stop|status}\n");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (HRTTest::appState.isRunning()) {
-			PX4_INFO("already running\n");
+		if (CDevExample::appState.isRunning()) {
+			printf("already running\n");
 			/* this is not an error */
 			return 0;
 		}
 
-		daemon_task = px4_task_spawn_cmd("hrttest",
+		daemon_task = px4_task_spawn_cmd("cdevtest",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 5,
 						 2000,
@@ -73,21 +76,21 @@ int hrt_test_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		HRTTest::appState.requestExit();
+		CDevExample::appState.requestExit();
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (HRTTest::appState.isRunning()) {
-			PX4_INFO("is running\n");
+		if (CDevExample::appState.isRunning()) {
+			printf("is running\n");
 
 		} else {
-			PX4_INFO("not started\n");
+			printf("not started\n");
 		}
 
 		return 0;
 	}
 
-	PX4_WARN("usage: hrttest_main {start|stop|status}\n");
+	printf("usage: cdevtest_main {start|stop|status}\n");
 	return 1;
 }

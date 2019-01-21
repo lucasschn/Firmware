@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,71 +31,13 @@
 #
 ############################################################################
 
-#=============================================================================
-#
-#	Defined functions in this file
-#
-# 	utility functions
-#
-#		* px4_add_board_os
-#
-
-include(px4_base)
-
-#=============================================================================
-#
-#	px4_add_board_os
-#
-#	This function creates a PX4 board.
-#
-#	Usage:
-#		px4_add_board_os(
-#			BOARD <string>
-#			OS <string>
-#			[ TOOLCHAIN ] <string>
-#			)
-#
-#	Input:
-#		BOARD		: name of board
-#		OS			: posix, nuttx, qurt
-#
-#
-#	Example:
-#		px4_add_board_os(
-#			BOARD px4_fmu-v2_default
-#			OS nuttx
-#			)
-#
-function(px4_add_board_os)
-
-	px4_parse_function_args(
-		NAME px4_add_board_os
-		ONE_VALUE
-			VENDOR
-			MODEL
-			LABEL
-			PLATFORM
-			TOOLCHAIN
-			ARCH
-			ROMFSROOT
-			IO
-			BOOTLOADER
-			UAVCAN_INTERFACES
-		MULTI_VALUE
-			DRIVERS
-			MODULES
-			SYSTEMCMDS
-			EXAMPLES
-			SERIAL_PORTS
-			DF_DRIVERS # DriverFramework drivers
-		OPTIONS
-			CONSTRAINED_FLASH
-			ROMFS
-			TESTING
-		REQUIRED
-		ARGN ${ARGN})
-
-	include(px4_impl_os)
-	px4_os_prebuild_targets(OUT prebuild_targets BOARD ${PX4_BOARD})
-
-endfunction()
+px4_add_module(
+	MODULE examples__hello
+	MAIN hello
+	COMPILE_FLAGS
+	SRCS
+		hello_main.cpp
+		hello_start.cpp
+		hello_example.cpp
+	DEPENDS
+	)

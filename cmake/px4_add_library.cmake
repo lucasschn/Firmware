@@ -31,76 +31,31 @@
 #
 ############################################################################
 
-#=============================================================================
-#
-#	Defined functions in this file
-#
-# 	utility functions
-#
-#		* px4_add_board_os
-#
-
 include(px4_base)
 
 #=============================================================================
 #
-#	px4_add_board_os
+#	px4_add_library
 #
-#	This function creates a PX4 board.
+#	Like add_library but with PX4 platform dependencies
 #
-#	Usage:
-#		px4_add_board_os(
-#			BOARD <string>
-#			OS <string>
-#			[ TOOLCHAIN ] <string>
-#			)
-#
-#	Input:
-#		BOARD		: name of board
-#		OS			: posix, nuttx, qurt
-#
-#
-#	Example:
-#		px4_add_board_os(
-#			BOARD px4_fmu-v2_default
-#			OS nuttx
-#			)
-#
-function(px4_add_board_os)
+function(px4_add_library target)
+	add_library(${target} ${ARGN})
 
-	px4_parse_function_args(
-		NAME px4_add_board_os
-		ONE_VALUE
-			VENDOR
-			MODEL
-			LABEL
-			PLATFORM
-			TOOLCHAIN
-			ARCH
-			ROMFSROOT
-			IO
-			BOOTLOADER
-			UAVCAN_INTERFACES
-		MULTI_VALUE
-			DRIVERS
-			MODULES
-			SYSTEMCMDS
-			EXAMPLES
-			SERIAL_PORTS
-			DF_DRIVERS # DriverFramework drivers
-		OPTIONS
-			CONSTRAINED_FLASH
-			ROMFS
-			TESTING
-		REQUIRED
-		ARGN ${ARGN})
+	target_compile_definitions(${target} PRIVATE MODULE_NAME="${target}")
 
-	if(NOT CMAKE_TOOLCHAIN_FILE)
-		# default to native toolchain
-		set(CMAKE_TOOLCHAIN_FILE Toolchain-native CACHE INTERNAL "toolchain file" FORCE)
+	# all PX4 libraries have access to parameters and uORB
+	add_dependencies(${target} uorb_headers)
+	target_link_libraries(${target} PRIVATE prebuild_targets parameters_interface uorb_msgs)
+
+	# TODO: move to platform layer
+	if ("${PX4_PLATFORM}" MATCHES "nuttx")
+		target_link_libraries(${target} PRIVATE m nuttx_c)
 	endif()
 
-	include(px4_impl_os)
-	px4_os_prebuild_targets(OUT prebuild_targets BOARD ${PX4_BOARD})
+	# Pass variable to the parent px4_add_module.
+	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
 
+	set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES ${target})
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()

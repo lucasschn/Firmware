@@ -32,23 +32,24 @@
  ****************************************************************************/
 
 /**
- * @file hrt_test_main.cpp
+ * @file cdevtest_main.cpp
  * Example for Linux
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
+#include "cdevtest_example.h"
+
 #include <px4_middleware.h>
 #include <px4_app.h>
-#include "hrt_test.h"
 #include <stdio.h>
 
 int PX4_MAIN(int argc, char **argv)
 {
-	px4::init(argc, argv, "hrt_test");
+	px4::init(argc, argv, "cdevtest");
 
-	printf("starting\n");
-	HRTTest test;
-	test.main();
+	printf("cdevtest\n");
+	CDevExample cdevtest;
+	cdevtest.main();
 
 	printf("goodbye\n");
 	return 0;

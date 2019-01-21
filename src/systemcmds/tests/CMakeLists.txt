@@ -102,4 +102,7 @@ px4_add_module(
 		git_ecl
 		ecl_geo_lookup # TODO: move this
 		pwm_limit
+		version
 	)
+
+add_subdirectory(hrt_test)

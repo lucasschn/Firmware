@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE platforms__posix__tests__hrt_test
-	MAIN hrt_test
+	MODULE examples__dyn_hello
+	MAIN hello
 	SRCS
-		hrt_test_main.cpp
-		hrt_test_start_posix.cpp
-		hrt_test.cpp
+		hello.cpp
 	DEPENDS
+	DYNAMIC
 	)

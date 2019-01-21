@@ -3,8 +3,8 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR bitcraze
 	MODEL crazyflie
-	ARCH cortex-m4
-	ROMFS
+	TOOLCHAIN arm-none-eabi
+	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 
 	DRIVERS

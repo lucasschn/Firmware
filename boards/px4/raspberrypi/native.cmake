@@ -4,7 +4,6 @@ px4_add_board(
 	MODEL raspberrypi
 	LABEL native
 	PLATFORM posix
-	TOOLCHAIN Toolchain-native
 	TESTING
 
 	DRIVERS
@@ -48,6 +47,7 @@ px4_add_board(
 		navigator
 		position_estimator_inav
 		sensors
+		#simulator
 		#uavcan
 		vtol_att_control
 		wind_estimator
@@ -63,6 +63,7 @@ px4_add_board(
 		pwm
 		reboot
 		sd_bench
+		shutdown
 		tests # tests and test runner
 		top
 		topic_listener
@@ -71,7 +72,9 @@ px4_add_board(
 
 	EXAMPLES
 		bottle_drop # OBC challenge
+		dyn_hello # dynamically loading modules example
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		hello
 		#hwtest # Hardware test
 		px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
 		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app

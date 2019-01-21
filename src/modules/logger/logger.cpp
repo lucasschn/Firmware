@@ -674,7 +674,7 @@ void Logger::add_default_topics()
 	add_topic("trajectory_waypoint_desired", 20);
 	add_topic("obstacle_distance", 20);
 
-#ifdef CONFIG_ARCH_BOARD_SITL
+#ifdef CONFIG_ARCH_BOARD_PX4_SITL
 	add_topic("actuator_armed");
 	add_topic("actuator_controls_virtual_fw");
 	add_topic("actuator_controls_virtual_mc");
@@ -690,7 +690,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
 	add_topic("vehicle_roi");
-#endif
+#endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 }
 
 void Logger::add_high_rate_topics()

@@ -184,7 +184,19 @@ $(CONFIG_TARGETS_DEFAULT):
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
 posix: px4_sitl_default
-posix_sitl_default: px4_sitl_default
+
+# board reorganization deprecation warnings (2018-11-22)
+define deprecation_warning
+	$(warning $(1) has been deprecated and will be removed, please use $(2)!)
+endef
+
+px4fmu-%_default:
+	$(call deprecation_warning, ${@},$(subst px4fmu,px4_fmu,$@))
+	$(MAKE) $(subst px4fmu,px4_fmu, $@)
+
+posix_sitl_default:
+	$(call deprecation_warning, ${@},px4_sitl_default)
+	$(MAKE) px4_sitl_default
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
 .PHONY: all posix px4_sitl_default all_nuttx_targets all_default_targets
@@ -257,7 +269,7 @@ sizes:
 check: check_px4_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware tests check_format
 
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: check_px4_sitl_default check_px4_fmu-v4pro_default tests check_format
+quick_check: check_px4_sitl_default check_px4_fmu-v5_default tests check_format
 
 check_%:
 	@echo

@@ -4,8 +4,8 @@ px4_add_board(
 	MODEL navio2
 	LABEL cross
 	PLATFORM posix
-	ARCH cortex-a53
-	TOOLCHAIN Toolchain-arm-linux-gnueabihf
+	ARCHITECTURE cortex-a53
+	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 
 	DRIVERS
@@ -85,7 +85,9 @@ px4_add_board(
 
 	EXAMPLES
 		bottle_drop # OBC challenge
+		dyn_hello # dynamically loading modules example
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		hello
 		#hwtest # Hardware test
 		px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
 		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app

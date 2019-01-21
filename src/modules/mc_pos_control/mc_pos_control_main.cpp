@@ -976,13 +976,7 @@ MulticopterPositionControl::start_flight_task()
 		should_disable_task = false;
 		int error = 0;
 		switch (MPC_AUTO_MODE.get()) {
-		case 0:
 		case 1:
-		case 2:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
-			break;
-
-		case 3:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
 			break;
 
@@ -1006,7 +1000,6 @@ MulticopterPositionControl::start_flight_task()
 
 	// manual position control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL || task_failure) {
-
 		should_disable_task = false;
 		int error = 0;
 

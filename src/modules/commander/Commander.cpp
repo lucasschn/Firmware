@@ -1188,7 +1188,9 @@ Commander::set_home_position()
 			const vehicle_local_position_s &lpos = _local_position_sub.get();
 
 			// Set home position
-			home_position_s &home = _home_pub.get();
+			home_position_s home{};
+
+			home.timestamp = hrt_absolute_time();
 
 			home.lat = gpos.lat;
 			home.lon = gpos.lon;
@@ -1203,22 +1205,21 @@ Commander::set_home_position()
 
 			home.yaw = lpos.yaw;
 
-		// Once we have home, we switch to the mode we commanded in the first place.
-		_should_reevaluate_mode_slot = true;
+			// Once we have home, we switch to the mode we commanded in the first place.
+			_should_reevaluate_mode_slot = true;
 
-		/* mark home position as set */
-		status_flags.condition_home_position_valid = true;
+			/* mark home position as set */
+			status_flags.condition_home_position_valid = true;
+
+			home.manual_home = false;
 
 			//Play tune first time we initialize HOME
 			if (!status_flags.condition_home_position_valid) {
 				tune_home_set(true);
 			}
 
-			/* mark home position as set */
-			status_flags.condition_home_position_valid = _home_pub.update();
-
-			home.timestamp = hrt_absolute_time();
-			home.manual_home = false;
+			// mark home position as set
+			status_flags.condition_home_position_valid = _home_pub.update(home);
 
 			return status_flags.condition_home_position_valid;
 		}

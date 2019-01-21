@@ -81,7 +81,7 @@
 #include <parameters/param.h>
 
 #include <cmath>
-#include <cfloat>
+#include <float.h>
 #include <cstring>
 
 #include <uORB/topics/actuator_armed.h>

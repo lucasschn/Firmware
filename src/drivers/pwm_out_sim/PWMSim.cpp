@@ -31,8 +31,10 @@
  *
  ****************************************************************************/
 
-#include <px4_time.h>
 #include "PWMSim.hpp"
+
+#include <px4_time.h>
+#include <mathlib/mathlib.h>
 
 #include <uORB/topics/multirotor_motor_limits.h>
 
@@ -235,54 +237,45 @@ PWMSim::run()
 		if (_mixers != nullptr) {
 
 			/* do mixing */
-			unsigned num_outputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);
-			_actuator_outputs.noutputs = num_outputs;
+			_actuator_outputs.noutputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);
 
 			/* disable unused ports by setting their output to NaN */
-			for (size_t i = 0; i < sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]); i++) {
-				if (i >= num_outputs) {
-					_actuator_outputs.output[i] = NAN;
-				}
+			const size_t actuator_outputs_size = sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]);
+
+			for (size_t i = _actuator_outputs.noutputs; i < actuator_outputs_size; i++) {
+				_actuator_outputs.output[i] = NAN;
 			}
 
 			/* iterate actuators */
-			for (unsigned i = 0; i < num_outputs; i++) {
+			for (unsigned i = 0; i < _actuator_outputs.noutputs; i++) {
 				/* last resort: catch NaN, INF and out-of-band errors */
-				if (i < _actuator_outputs.noutputs &&
-				    PX4_ISFINITE(_actuator_outputs.output[i]) &&
-				    _actuator_outputs.output[i] >= -1.0f &&
-				    _actuator_outputs.output[i] <= 1.0f) {
+				const bool sane_mixer_output = PX4_ISFINITE(_actuator_outputs.output[i]) &&
+							       _actuator_outputs.output[i] >= -1.0f &&
+							       _actuator_outputs.output[i] <= 1.0f;
+
+				if (_armed && sane_mixer_output) {
 					/* scale for PWM output 1000 - 2000us */
 					_actuator_outputs.output[i] = 1500 + (500 * _actuator_outputs.output[i]);
-
-					if (_actuator_outputs.output[i] > _pwm_max[i]) {
-						_actuator_outputs.output[i] = _pwm_max[i];
-					}
-
-					if (_actuator_outputs.output[i] < _pwm_min[i]) {
-						_actuator_outputs.output[i] = _pwm_min[i];
-					}
+					_actuator_outputs.output[i] = math::constrain(_actuator_outputs.output[i], (float)_pwm_min[i], (float)_pwm_max[i]);
 
 				} else {
-					/*
-					 * Value is NaN, INF or out of band - set to the minimum value.
+					/* Disarmed or insane value - set disarmed pwm value
 					 * This will be clearly visible on the servo status and will limit the risk of accidentally
-					 * spinning motors. It would be deadly in flight.
-					 */
+					 * spinning motors. It would be deadly in flight. */
 					_actuator_outputs.output[i] = PWM_SIM_DISARMED_MAGIC;
 				}
 			}
 
 			/* overwrite outputs in case of force_failsafe */
 			if (_failsafe) {
-				for (size_t i = 0; i < num_outputs; i++) {
+				for (size_t i = 0; i < _actuator_outputs.noutputs; i++) {
 					_actuator_outputs.output[i] = PWM_SIM_FAILSAFE_MAGIC;
 				}
 			}
 
 			/* overwrite outputs in case of lockdown */
 			if (_lockdown) {
-				for (size_t i = 0; i < num_outputs; i++) {
+				for (size_t i = 0; i < _actuator_outputs.noutputs; i++) {
 					_actuator_outputs.output[i] = 0.0;
 				}
 			}

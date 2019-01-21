@@ -159,15 +159,14 @@ private:
 		._padding0 = {}
 	};
 
-	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */
-	vehicle_control_mode_s			_control_mode{};		/**< vehicle control mode */
-	vehicle_local_position_s		_local_pos{};			/**< vehicle local position */
-	home_position_s				_home_pos{};			/**< home position */
-	vehicle_trajectory_waypoint_s		_traj_wp_avoidance{};		/**< trajectory waypoint */
-	vehicle_trajectory_waypoint_s		_traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
+	vehicle_attitude_setpoint_s	_att_sp{};			/**< vehicle attitude setpoint */
+	vehicle_control_mode_s	_control_mode{};		/**< vehicle control mode */
+	vehicle_local_position_s _local_pos{};			/**< vehicle local position */
+	home_position_s	_home_pos{};			/**< home position */
+	vehicle_trajectory_waypoint_s _traj_wp_avoidance{};		/**< trajectory waypoint */
+	vehicle_trajectory_waypoint_s _traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
 	landing_gear_s _landing_gear{};
-
-	int8_t		_old_landing_gear_position;
+	int8_t	_old_landing_gear_position;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
@@ -280,9 +279,9 @@ private:
 	void update_smooth_takeoff(const float &position_setpoint_z, const float &velocity_setpoint_z);
 
 	/**
-	 * Adjust the thrust setpoint during landing.
+	 * Adjust the setpoint during landing.
 	 * Thrust is adjusted to support the land-detector during detection.
-	 * @param thrust_setpoint gets adjusted based on land-detector state
+	 * @param setpoint gets adjusted based on land-detector state
 	 */
 	void limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint);
 
@@ -841,12 +840,14 @@ MulticopterPositionControl::run()
 			local_pos_sp.vz = PX4_ISFINITE(_control.getVelSp()(2)) ? _control.getVelSp()(2) : setpoint.vz;
 			_control.getThrustSetpoint().copyTo(local_pos_sp.thrust);
 
-			// Publish local position setpoint (for logging only)
+			// Publish local position setpoint
+			// This message will be used by other modules (such as Landdetector) to determine
+			// vehicle intention.
 			publish_local_pos_sp(local_pos_sp);
 
 			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
-			// Note: only adjust thrust output if there was no thrust setpoint demand in D-direction.
+			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
 			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
 				limit_thrust_during_landing(local_pos_sp);
 			}
@@ -1154,15 +1155,23 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 void
 MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint)
 {
-	if (_vehicle_land_detected.ground_contact
-	    || _vehicle_land_detected.maybe_landed) {
-		// we set thrust to zero, this will help to decide if we are actually landed or not
-		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
-		// set yaw-sp to current yaw to avoid any corrections
-		setpoint.yaw = _states.yaw;
-		// prevent any integrator windup
+	if (_vehicle_land_detected.ground_contact) {
+		// Set thrust in xy to zero
+		setpoint.thrust[0] = 0.0f;
+		setpoint.thrust[1] = 0.0f;
 		_control.resetIntegralXY();
-		_control.resetIntegralZ();
+		// set yaw-sp to current yaw
+		setpoint.yaw = _states.yaw;
+	}
+
+	if (_vehicle_land_detected.maybe_landed) {
+		// set yaw-sp to current yaw
+		setpoint.yaw = _states.yaw;
+		// we set thrust to zero
+		// this will help to decide if we are actually landed or not
+		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
+		_control.resetIntegralXY(); //reuqired to prevent integrator from increasing
+		_control.resetIntegralZ(); //reuqired to prevent integrator from increasing
 	}
 }
 

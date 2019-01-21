@@ -58,14 +58,14 @@ void PositionControl::updateState(const PositionControlStates &states)
 void PositionControl::_setCtrlFlagTrue()
 {
 	for (int i = 0; i <= 2; i++) {
-		_is_pos_controlled[i] = _is_vel_controlled[i] = true;
+		_ctrl_pos[i] = _ctrl_vel[i] = true;
 	}
 }
 
 void PositionControl::_setCtrlFlagFalse()
 {
 	for (int i = 0; i <= 2; i++) {
-		_is_pos_controlled[i] = _is_vel_controlled[i] = false;
+		_ctrl_pos[i] = _ctrl_vel[i] = false;
 	}
 }
 
@@ -93,6 +93,7 @@ bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &se
 void PositionControl::generateThrustYawSetpoint(const float dt)
 {
 	if (_skip_controller) {
+
 		// Already received a valid thrust set-point.
 		// Limit the thrust vector.
 		float thr_mag = _thr_sp.length();
@@ -149,7 +150,7 @@ bool PositionControl::_interfaceMapping()
 			// Velocity controller is active without position control.
 			// Set integral states and setpoints to 0
 			_pos_sp(i) = _pos(i) = 0.0f;
-			_is_pos_controlled[i] = false; // position control-loop is not used
+			_ctrl_pos[i] = false; // position control-loop is not used
 
 			// thrust setpoint is not supported in velocity control
 			_thr_sp(i) = NAN;
@@ -165,7 +166,7 @@ bool PositionControl::_interfaceMapping()
 			// Set all integral states and setpoints to 0
 			_pos_sp(i) = _pos(i) = 0.0f;
 			_vel_sp(i) = _vel(i) = 0.0f;
-			_is_pos_controlled[i] = _is_vel_controlled[i] = false; // position/velocity control loops are not used
+			_ctrl_pos[i] = _ctrl_vel[i] = false; // position/velocity control loop is not used
 
 			// Reset the Integral term.
 			_thr_int(i) = 0.0f;
@@ -211,8 +212,8 @@ bool PositionControl::_interfaceMapping()
 		// throttle down such that vehicle goes down with
 		// 70% of throttle range between min and hover
 		_thr_sp(2) = -(MPC_THR_MIN.get() + (MPC_THR_HOVER.get() - MPC_THR_MIN.get()) * 0.7f);
-		// position and velocity control-loops are not used (note: only for logging purpose)
-		_setCtrlFlagFalse();
+		// position and velocity control-loop is not used (note: only for logging purpose)
+		_setCtrlFlagFalse(); // position/velocity control-loop is not used
 	}
 
 	return !(failsafe);

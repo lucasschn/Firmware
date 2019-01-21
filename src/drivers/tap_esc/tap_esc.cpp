@@ -166,6 +166,10 @@ private:
 	LedController 	_led_controller;
 	int 		_led_control_sub = -1;
 
+	// Motor startup check members
+	bool _motor_start_problem = false; ///< True if motors did not spin up according to reported rpm
+	bool _motor_start_check_done = false; ///< True if motors were checked to be running after arming
+
 	// FTC related members (not upstream)
 	FaultTolerantControl 	*_fault_tolerant_control = nullptr;
 	int			_first_failing_motor = -1;  ///< First motor to show critical failure
@@ -661,6 +665,25 @@ void TAP_ESC::cycle()
 				}
 			}
 
+			// Motor startup check: did at least 4 motors spin up correctly within the first second after arming
+			// otherwise we might be armed but the motors didn't start and if they suddenly start it's dangerous
+			if (!_motor_start_check_done && ((hrt_absolute_time() / 1000) - _armed.armed_time_ms) > 1000) {
+				_motor_start_check_done = true;
+				uint8_t started_motors_count = 0;
+
+				for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
+					if (_esc_feedback.esc[channel_id].esc_rpm > 1000) {
+						started_motors_count++;
+					}
+				}
+
+				_motor_start_problem = started_motors_count < 4;
+
+				if (_motor_start_problem) {
+					mavlink_log_emergency(&_mavlink_log_pub, "Motors failed to start, power off and try again");
+				}
+			}
+
 			// Check for motor failures and if enabled engage fault-tolerant-control
 			for (uint8_t channel_id = 0; channel_id < _channels_count; channel_id++) {
 				if (esc_critical_failure(channel_id) && _fault_tolerant_control != nullptr) {
@@ -747,10 +770,11 @@ void TAP_ESC::cycle()
 
 	// Never let motors spin in HITL
 	// Never let motors spin when manual killswitch is engaged
+	// Stop motors immediately if a startup problem has been detected
 	// TODO: Also stop for _armed.lockdown?
 	// NOTE: Ignore armed state because that would break motor_tests, which work
 	// without arming.
-	if (!_hitl && !_armed.manual_lockdown) {
+	if (!_hitl && !_armed.manual_lockdown && !_motor_start_problem) {
 
 		// Remap motor ID schemes: PX4 -> Yuneec
 		for (uint8_t num = 0; num < _channels_count; num++) {
@@ -847,6 +871,10 @@ void TAP_ESC::cycle()
 
 			// Also clear any motor failure flags
 			_esc_feedback.engine_failure_report.motor_state = 0;
+
+			// reset motor start check
+			_motor_start_problem = false;
+			_motor_start_check_done = false;
 		}
 	}
 

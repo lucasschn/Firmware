@@ -137,6 +137,10 @@ Takeoff::set_takeoff_position()
 		// Go on and check which changes had been requested
 		if (PX4_ISFINITE(rep->current.yaw)) {
 			pos_sp_triplet->current.yaw = rep->current.yaw;
+			rep->current.yaw_valid = true;
+
+		} else {
+			rep->current.yaw_valid = false;
 		}
 
 		if (PX4_ISFINITE(rep->current.lat) && PX4_ISFINITE(rep->current.lon)) {

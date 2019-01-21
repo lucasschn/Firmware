@@ -3969,6 +3969,16 @@ void answer_command(const vehicle_command_s &cmd, unsigned result, orb_advert_t 
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED:
+		// Yuneec hotfix for #3041
+		if (cmd.command == 2504){
+			// NOTE: Datapilot seems to send MAV_CMD_REQUEST_VIDEO_STREAM_INFORMATION
+			// which the commander does not understand. In order to prevent error
+			// tunes from being spammed, the unsupported command is caught here.
+			// Remove once qgroundcontrol/issues/1721 is solved!
+			PX4_INFO("Received unsupported vehicle_command (%u)", cmd.command);
+			break;
+		}
+
 		tune_negative(true);
 		break;
 

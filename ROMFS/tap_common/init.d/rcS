@@ -66,7 +66,7 @@ sercon
 # calibration but will reset the system tuning and gains
 # to reflect the new defaults
 #
-set DEFAULTS_VER 93
+set DEFAULTS_VER 94
 set RELEASE_VER 0  # no release version
 
 # Log file location
@@ -486,6 +486,7 @@ fi
 if ver hwcmp TAP_V3 TAP_V4
 then
 	# mavlink instance for the gimbal port
+	vmount start -d ${GIMBAL_TTY} -b ${BAUDRATE}
 	mavlink start -r ${MAV_RATE} -d ${GIMBAL_TTY} -m config -b ${BAUDRATE}
 	mavlink stream -d ${GIMBAL_TTY} -s SYSTEM_TIME -r 0.5
 	if fmu is_ofdm

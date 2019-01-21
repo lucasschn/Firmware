@@ -315,7 +315,7 @@ int OutputSerial::update(const ControlData *control_data)
 	gimbal_control.quaternion[1] = 10000.f * vehicle_attitude.q[1]; //x
 	gimbal_control.quaternion[2] = 10000.f * vehicle_attitude.q[2]; //y
 	gimbal_control.quaternion[3] = 10000.f * vehicle_attitude.q[3]; //z
-	gimbal_control.yaw_deg_desire = vehicle_attitude.yawspeed * M_RAD_TO_DEG_F * 10.f;
+	gimbal_control.yaw_deg_desire = vehicle_attitude.yawspeed * M_RAD_TO_DEG_F * 6.f;
 
 	orb_copy(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
 	orb_copy(ORB_ID(vehicle_local_position), _vehicle_lpos_sub, &_vlpos);

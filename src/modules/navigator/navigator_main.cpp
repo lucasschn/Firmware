@@ -551,6 +551,7 @@ Navigator::run()
 				}
 
 				rep->previous.valid = true;
+				rep->current.yaw_valid = PX4_ISFINITE(rep->current.yaw);
 				rep->current.valid = true;
 				rep->next.valid = false;
 
@@ -589,7 +590,7 @@ Navigator::run()
 				}
 
 				rep->current.alt = cmd.param7;
-
+				rep->current.yaw_valid = PX4_ISFINITE(rep->current.yaw);
 				rep->current.valid = true;
 				rep->next.valid = false;
 

@@ -2,13 +2,49 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fixed
+* Setting COM_ARM_SWISBTN parameter to avoid problems with the arm button (#3085)
+
+### Added
+* Command motors to stop if they don't spin up correctly for safety (#3089)
+
+
+## [v1.8.0-1.5.9]
+### Fixed
+* Brake at waypoint in mission if stop is required (#3076)
+
+
+## [v1.8.0-1.5.8]
+### Fixed
+* Drone takes off when obstacle avoidance is activated after arming, even without throttle input (#3042)
+* Drone won't disarm when landing with obstacle avoidance active (#3042)
+* "Tuning" the gimbal feedforward scale for less offset in orbit (#3047)
+* Prevent error tunes from being spammed while connecting to the drone (#3052)
+* Slow landing detection problems (#3054)
+
+
+## [v1.8.0-1.5.7]
 ### Changed
-* placeholder for #2960
+* Increased maximum distance between waypoints from 900m to 4000m (#2978)
+
+### Fixed
+* Vehicle gets stuck during mission (#2998)
+* Regression fix: hickup when stopping in slowed down descend (#2997)
+
+
+## [v1.8.0-1.5.6]
+### Fixed
+* Orbit commands exceeding maximum radius (#2968)
+* Fixed altitude lock during mission (#2960)
+* Regression: fix slow landing (#2959)
+* Regression fix: in mission, lock position when position setpoint reached waypoint (#2951)
+
+### Added
+* Orbit telemetry for UI (#2906)
+* vehicle_local_position_setpoint logging improvment (#2959)
 
 
 ## [v1.8.0-1.5.5]
-### Changed
-
 ### Fixed
 * Parameter update within FlightTask (#2931)
 * Keep landing gear up during mission (#2938)
@@ -29,8 +65,6 @@ All notable changes to this project will be documented in this file.
 ### Added
 * Arming without propellers now still spins 5 out of 6 motors (#2463)
 * More detailed logging of motor faults (#2463)
-
-### Changed
 
 ### Fixed
 * Fixed scenario where H520 can perform full flips (#2701, #2645)

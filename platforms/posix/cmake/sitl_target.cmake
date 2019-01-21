@@ -37,7 +37,7 @@ ExternalProject_Add(sitl_gazebo
 		-DSEND_VISION_ESTIMATION_DATA=ON
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
-	PATCH_COMMAND git apply ${CMAKE_SOURCE_DIR}/src/firmware/posix/0001-Use-internal-mavlink-dialect.patch
+	PATCH_COMMAND git apply ${CMAKE_SOURCE_DIR}/src/firmware/posix/0001-Mavlink-use-internal-dialect.patch
 	DEPENDS
 		git_gazebo
 	)

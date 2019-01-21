@@ -95,7 +95,8 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 	} else {
 		// Vehicle needs to pass waypoint
 		// Ensure that vehicle never gets stuck because of too low target-speed
-		_speed_at_target = math::max(_speed_at_target, 0.5f);
+		const float min_speed_along_track = 0.5f;
+		_speed_at_target = math::max(_speed_at_target, min_speed_along_track);
 
 		// Get various path specific vectors. */
 		Vector2f u_prev_to_dest = Vector2f(_target - _prev_wp).unit_or_zero();
@@ -135,7 +136,8 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 
 			float acceptance_radius = _target_acceptance_radius;
 
-			if (_speed_at_target < 0.01f) {
+			if (_speed_at_target < min_speed_along_track + 0.01f) {
+
 				// If vehicle wants to stop at the target, then set acceptance radius to zero as well.
 				acceptance_radius = 0.0f;
 			}
@@ -158,6 +160,9 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 			    && (speed_sp_prev_track > _speed_at_target)) {
 				speed_sp_track = speed_sp_prev_track;
 			}
+
+			// Ensure that speed is never smaller than minimum to prevent from getting stuck
+			speed_sp_track = math::max(speed_sp_track, min_speed_along_track);
 
 		} else {
 

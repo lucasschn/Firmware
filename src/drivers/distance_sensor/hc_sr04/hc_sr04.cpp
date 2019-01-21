@@ -48,6 +48,7 @@
 #include <px4_workqueue.h>
 #include <drivers/device/device.h>
 #include <px4_defines.h>
+#include <containers/Array.hpp>
 #include <px4_log.h>
 #include <platforms/px4_getopt.h>
 
@@ -63,7 +64,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
 #include <getopt.h>
 
 #include <perf/perf_counter.h>
@@ -191,7 +191,7 @@ private:
 	perf_counter_t		_buffer_overflows;
 
 
-	std::vector<float>
+	px4::Array<float, 6>
 	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
 
 	int 				_manual_sub;

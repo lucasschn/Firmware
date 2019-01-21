@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/landing_gear.h>
 
 #include <float.h>
 #include <mathlib/mathlib.h>
@@ -111,9 +112,6 @@ private:
 	/* landing gear */
 	int		_manual_sub{-1};			/**< notification of manual control updates */
 	int   _pos_sp_triplet_sub{-1};
-	orb_advert_t	_landing_gear_pub{nullptr};
-	landing_gear_s _landing_gear{};
-	int8_t		_old_landing_gear_position;
 	struct manual_control_setpoint_s		_manual = {};		/**< r/c channel data */
 	struct position_setpoint_triplet_s _pos_sp_triplet = {};
 	/* --- END yuneec specific declarations */
@@ -129,6 +127,7 @@ private:
 	orb_advert_t	_traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
 	orb_advert_t 	_constraints_pub{nullptr}; /**< vehicle constraints publication (only for logging)*/
 	orb_id_t _attitude_setpoint_id{nullptr};
+	orb_advert_t	_landing_gear_pub{nullptr};
 
 	int		_vehicle_status_sub{-1};		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
@@ -146,7 +145,7 @@ private:
 	bool _smooth_velocity_takeoff =
 		false; /**< Smooth velocity takeoff can be initiated either through position or velocity setpoint */
 
-	vehicle_status_s _vehicle_status{};		/**< vehicle status */
+	vehicle_status_s 			_vehicle_status{};		/**< vehicle status */
 	/**< vehicle-land-detection: initialze to landed */
 	vehicle_land_detected_s _vehicle_land_detected = {
 		.timestamp = 0,
@@ -160,12 +159,15 @@ private:
 		._padding0 = {}
 	};
 
-	vehicle_attitude_setpoint_s	_att_sp{};			/**< vehicle attitude setpoint */
-	vehicle_control_mode_s	_control_mode{};		/**< vehicle control mode */
-	vehicle_local_position_s _local_pos{};			/**< vehicle local position */
-	home_position_s	_home_pos{};			/**< home position */
-	vehicle_trajectory_waypoint_s _traj_wp_avoidance{};		/**< trajectory waypoint */
-	vehicle_trajectory_waypoint_s _traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
+	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */
+	vehicle_control_mode_s			_control_mode{};		/**< vehicle control mode */
+	vehicle_local_position_s		_local_pos{};			/**< vehicle local position */
+	home_position_s				_home_pos{};			/**< home position */
+	vehicle_trajectory_waypoint_s		_traj_wp_avoidance{};		/**< trajectory waypoint */
+	vehicle_trajectory_waypoint_s		_traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
+	landing_gear_s _landing_gear{};
+
+	int8_t		_old_landing_gear_position;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
@@ -847,15 +849,16 @@ MulticopterPositionControl::run()
 			_att_sp.fw_control_yaw = false;
 			_att_sp.apply_flaps = false;
 
-			// publish attitude setpoint (for attitude controller)
+			// publish attitude setpoint
 			// Note: this requires review. The reason for not sending
 			// an attitude setpoint is because for non-flighttask modes
 			// the attitude septoint should come from another source, otherwise
 			// they might conflict with each other such as in offboard attitude control.
 			publish_attitude();
 
-			if (_old_landing_gear_position != gear.landing_gear
-			    && gear.landing_gear != landing_gear_s::GEAR_KEEP) {
+			// if there's any change in landing gear setpoint publish it
+			if (gear.landing_gear != _old_landing_gear_position
+				&& gear.landing_gear != landing_gear_s::GEAR_KEEP) {
 
 				_landing_gear.landing_gear = gear.landing_gear;
 				_landing_gear.timestamp = hrt_absolute_time();

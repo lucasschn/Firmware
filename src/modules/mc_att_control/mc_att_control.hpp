@@ -56,7 +56,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/esc_status.h>
+#include <uORB/topics/esc_status.h>  // Yuenec specific
 #include <uORB/topics/landing_gear.h>
 
 /**
@@ -99,6 +99,7 @@ private:
 	/**
 	 * Check for parameter update and handle it.
 	 */
+	 void		engine_failure_poll();  // Yuneec specific
 	void		battery_status_poll();
 	void		parameter_update_poll();
 	void		sensor_bias_poll();
@@ -111,7 +112,6 @@ private:
 	void		vehicle_motor_limits_poll();
 	bool		vehicle_rates_setpoint_poll();
 	void		vehicle_status_poll();
-	void		engine_failure_poll();
 	void 		landing_gear_state_poll();
 
 	void		publish_actuator_controls();
@@ -162,7 +162,7 @@ private:
 	int		_sensor_bias_sub{-1};		/**< sensor in-run bias correction subscription */
 	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
 	int		_esc_status_sub{-1};		/**< sensor in-run bias correction subscription */
-	int 		_landing_gear_sub{-1};
+	int		_landing_gear_sub{-1};
 
 	unsigned _gyro_count{1};
 	int _selected_gyro{0};
@@ -171,6 +171,7 @@ private:
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
 	orb_advert_t	_controller_status_pub{nullptr};	/**< controller status publication */
 	orb_advert_t	_vehicle_attitude_setpoint_pub{nullptr};
+	orb_advert_t	_landing_gear_pub{nullptr};
 
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
 

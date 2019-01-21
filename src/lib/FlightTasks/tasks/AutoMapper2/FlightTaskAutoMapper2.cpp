@@ -93,12 +93,11 @@ bool FlightTaskAutoMapper2::update()
 
 	_generateSetpoints();
 
-	// NOTE(YUNEEC): removed temporarily. We have our own implementation somewhere
 	// during mission and reposition, raise the landing gears but only
 	// if altitude is high enough
-	// if (_highEnoughForLandingGear()) {
-	// 	_constraints.landing_gear = vehicle_constraints_s::GEAR_UP;
-	// }
+	if (_highEnoughForLandingGear()) {
+		_gear.landing_gear = landing_gear_s::GEAR_UP;
+	}
 
 	// update previous type
 	_type_previous = _type;
@@ -130,7 +129,7 @@ void FlightTaskAutoMapper2::_prepareLandSetpoints()
 
 	// set constraints
 	_constraints.tilt = MPC_TILTMAX_LND.get();
-	// _constraints.landing_gear = vehicle_constraints_s::GEAR_DOWN;
+	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
 void FlightTaskAutoMapper2::_prepareTakeoffSetpoints()
@@ -140,7 +139,7 @@ void FlightTaskAutoMapper2::_prepareTakeoffSetpoints()
 	const float speed_tko = (_alt_above_ground > MPC_LAND_ALT1.get()) ? _constraints.speed_up : MPC_TKO_SPEED.get();
 	_velocity_setpoint = Vector3f(NAN, NAN, -speed_tko); // Limit the maximum vertical speed
 
-	// _constraints.landing_gear = vehicle_constraints_s::GEAR_DOWN;
+	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
 void FlightTaskAutoMapper2::_prepareVelocitySetpoints()

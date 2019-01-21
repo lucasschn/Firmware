@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # Standard apps for multirotors:
 # att & pos estimator, att & pos control.

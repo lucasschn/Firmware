@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # HITL startup script. We only start the adc for voltage sensing.
 #

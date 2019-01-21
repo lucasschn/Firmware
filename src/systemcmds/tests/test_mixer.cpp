@@ -44,6 +44,7 @@
 
 #include <px4_config.h>
 #include <mixer/mixer.h>
+#include <mixer/mixer_load.h>
 #include <pwm_limit/pwm_limit.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
@@ -61,7 +62,7 @@ static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_index,
 			       float &control);
 
-const unsigned output_max = 8;
+static const unsigned output_max = 8;
 static float actuator_controls[output_max];
 static bool should_prearm = false;
 

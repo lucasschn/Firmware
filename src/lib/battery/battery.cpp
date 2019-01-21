@@ -43,6 +43,7 @@
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include <cstring>
+#include <px4_defines.h>
 
 Battery::Battery() :
 	ModuleParams(nullptr),

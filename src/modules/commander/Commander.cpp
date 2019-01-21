@@ -1299,6 +1299,9 @@ Commander::run()
 	param_t _param_fmode_5 = param_find("COM_FLTMODE5");
 	param_t _param_fmode_6 = param_find("COM_FLTMODE6");
 
+	param_t _param_airmode = param_find("MC_AIRMODE");
+	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
+
 	/* failsafe response to loss of navigation accuracy */
 	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
 
@@ -1511,6 +1514,8 @@ Commander::run()
 	int32_t geofence_action = 0;
 
 	int32_t flight_uuid = 0;
+	int32_t airmode = 0;
+	int32_t rc_map_arm_switch = 0;
 
 	/* RC override auto modes */
 	int32_t rc_override = 0;
@@ -1670,6 +1675,18 @@ Commander::run()
 
 			/* param to switch LED mode */
 			param_get(_param_led_mode, (int32_t*)&led_mode);
+
+			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
+			if (_param_airmode != PARAM_INVALID && _param_rc_map_arm_switch != PARAM_INVALID) {
+				param_get(_param_airmode, &airmode);
+				param_get(_param_rc_map_arm_switch, &rc_map_arm_switch);
+
+				if (airmode == 2 && rc_map_arm_switch == 0) {
+					airmode = 1; // change to roll/pitch airmode
+					param_set(_param_airmode, &airmode);
+					mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires the use of an Arm Switch")
+				}
+			}
 
 			param_init_forced = false;
 		}

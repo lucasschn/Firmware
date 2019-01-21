@@ -214,6 +214,18 @@ private:
 	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
 
 	DEFINE_PARAMETERS(
+		/* Yuneec specific */
+		(ParamFloat<px4::params::FTC_ROLLRATE_P>) _ftc_rollrate_p,
+		(ParamFloat<px4::params::FTC_ROLLRATE_I>) _ftc_rollrate_i,
+		(ParamFloat<px4::params::FTC_ROLLRATE_D>) _ftc_rollrate_d,
+		(ParamFloat<px4::params::FTC_PITCHRATE_P>) _ftc_pitchrate_p,
+		(ParamFloat<px4::params::FTC_PITCHRATE_I>) _ftc_pitchrate_i,
+		(ParamFloat<px4::params::FTC_PITCHRATE_D>) _ftc_pitchrate_d,
+		(ParamFloat<px4::params::FTC_YAWRATE_P>) _ftc_yawrate_p,
+		(ParamFloat<px4::params::FTC_YAWRATE_I>) _ftc_yawrate_i,
+		(ParamFloat<px4::params::FTC_YAWRATE_D>) _ftc_yawrate_d,
+		/* END Yuneec specific */
+
 		(ParamFloat<px4::params::MC_ROLL_P>) _roll_p,
 		(ParamFloat<px4::params::MC_ROLLRATE_P>) _roll_rate_p,
 		(ParamFloat<px4::params::MC_ROLLRATE_I>) _roll_rate_i,
@@ -275,15 +287,7 @@ private:
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _throttle_hover,			/**< throttle at which vehicle is at hover equilibrium */
 		(ParamInt<px4::params::MPC_THR_CURVE>) _throttle_curve,				/**< throttle curve behavior */
 
-		(ParamFloat<px4::params::FTC_ROLLRATE_P>) _ftc_rollrate_p,
-		(ParamFloat<px4::params::FTC_ROLLRATE_I>) _ftc_rollrate_i,
-		(ParamFloat<px4::params::FTC_ROLLRATE_D>) _ftc_rollrate_d,
-		(ParamFloat<px4::params::FTC_PITCHRATE_P>) _ftc_pitchrate_p,
-		(ParamFloat<px4::params::FTC_PITCHRATE_I>) _ftc_pitchrate_i,
-		(ParamFloat<px4::params::FTC_PITCHRATE_D>) _ftc_pitchrate_d,
-		(ParamFloat<px4::params::FTC_YAWRATE_P>) _ftc_yawrate_p,
-		(ParamFloat<px4::params::FTC_YAWRATE_I>) _ftc_yawrate_i,
-		(ParamFloat<px4::params::FTC_YAWRATE_D>) _ftc_yawrate_d
+		(ParamInt<px4::params::MC_AIRMODE>) _airmode
 	)
 
 	matrix::Vector3f _attitude_p;		/**< P gain for attitude control */

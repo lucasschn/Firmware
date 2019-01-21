@@ -200,13 +200,13 @@ void convertRcMode(int mode, T &roll, T &pitch, T &yaw, T &throttle)
 template<typename T>
 const T expontialFromLimits(const T &X_in, const T &Y_min, const T &Y_mid, const T &Y_max)
 {
-	T SIGMA_NORM = (T)0.001;
+	const T delta = (T)0.001;
 	// constrain X_in to the range of 0 and 2
 	T X = math::constrain(X_in, (T)0, (T)2);
 	// If Y_mid is exactly in the middle, then just apply linear approach.
 	bool use_linear_approach = false;
 
-	if (((Y_max + Y_min) * (T)0.5) - Y_mid < SIGMA_NORM) {
+	if (((Y_max + Y_min) * (T)0.5) - Y_mid < delta) {
 		use_linear_approach = true;
 	}
 
@@ -228,6 +228,6 @@ const T expontialFromLimits(const T &X_in, const T &Y_min, const T &Y_mid, const
 
 	// Y_out needs to be in between max and min
 	return constrain(Y_out, Y_min, Y_max);
-}
 
+}
 } /* namespace math */

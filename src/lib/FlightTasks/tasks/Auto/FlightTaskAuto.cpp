@@ -472,7 +472,6 @@ void FlightTaskAuto::_updateInternalWaypoints()
 	// 2. The vehicle is more than cruise speed in front of previous waypoint -> go straight to previous waypoint
 	// 3. The vehicle is more than cruise speed from track -> go straight to closest point on track
 	switch (_current_state) {
-
 	case State::target_behind:
 		_target = _triplet_target;
 		_prev_wp = _position;
@@ -487,7 +486,7 @@ void FlightTaskAuto::_updateInternalWaypoints()
 
 	case State::offtrack:
 		_next_wp = _triplet_target;
-		_target = Vector3f(_closest_pt(0), _closest_pt(1), _triplet_target(2));
+		_target = matrix::Vector3f(_closest_pt(0), _closest_pt(1), _triplet_target(2));
 		_prev_wp = _position;
 		break;
 

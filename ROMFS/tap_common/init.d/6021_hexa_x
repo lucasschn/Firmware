@@ -27,23 +27,23 @@ then
 		# TAP v1
 		# pitch angle & rate setting
 		param set MC_PITCHRATE_P 0.13
-		param set MC_PITCHRATE_I 0.000
+		param set MC_PITCHRATE_I 0
 		param set MC_PITCHRATE_D 0.0032
-		param set MC_PITCHRATE_MAX 360.0
+		param set MC_PITCHRATE_MAX 360
 		param set MC_PITCH_P 4.5
 
 		# roll angle & rate setting
 		param set MC_ROLLRATE_P 0.13
-		param set MC_ROLLRATE_I 0.000
+		param set MC_ROLLRATE_I 0
 		param set MC_ROLLRATE_D 0.0032
-		param set MC_ROLLRATE_MAX 360.0
+		param set MC_ROLLRATE_MAX 360
 		param set MC_ROLL_P 4.5
 
 		# yaw angle & rate setting
 		param set MC_YAWRATE_P 0.12
 		param set MC_YAWRATE_I 0.05
-		param set MC_YAWRATE_MAX 120.0
-		param set MC_YAW_P 3.0
+		param set MC_YAWRATE_MAX 120
+		param set MC_YAW_P 3
 
 		# hover thrust
 		# not tuned
@@ -57,21 +57,21 @@ then
 		param set MC_PITCHRATE_P 0.09
 		param set MC_PITCHRATE_I 0.09
 		param set MC_PITCHRATE_D 0.001
-		param set MC_PITCHRATE_MAX 360.0
+		param set MC_PITCHRATE_MAX 360
 		param set MC_PITCH_P 6
 
 		# roll angle & rate setting
 		param set MC_ROLLRATE_P 0.09
 		param set MC_ROLLRATE_I 0.09
 		param set MC_ROLLRATE_D 0.001
-		param set MC_ROLLRATE_MAX 360.0
+		param set MC_ROLLRATE_MAX 360
 		param set MC_ROLL_P 6
 
 		# yaw angle & rate setting
 		param set MC_YAWRATE_P 0.1495
 		param set MC_YAWRATE_I 0.0575
-		param set MC_YAWRATE_MAX 100.0
-		param set MC_YAWRAUTO_MAX 80.0
+		param set MC_YAWRATE_MAX 100
+		param set MC_YAWRAUTO_MAX 80
 		param set MC_YAW_P 3.5
 
 		# hover thrust
@@ -84,34 +84,34 @@ then
 		param set MPC_XY_VEL_I 0.09
 		param set MPC_Z_VEL_P 0.25
 		param set MPC_Z_P 0.85
-		param set MPC_Z_VEL_D 0.0
+		param set MPC_Z_VEL_D 0
 		param set MPC_Z_VEL_I 0.085
 
 		# Manual stick input parameters
-		param set RC_FLT_SMP_RATE 33.0
-		param set RC_FLT_CUTOFF 5.0
+		param set RC_FLT_SMP_RATE 33
+		param set RC_FLT_CUTOFF 5
 		param set MPC_HOLD_DZ 0.1
 		param set MPC_XY_MAN_EXPO 0.7
 		param set MPC_Z_MAN_EXPO 0.6
 		param set MPC_YAW_EXPO 0.6
 		param set MPC_MANTHR_MIN 0.15
-		param set MPC_MAN_Y_MAX 100.0
+		param set MPC_MAN_Y_MAX 100
 
 		# Position control velocity
-		param set MPC_XY_CRUISE 10.0
-		param set MPC_CRUISE_90 3.0
-		param set MPC_XY_VEL_MAX 14.0
-		param set MPC_Z_VEL_MAX_UP 7.0
-		param set MPC_Z_VEL_MAX_DN 6.0
+		param set MPC_XY_CRUISE 10
+		param set MPC_CRUISE_90 3
+		param set MPC_XY_VEL_MAX 14
+		param set MPC_Z_VEL_MAX_UP 7
+		param set MPC_Z_VEL_MAX_DN 6
 		param set MPC_LAND_SPEED 0.8
-		param set MPC_VEL_MANUAL 10.0
+		param set MPC_VEL_MANUAL 10
 
 		# Position control acceleraton
-		param set MPC_ACC_HOR_MAX 10.0
-		param set MPC_ACC_HOR 6.0
-		param set MPC_DEC_HOR_SLOW 1.0
-		param set MPC_ACC_DOWN_MAX 6.0
-		param set MPC_ACC_UP_MAX 6.0
+		param set MPC_ACC_HOR_MAX 10
+		param set MPC_ACC_HOR 6
+		param set MPC_DEC_HOR_SLOW 1
+		param set MPC_ACC_DOWN_MAX 6
+		param set MPC_ACC_UP_MAX 6
 		param set MPC_JERK_MAX 15
 		param set MPC_JERK_MIN 0.1
 
@@ -127,14 +127,14 @@ then
 		param set BAT_V_EMPTY 3.56
 		param set BAT_V_CHARGED 4.15
 		param set BAT_R_INTERNAL 0.005
-		param set BAT_CAPACITY 6500.0
+		param set BAT_CAPACITY 6500
 		param set BAT_LOW_THR 0.15
 		param set BAT_CRIT_THR 0.1
 		param set BAT_EMERGEN_THR 0.05
 
 		# RC
 		param set COM_RC_OVERRIDE 1
-		param set COM_RC_LOSS_T 3.0
+		param set COM_RC_LOSS_T 3
 		param set COM_DL_LOSS_T 10
 
 		# allow receiving team mode input
@@ -161,24 +161,24 @@ then
 	#
 	# RTL settings
 	#
-	param set MIS_LTRMIN_ALT 5.0
+	param set MIS_LTRMIN_ALT 5
 	param set RTL_LAND_DELAY 3.5
 	param set LAND_LOI_DELAY 3.5
 
 	#
 	# Mission settings
 	#
-	param set MIS_YAW_ERR 90.0
+	param set MIS_YAW_ERR 90
 
 	#
 	# Vehicle model settings
 	#
-	param set LNDMC_ALT_MAX 500.0
+	param set LNDMC_ALT_MAX 500
 
 	#
 	# Maximum tilt angle
 	#
-	param set MPC_TILTMAX_AIR 35.0
+	param set MPC_TILTMAX_AIR 35
 
 	#
 	# Battery setting
@@ -188,7 +188,7 @@ then
 	#
 	# Acceptance radius
 	#
-	param set NAV_ACC_RAD 1.0
+	param set NAV_ACC_RAD 1
 
 	#
 	# Calibrate by rotating around arms

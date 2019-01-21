@@ -20,21 +20,21 @@ then
 	param set MC_PITCHRATE_P 0.1
 	param set MC_PITCHRATE_I 0.1
 	param set MC_PITCHRATE_D 0.0006
-	param set MC_PITCHRATE_MAX 360.0
-	param set MC_PITCH_P 8.0
+	param set MC_PITCHRATE_MAX 360
+	param set MC_PITCH_P 8
 
 	# roll angle & rate setting
 	param set MC_ROLLRATE_P 0.1
 	param set MC_ROLLRATE_I 0.1
 	param set MC_ROLLRATE_D 0.0006
-	param set MC_ROLLRATE_MAX 360.0
-	param set MC_ROLL_P 8.0
+	param set MC_ROLLRATE_MAX 360
+	param set MC_ROLL_P 8
 
 	# yaw angle & rate setting
 	param set MC_YAWRATE_P 0.15
 	param set MC_YAWRATE_I 0.1
-	param set MC_YAWRATE_MAX 100.0
-	param set MC_YAWRAUTO_MAX 80.0
+	param set MC_YAWRATE_MAX 100
+	param set MC_YAWRAUTO_MAX 80
 	param set MC_YAW_P 2.8
 
 	# filtering
@@ -45,48 +45,48 @@ then
 	param set MPC_THR_HOVER 0.525
 
 	# Position control parameters
-	param set MPC_XY_P 2.0
+	param set MPC_XY_P 2
 	param set MPC_XY_VEL_P 0.4
 	param set MPC_XY_VEL_D 0.005
 	param set MPC_XY_VEL_I 0.08
 	param set MPC_Z_VEL_P 0.55
-	param set MPC_Z_P 3.0
-	param set MPC_Z_VEL_D 0.0
+	param set MPC_Z_P 3
+	param set MPC_Z_VEL_D 0
 	param set MPC_Z_VEL_I 0.1
 
 	# Manual stick input parameters
-	param set RC_FLT_SMP_RATE 33.0
-	param set RC_FLT_CUTOFF 5.0
+	param set RC_FLT_SMP_RATE 33
+	param set RC_FLT_CUTOFF 5
 	param set MPC_HOLD_XY_DZ 0.05
 	param set MPC_XY_MAN_EXPO 0.7
 	param set MPC_Z_MAN_EXPO 0.6
 	param set MPC_MANTHR_MIN 0.15
 
 	# Position control velocity
-	param set MPC_XY_CRUISE 12.0
-	param set MPC_CRUISE_90 3.0
-	param set MPC_VEL_MANUAL 12.0
-	param set MPC_XY_VEL_MAX 20.0
-	param set MPC_Z_VEL_MAX_UP 4.0
-	param set MPC_Z_VEL_MAX_DN 3.0
+	param set MPC_XY_CRUISE 12
+	param set MPC_CRUISE_90 3
+	param set MPC_VEL_MANUAL 12
+	param set MPC_XY_VEL_MAX 20
+	param set MPC_Z_VEL_MAX_UP 4
+	param set MPC_Z_VEL_MAX_DN 3
 	param set MPC_LAND_SPEED 0.8
 
 	#Position control acceleration
-	param set MPC_ACC_HOR_MAX 7.0
-	param set MPC_ACC_HOR 3.0
-	param set MPC_DEC_HOR_SLOW 1.0
-	param set MPC_ACC_DOWN_MAX 3.0
-	param set MPC_ACC_UP_MAX 4.0
+	param set MPC_ACC_HOR_MAX 7
+	param set MPC_ACC_HOR 3
+	param set MPC_DEC_HOR_SLOW 1
+	param set MPC_ACC_DOWN_MAX 3
+	param set MPC_ACC_UP_MAX 4
 	param set MPC_JERK_MAX 15
 	param set MPC_JERK_MIN 0.1
 
 	# Throttle pid attenuation
-	param set MC_TPA_RATE_P 0.0
-	param set MC_TPA_RATE_I 0.0
-	param set MC_TPA_RATE_D 0.0
-	param set MC_TPA_BREAK_P 1.0
-	param set MC_TPA_BREAK_I 1.0
-	param set MC_TPA_BREAK_D 1.0
+	param set MC_TPA_RATE_P 0
+	param set MC_TPA_RATE_I 0
+	param set MC_TPA_RATE_D 0
+	param set MC_TPA_BREAK_P 1
+	param set MC_TPA_BREAK_I 1
+	param set MC_TPA_BREAK_D 1
 
 	# ekf2
 	# these parameters are for first tests
@@ -95,7 +95,7 @@ then
 	param set EKF2_IMU_POS_Y 0.014
 	param set EKF2_IMU_POS_Z -0.02
 	param set EKF2_GPS_POS_X 0.06
-	param set EKF2_GPS_POS_Y 0.0
+	param set EKF2_GPS_POS_Y 0
 	param set EKF2_GPS_POS_Z -0.02
 	param set EKF2_MIN_OBS_DT 50
 	param set EKF2_MAG_DELAY 0
@@ -103,12 +103,12 @@ then
 	param set EKF2_GPS_DELAY 100
 	param set EKF2_OF_DELAY 5
 	param set SYS_MC_EST_GROUP 2
-	param set EKF2_BCOEF_X 0.0
-	param set EKF2_BCOEF_Y 0.0
-	param set EKF2_PCOEF_XP 0.0
-	param set EKF2_PCOEF_XN 0.0
-	param set EKF2_PCOEF_Y 0.0
-	param set EKF2_PCOEF_Z 0.0
+	param set EKF2_BCOEF_X 0
+	param set EKF2_BCOEF_Y 0
+	param set EKF2_PCOEF_XP 0
+	param set EKF2_PCOEF_XN 0
+	param set EKF2_PCOEF_Y 0
+	param set EKF2_PCOEF_Z 0
 	# temp for replay wind and baro compensation tuning
 	param set SDLOG_MODE 1
 
@@ -142,18 +142,18 @@ then
 	#
 	# RTL settings
 	#
-	param set MIS_LTRMIN_ALT 5.0
+	param set MIS_LTRMIN_ALT 5
 	param set RTL_LAND_DELAY 3.5
 	param set LAND_LOI_DELAY 3.5
 
 	# Vehicle model settings
 	#
-	param set LNDMC_ALT_MAX 120.0
+	param set LNDMC_ALT_MAX 120
 
 	#
 	# Maximum tilt angle
 	#
-	param set MPC_TILTMAX_AIR 35.0
+	param set MPC_TILTMAX_AIR 35
 
 	#
 	# Battery setting
@@ -163,7 +163,7 @@ then
 	#
 	# Acceptance radius
 	#
-	param set NAV_ACC_RAD 1.0
+	param set NAV_ACC_RAD 1
 
 	#
 	# Calibrate by rotating around axes
@@ -222,24 +222,24 @@ then
 	# RC mapping sends 12 bit values [0,4095]
 	# Because ST16 factory calibration can lead to offset from maximum and minimum
 	# we cut 95 (2.3%) from top and bottom such that we are sure to reach the limits
-	set CHANNEL_MAX 4000.0
-	set CHANNEL_MIN 95.0
-	set CHANNEL_MID 2048.0
+	set CHANNEL_MAX 4000
+	set CHANNEL_MIN 95
+	set CHANNEL_MID 2048
 	param set RC1_MAX ${CHANNEL_MAX}
 	param set RC1_MIN ${CHANNEL_MIN}
-	param set RC1_REV 1.0
+	param set RC1_REV 1
 	param set RC1_TRIM ${CHANNEL_MID}
 	param set RC2_MAX ${CHANNEL_MAX}
 	param set RC2_MIN ${CHANNEL_MIN}
-	param set RC2_REV 1.0
+	param set RC2_REV 1
 	param set RC2_TRIM ${CHANNEL_MID}
 	param set RC3_MAX ${CHANNEL_MAX}
 	param set RC3_MIN ${CHANNEL_MIN}
-	param set RC3_REV 1.0
+	param set RC3_REV 1
 	param set RC3_TRIM ${CHANNEL_MID}
 	param set RC4_MAX ${CHANNEL_MAX}
 	param set RC4_MIN ${CHANNEL_MIN}
-	param set RC4_REV 1.0
+	param set RC4_REV 1
 	param set RC4_TRIM ${CHANNEL_MID}
 	param set RC5_MAX ${CHANNEL_MAX}
 	param set RC5_MIN ${CHANNEL_MIN}
@@ -255,19 +255,19 @@ then
 	# because these are the default values
 	param set RC_AVOID_TH 0.25
 	param set RC_AVOID_MID_TH 0.75
-	param set RC8_MAX 2000.0
-	param set RC8_MIN 1000.0
-	param set RC8_TRIM 1500.0
-	param set RC9_MAX 2000.0
-	param set RC9_MIN 1000.0
-	param set RC9_TRIM 1500.0
-	param set RC10_MAX 2000.0
-	param set RC10_MIN 1000.0
-	param set RC10_TRIM 1500.0
-	param set RC11_MAX 2000.0
-	param set RC11_MIN 1000.0
-	param set RC11_REV 1.0
-	param set RC11_TRIM 1500.0
+	param set RC8_MAX 2000
+	param set RC8_MIN 1000
+	param set RC8_TRIM 1500
+	param set RC9_MAX 2000
+	param set RC9_MIN 1000
+	param set RC9_TRIM 1500
+	param set RC10_MAX 2000
+	param set RC10_MIN 1000
+	param set RC10_TRIM 1500
+	param set RC11_MAX 2000
+	param set RC11_MIN 1000
+	param set RC11_REV 1
+	param set RC11_TRIM 1500
 
 	# gimbal driver configuration
 	param set MNT_MODE_IN 4

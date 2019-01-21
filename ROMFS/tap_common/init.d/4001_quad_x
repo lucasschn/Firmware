@@ -27,21 +27,21 @@ then
 	param set MC_PITCHRATE_P 0.13
 	param set MC_PITCHRATE_I 0.1
 	param set MC_PITCHRATE_D 0.0003
-	param set MC_PITCHRATE_MAX 360.0
-	param set MC_PITCH_P 9.0
+	param set MC_PITCHRATE_MAX 360
+	param set MC_PITCH_P 9
 
 	# roll angle & rate setting
 	param set MC_ROLLRATE_P 0.13
 	param set MC_ROLLRATE_I 0.1
 	param set MC_ROLLRATE_D 0.0003
-	param set MC_ROLLRATE_MAX 360.0
-	param set MC_ROLL_P 9.0
+	param set MC_ROLLRATE_MAX 360
+	param set MC_ROLL_P 9
 
 	# yaw angle & rate setting
 	param set MC_YAWRATE_P 0.12
 	param set MC_YAWRATE_I 0.08
-	param set MC_YAWRATE_MAX 100.0
-	param set MC_YAWRAUTO_MAX 80.0
+	param set MC_YAWRATE_MAX 100
+	param set MC_YAWRAUTO_MAX 80
 	param set MC_YAW_P 2.5
 
 	# hover thrust
@@ -49,39 +49,39 @@ then
 	param set MPC_THR_HOVER 0.68
 
 	# Position control parameters
-	param set MPC_XY_P 2.0
+	param set MPC_XY_P 2
 	param set MPC_XY_VEL_P 0.4
 	param set MPC_XY_VEL_D 0.005
 	param set MPC_XY_VEL_I 0.08
 	param set MPC_Z_VEL_P 0.55
-	param set MPC_Z_P 3.0
-	param set MPC_Z_VEL_D 0.0
+	param set MPC_Z_P 3
+	param set MPC_Z_VEL_D 0
 	param set MPC_Z_VEL_I 0.1
 
 
 	# Manual stick input parameters
-	param set RC_FLT_SMP_RATE 33.0
-	param set RC_FLT_CUTOFF 5.0
+	param set RC_FLT_SMP_RATE 33
+	param set RC_FLT_CUTOFF 5
 	param set MPC_HOLD_XY_DZ 0.05
 	param set MPC_XY_MAN_EXPO 0.7
 	param set MPC_Z_MAN_EXPO 0.6
 	param set MPC_MANTHR_MIN 0.15
 
 	# Position control velocity
-	param set MPC_XY_CRUISE 12.0
-	param set MPC_CRUISE_90 3.0
-	param set MPC_VEL_MANUAL 12.0
-	param set MPC_XY_VEL_MAX 20.0
-	param set MPC_Z_VEL_MAX_UP 4.0
-	param set MPC_Z_VEL_MAX_DN 3.0
+	param set MPC_XY_CRUISE 12
+	param set MPC_CRUISE_90 3
+	param set MPC_VEL_MANUAL 12
+	param set MPC_XY_VEL_MAX 20
+	param set MPC_Z_VEL_MAX_UP 4
+	param set MPC_Z_VEL_MAX_DN 3
 	param set MPC_LAND_SPEED 0.8
 
 	#Position control acceleration
-	param set MPC_ACC_HOR_MAX 7.0
-	param set MPC_ACC_HOR 3.0
-	param set MPC_DEC_HOR_SLOW 1.0
-	param set MPC_ACC_DOWN_MAX 3.0
-	param set MPC_ACC_UP_MAX 4.0
+	param set MPC_ACC_HOR_MAX 7
+	param set MPC_ACC_HOR 3
+	param set MPC_DEC_HOR_SLOW 1
+	param set MPC_ACC_DOWN_MAX 3
+	param set MPC_ACC_UP_MAX 4
 	param set MPC_JERK_MAX 15
 	param set MPC_JERK_MIN 0.1
 
@@ -123,18 +123,18 @@ then
 	#
 	# RTL settings
 	#
-	param set MIS_LTRMIN_ALT 5.0
+	param set MIS_LTRMIN_ALT 5
 	param set RTL_LAND_DELAY 3.5
 	param set LAND_LOI_DELAY 3.5
 
 	# Vehicle model settings
 	#
-	param set LNDMC_ALT_MAX 500.0
+	param set LNDMC_ALT_MAX 500
 
 	#
 	# Maximum tilt angle
 	#
-	param set MPC_TILTMAX_AIR 35.0
+	param set MPC_TILTMAX_AIR 35
 
 	#
 	# Battery setting
@@ -144,7 +144,7 @@ then
 	#
 	# Acceptance radius
 	#
-	param set NAV_ACC_RAD 1.0
+	param set NAV_ACC_RAD 1
 
 	#
 	# Calibrate by rotating around axes
@@ -178,44 +178,44 @@ then
 	param set RC_MAP_AUX3 9
 	param set RC_MAP_AUX4 10
 
-	param set RC1_MAX 1827.0
-	param set RC1_MIN 1162.0
-	param set RC1_REV 1.0
-	param set RC1_TRIM 1162.0
-	param set RC2_MAX 1810.0
-	param set RC2_MIN 1190.0
+	param set RC1_MAX 1827
+	param set RC1_MIN 1162
+	param set RC1_REV 1
+	param set RC1_TRIM 1162
+	param set RC2_MAX 1810
+	param set RC2_MIN 1190
 	param set RC2_REV -1.0
-	param set RC2_TRIM 1500.0
-	param set RC3_MAX 1810.0
-	param set RC3_MIN 1190.0
-	param set RC3_REV 1.0
-	param set RC3_TRIM 1500.0
-	param set RC4_MAX 1810.0
-	param set RC4_MIN 1190.0
-	param set RC4_REV -1.0
-	param set RC4_TRIM 1500.0
-	param set RC5_MAX 1833.0
-	param set RC5_MIN 1167.0
-	param set RC5_TRIM 1500.0
-	param set RC6_MAX 2000.0
-	param set RC6_MIN 1000.0
-	param set RC6_TRIM 1500.0
-	param set RC7_MAX 1833.0
-	param set RC7_MIN 1163.0
-	param set RC7_TRIM 1500.0
-	param set RC8_MAX 1833.0
-	param set RC8_MIN 1163.0
-	param set RC8_TRIM 1500.0
-	param set RC9_MAX 1833.0
-	param set RC9_MIN 1067.0
-	param set RC9_TRIM 1500.0
-	param set RC10_MAX 1833.0
-	param set RC10_MIN 1067.0
-	param set RC10_TRIM 1500.0
-	param set RC11_MAX 2000.0
-	param set RC11_MIN 1000.0
-	param set RC11_REV -1.0
-	param set RC11_TRIM 1500.0
+	param set RC2_TRIM 1500
+	param set RC3_MAX 1810
+	param set RC3_MIN 1190
+	param set RC3_REV 1
+	param set RC3_TRIM 1500
+	param set RC4_MAX 1810
+	param set RC4_MIN 1190
+	param set RC4_REV -1
+	param set RC4_TRIM 1500
+	param set RC5_MAX 1833
+	param set RC5_MIN 1167
+	param set RC5_TRIM 1500
+	param set RC6_MAX 2000
+	param set RC6_MIN 1000
+	param set RC6_TRIM 1500
+	param set RC7_MAX 1833
+	param set RC7_MIN 1163
+	param set RC7_TRIM 1500
+	param set RC8_MAX 1833
+	param set RC8_MIN 1163
+	param set RC8_TRIM 1500
+	param set RC9_MAX 1833
+	param set RC9_MIN 1067
+	param set RC9_TRIM 1500
+	param set RC10_MAX 1833
+	param set RC10_MIN 1067
+	param set RC10_TRIM 1500
+	param set RC11_MAX 2000
+	param set RC11_MIN 1000
+	param set RC11_REV -1
+	param set RC11_TRIM 1500
 
 	#
 	# Switch mapping

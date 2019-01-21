@@ -1813,7 +1813,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f);
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 4.0f);
-		configure_stream_local("VISION_POSITION_ESTIMATE", 1.0f);
+		configure_stream_local("ODOMETRY", 3.0f);
 		configure_stream_local("WIND_COV", 1.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.f);
 		break;
@@ -1856,7 +1856,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f);
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 10.0f);
-		configure_stream_local("VISION_POSITION_ESTIMATE", 10.0f);
+		configure_stream_local("ODOMETRY", 30.0f);
 		configure_stream_local("WIND_COV", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.f);
 		break;
@@ -1924,7 +1924,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("TIMESYNC", 10.0f);
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 20.0f);
-		configure_stream_local("VISION_POSITION_ESTIMATE", 10.0f);
+		configure_stream_local("ODOMETRY", 30.0f);
 		configure_stream_local("WIND_COV", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.f);
 		break;

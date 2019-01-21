@@ -328,16 +328,15 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 				float ibatt = -1.0f; // no current sensor in simulation
 
-				// change this value if you want to simulate low battery reactions
-				float minimum_percentage;
+				const float minimum_percentage = 0.499f; // change this value if you want to simulate low battery reaction
 				param_get(param_find("SIM_BAT_MIN_PCT"), &minimum_percentage);
 				minimum_percentage = minimum_percentage / 100;
 
 				/* Simulate the voltage of a linearly draining battery but stop at the minimum percentage */
 				float battery_percentage = 1.0f - (now_us - batt_sim_start) / discharge_interval_us;
 
-				battery_percentage = math::min(battery_percentage, minimum_percentage);
-				float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.full_cell_voltage(), _battery.empty_cell_voltage());
+				battery_percentage = math::max(battery_percentage, minimum_percentage);
+				float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
 				vbatt *= _battery.cell_count();
 
 				const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable

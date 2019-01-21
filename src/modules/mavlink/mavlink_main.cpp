@@ -54,7 +54,6 @@
 #include <errno.h>
 #include <assert.h>
 #include <math.h>
-#include <poll.h>
 #include <termios.h>
 #include <time.h>
 
@@ -272,7 +271,8 @@ Mavlink::Mavlink() :
 	_send_mutex {},
 
 	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
+	_loop_interval_perf(perf_alloc(PC_INTERVAL, "mavlink_int"))
 {
 	_instance_id = Mavlink::instance_count();
 
@@ -338,6 +338,7 @@ Mavlink::Mavlink() :
 Mavlink::~Mavlink()
 {
 	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
 
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
@@ -571,7 +572,6 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 	}
 }
 
-
 int
 Mavlink::get_uart_fd(unsigned index)
 {
@@ -582,34 +582,6 @@ Mavlink::get_uart_fd(unsigned index)
 	}
 
 	return -1;
-}
-
-int
-Mavlink::get_uart_fd()
-{
-	return _uart_fd;
-}
-
-int
-Mavlink::get_instance_id()
-{
-	return _instance_id;
-}
-
-mavlink_channel_t
-Mavlink::get_channel()
-{
-	return _channel;
-}
-
-int Mavlink::get_system_id()
-{
-	return mavlink_system.sysid;
-}
-
-int Mavlink::get_component_id()
-{
-	return mavlink_system.compid;
 }
 
 int Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_control)
@@ -920,14 +892,6 @@ Mavlink::get_free_tx_buf()
 	}
 
 	return buf_free;
-}
-
-void
-Mavlink::begin_send()
-{
-	// must protect the network buffer so other calls from receive_thread do not
-	// mangle the message.
-	pthread_mutex_lock(&_send_mutex);
 }
 
 int
@@ -1555,13 +1519,6 @@ Mavlink::message_buffer_count()
 	return n;
 }
 
-int
-Mavlink::message_buffer_is_empty()
-{
-	return _message_buffer.read_ptr == _message_buffer.write_ptr;
-}
-
-
 bool
 Mavlink::message_buffer_write(const void *ptr, int size)
 {
@@ -1621,12 +1578,6 @@ Mavlink::message_buffer_get_ptr(void **ptr, bool *is_part)
 
 	*ptr = &(_message_buffer.data[_message_buffer.read_ptr]);
 	return n;
-}
-
-void
-Mavlink::message_buffer_mark_read(int n)
-{
-	_message_buffer.read_ptr = (_message_buffer.read_ptr + n) % _message_buffer.size;
 }
 
 void
@@ -2322,6 +2273,7 @@ Mavlink::task_main(int argc, char *argv[])
 		/* main loop */
 		px4_usleep(_main_loop_delay);
 
+		perf_count(_loop_interval_perf);
 		perf_begin(_loop_perf);
 
 		hrt_abstime t = hrt_absolute_time();

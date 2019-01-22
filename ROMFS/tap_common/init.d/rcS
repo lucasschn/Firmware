@@ -35,7 +35,7 @@ set +e
 # /dev/ttyS6: Smart Battery (Not connected on H520S-000-R1)(UART7)
 # /dev/ttyS7: console / J23			(UART8)
 
-# TAP_V4 HW Serial map:
+# YUNEEC_TAP_V4 HW Serial map:
 # /dev/ttyS0: GPS     		(USART1)
 # /dev/ttyS1: Sonar(Front)	(USART2)
 # /dev/ttyS2: OF+Sonar		(USART3)
@@ -45,7 +45,7 @@ set +e
 # /dev/ttyS6: Smart Battery	(UART7)
 # /dev/ttyS7: console		(UART8)
 
-if ver hwcmp TAP_V3 TAP_V4
+if ver hwcmp YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 #
 # Mount the procfs.
@@ -71,7 +71,7 @@ set RELEASE_VER 0  # no release version
 
 # Log file location
 set LOG_FILE /fs/microsd/bootlog.txt
-if ver hwcmp TAP_V1
+if ver hwcmp YUNEEC_TAP_V1
 then
 	set DATAMAN_OPT -r
 fi
@@ -132,8 +132,7 @@ mtd start
 #
 # Load parameters
 #
-
-if ver hwcmp TAP_V2 TAP_V3 TAP_V4
+if ver hwcmp YUNEEC_TAP_V2 YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 
 	# now load from SD card, which can override the temp calib params
@@ -165,7 +164,7 @@ fi
 
 unset PARAM_FILE
 
-if ver hwcmp TAP_V2 TAP_V3 TAP_V4
+if ver hwcmp YUNEEC_TAP_V2 YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 	camera_trigger start
 fi
@@ -173,7 +172,7 @@ fi
 #
 # Start system state indicator
 #
-if ver hwcmp TAP_V4
+if ver hwcmp YUNEEC_TAP_V4
 then
 	rgbled_pwm start
 fi
@@ -183,7 +182,7 @@ fi
 #
 if param compare SYS_AUTOSTART 0
 then
-	if ver hwcmp TAP_V4
+	if ver hwcmp YUNEEC_TAP_V4
 	then
 		param set SYS_AUTOSTART 4100
 	else
@@ -208,7 +207,7 @@ fi
 #
 if param compare SYS_AUTOSTART 6001
 then
-	if ver hwcmp TAP_V4
+	if ver hwcmp YUNEEC_TAP_V4
 	then
 		param set SYS_AUTOSTART 4001
 	else
@@ -221,7 +220,7 @@ fi
 #
 if param compare SYS_AUTOSTART 4001
 then
-	if ver hwcmp TAP_V4
+	if ver hwcmp YUNEEC_TAP_V4
 	then
 		param set SYS_AUTOSTART 4100
 	fi
@@ -273,12 +272,12 @@ set GIMBAL_TTY /dev/ttyS1
 set OFDM_TTY /dev/ttyS2
 set ESC_TTY /dev/ttyS4
 
-if ver hwcmp TAP_V2
+if ver hwcmp YUNEEC_TAP_V2
 then
 	set ESC_TTY /dev/ttyS2
 fi
 
-if ver hwcmp TAP_V3 TAP_V4
+if ver hwcmp YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 	set GIMBAL_TTY /dev/ttyS3
 fi
@@ -361,7 +360,7 @@ then
 
 		if param compare GPS_FIXPOS_RTK 1
 		then
-			if ver hwcmp TAP_V2
+			if ver hwcmp YUNEEC_TAP_V2
 			then
 				# Start the Fixposition RTK GPS on Real Sense port on H520
 				set GPS_PORT /dev/ttyS3
@@ -393,7 +392,7 @@ fmu mode_pwm3
 
 if [ ${HITL_ON} = no ]
 then
-	if ver hwcmp TAP_V1
+	if ver hwcmp YUNEEC_TAP_V1
 	then
 	# On TAP-V1 use 400 Hz PWM output for landing gear
 		pwm rate -c 1 -r 400
@@ -475,15 +474,15 @@ fi
 param set MAV_PROTO_VER 2
 
 # mavlink rate depends on baudrate
-if ver hwcmp TAP_V4
+if ver hwcmp YUNEEC_TAP_V4
 then
 	set MAV_RATE 40000
 else
 	set MAV_RATE 8000
 fi
 
-# starts a full mavlink instance for the gimbal port on TAP_V3 hardware
-if ver hwcmp TAP_V3 TAP_V4
+# starts a full mavlink instance for the gimbal port on YUNEEC_TAP_V3 hardware
+if ver hwcmp YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 	# mavlink instance for the gimbal port
 	vmount start -d ${GIMBAL_TTY} -b ${BAUDRATE}
@@ -540,7 +539,7 @@ unset MAV_RATE
 #
 # Logging
 #
-if ver hwcmp TAP_V2
+if ver hwcmp YUNEEC_TAP_V2
 then
 		if [ ${HITL_ON} = yes ]
 		then
@@ -697,12 +696,12 @@ fi
 
 set REALSENSE_PORT /dev/ttyS3
 
-if ver hwcmp TAP_V3
+if ver hwcmp YUNEEC_TAP_V3
 then
 	set REALSENSE_PORT /dev/ttyS1
 fi
 
-if ver hwcmp TAP_V3
+if ver hwcmp YUNEEC_TAP_V3
 then
 	realsense start -d ${REALSENSE_PORT}
 fi

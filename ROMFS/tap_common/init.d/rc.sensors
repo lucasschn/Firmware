@@ -16,7 +16,7 @@ hmc5883 -C -T -X -R 6 start
 
 # External I2C bus
 # note: once the new hardware is ready, it will be changed back.
-if ver hwcmp TAP_V4
+if ver hwcmp YUNEEC_TAP_V4
 then
 	ist8310 -C -R 4 start
 else
@@ -24,7 +24,7 @@ else
 fi
 
 # start accel/gyro
-if ver hwcmp TAP_V1
+if ver hwcmp YUNEEC_TAP_V1
 then
 	# Internal I2C bus
 	mpu6000 -I -T 6000 start
@@ -35,12 +35,12 @@ hc_sr04 -R 0 -m -a start
 
 set IMU_ROTATION 8
 
-if ver hwcmp TAP_V4
+if ver hwcmp YUNEEC_TAP_V4
 then
 	set IMU_ROTATION 2
 fi
 
-if ver hwcmp TAP_V2 TAP_V3 TAP_V4
+if ver hwcmp YUNEEC_TAP_V2 YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 	# internal SPI bus
 	mpu6000 -s -R ${IMU_ROTATION} -T 20602 start

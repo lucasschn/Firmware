@@ -32,9 +32,6 @@
 ############################################################################
 
 px4_add_romfs_files(
-	4001_quad_x
-	4100_quad_x
-	6021_hexa_x
 	rc.fw_apps
 	rc.fw_defaults
 	rc.interface

@@ -13,6 +13,9 @@ All notable changes to this project will be documented in this file.
 ### Added
 * Logging the new separate landing gear status message (#3117)
 
+### Fixed
+* Don't run motor-check in HITL (#3120, #3089)
+
 
 ## [v1.8.0-1.5.10]
 ### Fixed

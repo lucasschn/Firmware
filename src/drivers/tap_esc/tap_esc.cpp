@@ -667,7 +667,7 @@ void TAP_ESC::cycle()
 
 			// Motor startup check: did at least 4 motors spin up correctly within the first second after arming
 			// otherwise we might be armed but the motors didn't start and if they suddenly start it's dangerous
-			if (!_motor_start_check_done && ((hrt_absolute_time() / 1000) - _armed.armed_time_ms) > 1000) {
+			if (!_motor_start_check_done && !_hitl && ((hrt_absolute_time() / 1000) - _armed.armed_time_ms) > 1000) {
 				_motor_start_check_done = true;
 				uint8_t started_motors_count = 0;
 

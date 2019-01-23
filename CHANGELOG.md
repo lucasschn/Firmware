@@ -2,14 +2,24 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Changed
+* New (less annoying) tune for low-battery warning (#3095)
+* Only rotate gimbal to face towards ROI, not the entire drone (#3121)
+* Changed minimum altitude for OBS. avoidance from 1.5m to 2.0m (#2675)
+
+### Fixed
+* The drone wouldn't face straight forward when flying a survey after a ROI mission (#3121)
+
+### Added
+* Logging the new separate landing gear status message (#3117)
+
+
+## [v1.8.0-1.5.10]
 ### Fixed
 * Setting COM_ARM_SWISBTN parameter to avoid problems with the arm button (#3085)
 
 ### Added
 * Command motors to stop if they don't spin up correctly for safety (#3089)
-
-### Changed
-* Changed minimum altitude for OBS. avoidance from 1.5m to 2.0m (#2675)
 
 
 ## [v1.8.0-1.5.9]

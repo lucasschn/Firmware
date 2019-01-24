@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 * Only allow takeoff without GPS in indoor mode (#2808, #3055)
+* RC loss alarm enabled for when RC is disconnected after flying, but the drone is still powered (#3126)
 
 
 ## [v1.8.0-1.5.11]

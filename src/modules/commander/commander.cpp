@@ -1265,6 +1265,9 @@ Commander::run()
 
 	param_t _param_led_mode = param_find("COM_LED_MODE");
 
+	param_t _param_ekf2_indoor_mode = param_find("EKF2_INDOOR_MODE");
+	param_t _param_require_indoor_mode_or_home = param_find("COM_INDR_OR_HOME");
+
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
 
@@ -1548,6 +1551,9 @@ Commander::run()
 	// The default is on which is 1.
 	LED_MODE old_led_mode = LED_MODE::LedsOn;
 	LED_MODE led_mode = LED_MODE::LedsOn;
+
+	int32_t ekf2_indoor_mode{0};
+	int32_t require_indoor_mode_or_home{0};
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool main_state_changed = false;
@@ -2628,6 +2634,12 @@ Commander::run()
 					} else if (!status_flags.condition_home_position_valid &&
 						   geofence_action == geofence_result_s::GF_ACTION_RTL) {
 						print_reject_arm("NOT ARMING: geofence RTL requires valid home.");
+
+					} else if ((!status_flags.condition_home_position_valid
+						|| !status_flags.condition_global_position_valid
+						|| !status_flags.condition_local_position_valid)
+						&& !ekf2_indoor_mode && require_indoor_mode_or_home) {
+						print_reject_arm("NOT ARMING: No GPS - Wait or switch to indoor mode");
 
 					} else if (internal_state.main_state != _desired_flight_mode) {
 						print_reject_arm("NOT ARMING: conditions for flight mode not met.");

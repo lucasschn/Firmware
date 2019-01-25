@@ -331,6 +331,18 @@ PARAM_DEFINE_FLOAT(COM_DISARM_CRASH, -1.0f);
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
 /**
+ * Require GPS or indoor mode for arming
+ *
+ * When enabled, the drone must have a valid home position set when arming,
+ * except when the indoor mode is enabled.
+ * When disabled, no additional requirements for arming are created.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_INDR_OR_HOME, 0);
+
+/**
  * Allow interrupt gohome and landing
  *
  * The default do not allow interrupt gohome and landing.

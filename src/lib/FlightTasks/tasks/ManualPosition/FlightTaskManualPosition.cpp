@@ -95,7 +95,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	Vector2f stick_xy(_sticks_expo(0), _sticks_expo(1));
 
 	// Yuneec specific speed scale (turtle slider)
-	stick_xy *=	math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f);
+	stick_xy *= math::gradual(_user_speed_scale, -1.f, 1.f, 0.1f, 1.f);
 
 	float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
 

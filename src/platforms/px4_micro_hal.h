@@ -160,7 +160,7 @@ __BEGIN_DECLS
 #    define PX4_NUMBER_I2C_BUSES        KINETIS_NI2C
 
 #    define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
-#    define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZER0
+#    define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZERO
 
 #    include <chip.h>
 #    include <kinetis_spi.h>
@@ -184,7 +184,7 @@ __BEGIN_DECLS
 /* The mfguid will be an array of bytes with
  * MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
  *
- * It wil be conferted to a string with the MSD on left and LSD on the right most position.
+ * It will be converted to a string with the MSD on left and LSD on the right most position.
  */
 #    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
 

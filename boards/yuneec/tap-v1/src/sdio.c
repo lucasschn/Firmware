@@ -63,24 +63,6 @@
  * Pre-Processor Definitions
  ****************************************************************************/
 
-/* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lowsyslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lowsyslog
-#  else
-#    define message printf
-#  endif
-#endif
-
 /************************************************************************************
  * Private Data
  ************************************************************************************/
@@ -105,7 +87,7 @@ __EXPORT int board_sdio_initialize(void)
 	spi = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
 
 	if (!spi) {
-		message("[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
 		return -ENODEV;
 	}
 
@@ -113,10 +95,9 @@ __EXPORT int board_sdio_initialize(void)
 	int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi);
 
 	if (result != OK) {
-		message("[boot] FAILED to bind SPI port 2 to the MMCSD driver\n");
+		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 2 to the MMCSD driver\n");
 		return -ENODEV;
 	}
 
 	return OK;
 }
-

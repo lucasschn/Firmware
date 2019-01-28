@@ -75,8 +75,6 @@
 
 #include <px4_init.h>
 
-#include <systemlib/err.h>
-
 #include <systemlib/hardfault_log.h>
 
 #include "up_internal.h"
@@ -157,7 +155,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
+	syslog(LOG_DEBUG, "reset done, %d ms", ms);
 
 	/* re-enable power */
 

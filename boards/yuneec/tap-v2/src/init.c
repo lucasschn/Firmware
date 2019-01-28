@@ -68,7 +68,6 @@
 
 #include <px4_init.h>
 
-#include <systemlib/err.h>
 #include <systemlib/hardfault_log.h>
 
 # if defined(FLASH_BASED_PARAMS)
@@ -79,24 +78,6 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
-/* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -194,7 +175,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		message("DMA alloc FAILED");
+		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
 
 	/* set up the serial DMA polling */
@@ -253,7 +234,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (hadCrash == OK) {
 
-		message("[boot] There is a hard fault logged. Hold down the SPACE BAR," \
+		syslog(LOG_ERR, "[boot] There is a hard fault logged. Hold down the SPACE BAR," \
 			" while booting to halt the system!\n");
 
 		/* Yes. So add one to the boot count - this will be reset after a successful
@@ -275,7 +256,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 			hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
 
-			message("[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
+			syslog(LOG_ERR, "[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
 				reboots,
 				(bytesWaiting == 0 ? "" : " Due to Key Press\n"));
 
@@ -330,7 +311,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 						break;
 					} // Inner Switch
 
-					message("\nEnter B - Continue booting\n" \
+					syslog(LOG_ERR, "\nEnter B - Continue booting\n" \
 						"Enter C - Clear the fault log\n" \
 						"Enter D - Dump fault log\n\n?>");
 					fflush(stdout);
@@ -375,7 +356,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	result = parameter_flashfs_init(sector_map, NULL, 0);
 
 	if (result != OK) {
-		message("[boot] FAILED to init params in FLASH %d\n", result);
+		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 		led_on(LED_AMBER);
 		return -ENODEV;
 	}

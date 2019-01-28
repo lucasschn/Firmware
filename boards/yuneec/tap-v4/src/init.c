@@ -75,8 +75,6 @@
 
 #include <px4_init.h>
 
-#include <systemlib/err.h>
-
 #include <systemlib/hardfault_log.h>
 
 #include <parameters/param.h>
@@ -158,7 +156,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
+	syslog(LOG_DEBUG, "reset done, %d ms", ms);
 
 	/* re-enable power */
 
@@ -274,7 +272,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (board_dma_alloc_init() < 0) {
 		PX4_ERR("DMA alloc FAILED");
 	}
-	
+
 	/* set up the serial DMA polling */
 	static struct hrt_call serial_dma_call;
 	struct timespec ts;

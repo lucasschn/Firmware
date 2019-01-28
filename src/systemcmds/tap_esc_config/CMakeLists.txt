@@ -39,7 +39,6 @@ px4_add_module(
 		tap_esc_uploader.cpp
 		tap_esc_config.cpp
 	DEPENDS
-		platforms__common
 		drivers__tap_esc
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

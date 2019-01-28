@@ -43,7 +43,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
 
 #define TAP_ESC_FW_SEARCH_PATHS {"/etc/extras/tap_esc.bin", "/fs/microsd/tap_esc.bin", nullptr }
 #define PROTO_SUPPORT_BL_REV 5	/**< supported bootloader protocol revision */

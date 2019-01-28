@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/tap-v2/include/board.h
+ * nuttx-configs/yuneec_tap-v2/include/board.h
  * include/arch/board/board.h
  *
  *   Copyright (C) 2012-2016 Gregory Nutt. All rights reserved.

@@ -155,7 +155,7 @@ protected:
 	volatile int8_t _connected_backend_reader = -1; /**< currently connected backend. if -1, not connected */
 	volatile int8_t _connected_backend_writer = -1; /**< we need two for multi-threading */
 	volatile int8_t _polling_backend = -1; /**< if not connected, backend which has data available to read */
-	volatile hrt_abstime _last_got_data_timestamp = 0;
+	hrt_abstime _last_got_data_timestamp = 0;
 
 	int8_t _preferred_backend = -1;
 

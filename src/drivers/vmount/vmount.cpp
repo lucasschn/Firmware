@@ -102,6 +102,7 @@ struct Parameters {
 	float mnt_off_roll;
 	float mnt_off_yaw;
 	float stick_deadzone;
+	float nav_acc_rad;
 
 	bool operator!=(const Parameters &p)
 	{
@@ -123,7 +124,8 @@ struct Parameters {
 		       mnt_off_pitch != p.mnt_off_pitch ||
 		       mnt_off_roll != p.mnt_off_roll ||
 		       mnt_off_yaw != p.mnt_off_yaw ||
-		       stick_deadzone != p.stick_deadzone;
+		       stick_deadzone != p.stick_deadzone ||
+		       nav_acc_rad != p.nav_acc_rad;
 
 #pragma GCC diagnostic pop
 
@@ -148,6 +150,7 @@ struct ParameterHandles {
 	param_t mnt_off_roll;
 	param_t mnt_off_yaw;
 	param_t stick_deadzone;
+	param_t nav_acc_rad;
 };
 
 
@@ -297,6 +300,7 @@ static int vmount_thread_main(int argc, char *argv[])
 			output_config.yaw_offset = params.mnt_off_yaw * M_DEG_TO_RAD_F;
 			output_config.mavlink_sys_id = params.mnt_mav_sysid;
 			output_config.mavlink_comp_id = params.mnt_mav_compid;
+			output_config.nav_acc_rad = params.nav_acc_rad;
 
 			bool alloc_failed = false;
 			thread_data.input_objs_len = 1;
@@ -608,6 +612,7 @@ void update_params(ParameterHandles &param_handles, Parameters &params, bool &go
 	param_get(param_handles.mnt_off_roll, &params.mnt_off_roll);
 	param_get(param_handles.mnt_off_yaw, &params.mnt_off_yaw);
 	param_get(param_handles.stick_deadzone, &params.stick_deadzone);
+	param_get(param_handles.nav_acc_rad, &params.nav_acc_rad);
 
 	got_changes = prev_params != params;
 }
@@ -631,6 +636,7 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_off_roll = param_find("MNT_OFF_ROLL");
 	param_handles.mnt_off_yaw = param_find("MNT_OFF_YAW");
 	param_handles.stick_deadzone = param_find("MPC_HOLD_DZ");
+	param_handles.nav_acc_rad = param_find("NAV_ACC_RAD");
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
@@ -648,7 +654,8 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 		param_handles.mnt_off_pitch == PARAM_INVALID ||
 		param_handles.mnt_off_roll == PARAM_INVALID ||
 		param_handles.mnt_off_yaw == PARAM_INVALID ||
-		param_handles.stick_deadzone == PARAM_INVALID) {
+		param_handles.stick_deadzone == PARAM_INVALID ||
+		param_handles.nav_acc_rad == PARAM_INVALID) {
 		return false;
 	}
 

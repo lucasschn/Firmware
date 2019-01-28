@@ -180,20 +180,29 @@ void OutputBase::_handle_position_update(bool force_update)
 	const double &lat = _cur_control_data->type_data.lonlat.lat;
 	const float &alt = _cur_control_data->type_data.lonlat.altitude;
 
-	if (_cur_control_data->type_data.lonlat.pitch_fixed_angle >= -M_PI_F) {
-		pitch = _cur_control_data->type_data.lonlat.pitch_fixed_angle;
+	float dist_xy = get_distance_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon);
 
-	} else {
-		pitch = _calculate_pitch(lon, lat, alt, vehicle_global_position);
+	if (dist_xy > _config.nav_acc_rad) {
+
+		if (_cur_control_data->type_data.lonlat.pitch_fixed_angle >= -M_PI_F) {
+			pitch = _cur_control_data->type_data.lonlat.pitch_fixed_angle;
+
+		} else {
+			pitch = _calculate_pitch(lon, lat, alt, vehicle_global_position);
+		}
+
+		float roll = _cur_control_data->type_data.lonlat.roll_angle;
+
+		float yaw = _angle_setpoints[2];
+
+		yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon)
+		      - vehicle_global_position.yaw;
+
+		_angle_setpoints[0] = roll;
+		_angle_setpoints[1] = pitch + _cur_control_data->type_data.lonlat.pitch_angle_offset;
+		_angle_setpoints[2] = yaw + _cur_control_data->type_data.lonlat.yaw_angle_offset;
 	}
 
-	float roll = _cur_control_data->type_data.lonlat.roll_angle;
-	float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon)
-		    - vehicle_global_position.yaw;
-
-	_angle_setpoints[0] = roll;
-	_angle_setpoints[1] = pitch + _cur_control_data->type_data.lonlat.pitch_angle_offset;
-	_angle_setpoints[2] = yaw + _cur_control_data->type_data.lonlat.yaw_angle_offset;
 }
 
 void OutputBase::_calculate_output_angles(const hrt_abstime &t)

@@ -70,6 +70,8 @@ struct OutputConfig {
 	/* serial output */
 	const char *device;
 	int baudrate;
+
+	float nav_acc_rad; /**< Lock gimbal motion within acceptance if gibmal control depends on position */
 };
 
 

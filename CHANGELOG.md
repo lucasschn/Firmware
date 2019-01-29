@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 * [Regression] Play low-battery warning tunes only once (#3073)
+* Gimbal-lock within acceptance radius (#3137)
 
 ### Added
 * Only allow takeoff without GPS in indoor mode (#2808, #3055)

@@ -175,8 +175,10 @@ void OutputBase::_handle_position_update(bool force_update)
 	const double &lat = _cur_control_data->type_data.lonlat.lat;
 	const float &alt = _cur_control_data->type_data.lonlat.altitude;
 
-	float dist_xy = get_distance_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon);
+	const float dist_xy = get_distance_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon);
 
+	//Update gimbal orientation via position-setpoint only if the vechicle is
+	//outside the acceptance radius to prevent oscillation.
 	if (dist_xy > _config.nav_acc_rad) {
 
 		if (_cur_control_data->type_data.lonlat.pitch_fixed_angle >= -M_PI_F) {
@@ -186,12 +188,9 @@ void OutputBase::_handle_position_update(bool force_update)
 			pitch = _calculate_pitch(lon, lat, alt, vehicle_global_position);
 		}
 
-		float roll = _cur_control_data->type_data.lonlat.roll_angle;
-
-		float yaw = _angle_setpoints[2];
-
-		yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon)
-		      - vehicle_global_position.yaw;
+		const float roll = _cur_control_data->type_data.lonlat.roll_angle;
+		const float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon)
+				  - vehicle_global_position.yaw;
 
 		_angle_setpoints[0] = roll;
 		_angle_setpoints[1] = pitch + _cur_control_data->type_data.lonlat.pitch_angle_offset;

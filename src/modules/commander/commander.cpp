@@ -1696,6 +1696,10 @@ Commander::run()
 			/* param to switch LED mode */
 			param_get(_param_led_mode, (int32_t*)&led_mode);
 
+			/* Yuneec specific: indoor mode or valid home position required for H520 takeoff */
+			param_get(_param_ekf2_indoor_mode, &ekf2_indoor_mode);
+			param_get(_param_require_indoor_mode_or_home, &require_indoor_mode_or_home);
+
 			param_init_forced = false;
 		}
 

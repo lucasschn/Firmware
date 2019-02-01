@@ -711,11 +711,12 @@ PARAM_DEFINE_INT32(MPC_OBS_AVOID, 0);
  * Specifies the heading in Auto.
  *
  * @min 0
- * @max 2
+ * @max 4
  * @value 0 towards waypoint
  * @value 1 towards home
  * @value 2 away from home
  * @value 3 along trajectory
+ * @value 4 no change in heading
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);

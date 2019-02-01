@@ -252,7 +252,11 @@ void FlightTaskAuto::_set_heading_from_mode()
 	case 3: { // Along trajectory.
 			// The heading depends on the kind of setpoint generation. This needs to be implemented
 			// in the subclasses where the velocity setpoints are generated.
-			v *= NAN;
+			v = Vector2f(NAN, NAN);
+		}
+
+	case 4: { // Heading does not change: lock
+			v.setZero();
 		}
 	}
 

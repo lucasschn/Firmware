@@ -61,6 +61,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/uORB.h>
+#include <px4_defines.h>
 
 class Navigator;
 
@@ -259,6 +260,8 @@ private:
 	uint16_t _land_start_index{UINT16_MAX};		/**< index of DO_LAND_START, INVALID_DO_LAND_START if no planned landing */
 
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+
+	float _yaw_lock = NAN; /**< NAN value = no lock*/
 
 	enum {
 		MISSION_TYPE_NONE,

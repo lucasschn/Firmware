@@ -4,16 +4,16 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	echo "guessing PX4_DOCKER_REPO based on input";
 	if [[ $@ =~ .*px4_fmu.* ]]; then
 		# nuttx-px4fmu-v{1,2,3,4,5}
-		PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2018-11-22"
+		PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2019-01-27"
 	elif [[ $@ =~ .*navio2.* ]] || [[ $@ =~ .*raspberry.* ]] || [[ $@ =~ .*bebop.* ]]; then
 		# posix_rpi_cross, posix_bebop_default
-		PX4_DOCKER_REPO="px4io/px4-dev-raspi:2018-11-22"
+		PX4_DOCKER_REPO="px4io/px4-dev-raspi:2019-01-27"
 	elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
 		# eagle, excelsior
 		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2018-09-12"
 	elif [[ $@ =~ .*ocpoc.* ]]; then
 		# aerotennaocpoc_ubuntu
-		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2018-11-22"
+		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2019-01-27"
 	elif [[ $@ =~ .*clang-tidy-quiet.* ]]; then
 		# Yuneec specific:
 		# clang-tidy-quiet is currently using an older version of clang on upstream.
@@ -23,10 +23,10 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 		PX4_DOCKER_REPO="px4io/px4-dev-clang:2018-03-30"
 	elif [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then
 		# clang tools
-		PX4_DOCKER_REPO="px4io/px4-dev-clang:2018-11-22"
+		PX4_DOCKER_REPO="px4io/px4-dev-clang:2019-01-27"
 	elif [[ $@ =~ .*tests* ]]; then
 		# run all tests with simulation
-		PX4_DOCKER_REPO="px4io/px4-dev-simulation:2018-11-22"
+		PX4_DOCKER_REPO="px4io/px4-dev-simulation:2019-01-27"
 	fi
 else
 	echo "PX4_DOCKER_REPO is set to '$PX4_DOCKER_REPO'";
@@ -34,7 +34,7 @@ fi
 
 # otherwise default to nuttx
 if [ -z ${PX4_DOCKER_REPO+x} ]; then
-	PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2018-11-22"
+	PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2019-01-27"
 fi
 
 # docker hygiene

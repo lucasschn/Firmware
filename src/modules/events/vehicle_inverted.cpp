@@ -69,6 +69,11 @@ bool VehicleInverted::check_for_updates()
 		got_updates = true;
 	}
 
+	if (_subscriber_handler.vehicle_status_flags_updated()) {
+		orb_copy(ORB_ID(vehicle_status_flags), _subscriber_handler.get_vehicle_status_flags_sub(), &_status_flags);
+		got_updates = true;
+	}
+
 	return got_updates;
 }
 
@@ -78,7 +83,7 @@ void VehicleInverted::process()
 		return;
 	}
 
-	if (_land_detector.inverted) {
+	if (_land_detector.inverted && !_status_flags.condition_calibration_enabled) {
 
 		if (!_pwm_armed) {
 			if (arm_pwm(true) == PX4_OK) {

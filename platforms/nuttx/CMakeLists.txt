@@ -100,8 +100,8 @@ target_link_libraries(px4 PRIVATE
 	-Wl,--gc-sections
 
 	-Wl,--start-group
-	drivers_boards_common_arch
-	${nuttx_libs}
+		drivers_boards_common_arch
+		${nuttx_libs}
 	-Wl,--end-group
 
 	m
@@ -109,7 +109,6 @@ target_link_libraries(px4 PRIVATE
 	)
 
 target_link_libraries(px4 PRIVATE ${module_libraries})
-target_link_libraries(px4 PRIVATE modules__uORB)
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
@@ -124,9 +123,10 @@ add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin
 # create .px4 with parameter and airframe metadata
 if (TARGET parameters_xml AND TARGET airframes_xml)
 
-	string(REPLACE ".elf" ".px4" fw_package ${FW_NAME})
+	string(REPLACE ".elf" ".px4" fw_package ${PX4_BINARY_DIR}/${FW_NAME})
 
-	add_custom_command(OUTPUT ${fw_package}
+	add_custom_command(
+		OUTPUT ${fw_package}
 		COMMAND
 			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
 				--prototype ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware.prototype

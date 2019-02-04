@@ -32,6 +32,7 @@ px4_add_board(
 		imu/bmi160
 		imu/mpu6000
 		imu/mpu9250
+		imu/icm20948
 		irlock
 		lights/blinkm
 		lights/oreoled
@@ -58,6 +59,7 @@ px4_add_board(
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
+		tone_alarm
 		uavcan
 
 	MODULES

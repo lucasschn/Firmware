@@ -196,7 +196,7 @@ RCInput::cycle_trampoline(void *arg)
 			return;
 		}
 
-		_object = dev;
+		_object.store(dev);
 	}
 
 	dev->cycle();

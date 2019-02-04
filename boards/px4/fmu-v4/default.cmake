@@ -32,6 +32,7 @@ px4_add_board(
 		magnetometer # all available magnetometer drivers
 		mkblctrl
 		pca9685
+		pmw3901
 		pwm_input
 		pwm_out_sim
 		px4flow
@@ -43,6 +44,7 @@ px4_add_board(
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
+		tone_alarm
 		uavcan
 
 	MODULES

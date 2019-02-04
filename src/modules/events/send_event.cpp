@@ -121,7 +121,7 @@ void SendEvent::initialize_trampoline(void *arg)
 	}
 
 	send_event->start();
-	_object = send_event;
+	_object.store(send_event);
 }
 
 void SendEvent::cycle_trampoline(void *arg)

@@ -171,6 +171,7 @@ __EXPORT void stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	int result;
+	px4_platform_init();
 
 	/* configure the DMA allocator */
 

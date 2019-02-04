@@ -272,6 +272,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_5V_RC_EN(true);
 	VDD_5V_WIFI_EN(true);
 
+	px4_platform_init();
+
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {

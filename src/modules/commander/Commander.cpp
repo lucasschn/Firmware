@@ -1246,6 +1246,8 @@ Commander::run()
 {
 	bool sensor_fail_tune_played = false;
 	bool arm_tune_played = false;
+	bool low_bat_tune_played = false;
+	bool crit_bat_tune_played = false;
 	bool was_landed = true;
 	bool was_falling = false;
 	bool was_armed = false;
@@ -1301,6 +1303,9 @@ Commander::run()
 	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
 
 	param_t _param_led_mode = param_find("COM_LED_MODE");
+
+	param_t _param_ekf2_indoor_mode = param_find("EKF2_INDOOR_MODE");
+	param_t _param_require_indoor_mode_or_home = param_find("COM_INDR_OR_HOME");
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -1538,6 +1543,9 @@ Commander::run()
 	LED_MODE old_led_mode = LED_MODE::LedsOn;
 	LED_MODE led_mode = LED_MODE::LedsOn;
 
+	int32_t ekf2_indoor_mode{0};
+	int32_t require_indoor_mode_or_home{0};
+
 	/* check which state machines for changes, clear "changed" flag */
 	bool failsafe_old = false;
 	bool arming_button_switch_allowed = true; /*if this flag is true, then switch from arming to disarming (vice versa) is allowed */
@@ -1670,6 +1678,10 @@ Commander::run()
 
 			/* param to switch LED mode */
 			param_get(_param_led_mode, (int32_t*)&led_mode);
+
+			/* Yuneec specific: indoor mode or valid home position required for H520 takeoff */
+			param_get(_param_ekf2_indoor_mode, &ekf2_indoor_mode);
+			param_get(_param_require_indoor_mode_or_home, &require_indoor_mode_or_home);
 
 			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
 			if (_param_airmode != PARAM_INVALID && _param_rc_map_arm_switch != PARAM_INVALID) {
@@ -2388,6 +2400,12 @@ Commander::run()
 						   geofence_action == geofence_result_s::GF_ACTION_RTL) {
 						print_reject_arm("NOT ARMING: geofence RTL requires valid home.");
 
+					} else if ((!status_flags.condition_home_position_valid
+						|| !status_flags.condition_global_position_valid
+						|| !status_flags.condition_local_position_valid)
+						&& !ekf2_indoor_mode && require_indoor_mode_or_home) {
+						print_reject_arm("NOT ARMING: No GPS - Wait or switch to indoor mode");
+
 					} else if (internal_state.main_state != _desired_flight_mode) {
 						print_reject_arm("NOT ARMING: conditions for flight mode not met.");
 
@@ -2820,16 +2838,18 @@ Commander::run()
 			// set_tune(TONE_ARMING_WARNING_TUNE); intentionally commented out
 			arm_tune_played = true;
 
-		} else if (!status_flags.usb_connected &&
+		} else if (!crit_bat_tune_played && !status_flags.usb_connected &&
 			   (status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (_battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			/* play tune on battery critical */
 			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
+			crit_bat_tune_played = true;
 
-		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
+		} else if (!low_bat_tune_played && (status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (_battery_warning == battery_status_s::BATTERY_WARNING_LOW)) {
 			/* play tune on battery warning */
 			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
+			low_bat_tune_played = true;
 
 		} else if (status.failsafe) {
 			tune_failsafe(true);

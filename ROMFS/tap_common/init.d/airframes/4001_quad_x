@@ -260,7 +260,7 @@ then
 
 	# Events
 	param set EV_TSK_STAT_DIS 1
-	param set EV_TSK_RC_LOSS 0
+	param set EV_TSK_RC_LOSS 1
 
 	param save
 

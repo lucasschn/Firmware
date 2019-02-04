@@ -97,11 +97,6 @@ void OutputBase::publish()
 		mount_orientation.attitude_euler_angle[i] = _angle_outputs[i];
 	}
 
-	//PX4_INFO("roll: %.2f, pitch: %.2f, yaw: %.2f",
-	//		(double)_angle_outputs[0],
-	//		(double)_angle_outputs[1],
-	//		(double)_angle_outputs[2]);
-
 	orb_publish_auto(ORB_ID(mount_orientation), &_mount_orientation_pub, &mount_orientation, &instance, ORB_PRIO_DEFAULT);
 }
 
@@ -180,20 +175,28 @@ void OutputBase::_handle_position_update(bool force_update)
 	const double &lat = _cur_control_data->type_data.lonlat.lat;
 	const float &alt = _cur_control_data->type_data.lonlat.altitude;
 
-	if (_cur_control_data->type_data.lonlat.pitch_fixed_angle >= -M_PI_F) {
-		pitch = _cur_control_data->type_data.lonlat.pitch_fixed_angle;
+	const float dist_xy = get_distance_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon);
 
-	} else {
-		pitch = _calculate_pitch(lon, lat, alt, vehicle_global_position);
+	//Update gimbal orientation via position-setpoint only if the vechicle is
+	//outside the acceptance radius to prevent oscillation.
+	if (dist_xy > _config.nav_acc_rad) {
+
+		if (_cur_control_data->type_data.lonlat.pitch_fixed_angle >= -M_PI_F) {
+			pitch = _cur_control_data->type_data.lonlat.pitch_fixed_angle;
+
+		} else {
+			pitch = _calculate_pitch(lon, lat, alt, vehicle_global_position);
+		}
+
+		const float roll = _cur_control_data->type_data.lonlat.roll_angle;
+		const float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon)
+				  - vehicle_global_position.yaw;
+
+		_angle_setpoints[0] = roll;
+		_angle_setpoints[1] = pitch + _cur_control_data->type_data.lonlat.pitch_angle_offset;
+		_angle_setpoints[2] = yaw + _cur_control_data->type_data.lonlat.yaw_angle_offset;
 	}
 
-	float roll = _cur_control_data->type_data.lonlat.roll_angle;
-	float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon)
-		    - vehicle_global_position.yaw;
-
-	_angle_setpoints[0] = roll;
-	_angle_setpoints[1] = pitch + _cur_control_data->type_data.lonlat.pitch_angle_offset;
-	_angle_setpoints[2] = yaw + _cur_control_data->type_data.lonlat.yaw_angle_offset;
 }
 
 void OutputBase::_calculate_output_angles(const hrt_abstime &t)

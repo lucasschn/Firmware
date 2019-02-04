@@ -150,7 +150,10 @@ then
 			param set CAL_GYRO0_ID 3670290
 		fi
 
+		# Commander
 		param set COM_DISARM_LAND 0.1
+		param set COM_ARM_WO_GPS 1
+		param set COM_INDR_OR_HOME 1
 	fi
 
 	#
@@ -171,6 +174,7 @@ then
 	#
 	param set MIS_YAW_ERR 90
 	param set MIS_DIST_WPS 4000
+	param set MIS_MNT_YAW_CTL 1
 
 	#
 	# Vehicle model settings
@@ -238,7 +242,7 @@ then
 
 	# Events
 	param set EV_TSK_STAT_DIS 1
-	param set EV_TSK_RC_LOSS 0
+	param set EV_TSK_RC_LOSS 1
 	param set EV_TSK_INV_GEAR 1
 
 	param save

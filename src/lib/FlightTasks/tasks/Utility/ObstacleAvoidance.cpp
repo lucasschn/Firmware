@@ -47,7 +47,7 @@ static constexpr uint64_t OBSTACLE_LOCK_EXIT_TRIGGER_TIME_US = 1000000;
 // Timeout in us for obstacle avoidance sonar data to get considered invalid
 static constexpr uint64_t DISTANCE_STREAM_TIMEOUT_US = 500000;
 // Minimum altitude to start obstacle avoidance
-static constexpr float MINIMUM_ALTITUDE = 1.5f;
+static constexpr float MINIMUM_ALTITUDE = 2.0f;
 // Minimum yaw change to exit obstacle avoidance lock
 static constexpr float UNLOCK_YAW = 30.0f;
 

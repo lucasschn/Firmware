@@ -2759,10 +2759,10 @@ Commander::run()
 			status_changed = true;
 
 			if (status.failsafe) {
-				mavlink_log_info(&mavlink_log_pub, "Failsafe mode on.");
+				mavlink_log_info(&mavlink_log_pub, "Failsafe mode activated");
 
 			} else {
-				mavlink_log_info(&mavlink_log_pub, "Failsafe mode off.");
+				mavlink_log_info(&mavlink_log_pub, "Failsafe mode deactivated");
 			}
 
 			failsafe_old = status.failsafe;

@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 * [Regression] Play low-battery warning tunes only once (#3073)
 * [Regression] Hotfix landing gear not lowering in RTL to GCS because altitude 0 (#3162, #3110)
 * Gimbal-lock within acceptance radius (#3137)
+* Pauses at the end of a tune are now respected. Fixes low battery and error tunes. (#3159)
 
 ### Added
 * Only allow takeoff without GPS in indoor mode (#2808, #3055)

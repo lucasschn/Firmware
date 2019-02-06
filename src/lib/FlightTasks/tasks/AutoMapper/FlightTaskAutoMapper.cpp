@@ -87,8 +87,8 @@ bool FlightTaskAutoMapper::update()
 	}
 
 	// during mission and reposition, raise the landing gears but only
-	// if altitude is high enough, landing gear down should always be executed
-	if (_highEnoughForLandingGear() || _mission_gear == landing_gear_s::GEAR_DOWN) {
+	// only put landing gear up when high enough, down should always be executed
+	if (_mission_gear == landing_gear_s::GEAR_DOWN || _highEnoughForLandingGear()) {
 		_gear.landing_gear = _mission_gear;
 	}
 

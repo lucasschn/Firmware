@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 * [Regression] Play low-battery warning tunes only once (#3073)
+* [Regression] Hotfix landing gear not lowering in RTL to GCS because altitude 0 (#3162, #3110)
 * Gimbal-lock within acceptance radius (#3137)
 
 ### Added

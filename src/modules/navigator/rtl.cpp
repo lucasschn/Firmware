@@ -610,6 +610,9 @@ RTL::set_GCS_to_home(home_position_s &hpos, const vehicle_global_position_s &pos
 void
 RTL::update_return_location()
 {
+	// default home is where takeoff location was
+	_return_location = *_navigator->get_home_position();
+
 	if (_param_home_at_gcs.get()) {
 		const follow_target_s &target = *_navigator->get_target_motion();
 
@@ -618,10 +621,6 @@ RTL::update_return_location()
 			const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 			set_GCS_to_home(_return_location, gpos, target);
 		}
-
-	} else {
-		// default home is where takeoff location was
-		_return_location = *_navigator->get_home_position();
 	}
 }
 

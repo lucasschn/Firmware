@@ -281,18 +281,20 @@ tap_esc_config log_versions -d ${ESC_TTY} -n 6
 #
 # ESC driver
 #
-# First re-send ESC configuration and verify to make sure everything is setup
-if tap_esc_config send_basic_config -d ${ESC_TTY} -n 6 -v
+if [ ${HITL_ON} == no ]
 then
-	if [ ${HITL_ON} == no ]
+	# First re-send ESC configuration and verify to make sure everything is setup
+	if tap_esc_config send_basic_config -d ${ESC_TTY} -n 6 -v
 	then
 		tap_esc start -d ${ESC_TTY} -n 6
 	else
-		tap_esc start -d ${ESC_TTY} -n 6 -l
+		# Config could not be written or verified. ESCs won't function properly!
+		echo "Failed to send ESC config - not starting the ESC driver"
 	fi
 else
-	# Config could not be written or verified. ESCs won't function properly!
-	echo "tap_esc_config send_basic_config failed - not starting the ESC driver"
+	# Send ESC config without verifying it
+	tap_esc_config send_basic_config -d ${ESC_TTY} -n 6
+	tap_esc start -d ${ESC_TTY} -n 6 -l
 fi
 
 

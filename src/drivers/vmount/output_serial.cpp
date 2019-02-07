@@ -61,34 +61,51 @@ namespace vmount
 {
 
 #pragma pack(push, 1)
+
+// NOTE: Don't change the order of the elements inside the struct!!! (TODO: fix)
 struct packet_header_t {
-	uint8_t stx;     		///< protocol magic marker
-	uint8_t len;       		///< Length of payload
-	uint8_t seq;       		///< Sequence of packet
-	uint8_t senderSysID;    ///< ID of the message sender system
-	uint8_t senderCompID;   ///< ID of the message sender component
-	uint8_t targetSysID;  	///< ID of the message target system
-	uint8_t targetCompID; 	///< ID of the message target component
-	uint8_t msg;     	  	///< ID of message in payload
+	uint8_t stx;     	//< protocol magic marker
+	uint8_t len;       	//< Length of payload
+	uint8_t seq;       	//< Sequence of packet
+	uint8_t senderSysID;    //< ID of the message sender system
+	uint8_t senderCompID;   //< ID of the message sender component
+	uint8_t targetSysID;  	//< ID of the message target system
+	uint8_t targetCompID; 	//< ID of the message target component
+	uint8_t msg;     	//< ID of message in payload
 };
 
+// NOTE: Don't change the order of the elements inside the struct!!! (TODO: fix)
 struct gimbal_control_t {
-	int16_t quaternion[4]; /*< drone's quaternion, multiplied by 10000*/
-	int16_t hvel; /*< drone's horizontal velocity in cm/s unit*/
-	int16_t hacc; /*< drone's horizontal acceleration in cm/s/s unit*/
-	int16_t yaw_deg_desire; /*< yaw desired angle, drone send to gimbal,precise 0.1 degree, multiply 0.1 to use.*/
-	uint16_t yaw_channel; /*< yaw channel value,value range 0-4096,follow point ahead mode is none;degree = -((channel_value-2048)*0.03dgree+45dgree); velocity=-(channel_value-2130)/41 or velocity=-(channel_value-1966)/41 there has a lsb deadline.*/
-	uint16_t pitch_channel; /*< pitch channel value,value range 0-4096,follow point ahead mode is none;degree = -((channel_value-2048)*0.03dgree+45dgree); velocity=-(channel_value-2130)/41 or velocity=-(channel_value-1966)/41 there has a lsb deadline.*/
-	uint16_t roll_channel; /*< roll channel value,value range 0-4096,follow point ahead mode is none;degree = -((channel_value-2048)*0.03dgree+45dgree); velocity=-(channel_value-2130)/41 or velocity=-(channel_value-1966)/41 there has a lsb deadline.*/
-	uint16_t yaw_mode; /*< yaw mode value, 410-820 is mode :follow point ahead;820-1229 is mode:follow point angle changeable, 1229-1638 is mode:follow point velocity  changeable,2048-2458 is mode:global angle changeable, 2867-3686 is mode: global velocity  changeable.*/
-	uint16_t pitch_mode; /*< pitch mode value, 410-820 is mode :follow point  ahead;820-1229 is mode:follow point angle changeable, 1229-1638 is mode:follow point velocity  changeable,2048-2458 is mode:global angle changeable, 2867-3686 is mode: global velocity  changeable.*/
-	uint16_t roll_mode; /*< roll mode value, 410-820 is mode :follow point  ahead;820-1229 is mode:follow point angle changeable, 1229-1638 is mode:follow point velocity  changeable,2048-2458 is mode:global angle changeable, 2867-3686 is mode: global velocity changeable.*/
+	int16_t quaternion[4]; 	/*< drone's quaternion, multiplied by 10000 */
+	int16_t hvel; 		/*< drone's horizontal velocity in cm/s unit */
+	int16_t hacc; 		/*< drone's horizontal acceleration in cm/s/s unit */
+	int16_t yaw_deg_desire; /*< yaw desired angle, drone send to gimbal. Unit: 0.1 degrees. */
+
+	/* Control setpoint:
+	 * 0-4096 in follow point ahead mode is none;
+	 * degree = -((channel_value-2048)*0.03dgree+45dgree)
+	 * velocity=-(channel_value-2130)/41 or velocity=-(channel_value-1966)/41 there has a lsb deadline.
+	 */
+	uint16_t yaw_channel;
+	uint16_t pitch_channel;
+	uint16_t roll_channel;
+
+	/* Control modes:
+	 * 410-820:   "follow point ahead" 		- look forward
+	 * 820-1229:  "follow point angle changeable" 	- angle setpoint in body-frame
+	 * 1229-1638: "follow point velocity changeable"- angular rate setpoint in body-frame
+	 * 2048-2458: "global angle changeable 		- angle setpoint" in global frame
+	 * 2867-3686: "global velocity changeable" 	- angular rate setpoint in global frame
+	 */
+	uint16_t yaw_mode;
+	uint16_t pitch_mode;
+	uint16_t roll_mode;
 };
 
 struct heartbeat_t {
-	uint16_t firmware_version; /*< firmware version*/
-	uint16_t software_version; /*< Software version*/
-	uint8_t protocol_version; /*< Protocol version*/
+	uint16_t firmware_version;
+	uint16_t software_version;
+	uint8_t protocol_version;
 };
 
 #pragma pack(pop)

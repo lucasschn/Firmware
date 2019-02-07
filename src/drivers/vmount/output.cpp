@@ -233,4 +233,3 @@ void OutputBase::_calculate_output_angles(const hrt_abstime &t)
 }
 
 } /* namespace vmount */
-

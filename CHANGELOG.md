@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 * Pauses at the end of a tune are now respected. Fixes low battery and error tunes. (#3159)
 * H520 HITL functional even without battery plugged in (#3164)
+* Fixed eccentric camera pitching while ROI is active (#3166)
 
 ### Added
 * RC loss alarm enabled for when RC is disconnected after flying, but the drone is still powered (#3126)

@@ -3,31 +3,38 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Changed
-* Changed minimum altitude for OBS. avoidance from 1.5m to 2.0m (#2675)
 
 ### Fixed
-* [Regression] Play low-battery warning tunes only once (#3073)
-* [Regression] Hotfix landing gear not lowering in RTL to GCS because altitude 0 (#3162, #3110)
-* Gimbal-lock within acceptance radius (#3137)
 * Pauses at the end of a tune are now respected. Fixes low battery and error tunes. (#3159)
 * H520 HITL functional even without battery plugged in (#3164)
 
 ### Added
-* Only allow takeoff without GPS in indoor mode (#2808, #3055)
 * RC loss alarm enabled for when RC is disconnected after flying, but the drone is still powered (#3126)
 
 
-## [v1.8.0-1.5.11]
+## [v1.8.0-1.6.0]
 ### Changed
+* Changed minimum altitude for OBS. avoidance from 1.5m to 2.0m (#2675)
 * New (less annoying) tune for low-battery warning (#3095)
 * Only rotate gimbal to face towards ROI, not the entire drone (#3121)
+
 
 ### Fixed
 * The drone wouldn't face straight forward when flying a survey after a ROI mission (#3121)
 * Don't run motor-check in HITL (#3120, #3089)
+* Camera now has correct orientation in structure scan (#2322, #3121)
+* [Regression] Play low-battery warning tunes only once (#3073)
+* Gimbal-lock within acceptance radius (#3137)
+
 
 ### Added
 * Added landing gear state to logger (#3111, #3117)
+* Only allow takeoff without GPS in indoor mode (#2808, #3055)
+
+
+## [v1.8.0-1.5.11]
+### Fixed
+* [Regression] Hotfix landing gear not lowering in RTL to GCS because altitude 0 (#3162, #3110)
 
 
 ## [v1.8.0-1.5.10]

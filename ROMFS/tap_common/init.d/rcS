@@ -242,7 +242,7 @@ set NEW_DEFAULTS no
 if param compare SYS_PARAM_VER ${DEFAULTS_VER}
 then
 else
-	echo "Switched to different parameter version. Resetting parameters."
+	echo "New parameter VER: Resetting params"
 	set NEW_DEFAULTS yes
 fi
 
@@ -250,7 +250,7 @@ fi
 if param compare SYS_RELEASE_VER ${RELEASE_VER}
 then
 else
-	echo "Switched to different firmware release. Resetting parameters."
+	echo "New release VER: Resetting params"
 	set NEW_DEFAULTS yes
 fi
 
@@ -549,7 +549,7 @@ then
 		then
 			# prevent starting logger on H520 in HITL mode - not enough memory
 			set START_LOGGER 0
-			echo "logger: Not enough RAM in H520 HITL to start logger"
+			echo "Not starting logger in H520 HITL"
 		fi
 fi
 

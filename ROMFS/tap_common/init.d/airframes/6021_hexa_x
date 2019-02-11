@@ -214,7 +214,6 @@ then
 	#
 	# ST16 RC channel configuration
 	#
-
 	# remote control station type set to ST16
 	param set RC_TYPE 1
 
@@ -268,7 +267,7 @@ then
 	# 2. There is less free memory after an ESC fw upgrade, even though
 	#    tap_esc_config exited. This could indicate a memory leak in the uploader.
 	#
-	echo "ESC firmware updated - rebooting system"
+	echo "ESCs updated - rebooting"
 	reboot
 fi
 

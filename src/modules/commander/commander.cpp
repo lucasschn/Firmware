@@ -1965,7 +1965,7 @@ Commander::run()
 							// if the innovation test has failed continuously, declare the nav as failed
 							if (hrt_elapsed_time(&time_last_innov_pass) > 1_s) {
 								nav_test_failed = true;
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL NAVIGATION FAILURE - CHECK SENSOR CALIBRATION");
+								mavlink_log_emergency(&mavlink_log_pub, "Critical navigation failure - Check sensor calibration.");
 							}
 						}
 					}
@@ -2108,10 +2108,10 @@ Commander::run()
 					low_battery_voltage_actions_done = true;
 
 					if (armed.armed) {
-						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, RETURN TO LAND ADVISED");
+						mavlink_log_critical(&mavlink_log_pub, "Low battery, return to land advised");
 
 					} else {
-						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, TAKEOFF DISCOURAGED.");
+						mavlink_log_critical(&mavlink_log_pub, "Low battery, takeoff discuraged.");
 					}
 
 					status_changed = true;
@@ -2122,7 +2122,7 @@ Commander::run()
 					critical_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
-						mavlink_log_critical(&mavlink_log_pub, "CRITICAL BATTERY, SHUT SYSTEM DOWN.");
+						mavlink_log_critical(&mavlink_log_pub, "Critical battery, system will soon shutdown."); // no action after this
 
 					} else {
 						if (low_bat_action == 1 || low_bat_action == 3) {
@@ -2131,14 +2131,14 @@ Commander::run()
 
 							if (s == TRANSITION_CHANGED) {
 								warning_action_on = true;
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND.");
+								mavlink_log_emergency(&mavlink_log_pub, "Critical battery, returning to land.");
 
 							} else if (s == TRANSITION_NOT_CHANGED) {
 								warning_action_on = true;
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, CONTINUING RTL.");
+								mavlink_log_emergency(&mavlink_log_pub, "Critical battery, continuing RTL.");
 
 							} else {
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RTL FAILED.");
+								mavlink_log_emergency(&mavlink_log_pub, "Critical battery, RTL failed.");
 							}
 
 						} else if (low_bat_action == 2) {
@@ -2146,18 +2146,18 @@ Commander::run()
 
 							if (s == TRANSITION_CHANGED) {
 								warning_action_on = true;
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION.");
+								mavlink_log_emergency(&mavlink_log_pub, "Critical battery, landing at the current position.");
 
 							} else if (s == TRANSITION_NOT_CHANGED) {
 								warning_action_on = true;
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, CONTINUING LANDING.");
+								mavlink_log_emergency(&mavlink_log_pub, "Critical battery, continouning landing.");
 
 							} else {
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING FAILED.");
+								mavlink_log_emergency(&mavlink_log_pub, "Critical battery, landing failed.");
 							}
 
 						} else {
-							mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURN TO LAUNCH ADVISED!");
+							mavlink_log_emergency(&mavlink_log_pub, "Critical battery, return to launch advised!");
 						}
 					}
 
@@ -2178,18 +2178,18 @@ Commander::run()
 
 							if (s == TRANSITION_CHANGED) {
 								warning_action_on = true;
-								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING IMMEDIATELY.");
+								mavlink_log_emergency(&mavlink_log_pub, "Dangerous battery level, landing immediately.");
 
 							} else if (s == TRANSITION_NOT_CHANGED) {
 								warning_action_on = true;
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, CONTINUING LANDING.");
+								mavlink_log_emergency(&mavlink_log_pub, "Critical battery, continuing landing.");
 
 							} else {
-								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING FAILED.");
+								mavlink_log_emergency(&mavlink_log_pub, "Dangerous battery level, landing failed.");
 							}
 
 						} else {
-							mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING ADVISED.");
+							mavlink_log_emergency(&mavlink_log_pub, "Dangerous battery level, landing advised.");
 						}
 					}
 
@@ -2218,11 +2218,11 @@ Commander::run()
 					switch(s){
 						case TRANSITION_CHANGED:
 							warning_action_on = true;
-							mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, RETURNING TO LAND.");
+							mavlink_log_emergency(&mavlink_log_pub, "Flight time low, returning to land.");
 							break;
 
 						default:
-							mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, LAND NOW!");
+							mavlink_log_emergency(&mavlink_log_pub, "Flight time low, land now!");
 					}
 					status_changed = true;
 					rtl_time_actions_done = true;
@@ -3152,7 +3152,7 @@ Commander::run()
 
 		// Handle shutdown request from emergency battery action
 		if (!armed.armed && dangerous_battery_level_requests_poweroff){
-			mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN.");
+			mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery, shut system down.");
 			usleep(3000000); // 3 seconds
 			int ret_val = px4_shutdown_request(false, false);
 			if (ret_val) {

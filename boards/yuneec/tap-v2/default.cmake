@@ -19,7 +19,7 @@ px4_add_board(
 
 	DRIVERS
 		# barometer # all available barometer drivers
-		barometer/ms5611
+		# barometer/ms5611
 		barometer/mpc2520
 		# batt_smbus
 		camera_trigger
@@ -39,7 +39,7 @@ px4_add_board(
 		#lights/blinkm
 		#lights/oreoled
 		#lights/rgbled
-		lights/rgbled_pwm
+		# lights/rgbled_pwm
 		magnetometer/hmc5883
 		magnetometer/ist8310
 		#md25

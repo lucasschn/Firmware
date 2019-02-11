@@ -5,11 +5,7 @@
 
 adc start
 
-if ms5611 -T 5607 -I start
-then
-else
-	mpc2520 -I start
-fi
+mpc2520 -I start
 
 # External I2C bus
 hmc5883 -C -T -X -R 6 start

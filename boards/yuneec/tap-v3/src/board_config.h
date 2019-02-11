@@ -21,14 +21,6 @@
  ****************************************************************************************************/
 
 #undef BOARD_HAS_LTC4417
-/**
- * Definition for the prototype of H520S V01 hardware
- * Schematics directory: H520S---000-R1
- * Pin chart table column: BR
- * Silkscreen desciptor: TYPHOON H520S V01 20170801
- * This needs to be removed once a hardware with the correct pinning is configured
- */
-#define PX4_FMUV5_RC00
 
 #define GPIO_EEPROM_WP  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN2)
 #define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))
@@ -36,7 +28,7 @@
 
 #define BOARD_HAS_POWER_CONTROL	1
 
-/*radio*/
+/* RC */
 #define GPIO_PCON_RADIO  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN8)
 #define RF_RADIO_POWER_CONTROL(_on_true)    px4_arch_gpiowrite(GPIO_PCON_RADIO, !(_on_true))
 
@@ -394,11 +386,8 @@
 #define LED_TIM3_CH4OUT   /* PB1   T3C4  RED   */ GPIO_TIM3_CH4OUT_1
 
 #define BOARD_HAS_UI_LED_PWM            1
-#if defined(PX4_FMUV5_RC00)
-# define BOARD_UI_LED_SWAP_RG           1
-#else
-#  define BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW 1
-#endif
+#define BOARD_UI_LED_SWAP_RG           1
+
 #define UI_LED_TIM5_CH1OUT /* PH10  T5C1  RED   */ GPIO_TIM5_CH1OUT_2
 #define UI_LED_TIM5_CH2OUT /* PH11  T5C2  GREEN */ GPIO_TIM5_CH2OUT_2
 #define UI_LED_TIM5_CH3OUT /* PH12  T5C3  BLUE  */ GPIO_TIM5_CH3OUT_2
@@ -443,14 +432,7 @@
 #define BOARD_NUMBER_BRICKS             2
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
-#if defined(PX4_FMUV5_RC00)
-#  define GPIO_VDD_5V_PERIPH_EN         /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN4)
-#  define GPIO_xVDD_5V_PERIPH_EN                   GPIO_VDD_5V_PERIPH_EN
-#endif
-#if defined(PX4_FMUV5_RC01)
-#  define GPIO_nVDD_5V_PERIPH_EN         /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
-#  define GPIO_xVDD_5V_PERIPH_EN                    GPIO_nVDD_5V_PERIPH_EN
-#endif
+#define GPIO_VDD_5V_PERIPH_EN           /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN4)
 #define GPIO_nVDD_5V_PERIPH_OC          /* PE15 */ (GPIO_INPUT |GPIO_PULLUP|GPIO_PORTE|GPIO_PIN15)
 #define GPIO_nVDD_5V_HIPOWER_EN         /* PF12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTF|GPIO_PIN12)
 #define GPIO_nVDD_5V_HIPOWER_OC         /* PG13 */ (GPIO_INPUT |GPIO_PULLUP|GPIO_PORTF|GPIO_PIN13)
@@ -463,12 +445,7 @@
 
 /* Define True logic Power Control in arch agnostic form */
 
-#if defined(PX4_FMUV5_RC00)
 #define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, (on_true))
-#endif
-#if defined(PX4_FMUV5_RC01)
-#define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, !(on_true))
-#endif
 #define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_nVDD_5V_HIPOWER_EN, !(on_true))
 #define VDD_3V3_SENSORS_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, (on_true))
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
@@ -501,7 +478,7 @@
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
 #define RC_UXART_BASE                      STM32_USART6_BASE
-#define RC_SERIAL_PORT                     "/dev/ttyS5" // Yuneec specific
+#define RC_SERIAL_PORT                     "/dev/ttyS5" // Yuneec specific because we are using UART instead of the CAN2 for the ESC
 #define BOARD_HAS_SINGLE_WIRE              1 /* HW is capable of Single Wire */
 #define BOARD_HAS_SINGLE_WIRE_ON_TX        1 /* HW default is wired as Single Wire On TX pin */
 #define BOARD_HAS_RX_TX_SWAP               1 /* HW Can swap TX and RX */
@@ -680,7 +657,7 @@ End: Yuneec Board specific settings define board name
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
 		GPIO_nPOWER_IN_C,                 \
-		GPIO_xVDD_5V_PERIPH_EN,           \
+		GPIO_VDD_5V_PERIPH_EN,            \
 		GPIO_nVDD_5V_PERIPH_OC,           \
 		GPIO_nVDD_5V_HIPOWER_EN,          \
 		GPIO_nVDD_5V_HIPOWER_OC,          \

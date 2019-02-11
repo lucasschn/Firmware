@@ -1,34 +1,7 @@
+
+
 #pragma once
 
-#undef BOARD_HAS_LTC4417
-
-#define PX4_FMUV5_RC01
-
-#define GPIO_EEPROM_WP  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN2)
-#define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))
-#define BOARD_HAS_MTD_PARTITION_OVERRIDE {"/fs/mtd_caldata"}
-
-#define BOARD_HAS_POWER_CONTROL	1
-
-/*power on/off*/
-#define MS_PWR_BUTTON_DOWN 1500
-#define KEY_AD_GPIO    (GPIO_INPUT|GPIO_PULLUP|GPIO_EXTI|GPIO_PORTC|GPIO_PIN4)
-#define POWER_ON_GPIO  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
-#define POWER_OFF_GPIO (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN5)
-
-// #include <../../../px4/fmu-v5/src/board_config.h>
-// NOTE(ALESSANDRO): Due to an incompatibility caused by
-// https://github.com/PX4/Firmware/pull/10186/files#diff-89acdae94cf86de55c22241624cc6534R731
-// the file fmu-v5/board_config.h has been copy-pasted here directly.
-// This should be reverted by someone who knows better than me :)
-
-
-
-
-
-/*************************************
-Start px4/fmu-v5/src/board_config.h
-**************************************/
 /****************************************************************************************************
  * Included Files
  ****************************************************************************************************/
@@ -43,20 +16,19 @@ Start px4/fmu-v5/src/board_config.h
  * Definitions
  ****************************************************************************************************/
 
-/* PX4IO connection configuration */
+#undef BOARD_HAS_LTC4417
 
-#define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE            "/dev/ttyS6"
-#define PX4IO_SERIAL_TX_GPIO           GPIO_UART8_TX
-#define PX4IO_SERIAL_RX_GPIO           GPIO_UART8_RX
-#define PX4IO_SERIAL_BASE              STM32_UART8_BASE
-#define PX4IO_SERIAL_VECTOR            STM32_IRQ_UART8
-#define PX4IO_SERIAL_TX_DMAMAP         DMAMAP_UART8_TX
-#define PX4IO_SERIAL_RX_DMAMAP         DMAMAP_UART8_RX
-#define PX4IO_SERIAL_RCC_REG           STM32_RCC_APB1ENR
-#define PX4IO_SERIAL_RCC_EN            RCC_APB1ENR_UART8EN
-#define PX4IO_SERIAL_CLOCK             STM32_PCLK1_FREQUENCY
-#define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
+#define GPIO_EEPROM_WP  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN2)
+#define BOARD_EEPROM_WP_CTRL(_on_true)    px4_arch_gpiowrite(GPIO_EEPROM_WP, (_on_true))
+#define BOARD_HAS_MTD_PARTITION_OVERRIDE {"/fs/mtd_caldata"}
+
+#define BOARD_HAS_POWER_CONTROL	1
+
+/*power on/off*/
+#define MS_PWR_BUTTON_DOWN 1500
+#define KEY_AD_GPIO    (GPIO_INPUT|GPIO_PULLUP|GPIO_EXTI|GPIO_PORTC|GPIO_PIN4)
+#define POWER_ON_GPIO  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
+#define POWER_OFF_GPIO (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN5)
 
 /* Configuration ************************************************************************************/
 
@@ -213,7 +185,7 @@ Start px4/fmu-v5/src/board_config.h
 
 #define PX4_I2C_BUS_EXPANSION       1
 #define PX4_I2C_BUS_EXPANSION1      2
-#define PX4_I2C_BUS_ONBOARD         3
+#define PX4_I2C_BUS_ONBOARD         4 // Yuneec: wrong workaround to get the baro working
 #define PX4_I2C_BUS_EXPANSION2      4
 #define PX4_I2C_BUS_LED             PX4_I2C_BUS_EXPANSION
 
@@ -300,7 +272,7 @@ Start px4/fmu-v5/src/board_config.h
 /* Define Battery 1 Voltage Divider and A per V
  */
 
-#define BOARD_BATTERY1_V_DIV         (18.1f)     /* measured with the provided PM board */
+#define BOARD_BATTERY1_V_DIV         (9.0f)	// Yunnec specific voltage divider
 #define BOARD_BATTERY1_A_PER_V       (36.367515152f)
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
@@ -315,7 +287,7 @@ Start px4/fmu-v5/src/board_config.h
 #define GPIO_HW_REV_SENSE    /* PC3   */ ADC1_GPIO(13)
 #define GPIO_HW_VER_DRIVE    /* PG0   */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_VER_SENSE    /* PC2   */ ADC1_GPIO(12)
-#define HW_INFO_INIT         {'V','5','x', 'x',0}
+#define HW_INFO_INIT         {'V','4','x','x',0}
 #define HW_INFO_INIT_VER     2
 #define HW_INFO_INIT_REV     3
 /* CAN Silence
@@ -351,6 +323,14 @@ Start px4/fmu-v5/src/board_config.h
 /* TIM5_CH4 SPARE PIN */
 #define GPIO_TIM5_CH4IN    /* PI0   T5C4  TIM5_SPARE_4 */  GPIO_TIM5_CH4IN_2
 #define GPIO_TIM5_CH4OUT   /* PI0   T5C4  TIM5_SPARE_4 */   GPIO_TIM5_CH4OUT_2
+
+/*
+ * Sonar pin definition
+ * TIM2_CH4    PB11    Sonar Echo
+ * TIM2_CH2    PB3     Sonar Trig
+ * */
+#define GPIO_TIM2_CH2_OUT    /* PB3   T22C2  FMU_CAP2 */ GPIO_TIM2_CH2OUT_2
+#define GPIO_TIM2_CH4_OUT    /* PB11  T22C4  FMU_CAP3 */ GPIO_TIM2_CH4OUT_2
 
 /* PWM
  *
@@ -398,11 +378,6 @@ Start px4/fmu-v5/src/board_config.h
 #define LED_TIM3_CH4OUT   /* PB1   T3C4  RED   */ GPIO_TIM3_CH4OUT_1
 
 #define BOARD_HAS_UI_LED_PWM            1
-#if defined(PX4_FMUV5_RC00)
-# define BOARD_UI_LED_SWAP_RG           1
-#else
-#  define BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW 1
-#endif
 #define UI_LED_TIM5_CH1OUT /* PH10  T5C1  RED   */ GPIO_TIM5_CH1OUT_2
 #define UI_LED_TIM5_CH2OUT /* PH11  T5C2  GREEN */ GPIO_TIM5_CH2OUT_2
 #define UI_LED_TIM5_CH3OUT /* PH12  T5C3  BLUE  */ GPIO_TIM5_CH3OUT_2
@@ -447,14 +422,7 @@ Start px4/fmu-v5/src/board_config.h
 #define BOARD_NUMBER_BRICKS             2
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
-#if defined(PX4_FMUV5_RC00)
-#  define GPIO_VDD_5V_PERIPH_EN         /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN4)
-#  define GPIO_xVDD_5V_PERIPH_EN                   GPIO_VDD_5V_PERIPH_EN
-#endif
-#if defined(PX4_FMUV5_RC01)
-#  define GPIO_nVDD_5V_PERIPH_EN         /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
-#  define GPIO_xVDD_5V_PERIPH_EN                    GPIO_nVDD_5V_PERIPH_EN
-#endif
+#define GPIO_nVDD_5V_PERIPH_EN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
 #define GPIO_nVDD_5V_PERIPH_OC          /* PE15 */ (GPIO_INPUT |GPIO_PULLUP|GPIO_PORTE|GPIO_PIN15)
 #define GPIO_nVDD_5V_HIPOWER_EN         /* PF12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTF|GPIO_PIN12)
 #define GPIO_nVDD_5V_HIPOWER_OC         /* PG13 */ (GPIO_INPUT |GPIO_PULLUP|GPIO_PORTF|GPIO_PIN13)
@@ -467,12 +435,7 @@ Start px4/fmu-v5/src/board_config.h
 
 /* Define True logic Power Control in arch agnostic form */
 
-#if defined(PX4_FMUV5_RC00)
-#define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, (on_true))
-#endif
-#if defined(PX4_FMUV5_RC01)
 #define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, !(on_true))
-#endif
 #define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_nVDD_5V_HIPOWER_EN, !(on_true))
 #define VDD_3V3_SENSORS_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, (on_true))
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
@@ -505,7 +468,7 @@ Start px4/fmu-v5/src/board_config.h
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
 #define RC_UXART_BASE                      STM32_USART6_BASE
-#define RC_SERIAL_PORT                     "/dev/ttyS4"
+#define RC_SERIAL_PORT                     "/dev/ttyS5" // Yuneec specific
 #define BOARD_HAS_SINGLE_WIRE              1 /* HW is capable of Single Wire */
 #define BOARD_HAS_SINGLE_WIRE_ON_TX        1 /* HW default is wired as Single Wire On TX pin */
 #define BOARD_HAS_RX_TX_SWAP               1 /* HW Can swap TX and RX */
@@ -549,7 +512,7 @@ Start px4/fmu-v5/src/board_config.h
 #define GPIO_LED_SAFETY GPIO_nSAFETY_SWITCH_LED_OUT
 #define GPIO_SAFETY_SWITCH_IN              /* PE10 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN10)
 /* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */
-#define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
+// #define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */ Yuneec: explicitly disbaled not used on yuneec boards
 
 /* Power switch controls ******************************************************/
 
@@ -583,8 +546,6 @@ Start px4/fmu-v5/src/board_config.h
    !defined(CONFIG_BOARD_INITTHREAD)
 #  warning SDIO initialization cannot be perfomed on the IDLE thread
 #endif
-
-#define  BOARD_NAME "PX4_FMU_V5"
 
 /* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore
@@ -629,36 +590,6 @@ Start px4/fmu-v5/src/board_config.h
 
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
-/*
- * GPIO numbers.
- *
- * There are no alternate functions on this board.
- */
-#define GPIO_SERVO_1                (1<<0)   /**< servo 1 output */
-#define GPIO_SERVO_2                (1<<1)   /**< servo 2 output */
-#define GPIO_SERVO_3                (1<<2)   /**< servo 3 output */
-#define GPIO_SERVO_4                (1<<3)   /**< servo 4 output */
-#define GPIO_SERVO_5                (1<<4)   /**< servo 5 output */
-#define GPIO_SERVO_6                (1<<5)   /**< servo 6 output */
-#define GPIO_SERVO_7                (1<<6)   /**< servo 7 output */
-#define GPIO_SERVO_8                (1<<7)   /**< servo 8 output */
-
-#define GPIO_nPOWER_INPUT_A         (1<<8)   /**<PG1 GPIO_nPOWER_IN_A */
-#define GPIO_nPOWER_INPUT_B         (1<<9)   /**<PG2 GPIO_nPOWER_IN_B */
-#define GPIO_nPOWER_INPUT_C         (1<<10)  /**<PG3 GPIO_nPOWER_IN_C */
-
-#define GPIO_PERIPH_5V_POWER_EN     (1<<11)  /**< PG4  - GPIO_nVDD_5V_PERIPH_EN */
-#define GPIO_PERIPH_5V_POWER_OC     (1<<12)  /**< PE15 - GPIO_nVDD_5V_PERIPH_OC */
-#define GPIO_PERIPH_5V_HIPOWER_EN   (1<<13)  /**< PF12 - GPIO_nVDD_5V_HIPOWER_EN */
-#define GPIO_PERIPH_5V_HIPOWER_OC   (1<<14)  /**< PG13 - GPIO_nVDD_5V_HIPOWER_OC */
-#define GPIO_3V3_SENSORS_EN         (1<<15)  /**< PE3  - VDD_3V3_SENSORS_EN */
-#define GPIO_SPEKTRUM_POWER         (1<<16)  /**< PE4  - GPIO_VDD_3V3_SPEKTRUM_POWER_EN */
-#define GPIO_RC_POWER_EN            (1<<17)  /**< PG5  - GPIO_VDD_5V_RC_EN        */
-#define GPIO_WIFI_POWER_EN          (1<<18)  /**< PG6  - GPIO_VDD_5V_WIFI_EN      */
-#define GPIO_SD_CARD_POWER_EN       (1<<19)  /**< PG7  - GPIO_VDD_3V3_SD_CARD_EN */
-#define GPIO_HW_REV_DRIVE_EN        (1<<20)  /**< PH14 - GPIO_HW_REV_DRIVE */
-#define GPIO_HW_VER_DRIVE_EN        (1<<21)  /**< PG0  - GPIO_HW_VER_DRIVE */
-
 /* This board provides a DMA pool and APIs */
 
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
@@ -666,6 +597,52 @@ Start px4/fmu-v5/src/board_config.h
 /* This board provides the board_on_reset interface */
 
 #define BOARD_HAS_ON_RESET 1
+
+/******************************************************************************
+Yuneec Board specific settings define board name
+*******************************************************************************/
+/*
+ * ESC configuration
+ *
+ * Physical / Logical ESC mapping
+ * The index corresponds to the physical ESC, the value to the logical ESC
+ * Phy Log
+ * 0   0
+ * 1   1
+ * 2   2
+ * 3   3
+ * 4   4
+ * 5   5
+ *  ....
+ *
+ */
+// Circular from back right in CCW direction
+#define BOARD_MAP_ESC_PHYS_TO_LOG {0, 1, 2, 3, 4, 5, 6, 7}
+// 0 is CW, 1 is CCW
+#define BOARD_MAP_ESC_TO_PX4_DIR  {0, 1, 0, 1, 0, 1, 0, 1}
+// output remap table
+#define BOARD_MAP_ESC_TO_PX4_OUT  {2, 1, 3, 0, 4, 5, 6, 7}
+
+#undef BOARD_NAME
+#define	BOARD_NAME "TAP_V4"
+
+#define BOARD_TAP_ESC_NO_VERIFY_CONFIG
+#define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
+
+#define BOARD_MAX_LEDS 4 // Define the number of led this board has
+
+// LED mapping
+#define BOARD_FRONT_LED_MASK (1 << 0) | (1 << 3)
+#define BOARD_REAR_LED_MASK  (1 << 1) | (1 << 2)
+#define BOARD_LEFT_LED_MASK  (0)
+#define BOARD_RIGHT_LED_MASK (0)
+
+// In HITL, we can use the usual voltage measurement.
+#define BOARD_HAS_VOLTAGE_IN_HITL
+
+/******************************************************************************
+End: Yuneec Board specific settings define board name
+*******************************************************************************/
 
 /* The list of GPIO that will be initialized */
 
@@ -691,7 +668,7 @@ Start px4/fmu-v5/src/board_config.h
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
 		GPIO_nPOWER_IN_C,                 \
-		GPIO_xVDD_5V_PERIPH_EN,           \
+		GPIO_nVDD_5V_PERIPH_EN,           \
 		GPIO_nVDD_5V_PERIPH_OC,           \
 		GPIO_nVDD_5V_HIPOWER_EN,          \
 		GPIO_nVDD_5V_HIPOWER_OC,          \
@@ -758,6 +735,27 @@ extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 
+/************************************************************************************
+ * Name: board_pwr_init()
+ *
+ * Description:
+ *   Called to configure power control for the tap-v2 board.
+ *
+ * Input Parameters:
+ *   stage- 0 for boot, 1 for board init
+ *
+ ************************************************************************************/
+
+void board_pwr_init(int stage);
+
+/****************************************************************************
+ * Name: board_pwr_button_down
+ *
+ * Description:
+ *   Called to Read the logical state of the power button
+ ****************************************************************************/
+
+bool board_pwr_button_down(void);
 
 /****************************************************************************
  * Name: nsh_archinitialize
@@ -783,99 +781,3 @@ int nsh_archinitialize(void);
 #endif /* __ASSEMBLY__ */
 
 __END_DECLS
-/*************************************
-End px4/fmu-v5/src/board_config.h
-**************************************/
-
-
-
-
-
-
-
-/* Define Battery 1 Voltage Divider
- */
-#undef BOARD_BATTERY1_V_DIV
-#define BOARD_BATTERY1_V_DIV (9.0f)
-
-/*
- * ESC configuration
- *
- * Physical / Logical ESC mapping
- * The index corresponds to the physical ESC, the value to the logical ESC
- * Phy Log
- * 0   0
- * 1   1
- * 2   2
- * 3   3
- * 4   4
- * 5   5
- *  ....
- *
- */
-// Circular from back right in CCW direction
-#define BOARD_MAP_ESC_PHYS_TO_LOG {0, 1, 2, 3, 4, 5, 6, 7}
-// 0 is CW, 1 is CCW
-#define BOARD_MAP_ESC_TO_PX4_DIR  {0, 1, 0, 1, 0, 1, 0, 1}
-// output remap table
-#define BOARD_MAP_ESC_TO_PX4_OUT  {2, 1, 3, 0, 4, 5, 6, 7}
-
-#undef BOARD_NAME
-#define	BOARD_NAME "TAP_V4"
-
-// undefine the serial port of the RC not used on OB rc input over mavlink
-#undef RC_SERIAL_PORT
-#define RC_SERIAL_PORT "/dev/ttyS5"
-
-#define BOARD_TAP_ESC_NO_VERIFY_CONFIG
-#define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
-
-#undef PX4_I2C_BUS_EXPANSION3 // undefine expansion3 bus since it is used by the baro
-
-#undef PX4_I2C_BUS_ONBOARD
-#define PX4_I2C_BUS_ONBOARD 4 // wrong workaround to get the baro working
-
-#define BOARD_MAX_LEDS 4 // Define the number of led this board has
-
-// UI LED are active high
-#undef BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW
-
-// Set correct string for hardware detection
-#undef HW_INFO_INIT
-#define HW_INFO_INIT {'V','4','x','x',0}
-//      HW_INFO_INIT_REV       2
-//      HW_INFO_INIT_VER           3
-
-// No safety switch on our boards
-#undef GPIO_BTN_SAFETY
-
-// LED mapping
-#define BOARD_FRONT_LED_MASK (1 << 0) | (1 << 3)
-#define BOARD_REAR_LED_MASK  (1 << 1) | (1 << 2)
-#define BOARD_LEFT_LED_MASK  (0)
-#define BOARD_RIGHT_LED_MASK (0)
-
-// In HITL, we can use the usual voltage measurement.
-#define BOARD_HAS_VOLTAGE_IN_HITL
-
-/************************************************************************************
- * Name: board_pwr_init()
- *
- * Description:
- *   Called to configure power control for the tap-v2 board.
- *
- * Input Parameters:
- *   stage- 0 for boot, 1 for board init
- *
- ************************************************************************************/
-
-void board_pwr_init(int stage);
-
-/****************************************************************************
- * Name: board_pwr_button_down
- *
- * Description:
- *   Called to Read the logical state of the power button
- ****************************************************************************/
-
-bool board_pwr_button_down(void);

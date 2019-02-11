@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Changed
+* Keep vehicle heading constant during ROI. This improves yaw-tracking in ROI. (#3153)
 
 ### Fixed
 * Pauses at the end of a tune are now respected. Fixes low battery and error tunes. (#3159)

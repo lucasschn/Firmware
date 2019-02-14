@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 * Fixed eccentric camera pitching while ROI is active (#3166)
 * Lower case messages for battery warnings etc, fixing weird pronunciation in DataPilot (#3171)
 * Landing gear rise when doing compass calibration, corner case when toggling the switch during calibration(#3045, #3157)
+* Improved corner case handling when ESC firmware update fails (#2907)
 
 ### Added
 * RC loss alarm enabled for when RC is disconnected after flying, but the drone is still powered (#3126)

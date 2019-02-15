@@ -233,7 +233,7 @@ Mission::on_active()
 	}
 
 	/* see if we need to update the current yaw heading */
-	if ((_navigator->get_vstatus()->is_rotary_wing)
+	if (!_param_mnt_yaw_ctl.get() && (_navigator->get_vstatus()->is_rotary_wing)
 	    && (_navigator->get_vroi().mode != vehicle_roi_s::ROI_NONE)
 	    && !(_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 		 || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
@@ -244,6 +244,14 @@ Mission::on_active()
 		// Mount control is disabled If the vehicle is in ROI-mode, the vehicle
 		// needs to rotate such that ROI is in the field of view.
 		// ROI only makes sense for multicopters.
+		heading_sp_update();
+
+	} else if (_param_mnt_yaw_ctl.get() &&
+		   _navigator->get_vstatus()->is_rotary_wing &&
+		   _navigator->get_vroi().mode == vehicle_roi_s::ROI_LOCATION) {
+
+		// Yuneec hack: We need to call heading_sp_update() in order to keep yaw
+		// constant during an ROI waypoint mission.
 		heading_sp_update();
 
 	} else {

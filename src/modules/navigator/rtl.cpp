@@ -596,7 +596,7 @@ void
 RTL::set_GCS_to_home(home_position_s &hpos, const vehicle_global_position_s &pos, const follow_target_s &target)
 {
 	// keep a safe distance to GCS
-	constexpr float safe_distance = 3.0f;
+	constexpr float safe_distance = 5.0f;
 
 	// get bearing from GCS to current target
 	const float bearing = get_bearing_to_next_waypoint(target.lat, target.lon, pos.lat, pos.lon);

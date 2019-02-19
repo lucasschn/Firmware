@@ -587,6 +587,9 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		} else {
 			sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 
+			// Yuneec specific: Make sure that the landing gear stays as it is during takeoff
+			sp->landing_gear = landing_gear_s::GEAR_KEEP;
+
 			// set pitch and ensure that the hold time is zero
 			sp->pitch_min = item.pitch_min;
 		}

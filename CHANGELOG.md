@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 * Landing gear rise when doing compass calibration, corner case when toggling the switch during calibration(#3045, #3157)
 * Improved corner case handling when ESC firmware update fails (#2907)
 * [Regression] Restored functionality of structure scan. Bug introduced with #3153 (#3187)
+* Force landing gear to keep the state during takeoff.
 
 ### Added
 * RC loss alarm enabled for when RC is disconnected after flying, but the drone is still powered (#3126)

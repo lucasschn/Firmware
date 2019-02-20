@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 * Keep vehicle heading constant during ROI. This improves yaw-tracking in ROI. (#3153)
 * Increased maximum allowed distance to 1st mission waypoint from 900m to 4000m (#3182)
-* Increase return to ground control station safety distance to 5m (#3196)
+* Increase return to ground control station safety distance from 3m to 5m (#3196)
 
 ### Fixed
 * Pauses at the end of a tune are now respected. Fixes low battery and error tunes. (#3159)

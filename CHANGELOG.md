@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 * Improved corner case handling when ESC firmware update fails (#2907)
 * [Regression] Restored functionality of structure scan. Bug introduced with #3153 (#3187)
 * Force landing gear to keep the state during takeoff (#3197)
+* Gimbal yaw problems in ROI (#3204)
 
 ### Added
 * RC loss alarm enabled for when RC is disconnected after flying, but the drone is still powered (#3126)

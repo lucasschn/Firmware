@@ -221,7 +221,7 @@ PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 12.0f);
 /**
  * RC loss failsafe behavior switch
  *
- * When disabled, RC loss triggers RTL only for manual mode. 
+ * When disabled, RC loss triggers RTL only for manual mode.
  * When enabled RC loss triggers RTL in all flight modes.
  *
  * @group Commander

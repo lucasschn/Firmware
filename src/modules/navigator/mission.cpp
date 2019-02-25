@@ -449,6 +449,11 @@ Mission::update_offboard_mission()
 	/* reset triplets */
 	_navigator->reset_triplets();
 
+	/* Reset vehicle_roi
+	 * Missions that do not explicitly configure ROI would not override
+	 * an existing ROI setting from previous missions */
+	_navigator->reset_vroi();
+
 	struct mission_s old_offboard_mission = _offboard_mission;
 
 	if (orb_copy(ORB_ID(mission), _navigator->get_offboard_mission_sub(), &_offboard_mission) == OK) {

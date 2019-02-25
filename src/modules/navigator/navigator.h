@@ -178,6 +178,8 @@ public:
 	/* --- */
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
+	void reset_vroi() { _vroi = {}; }
+
 	struct map_projection_reference_s *get_local_reference_pos() {return &_ref_pos;} /**< Method that returns reference projection structure */
 	float 	get_local_reference_alt() {return _ref_alt;} /**< Method that returns reference altitdue */
 

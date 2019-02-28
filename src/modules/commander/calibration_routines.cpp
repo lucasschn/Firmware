@@ -831,21 +831,26 @@ calibrate_return calibrate_from_hex_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		uint8_t mask;
-		switch(side_complete_count) {
-			case 0:
-			case 3:
-				mask = 0x12;
-				break;
-			case 1:
-			case 4:
-				mask = 0x24;
-				break;
-			case 2:
-			case 5:
-				mask = 0x09;
-				break;
-			default: mask = 0x00;
+
+		switch (side_complete_count) {
+		case 0:
+		case 3:
+			mask = 0x12;
+			break;
+
+		case 1:
+		case 4:
+			mask = 0x24;
+			break;
+
+		case 2:
+		case 5:
+			mask = 0x09;
+			break;
+
+		default: mask = 0x00;
 		}
+
 		rgbled_set_mag_cali(mask);
 
 		/* inform user which orientations are still needed */
@@ -893,15 +898,16 @@ calibrate_return calibrate_from_hex_orientation(orb_advert_t *mavlink_log_pub,
 	return result;
 }
 
-calibrate_return calibrate_detect_rotation(orb_advert_t *mavlink_log_pub, int cancel_sub, hrt_abstime detection_deadline)
+calibrate_return calibrate_detect_rotation(orb_advert_t *mavlink_log_pub, int cancel_sub,
+		hrt_abstime detection_deadline)
 {
-		/*
-	 * Detect if the system is rotating.
-	 *
-	 * We're detecting this as a general rotation on any axis, not necessary on the one we
-	 * asked the user for. This is because we really just need two roughly orthogonal axes
-	 * for a good result, so we're not constraining the user more than we have to.
-	 */
+	/*
+	* Detect if the system is rotating.
+	*
+	* We're detecting this as a general rotation on any axis, not necessary on the one we
+	* asked the user for. This is because we really just need two roughly orthogonal axes
+	* for a good result, so we're not constraining the user more than we have to.
+	*/
 
 	hrt_abstime last_gyro = 0;
 	float gyro_x_integral = 0.0f;

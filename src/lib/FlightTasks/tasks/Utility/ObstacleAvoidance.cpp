@@ -39,6 +39,7 @@
 #include <mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 #include <float.h>
+#include <px4_defines.h>
 
 using namespace matrix;
 

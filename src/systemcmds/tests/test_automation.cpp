@@ -108,7 +108,7 @@ void vehicle_status_uORB_topic::dump()
 		if (condition) { \
 			break; \
 		} \
-		sleep(1); \
+		px4_usleep(1000000); \
 		ut_assert_true(i<timeout); \
 	}
 
@@ -192,7 +192,7 @@ int updateTopicTask(int argc, char *argv[])
 			}
 		}
 
-		sleep(1);
+		px4_usleep(1000000);
 	}
 
 	return 0;
@@ -207,7 +207,7 @@ int manualControlTask(int argc, char *argv[])
 			automationTest->_sendManualControl();
 		}
 
-		usleep(100000);
+		px4_usleep(100000);
 	}
 
 	return 0;
@@ -323,7 +323,7 @@ bool AutomationTest::_takeOff(float altitude, int waitTimeOutInSecond)
 	WAIT_FOR_CONDITION(_isGPSAvailable(), max_wait_gps_seconds);
 
 	//Wait a while for status stable after GPS available
-	sleep(5);
+	px4_usleep(5000000);
 
 	//Save local position status when taking off
 	memcpy(&_takeoff_vehicle_local_position_status, &vehicle_local_position_status, sizeof(vehicle_local_position_s));
@@ -354,7 +354,7 @@ bool AutomationTest::_takeOff(float altitude, int waitTimeOutInSecond)
 	PX4_DEBUG("mis_takeoff_alt = %f", mis_takeoff_alt);
 
 	//Wait for state change
-	sleep(1);
+	px4_usleep(1000000);
 	ut_assert_true(_assertState(commander_state_s::MAIN_STATE_AUTO_TAKEOFF,
 				    vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
 
@@ -362,7 +362,7 @@ bool AutomationTest::_takeOff(float altitude, int waitTimeOutInSecond)
 			   waitTimeOutInSecond);
 
 	//Assert vertical speed is zero. Sleep a while to let it stable.
-	sleep(15);
+	px4_usleep(15000000);
 	ut_assert_true((std::fabs(vehicle_local_position_status.vz) < min_vertical_speed));
 
 	//Assert that current position is same as takeoff altitude.
@@ -438,7 +438,7 @@ bool AutomationTest::_land(int waitTimeOutInSecond)
 
 	PUBLISH_TOPIC(vehicle_command, cmd);
 
-	sleep(2);
+	px4_usleep(2000000);
 	ut_assert_true(_assertState(commander_state_s::MAIN_STATE_AUTO_LAND,
 				    vehicle_status_s::NAVIGATION_STATE_AUTO_LAND));
 
@@ -458,21 +458,21 @@ bool AutomationTest::_rtlForRCLost(int waitTimeOutInSecond)
 
 	PX4_INFO("%s: RC lost", __FUNCTION__);
 	publish_manual_control = false;
-	sleep(5);
+	px4_usleep(5000000);
 
 	//Assert drone is still in original main state, and in auto RTL navigate state
 	ut_assert_true(_assertState(main_state, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL));
 
 	PX4_INFO("%s: RC regain", __FUNCTION__);
 	publish_manual_control = true;
-	sleep(5);
+	px4_usleep(5000000);
 
 	//Assert the drone is changed to original state after RC resume
 	ut_assert_true(_assertState(main_state, nav_state));
 
 	PX4_INFO("%s: RC lost", __FUNCTION__);
 	publish_manual_control = false;
-	sleep(2);
+	px4_usleep(2000000);
 
 	//Assert drone is still in original main state, and in auto RTL navigate state
 	ut_assert_true(_assertState(main_state, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL));
@@ -514,7 +514,7 @@ void AutomationTest::_setManualControl(float x, float y, float z, float r)
 void AutomationTest::_setManualControlAndWait(float x, float y, float z, float r, int interval)
 {
 	_setManualControl(x, y, z, r);
-	sleep(interval);
+	px4_usleep(interval * 1000000);
 }
 
 void AutomationTest::_sendManualControl()
@@ -627,7 +627,7 @@ bool BatteryTest::_batteryWarning(int warningLevel, int waitTimeOutInSecond)
 	//Stop
 	_setManualControlAndWait(0, 0, 0.5, 0, 2);
 
-	sleep(10);
+	px4_usleep(10);
 	_saveLandingPosition();
 
 	//Simulate battery level

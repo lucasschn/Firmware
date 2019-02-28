@@ -371,7 +371,9 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 	if (cal_method == 0) {
 		// Standard method times out quickly after each side
-		result = calibrate_detect_rotation(worker_data->mavlink_log_pub, cancel_sub, hrt_absolute_time() + worker_data->calibration_interval_perside_useconds * 5);
+		result = calibrate_detect_rotation(worker_data->mavlink_log_pub, cancel_sub,
+						   hrt_absolute_time() + worker_data->calibration_interval_perside_useconds * 5);
+
 	} else {
 		// Other methods time out only after 60 seconds
 		calibration_deadline = hrt_absolute_time() + 60 * 1000 * 1000;
@@ -391,7 +393,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 		if (cal_method != 0 && hrt_absolute_time() > (calibration_deadline - 1000000)) {
 			calibration_log_critical(worker_data->mavlink_log_pub, CAL_QGC_FAILED_MSG, "calibrate error");
-			usleep(20000);
+			px4_usleep(20000);
 			result = calibrate_return_error;
 			break;
 		}
@@ -647,14 +649,15 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 							    mag_calibration_worker,             // Calibration worker
 							    &worker_data,			// Opaque data for calibration worked
 							    true);				// true: lenient still detection
+
 		} else {
 
 			result = calibrate_from_hex_orientation(mavlink_log_pub,                    // uORB handle to write output
-					    cancel_sub,                         // Subscription to vehicle_command for cancel support
-					    worker_data.side_data_collected,    // Sides to calibrate
-					    mag_calibration_worker,             // Calibration worker
-					    &worker_data,			// Opaque data for calibration worked
-					    true);				// true: lenient still detection
+								cancel_sub,                         // Subscription to vehicle_command for cancel support
+								worker_data.side_data_collected,    // Sides to calibrate
+								mag_calibration_worker,             // Calibration worker
+								&worker_data,			// Opaque data for calibration worked
+								true);				// true: lenient still detection
 		}
 
 

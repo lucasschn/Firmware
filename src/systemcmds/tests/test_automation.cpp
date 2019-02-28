@@ -627,7 +627,7 @@ bool BatteryTest::_batteryWarning(int warningLevel, int waitTimeOutInSecond)
 	//Stop
 	_setManualControlAndWait(0, 0, 0.5, 0, 2);
 
-	px4_usleep(10);
+	px4_usleep(10000000);
 	_saveLandingPosition();
 
 	//Simulate battery level

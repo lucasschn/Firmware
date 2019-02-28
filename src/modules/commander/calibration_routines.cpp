@@ -928,7 +928,6 @@ calibrate_return calibrate_detect_rotation(orb_advert_t *mavlink_log_pub, int ca
 		/* abort with timeout */
 		if (hrt_absolute_time() > detection_deadline) {
 			result = calibrate_return_error;
-			syslog(LOG_DEBUG, "int: %8.4f, %8.4f, %8.4f\n", (double)gyro_x_integral, (double)gyro_y_integral, (double)gyro_z_integral);
 			calibration_log_critical(mavlink_log_pub, "Failed: This calibration requires rotation.");
 			break;
 		}

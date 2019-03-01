@@ -158,7 +158,7 @@ if __name__ == "__main__":
                     deselected_tests += " and " + t
             deselected_tests += ")"
 
-    testfile = px4_src_dir + "/integrationtests/tests/ulogtests/tests/test_general.py"
+    testfile = px4_src_dir + "/integrationtests/ulogtests/tests/test_general.py"
     logdir = os.getcwd() + "/log/"
     log_folders = os.listdir(logdir)
 

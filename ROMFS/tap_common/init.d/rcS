@@ -509,17 +509,22 @@ else
 		mavlink_dup start -d ${MAVLINK_DEV}
 		mavlink_dup add -d /dev/mavlink -b ${BAUDRATE}
 		mavlink_dup add -d /dev/ttyACM0 -p
-
-		# Give the first stream a little time to come up...
-		usleep 200000
-
 		mavlink start -r ${MAV_RATE} -d ${MAVLINK_DEV} -m config -b ${BAUDRATE}
+
+		# Give the stream a little time to come up...
+		sleep 1
+
 		mavlink stream -d ${MAVLINK_DEV} -s SYSTEM_TIME -r 0.5
 	else
 		set MAVLINK_DEV /dev/mavlink
 		mavlink start -r 20000 -d ${MAVLINK_DEV} -m config -b ${BAUDRATE}
-		mavlink stream -d /dev/mavlink -s SYSTEM_TIME -r 0.5
 		mavlink start -r 800000 -d /dev/ttyACM0 -b 921600 -m config -x
+
+		# Give the stream a little time to come up...
+		sleep 1
+
+		mavlink stream -d /dev/mavlink -s SYSTEM_TIME -r 0.5
+
 	fi
 
 

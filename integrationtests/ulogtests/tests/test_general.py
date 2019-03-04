@@ -65,7 +65,9 @@ class TestAttitude:
         ].empty
 
 
-#class TestRTLHeight:
+class TestRTLHeight:
+    def test_rtl(self):
+        assert True
 #    # The return to home height changes with the distance from home
 #    # mode was triggered
 #    # check the height above ground while the drone returns to home. compare it with

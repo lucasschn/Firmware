@@ -33,8 +33,8 @@
 
 /**
  * @file mc_pos_control_main.cpp
- * Multicopter position controller.
- */
+ * Multicopter position controller
+ * */
 
 #include <px4_config.h>
 #include <px4_defines.h>

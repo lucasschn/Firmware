@@ -23,8 +23,7 @@ def setup_dataframe(filepath, topics, zoh_topic_msgs=None, nan_topic_msgs=None):
         return dfulg
 
     except Exception:
-        print("failed--------------")
-        # pytest.skip("Could not create dfulg object")
+        pytest.skip("Could not create dfulg object")
 
 
 class TestAttitude:

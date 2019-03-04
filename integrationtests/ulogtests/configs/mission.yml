@@ -1,8 +1,8 @@
 # Contains parameters that are needed to start simulation, maneuvers and tests
 simulation_setup:
     world: 'iris'
-    sim: 'gazebo'
-    headless: False
+    sim: 'gazebo' # Todo: currently only gazebo supported
+    headless: True
     start_script: 'rcS'
 
 # All tests listed here will NOT be run

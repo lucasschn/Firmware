@@ -114,6 +114,7 @@ then
 		param set MPC_ACC_UP_MAX 6
 		param set MPC_JERK_MAX 15
 		param set MPC_JERK_MIN 0.1
+		param set MPC_AUTO_MODE 0
 
 		# Throttle pid attenuation
 		param set MC_TPA_RATE_P 0.8

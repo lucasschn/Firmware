@@ -142,6 +142,7 @@ function(px4_add_board)
 			IO
 			BOOTLOADER
 			UAVCAN_INTERFACES
+			TAP_ESC
 		MULTI_VALUE
 			DRIVERS
 			MODULES
@@ -206,6 +207,9 @@ function(px4_add_board)
 		# IO board (placed in ROMFS)
 		if(IO)
 			set(config_io_board ${IO} CACHE INTERNAL "IO" FORCE)
+		endif()
+		if(TAP_ESC)
+			set(config_tap_esc_fw ${TAP_ESC} CACHE INTERNAL "TAP_ESC" FORCE)
 		endif()
 	endif()
 

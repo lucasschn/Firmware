@@ -7,7 +7,7 @@ px4_add_board(
 	ARCHITECTURE cortex-m4
 	ROMFSROOT tap_common
 	# IO px4_io-v2_default  # TODO: Do we need this for copying the ESC firmware bin?
-	# TAP_ESC H520  # TODO:  Copy ESC firmware binary
+	TAP_ESC H520  # TODO:  Copy ESC firmware binary
 	TESTING
 	# UAVCAN_INTERFACES 2  # TODO: Doesn't have any UAVCAN interfaces, right?
 
@@ -27,27 +27,27 @@ px4_add_board(
 		# distance_sensor # all available distance sensor drivers
 		distance_sensor/hc_sr04
 		gps
-		#heater
+		# heater
 		# imu/adis16448
-		#imu # all available imu drivers
+		# imu # all available imu drivers
 		# imu/l3gd20
 		# imu/lsm303d
 		imu/mpu6000
 		# imu/mpu9250
 		# irlock
 		# magnetometer # all available magnetometer drivers
-		#lights/blinkm
-		#lights/oreoled
-		#lights/rgbled
+		# lights/blinkm
+		# lights/oreoled
+		# lights/rgbled
 		# lights/rgbled_pwm
 		magnetometer/hmc5883
 		magnetometer/ist8310
-		#md25
+		# md25
 		mavlink_dup
 		# mkblctrl
 		# pca8574
 		# pca9685
-		#pmw3901
+		# pmw3901
 		# protocol_splitter
 		gimbal_protocol_splitter
 		# pwm_input
@@ -64,7 +64,7 @@ px4_add_board(
 		tap_esc
 		# telemetry # all available telemetry drivers
 		# test_ppm
-		#uavcan
+		# uavcan
 
 	MODULES
 		# attitude_estimator_q
@@ -89,7 +89,7 @@ px4_add_board(
 		# position_estimator_inav
 		sensors
 		vmount
-		vtol_att_control
+		# vtol_att_control
 		# wind_estimator
 
 	SYSTEMCMDS

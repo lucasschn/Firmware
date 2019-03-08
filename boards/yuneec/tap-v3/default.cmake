@@ -7,7 +7,7 @@ px4_add_board(
 	ARCHITECTURE cortex-m4
 	ROMFSROOT tap_common
 	# IO px4_io-v2_default  # TODO: Do we need this for copying the ESC firmware bin?
-	# TAP_ESC H520  # TODO:  Copy ESC firmware binary
+	TAP_ESC H520  # TODO:  Copy ESC firmware binary
 	TESTING
 	# UAVCAN_INTERFACES 2  # TODO: Doesn't have any UAVCAN interfaces, right?
 

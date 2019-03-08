@@ -114,7 +114,7 @@ px4_add_board(
 		tap_esc_config
 		# tests # tests and test runner
 		top
-		topic_listener
+		# topic_listener
 		tune_control
 		# usb_connected
 		ver

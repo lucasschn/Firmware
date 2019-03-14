@@ -8,8 +8,9 @@ pipeline {
     stages {
         stage('build') {
             steps {
-                sh './Tools/maneuver.sh'
-                sh './integrationtests/ulogtests/test_runner.sh mission'
+                sh 'echo asdfasfdasdfas'
+                //sh './Tools/maneuver.sh'
+                //sh './integrationtests/ulogtests/test_runner.sh mission'
             }
         }
     }

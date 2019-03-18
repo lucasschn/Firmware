@@ -109,9 +109,9 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 	// NOTE: man_pos_mode is Yuneec-specific
 	// system is being operated in a manual mode where the position is controlled by the user
 	bool man_pos_mode = (status->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
-				|| status->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB
-				|| status->nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE
-				|| status->nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL);
+			     || status->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB
+			     || status->nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE
+			     || status->nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL);
 
 	const bool hil_enabled = (status->hil_state == vehicle_status_s::HIL_STATE_ON);
 
@@ -303,7 +303,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 		/* need global position estimate and home position because
 		 * relative altitude update is not supported in flight.*/
 		if (status_flags.condition_global_position_valid &&
-				status_flags.condition_home_position_valid) {
+		    status_flags.condition_home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -380,8 +380,8 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 		/* need at minimum local position estimate */
 		if (status_flags.condition_local_position_valid ||
-			 status_flags.condition_global_position_valid) {
-			 ret = TRANSITION_CHANGED;
+		    status_flags.condition_global_position_valid) {
+			ret = TRANSITION_CHANGED;
 		}
 
 		break;
@@ -512,9 +512,11 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 				case commander_state_s::MAIN_STATE_SPORT:
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_SPORT;
 					break;
+
 				case commander_state_s::MAIN_STATE_SMART:
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_SMART;
 					break;
+
 				default:
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 					break;

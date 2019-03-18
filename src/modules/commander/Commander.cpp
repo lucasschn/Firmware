@@ -200,8 +200,7 @@ static struct geofence_result_s geofence_result = {};
 static struct rtl_time_estimate_s rtl_time_estimate = {};
 bool rtl_time_actions_done = false;
 
-enum class power_state_e : uint8_t
-{
+enum class power_state_e : uint8_t {
 	idle = 0,
 	pending,
 	commited,
@@ -634,7 +633,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			if ((((uint32_t)cmd.param2) & 1) > 0) {
 				// check if a critical or emergency action is in progress and if the battery failsafe mode is not WARNING
 				bool battery_critical_action = (emergency_battery_voltage_actions_done || critical_battery_voltage_actions_done)
-					&& (low_bat_action != 0);
+							       && (low_bat_action != 0);
 
 				// NOTE: The if{} is Yuneec-specific, upstream code follows in the else{}
 				if (battery_critical_action) {
@@ -653,6 +652,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 						mavlink_log_critical(&mavlink_log_pub, "Rejecting reposition command");
 					}
 				}
+
 			} else {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			}
@@ -670,12 +670,13 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 			/* If parameter COM_LOW_BAT_ACT configures an automatic low battery reaction (not only Warning 0) prevent switching out of it unless switching to MANUAL, AUTO_RTL (critical battery only) or AUTO_LAND. */
 			bool no_mode_switch_low_battery = low_bat_action != 0 && critical_battery_voltage_actions_done &&
-					(emergency_battery_voltage_actions_done || custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_RTL) &&
-					custom_main_mode != PX4_CUSTOM_MAIN_MODE_MANUAL &&
-					custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_LAND;
+							  (emergency_battery_voltage_actions_done || custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_RTL) &&
+							  custom_main_mode != PX4_CUSTOM_MAIN_MODE_MANUAL &&
+							  custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 
 			/* if the UAV is outside the geofence radius or altitude and the action taken is either Loiter or RTL do not allow to switch to any mode other than AUTO_RTL. */
-			bool no_mode_switch_geofence = (geofence_loiter_on || geofence_rtl_on) && geofence_result.geofence_violated && custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+			bool no_mode_switch_geofence = (geofence_loiter_on || geofence_rtl_on) && geofence_result.geofence_violated
+						       && custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_RTL;
 
 			if (no_mode_switch_low_battery) {
 				main_ret = TRANSITION_DENIED;
@@ -708,15 +709,15 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 					reset_posvel_validity(changed);
 					main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
 
-				}else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SMART) {
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SMART) {
 					/* SMART */
 					main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_SMART, status_flags, &internal_state);
 
-				}else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SPORT) {
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SPORT) {
 					/* SPORT */
 					main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_SPORT, status_flags, &internal_state);
 
-				}else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
 					if (custom_sub_mode > 0) {
 						reset_posvel_validity(changed);
@@ -1006,7 +1007,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 				mavlink_and_console_log_info(&mavlink_log_pub, "Returning to launch");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
-			} else if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL){
+			} else if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL) {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -1018,13 +1019,13 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
 			/* Refuse to takeoff when landed and switch is in rtl position */
-			if (sp_man.return_switch || _desired_flight_mode == commander_state_s::MAIN_STATE_AUTO_RTL){
+			if (sp_man.return_switch || _desired_flight_mode == commander_state_s::MAIN_STATE_AUTO_RTL) {
 				mavlink_log_critical(&mavlink_log_pub, "Takeoff denied, switch out of RTL.");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				main_state_transition(status, _desired_flight_mode, status_flags, &internal_state);
 
 			} else if (TRANSITION_CHANGED == main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_TAKEOFF,
-								 status_flags, &internal_state)) {
+					status_flags, &internal_state)) {
 				/* ok, home set, use it to take off */
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1409,7 +1410,7 @@ Commander::run()
 	memset(&sp_man, 0, sizeof(sp_man));
 
 	/*Initialize last_sp_man.mode_slot to -1, set mode slot to unassigned */
-	_last_sp_man.mode_slot=manual_control_setpoint_s::MODE_SLOT_NONE;
+	_last_sp_man.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
 
 	/* Subscribe to offboard control data */
 	int offboard_control_mode_sub = orb_subscribe(ORB_ID(offboard_control_mode));
@@ -1530,7 +1531,7 @@ Commander::run()
 
 	float disarm_when_crash = 0;
 	float land_interrupt_delay = 0; /* if stick interrupt for rtl/land is ON, the vehicle will switch back */
-										   /* to rtl/land if sticks are not moved AND time land_interrupt_delay passed */
+	/* to rtl/land if sticks are not moved AND time land_interrupt_delay passed */
 
 	/* Matches param COM_LED_MODE */
 	enum class LED_MODE : int32_t {
@@ -1548,7 +1549,8 @@ Commander::run()
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool failsafe_old = false;
-	bool arming_button_switch_allowed = true; /*if this flag is true, then switch from arming to disarming (vice versa) is allowed */
+	bool arming_button_switch_allowed =
+		true; /*if this flag is true, then switch from arming to disarming (vice versa) is allowed */
 
 	bool have_taken_off_since_arming = false;
 
@@ -1677,7 +1679,7 @@ Commander::run()
 			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
 
 			/* param to switch LED mode */
-			param_get(_param_led_mode, (int32_t*)&led_mode);
+			param_get(_param_led_mode, (int32_t *)&led_mode);
 
 			/* Yuneec specific: indoor mode or valid home position required for H520 takeoff */
 			param_get(_param_ekf2_indoor_mode, &ekf2_indoor_mode);
@@ -1704,6 +1706,7 @@ Commander::run()
 		if (updated) {
 			power_button_state_s button_state;
 			orb_copy(ORB_ID(power_button_state), power_button_state_sub, &button_state);
+
 			if (button_state.event == power_button_state_s::PWR_BUTTON_STATE_DOWN && power_state == power_state_e::idle) {
 
 				// NOTE(Yuneec)
@@ -1714,8 +1717,9 @@ Commander::run()
 					power_state = power_state_e::pending;
 					power_state_next_timestamp = hrt_absolute_time() + 1500000; // button down time is 1.5s
 				}
+
 			} else if (button_state.event == power_button_state_s::PWR_BUTTON_STATE_UP
-					|| button_state.event == power_button_state_s::PWR_BUTTON_STATE_IDEL) {
+				   || button_state.event == power_button_state_s::PWR_BUTTON_STATE_IDEL) {
 				if (power_state == power_state_e::pending) { // abort only if not commited yet
 					power_state = power_state_e::idle;
 				}
@@ -1723,6 +1727,7 @@ Commander::run()
 		}
 
 		hrt_abstime current_time = hrt_absolute_time();
+
 		if (power_state == power_state_e::pending && current_time > power_state_next_timestamp) {
 			// turn off LEDs
 			rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_OFF, 0, led_control_s::MAX_PRIORITY);
@@ -1730,6 +1735,7 @@ Commander::run()
 			set_tune_override(21); // TODO: get rid of magic number
 			power_state = power_state_e::commited;
 			power_state_next_timestamp = current_time + 500000; // wait 500ms until power off
+
 		} else if (power_state == power_state_e::commited && current_time > power_state_next_timestamp) {
 			power_state = power_state_e::wait_for_poweroff;
 			px4_shutdown_request(false, false);
@@ -1921,7 +1927,8 @@ Commander::run()
 					mavlink_and_console_log_info(&mavlink_log_pub, "Crash detected.");
 				}
 
-				if ((PX4_ISFINITE(land_detector.alt_max) && land_detector.alt_max > 0.0f) && (!PX4_ISFINITE(max_altitude) || (fabsf(max_altitude - land_detector.alt_max) > FLT_EPSILON))) {
+				if ((PX4_ISFINITE(land_detector.alt_max) && land_detector.alt_max > 0.0f) && (!PX4_ISFINITE(max_altitude)
+						|| (fabsf(max_altitude - land_detector.alt_max) > FLT_EPSILON))) {
 					mavlink_and_console_log_info(&mavlink_log_pub, "Altitude limit: %.6f meters above home", (double)land_detector.alt_max);
 				}
 			}
@@ -1944,7 +1951,7 @@ Commander::run()
 		if (armed.armed && land_detector.landed && _disarm_when_landed_timeout.get() > FLT_EPSILON) {
 			auto_disarm_hysteresis.set_state_and_update(true);
 
-		} else if(armed.armed && land_detector.crash && disarm_when_crash > FLT_EPSILON){
+		} else if (armed.armed && land_detector.crash && disarm_when_crash > FLT_EPSILON) {
 			//TODO
 			//Now it needs a lot of verification
 
@@ -2141,13 +2148,13 @@ Commander::run()
 		// revert geofence failsafe transition if sticks are moved and we were previously in a manual mode or loiter or rtl
 		// but only if not in a low battery handling action
 		if (!geofence_loiter_on && !geofence_rtl_on && (_battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL) &&
-			!rtl_time_actions_done && (warning_action_on &&
-				(main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
-				 main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
-				 main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
-				 main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
-				 main_state_before_rtl == commander_state_s::MAIN_STATE_RATTITUDE ||
-				 main_state_before_rtl == commander_state_s::MAIN_STATE_STAB))) {
+		    !rtl_time_actions_done && (warning_action_on &&
+					       (main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
+						main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
+						main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
+						main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
+						main_state_before_rtl == commander_state_s::MAIN_STATE_RATTITUDE ||
+						main_state_before_rtl == commander_state_s::MAIN_STATE_STAB))) {
 
 			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
@@ -2165,9 +2172,9 @@ Commander::run()
 		// abort takeoff, landing or auto or loiter if sticks are moved significantly
 		// but only if not in a low battery handling action
 		if (rc_override != 0 && !warning_action_on && (_battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL) &&
-			(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF ||
-			 internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
-			 internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)) {
+		    (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF ||
+		     internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
+		     internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)) {
 			// transition to previous state if sticks are touched
 
 			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
@@ -2177,20 +2184,24 @@ Commander::run()
 			     (fabsf(sp_man.r - _last_sp_man.r) > min_stick_change))) {
 
 				switch (internal_state.main_state) {
-					case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
-					/* fallthrough */
-					case commander_state_s::MAIN_STATE_AUTO_LOITER:
-						// It is normal to take over with sticks after takeoff and loiter
-						break;
-					case commander_state_s::MAIN_STATE_AUTO_RTL:
-						mavlink_log_critical(&mavlink_log_pub, "Returned control to pilot, aborted RTL.");
-						break;
-					case commander_state_s::MAIN_STATE_AUTO_MISSION:
-						mavlink_log_critical(&mavlink_log_pub, "Returned control to pilot, paused mission.");
-						break;
-					default:
-						mavlink_log_critical(&mavlink_log_pub, "Returned control to pilot, autopilot off.");
-						break;
+				case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
+
+				/* fallthrough */
+				case commander_state_s::MAIN_STATE_AUTO_LOITER:
+					// It is normal to take over with sticks after takeoff and loiter
+					break;
+
+				case commander_state_s::MAIN_STATE_AUTO_RTL:
+					mavlink_log_critical(&mavlink_log_pub, "Returned control to pilot, aborted RTL.");
+					break;
+
+				case commander_state_s::MAIN_STATE_AUTO_MISSION:
+					mavlink_log_critical(&mavlink_log_pub, "Returned control to pilot, paused mission.");
+					break;
+
+				default:
+					mavlink_log_critical(&mavlink_log_pub, "Returned control to pilot, autopilot off.");
+					break;
 				}
 
 				// revert to position control in any case
@@ -2204,39 +2215,42 @@ Commander::run()
 		/* The relative altitude of the home point */
 
 		float current_relative_alt = _global_position_sub.get().alt - _home_pub.get().alt;
+
 		if (gohome_land_interrupt) {
-			if (!emergency_battery_voltage_actions_done && (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND || pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) &&(
-					internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
-					internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL)) {
+			if (!emergency_battery_voltage_actions_done && (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND
+					|| pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) && (
+				    internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+				    internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL)) {
 				if ((fabsf(sp_man.x - 0.f) > min_interrupt_stick_change ||
-					fabsf(sp_man.y - 0.f) >min_interrupt_stick_change ||
-					(sp_man.z - 0.5f) > min_interrupt_stick_change) &&
-					current_relative_alt > allow_interrupt_min_alt) {
+				     fabsf(sp_man.y - 0.f) > min_interrupt_stick_change ||
+				     (sp_man.z - 0.5f) > min_interrupt_stick_change) &&
+				    current_relative_alt > allow_interrupt_min_alt) {
 
-						/* We interrupted land via sticks */
-						control_mode.flag_control_updated = true;
-						main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
-						land_interrupt_hysteresis.set_state_and_update(true);
-					}
-				}
-
-				if (control_mode.flag_control_updated &&
-					fabsf(sp_man.x - 0.f) <= min_interrupt_stick_change &&
-					fabsf(sp_man.y - 0.f) <= min_interrupt_stick_change &&
-					(sp_man.z - 0.5f) <= min_interrupt_stick_change &&
-					fabsf(_local_position_sub.get().vx) < 0.3f && fabsf(_local_position_sub.get().vy) < 0.3f) {
-
-					/* set land interrupt hysteresis to false since sticks are not moving */
-					land_interrupt_hysteresis.set_state_and_update(false);
-
-					if (!land_interrupt_hysteresis.get_state()){
-						control_mode.flag_control_updated = false;
-						main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state);
-					}
-				} else {
-					/* stick are still moving */
+					/* We interrupted land via sticks */
+					control_mode.flag_control_updated = true;
+					main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
 					land_interrupt_hysteresis.set_state_and_update(true);
 				}
+			}
+
+			if (control_mode.flag_control_updated &&
+			    fabsf(sp_man.x - 0.f) <= min_interrupt_stick_change &&
+			    fabsf(sp_man.y - 0.f) <= min_interrupt_stick_change &&
+			    (sp_man.z - 0.5f) <= min_interrupt_stick_change &&
+			    fabsf(_local_position_sub.get().vx) < 0.3f && fabsf(_local_position_sub.get().vy) < 0.3f) {
+
+				/* set land interrupt hysteresis to false since sticks are not moving */
+				land_interrupt_hysteresis.set_state_and_update(false);
+
+				if (!land_interrupt_hysteresis.get_state()) {
+					control_mode.flag_control_updated = false;
+					main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state);
+				}
+
+			} else {
+				/* stick are still moving */
+				land_interrupt_hysteresis.set_state_and_update(true);
+			}
 		}
 
 		/* Check for mission flight termination */
@@ -2286,7 +2300,7 @@ Commander::run()
 							&& sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
 
 			/* if the armbutton was released or was never pressed, we can switch arm state by pressing the arming button */
-			if(!arm_button_pressed){
+			if (!arm_button_pressed) {
 				arming_button_switch_allowed = true;
 			}
 
@@ -2296,19 +2310,19 @@ Commander::run()
 			 * do it only for rotary wings in manual mode or fixed wing if landed.
 			 * Disable stick-disarming if arming switch or button is mapped */
 			const bool stick_in_lower_left = (sp_man.arm_switch ==
-				manual_control_setpoint_s::SWITCH_POS_NONE)
-				&& sp_man.r < -STICK_ON_OFF_LIMIT
-				&& sp_man.z < 0.1f
-				&& !arm_switch_or_button_mapped;
+							  manual_control_setpoint_s::SWITCH_POS_NONE)
+							 && sp_man.r < -STICK_ON_OFF_LIMIT
+							 && sp_man.z < 0.1f
+							 && !arm_switch_or_button_mapped;
 
-			const bool arm_switch_to_disarm_transition =  (arm_switch_is_button == 0) &&
+			const bool arm_switch_to_disarm_transition = (arm_switch_is_button == 0) &&
 					(_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON) &&
 					(sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF);
 
 			if (in_armed_state &&
-				(status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF) &&
-				(status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) &&
-				(stick_in_lower_left || (arm_button_pressed && arming_button_switch_allowed) || arm_switch_to_disarm_transition) ) {
+			    (status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF) &&
+			    (status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) &&
+			    (stick_in_lower_left || (arm_button_pressed && arming_button_switch_allowed) || arm_switch_to_disarm_transition)) {
 
 				/* default is set to disarm */
 				bool disarm = false;
@@ -2317,14 +2331,16 @@ Commander::run()
 				 * by pressing the disarm button or using the disarm switch
 				 */
 				bool able_to_skip_landdetector;
-				switch(internal_state.main_state){
+
+				switch (internal_state.main_state) {
 				case commander_state_s::MAIN_STATE_MANUAL:
 				case commander_state_s::MAIN_STATE_ACRO:
 				case commander_state_s::MAIN_STATE_STAB:
-				case commander_state_s::MAIN_STATE_RATTITUDE:{
-					able_to_skip_landdetector = true;
-					break;
-				}
+				case commander_state_s::MAIN_STATE_RATTITUDE: {
+						able_to_skip_landdetector = true;
+						break;
+					}
+
 				default:
 					able_to_skip_landdetector = false;
 				}
@@ -2346,6 +2362,7 @@ Commander::run()
 
 						/* do not reset the counter when holding the arm button longer than needed */
 						stick_off_counter = 0;
+
 					} else {
 						stick_off_counter++;
 					}
@@ -2355,8 +2372,9 @@ Commander::run()
 				}
 
 				if (disarm) {
-					arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */,
-													&mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+					arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
+									     true /* fRunPreArmChecks */,
+									     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 				}
 			}
 
@@ -2365,8 +2383,8 @@ Commander::run()
 			 * and we're in MANUAL mode.
 			 * Disable stick-arming if arming switch or button is mapped */
 			const bool stick_in_lower_right = sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f
-								&& !arm_switch_or_button_mapped
-								&& sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_NONE;
+							  && !arm_switch_or_button_mapped
+							  && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_NONE;
 			/* allow a grace period for re-arming: preflight checks don't need to pass during that time,
 			 * for example for accidential in-air disarming */
 			const bool in_arming_grace_period = last_disarmed_timestamp != 0 && hrt_elapsed_time(&last_disarmed_timestamp) < 5_s;
@@ -2377,7 +2395,7 @@ Commander::run()
 
 			if (!in_armed_state &&
 			    status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
-			    (stick_in_lower_right || (arm_button_pressed && arming_button_switch_allowed) || arm_switch_to_arm_transition) ) {
+			    (stick_in_lower_right || (arm_button_pressed && arming_button_switch_allowed) || arm_switch_to_arm_transition)) {
 				if ((stick_on_counter == rc_arm_hyst) || arm_switch_to_arm_transition) {
 
 					/* we check outside of the transition function here because the requirement
@@ -2401,9 +2419,9 @@ Commander::run()
 						print_reject_arm("NOT ARMING: geofence RTL requires valid home.");
 
 					} else if ((!status_flags.condition_home_position_valid
-						|| !status_flags.condition_global_position_valid
-						|| !status_flags.condition_local_position_valid)
-						&& !ekf2_indoor_mode && require_indoor_mode_or_home) {
+						    || !status_flags.condition_global_position_valid
+						    || !status_flags.condition_local_position_valid)
+						   && !ekf2_indoor_mode && require_indoor_mode_or_home) {
 						print_reject_arm("NOT ARMING: No GPS - Wait or switch to indoor mode");
 
 					} else if (internal_state.main_state != _desired_flight_mode) {
@@ -2417,7 +2435,8 @@ Commander::run()
 						if (arming_ret != TRANSITION_CHANGED) {
 							px4_usleep(100000);
 							print_reject_arm("NOT ARMING: Preflight checks failed");
-						}else{ // NOTE: Yuneec-specific block
+
+						} else { // NOTE: Yuneec-specific block
 							/* don't allow to switch to disarm if the arming button still is pressed */
 							arming_button_switch_allowed = false;
 						}
@@ -2425,7 +2444,8 @@ Commander::run()
 				}
 
 				stick_on_counter++;
-			/* do not reset the counter when holding the arm button longer than needed */
+				/* do not reset the counter when holding the arm button longer than needed */
+
 			} else {
 				stick_on_counter = 0;
 			}
@@ -2584,10 +2604,12 @@ Commander::run()
 			if (!status.rc_signal_lost) {
 				if (was_armed && (internal_state.main_state != _desired_flight_mode)) {
 					transition_result_t res_auto = main_state_transition(status, _desired_flight_mode, status_flags, &internal_state);
+
 					if (res_auto == TRANSITION_CHANGED) {
-						 mavlink_log_info(&mavlink_log_pub, "Automated flight complete.");
+						mavlink_log_info(&mavlink_log_pub, "Automated flight complete.");
+
 					} else if (res_auto == TRANSITION_DENIED) {
-						 mavlink_log_critical(&mavlink_log_pub, "Failed to switch mode automatically.");
+						mavlink_log_critical(&mavlink_log_pub, "Failed to switch mode automatically.");
 					}
 				}
 			}
@@ -2908,9 +2930,11 @@ Commander::run()
 			if (led_mode == LED_MODE::LedsOff) {
 				// We add a priority on top to disable all LEDS, the color doesn't actually matter.
 				rgbled_set(0xff, led_control_s::COLOR_WHITE, led_control_s::MODE_OFF, 0, led_control_s::MAX_PRIORITY);
+
 			} else if (led_mode == LED_MODE::LedsOn) {
 				// We just remove this priority again, the color doesn't actually matter.
 				rgbled_set(0xff, led_control_s::COLOR_WHITE, led_control_s::MODE_DISABLED, 0, led_control_s::MAX_PRIORITY);
+
 			} else if (led_mode == LED_MODE::LedsFrontOff) {
 				// First reset in case everything was off.
 				rgbled_set(0xff, led_control_s::COLOR_WHITE, led_control_s::MODE_DISABLED, 0, led_control_s::MAX_PRIORITY);
@@ -2918,6 +2942,7 @@ Commander::run()
 				// Front are LEDs 3 and 4.
 				rgbled_set(0x0c, led_control_s::COLOR_WHITE, led_control_s::MODE_OFF, 0, led_control_s::MAX_PRIORITY);
 			}
+
 			old_led_mode = led_mode;
 		}
 
@@ -3034,7 +3059,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
 
-		}else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_INIT) {
+		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 			// if in init status it should not be in the error state
 			led_mode = led_control_s::MODE_OFF;
 
@@ -3053,6 +3078,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 				activated_high_prio_event = false;
 
 			}
+
 			/* set color */
 			if (status.failsafe) {
 				led_color = led_control_s::COLOR_PURPLE;
@@ -3168,7 +3194,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	/* manual setpoint has not updated, do not re-evaluate it */
 	if (!(!status_flags.condition_last_local_altitude_valid &&
 	      status_flags.condition_local_altitude_valid) &&
-	      !(!status_flags.condition_last_home_position_valid && status_flags.condition_home_position_valid)
+	    !(!status_flags.condition_last_home_position_valid && status_flags.condition_home_position_valid)
 	    && (((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man.timestamp)) ||
 		((_last_sp_man.offboard_switch == sp_man.offboard_switch) &&
 		 (_last_sp_man.return_switch == sp_man.return_switch) &&
@@ -3240,6 +3266,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 
 			/* fallback to LOITER if home position not set */
 			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
+
 		} else {
 			/* changed successfully or already in this state */
 			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
@@ -3267,7 +3294,8 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	}
 
 	/* we know something has changed - check if we are in mode slot operation */
-	if ((sp_man.mode_slot != manual_control_setpoint_s::MODE_SLOT_NONE && mode_slot_has_actually_changed) || _should_reevaluate_mode_slot) {
+	if ((sp_man.mode_slot != manual_control_setpoint_s::MODE_SLOT_NONE && mode_slot_has_actually_changed)
+	    || _should_reevaluate_mode_slot) {
 		_should_reevaluate_mode_slot = false;
 
 		if (sp_man.mode_slot >= (int)(sizeof(_flight_mode_slots) / sizeof(_flight_mode_slots[0]))) {
@@ -3279,7 +3307,8 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		_desired_flight_mode = _flight_mode_slots[sp_man.mode_slot];
 
 		//  if the UAV is outside the geofence radius or altitude and the action taken is either Loiter or RTL do not allow to switch to any mode other than AUTO_RTL.
-		bool no_mode_switch_geofence = (geofence_loiter_on || geofence_rtl_on) && geofence_result.geofence_violated && new_mode != commander_state_s::MAIN_STATE_AUTO_RTL;
+		bool no_mode_switch_geofence = (geofence_loiter_on || geofence_rtl_on) && geofence_result.geofence_violated
+					       && new_mode != commander_state_s::MAIN_STATE_AUTO_RTL;
 
 		if (no_mode_switch_geofence) {
 			mavlink_log_critical(&mavlink_log_pub, "Geofence violated. Please, switch to RTL.");
@@ -3299,7 +3328,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 			/* enable the use of break */
 			/* fallback strategies, give the user the closest mode to what he wanted */
 			while (status_local.arming_state == vehicle_status_s::ARMING_STATE_ARMED
-					&& res == TRANSITION_DENIED && maxcount > 0) {
+			       && res == TRANSITION_DENIED && maxcount > 0) {
 
 				maxcount--;
 
@@ -3984,8 +4013,9 @@ void answer_command(const vehicle_command_s &cmd, unsigned result, orb_advert_t 
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED:
+
 		// Yuneec hotfix for #3041
-		if (cmd.command == 2504){
+		if (cmd.command == 2504) {
 			// NOTE: Datapilot seems to send MAV_CMD_REQUEST_VIDEO_STREAM_INFORMATION
 			// which the commander does not understand. In order to prevent error
 			// tunes from being spammed, the unsupported command is caught here.
@@ -4634,29 +4664,33 @@ void Commander::battery_status_check()
 
 			/* Yuneec-specific: Update time estimate for RTL and perform RTL action if required */
 			orb_check(_rtl_time_estimate_sub, &updated);
-			if(updated) {
+
+			if (updated) {
 				orb_copy(ORB_ID(rtl_time_estimate), _rtl_time_estimate_sub, &rtl_time_estimate);
 
 				// Compare estimate of RTL to estimate of remaining flight time
-				if(armed.armed &&
-					!rtl_time_actions_done &&
-					!(battery.time_remaining_s < FLT_EPSILON) &&
-					internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL &&
-					rtl_time_estimate.valid &&
-					rtl_time_estimate.safe_time_estimate >= battery.time_remaining_s) {
+				if (armed.armed &&
+				    !rtl_time_actions_done &&
+				    !(battery.time_remaining_s < FLT_EPSILON) &&
+				    internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL &&
+				    rtl_time_estimate.valid &&
+				    rtl_time_estimate.safe_time_estimate >= battery.time_remaining_s) {
 
-						// Try to initiate RTL
-						transition_result_t s = main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state);
-						switch(s){
-							case TRANSITION_CHANGED:
-								warning_action_on = true;
-								mavlink_log_emergency(&mavlink_log_pub, "Flight time low, returning to land");
-								break;
+					// Try to initiate RTL
+					transition_result_t s = main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
+								&internal_state);
 
-							default:
-								mavlink_log_emergency(&mavlink_log_pub, "Flight time low, land now!");
-						}
-						rtl_time_actions_done = true;
+					switch (s) {
+					case TRANSITION_CHANGED:
+						warning_action_on = true;
+						mavlink_log_emergency(&mavlink_log_pub, "Flight time low, returning to land");
+						break;
+
+					default:
+						mavlink_log_emergency(&mavlink_log_pub, "Flight time low, land now!");
+					}
+
+					rtl_time_actions_done = true;
 				}
 			}
 		}
@@ -4739,7 +4773,7 @@ void Commander::estimator_check(bool *status_changed)
 
 						// pass if sufficient time or speed
 						// Yuneec-specific: or if the speed threshold has been exceeded for more than 3 sec
-						if (sufficient_time || sufficient_speed || ((hrt_absolute_time() - _time_last_spd_low) > 3*1000*1000)) {
+						if (sufficient_time || sufficient_speed || ((hrt_absolute_time() - _time_last_spd_low) > 3 * 1000 * 1000)) {
 							_nav_test_passed = true;
 						}
 

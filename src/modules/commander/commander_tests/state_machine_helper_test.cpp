@@ -382,7 +382,7 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 		{
 			"transition: MANUAL to AUTO_LOITER - global position valid, home position valid",
 			MTT_GLOBAL_POS_VALID | MTT_HOME_POS_VALID,
-			commander_state_s::MAIN_STATE_MANUAL, commander_state_s::MAIN_STATE_AUTO_LOITER, TRANSITION_CHANGED 
+			commander_state_s::MAIN_STATE_MANUAL, commander_state_s::MAIN_STATE_AUTO_LOITER, TRANSITION_CHANGED
 		},
 
 		{

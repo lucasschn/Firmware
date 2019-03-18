@@ -710,19 +710,20 @@ TAP_ESC_UPLOADER::sync(uint8_t esc_id)
 
 		if (_uploader_packet.d.feedback_packet.command != PROTO_GET_SYNC) {
 			PX4_INFO("bad sync myID: 0x%02x, command: 0x%02x", _uploader_packet.d.feedback_packet.myID,
-				_uploader_packet.d.feedback_packet.command);
+				 _uploader_packet.d.feedback_packet.command);
 			return -EIO;
 		}
 
 	} else if (_uploader_packet.msg_id == PROTO_INVALID) {
 		PX4_INFO("sync invalid: don't receive sync invalid: myID: 0x%02x, esc_id: 0x%02x",
-			_uploader_packet.d.feedback_packet.myID,
-			esc_id);
+			 _uploader_packet.d.feedback_packet.myID,
+			 esc_id);
 		return -EIO;
 
 	} else if (_uploader_packet.msg_id == PROTO_FAILED) {
-		PX4_INFO("sync failed: don't receive sync failed: myID: 0x%02x, esc_id: 0x%02x", _uploader_packet.d.feedback_packet.myID,
-			esc_id);
+		PX4_INFO("sync failed: don't receive sync failed: myID: 0x%02x, esc_id: 0x%02x",
+			 _uploader_packet.d.feedback_packet.myID,
+			 esc_id);
 		return -EIO;
 
 	}
@@ -760,7 +761,7 @@ TAP_ESC_UPLOADER::get_esc_versions(uint8_t esc_id, uint32_t &fw_ver, uint32_t &h
 	if (_uploader_packet.msg_id == ESCBUS_MSG_ID_DEVICE_INFO) {
 		if (_uploader_packet.d.esc_version_packet.myID != esc_id) {
 			PX4_INFO("get device firmware revision: ID mismatch, received: 0x%02x, asked for: 0x%02x",
-				_uploader_packet.d.esc_version_packet.myID, esc_id);
+				 _uploader_packet.d.esc_version_packet.myID, esc_id);
 			return -EIO;
 		}
 
@@ -770,14 +771,14 @@ TAP_ESC_UPLOADER::get_esc_versions(uint8_t esc_id, uint32_t &fw_ver, uint32_t &h
 
 	} else if (_uploader_packet.msg_id == PROTO_FAILED) {
 		PX4_INFO("Failed to get ESC versions, ESC ID: 0x%02x, we sent to ID: 0x%02x, FwRev: 0x%02x",
-			_uploader_packet.d.esc_version_packet.myID, esc_id,
-			_uploader_packet.d.esc_version_packet.FwRev);
+			 _uploader_packet.d.esc_version_packet.myID, esc_id,
+			 _uploader_packet.d.esc_version_packet.FwRev);
 		return -EIO;
 
 	} else if (_uploader_packet.msg_id == PROTO_INVALID) {
 		PX4_INFO("Failed to get ESC versions, ESC reports invalid protocl, ESC ID: 0x%02x, we sent to ID: 0x%02x, FwRev: 0x%02x",
-			_uploader_packet.d.esc_version_packet.myID, esc_id,
-			_uploader_packet.d.esc_version_packet.FwRev);
+			 _uploader_packet.d.esc_version_packet.myID, esc_id,
+			 _uploader_packet.d.esc_version_packet.FwRev);
 		return -EIO;
 
 	}
@@ -813,7 +814,7 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 		if (_uploader_packet.msg_id == PROTO_OK) {
 			if (_uploader_packet.d.bootloader_revis_packet.myID != esc_id) {
 				PX4_INFO("get device bootloader revision id don't match, myID: 0x%02x, esc_id: 0x%02x",
-					_uploader_packet.d.bootloader_revis_packet.myID, esc_id);
+					 _uploader_packet.d.bootloader_revis_packet.myID, esc_id);
 				return -EIO;
 			}
 
@@ -821,14 +822,14 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 
 		} else if (_uploader_packet.msg_id == PROTO_FAILED) {
 			PX4_INFO("get device bootloader revision failed, myID: 0x%02x, esc_id: 0x%02x, ver: 0x%02x",
-				_uploader_packet.d.bootloader_revis_packet.myID, esc_id,
-				_uploader_packet.d.bootloader_revis_packet.version);
+				 _uploader_packet.d.bootloader_revis_packet.myID, esc_id,
+				 _uploader_packet.d.bootloader_revis_packet.version);
 			return -EIO;
 
 		} else if (_uploader_packet.msg_id == PROTO_INVALID) {
 			PX4_INFO("get device bootloader revision invalid, myID: 0x%02x, esc_id: 0x%02x, ver: 0x%02x",
-				_uploader_packet.d.bootloader_revis_packet.myID, esc_id,
-				_uploader_packet.d.bootloader_revis_packet.version);
+				 _uploader_packet.d.bootloader_revis_packet.myID, esc_id,
+				 _uploader_packet.d.bootloader_revis_packet.version);
 			return -EIO;
 
 		}
@@ -839,8 +840,8 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 		if (_uploader_packet.msg_id == PROTO_OK) {
 			if (_uploader_packet.d.hardware_id_packet.myID != esc_id) {
 				PX4_INFO("get device hardware_id id don't match, myID: 0x%02x, esc_id: 0x%02x",
-					_uploader_packet.d.hardware_id_packet.myID,
-					esc_id);
+					 _uploader_packet.d.hardware_id_packet.myID,
+					 esc_id);
 				return -EIO;
 			}
 
@@ -848,14 +849,14 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 
 		} else if (_uploader_packet.msg_id == PROTO_FAILED) {
 			PX4_INFO("get device hardware id failed, myID: 0x%02x, esc_id: 0x%02x, tar: 0x%02x",
-				_uploader_packet.d.hardware_id_packet.myID, esc_id,
-				_uploader_packet.d.hardware_id_packet.targetSystemId);
+				 _uploader_packet.d.hardware_id_packet.myID, esc_id,
+				 _uploader_packet.d.hardware_id_packet.targetSystemId);
 			return -EIO;
 
 		} else if (_uploader_packet.msg_id == PROTO_INVALID) {
 			PX4_INFO("get device hardware id invalid, myID: 0x%02x, esc_id: 0x%02x, tar: 0x%02x",
-				_uploader_packet.d.hardware_id_packet.myID, esc_id,
-				_uploader_packet.d.hardware_id_packet.targetSystemId);
+				 _uploader_packet.d.hardware_id_packet.myID, esc_id,
+				 _uploader_packet.d.hardware_id_packet.targetSystemId);
 			return -EIO;
 
 		}
@@ -866,7 +867,7 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 		if (_uploader_packet.msg_id == PROTO_OK) {
 			if (_uploader_packet.d.hardware_revis_packet.myID != esc_id) {
 				PX4_INFO("get device hardware revision id don't match, myID: 0x%02x, esc_id: 0x%02x",
-					_uploader_packet.d.hardware_revis_packet.myID, esc_id);
+					 _uploader_packet.d.hardware_revis_packet.myID, esc_id);
 				return -EIO;
 			}
 
@@ -874,14 +875,14 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 
 		} else if (_uploader_packet.msg_id == PROTO_FAILED) {
 			PX4_INFO("get device hardware revision failed, myID: 0x%02x, esc_id: 0x%02x, boardRev: 0x%02x",
-				_uploader_packet.d.hardware_revis_packet.myID, esc_id,
-				_uploader_packet.d.hardware_revis_packet.boardRev);
+				 _uploader_packet.d.hardware_revis_packet.myID, esc_id,
+				 _uploader_packet.d.hardware_revis_packet.boardRev);
 			return -EIO;
 
 		} else if (_uploader_packet.msg_id == PROTO_INVALID) {
 			PX4_INFO("get device hardware revision invalid, myID: 0x%02x, esc_id: 0x%02x, boardRev: 0x%02x",
-				_uploader_packet.d.hardware_revis_packet.myID, esc_id,
-				_uploader_packet.d.hardware_revis_packet.boardRev);
+				 _uploader_packet.d.hardware_revis_packet.myID, esc_id,
+				 _uploader_packet.d.hardware_revis_packet.boardRev);
 			return -EIO;
 
 		}
@@ -892,7 +893,7 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 		if (_uploader_packet.msg_id == PROTO_OK) {
 			if (_uploader_packet.d.firmware_size_packet.myID != esc_id) {
 				PX4_INFO("get device firmware size id don't match, myID: 0x%02x, esc_id: 0x%02x",
-					_uploader_packet.d.firmware_size_packet.myID, esc_id);
+					 _uploader_packet.d.firmware_size_packet.myID, esc_id);
 				return -EIO;
 			}
 
@@ -900,14 +901,14 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 
 		} else if (_uploader_packet.msg_id == PROTO_FAILED) {
 			PX4_INFO("get device firmware size failed, myID: 0x%02x, esc_id: 0x%02x, FwSize:  0x%02x",
-				_uploader_packet.d.firmware_size_packet.myID, esc_id,
-				_uploader_packet.d.firmware_size_packet.FwSize);
+				 _uploader_packet.d.firmware_size_packet.myID, esc_id,
+				 _uploader_packet.d.firmware_size_packet.FwSize);
 			return -EIO;
 
 		} else if (_uploader_packet.msg_id == PROTO_INVALID) {
 			PX4_INFO("get device firmware size invalid, myID: 0x%02x, esc_id: 0x%02x, FwSize:  0x%02x",
-				_uploader_packet.d.firmware_size_packet.myID, esc_id,
-				_uploader_packet.d.firmware_size_packet.FwSize);
+				 _uploader_packet.d.firmware_size_packet.myID, esc_id,
+				 _uploader_packet.d.firmware_size_packet.FwSize);
 			return -EIO;
 
 		}
@@ -918,7 +919,7 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 		if (_uploader_packet.msg_id == ESCBUS_MSG_ID_DEVICE_INFO) {
 			if (_uploader_packet.d.firmware_revis_packet.myID != esc_id) {
 				PX4_INFO("get device firmware revision id don't match, myID: 0x%02x, esc_id: 0x%02x",
-					_uploader_packet.d.firmware_revis_packet.myID, esc_id);
+					 _uploader_packet.d.firmware_revis_packet.myID, esc_id);
 				return -EIO;
 			}
 
@@ -932,7 +933,7 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 		if (_uploader_packet.msg_id == PROTO_OK) {
 			if (_uploader_packet.d.firmware_revis_packet.myID != esc_id) {
 				PX4_INFO("get device firmware revision id don't match, myID: 0x%02x, esc_id: 0x%02x",
-					_uploader_packet.d.firmware_revis_packet.myID, esc_id);
+					 _uploader_packet.d.firmware_revis_packet.myID, esc_id);
 				return -EIO;
 			}
 
@@ -940,14 +941,14 @@ TAP_ESC_UPLOADER::get_device_info(uint8_t esc_id, uint8_t msg_id, uint8_t msg_ar
 
 		} else if (_uploader_packet.msg_id == PROTO_FAILED) {
 			PX4_INFO("get device firmware revision failed, myID: 0x%02x,esc_id: 0x%02x, FwRev: 0x%02x",
-				_uploader_packet.d.firmware_revis_packet.myID, esc_id,
-				_uploader_packet.d.firmware_revis_packet.FwRev);
+				 _uploader_packet.d.firmware_revis_packet.myID, esc_id,
+				 _uploader_packet.d.firmware_revis_packet.FwRev);
 			return -EIO;
 
 		} else if (_uploader_packet.msg_id == PROTO_INVALID) {
 			PX4_INFO("get device firmware revision invalid, myID: 0x%02x,esc_id: 0x%02x, FwRev: 0x%02x",
-				_uploader_packet.d.firmware_revis_packet.myID, esc_id,
-				_uploader_packet.d.firmware_revis_packet.FwRev);
+				 _uploader_packet.d.firmware_revis_packet.myID, esc_id,
+				 _uploader_packet.d.firmware_revis_packet.FwRev);
 			return -EIO;
 
 		}
@@ -991,18 +992,18 @@ TAP_ESC_UPLOADER::erase(uint8_t esc_id)
 
 		if (_uploader_packet.d.feedback_packet.command != PROTO_CHIP_ERASE) {
 			PX4_INFO("erase bad command, myID: 0x%02x,command: 0x%02x", _uploader_packet.d.feedback_packet.myID,
-				_uploader_packet.d.feedback_packet.command);
+				 _uploader_packet.d.feedback_packet.command);
 			return -EIO;
 		}
 
 	} else if (_uploader_packet.msg_id == PROTO_FAILED) {
 		PX4_INFO("erase failed, myID: 0x%02x,esc_id: 0x%02x command: 0x%02x", _uploader_packet.d.feedback_packet.myID, esc_id,
-			_uploader_packet.d.feedback_packet.command);
+			 _uploader_packet.d.feedback_packet.command);
 		return -EIO;
 
 	} else if (_uploader_packet.msg_id == PROTO_INVALID) {
 		PX4_INFO("erase invalid, myID: 0x%02x, esc_id: 0x%02x command: 0x%02x", _uploader_packet.d.feedback_packet.myID, esc_id,
-			_uploader_packet.d.feedback_packet.command);
+			 _uploader_packet.d.feedback_packet.command);
 		return -EIO;
 
 	}
@@ -1076,10 +1077,10 @@ TAP_ESC_UPLOADER::program(uint8_t esc_id, size_t fw_size)
 
 		if (count != (ssize_t)n) {
 			PX4_INFO("firmware read of %u bytes at %u failed -> %d errno %d",
-				(unsigned)n,
-				(unsigned)sent,
-				(int)count,
-				(int)errno);
+				 (unsigned)n,
+				 (unsigned)sent,
+				 (int)count,
+				 (int)errno);
 			ret = count;
 			break;
 		}
@@ -1115,19 +1116,20 @@ TAP_ESC_UPLOADER::program(uint8_t esc_id, size_t fw_size)
 
 			if (_uploader_packet.d.feedback_packet.command != PROTO_PROG_MULTI) {
 				PX4_INFO("program bad command, myID: 0x%02x,command: 0x%02x", _uploader_packet.d.feedback_packet.myID,
-					_uploader_packet.d.feedback_packet.command);
+					 _uploader_packet.d.feedback_packet.command);
 				return -EIO;
 			}
 
 		} else if (_uploader_packet.msg_id == PROTO_FAILED) {
-			PX4_INFO("program failed: myID: 0x%02x, esc_id: 0x%02x command: 0x%02x", _uploader_packet.d.feedback_packet.myID, esc_id,
-				_uploader_packet.d.feedback_packet.command);
+			PX4_INFO("program failed: myID: 0x%02x, esc_id: 0x%02x command: 0x%02x", _uploader_packet.d.feedback_packet.myID,
+				 esc_id,
+				 _uploader_packet.d.feedback_packet.command);
 			return -EIO;
 
 		} else if (_uploader_packet.msg_id == PROTO_INVALID) {
 			PX4_INFO("program invalid: myID: 0x%02x, esc_id: 0x%02x command: 0x%02x", _uploader_packet.d.feedback_packet.myID,
-				esc_id,
-				_uploader_packet.d.feedback_packet.command);
+				 esc_id,
+				 _uploader_packet.d.feedback_packet.command);
 			return -EIO;
 
 		}
@@ -1187,10 +1189,10 @@ TAP_ESC_UPLOADER::verify_crc(uint8_t esc_id, size_t fw_size_local)
 
 		if (count != (ssize_t)n) {
 			PX4_INFO("firmware read of %u bytes at %u failed -> %d errno %d",
-				(unsigned)n,
-				(unsigned)bytes_read,
-				(int)count,
-				(int)errno);
+				 (unsigned)n,
+				 (unsigned)bytes_read,
+				 (int)count,
+				 (int)errno);
 			ret = count;
 		}
 
@@ -1240,7 +1242,7 @@ TAP_ESC_UPLOADER::verify_crc(uint8_t esc_id, size_t fw_size_local)
 
 		if (_uploader_packet.d.feedback_crc_packet.command != PROTO_GET_CRC) {
 			PX4_INFO("flash crc check bad command, myID: 0x%02x command: 0x%02x", _uploader_packet.d.feedback_packet.myID,
-				_uploader_packet.d.feedback_packet.command);
+				 _uploader_packet.d.feedback_packet.command);
 			return -EIO;
 		}
 
@@ -1248,14 +1250,14 @@ TAP_ESC_UPLOADER::verify_crc(uint8_t esc_id, size_t fw_size_local)
 
 	} else if (_uploader_packet.msg_id == PROTO_FAILED) {
 		PX4_INFO("flash crc check failed: myID: 0x%02x, esc_id: 0x%02x, command: 0x%02x",
-			_uploader_packet.d.feedback_packet.myID,
-			esc_id, _uploader_packet.d.feedback_packet.command);
+			 _uploader_packet.d.feedback_packet.myID,
+			 esc_id, _uploader_packet.d.feedback_packet.command);
 		return -EIO;
 
 	} else if (_uploader_packet.msg_id == PROTO_INVALID) {
 		PX4_INFO("flash crc check invalid: myID: 0x%02x, esc_id: 0x%02x, command: 0x%02x",
-			_uploader_packet.d.feedback_packet.myID,
-			esc_id, _uploader_packet.d.feedback_packet.command);
+			 _uploader_packet.d.feedback_packet.myID,
+			 esc_id, _uploader_packet.d.feedback_packet.command);
 		return -EIO;
 	}
 
@@ -1298,18 +1300,19 @@ TAP_ESC_UPLOADER::reboot(uint8_t esc_id)
 
 		if (_uploader_packet.d.feedback_packet.command != PROTO_REBOOT) {
 			PX4_INFO("reboot receive bad command, myID: 0x%02x,command: 0x%02x", _uploader_packet.d.feedback_packet.myID,
-				_uploader_packet.d.feedback_packet.command);
+				 _uploader_packet.d.feedback_packet.command);
 			return -EIO;
 		}
 
 	} else if (_uploader_packet.msg_id == PROTO_FAILED) {
 		PX4_INFO("reboot fail, myID: 0x%02x, esc_id: 0x%02x, command: 0x%02x", _uploader_packet.d.feedback_packet.myID, esc_id,
-			_uploader_packet.d.feedback_packet.command);
+			 _uploader_packet.d.feedback_packet.command);
 		return -EIO;
 
 	} else if (_uploader_packet.msg_id == PROTO_INVALID) {
-		PX4_INFO("reboot invalid,myID: 0x%02x, esc_id: 0x%02x, command: 0x%02x", _uploader_packet.d.feedback_packet.myID, esc_id,
-			_uploader_packet.d.feedback_packet.command);
+		PX4_INFO("reboot invalid,myID: 0x%02x, esc_id: 0x%02x, command: 0x%02x", _uploader_packet.d.feedback_packet.myID,
+			 esc_id,
+			 _uploader_packet.d.feedback_packet.command);
 		return -EIO;
 
 	}

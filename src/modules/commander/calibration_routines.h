@@ -131,7 +131,8 @@ calibrate_return calibrate_from_hex_orientation(orb_advert_t *mavlink_log_pub,
 		bool	lenient_still_position);
 
 /// Detect if any rotation is happening
-calibrate_return calibrate_detect_rotation(orb_advert_t *mavlink_log_pub, int cancel_sub, hrt_abstime detection_deadline);
+calibrate_return calibrate_detect_rotation(orb_advert_t *mavlink_log_pub, int cancel_sub,
+		hrt_abstime detection_deadline);
 
 /// Called at the beginning of calibration in order to subscribe to the cancel command
 ///	@return Handle to vehicle_command subscription

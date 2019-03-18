@@ -452,13 +452,13 @@ out:
 static bool check_home_valid()
 {
 	// Check if topic is advertised, bail out if not
-	if (orb_exists(ORB_ID(home_position), 0))
-	{
+	if (orb_exists(ORB_ID(home_position), 0)) {
 		return false;
 	}
 
 	// Subscribe to topic and get an update
 	int home_sub = orb_subscribe(ORB_ID(home_position));
+
 	if (home_sub < 0) {
 		return false;
 	}
@@ -580,6 +580,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Horizontal estimate Pos Error");
 		}
+
 		success = false;
 		goto out;
 	}

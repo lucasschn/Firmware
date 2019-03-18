@@ -367,7 +367,8 @@ void rgbled_set_mag_cali(uint8_t mask)
 	orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
 }
 
-void rgbled_reset_high_prio_event(){
+void rgbled_reset_high_prio_event()
+{
 	led_control.mode = led_control_s::MODE_DISABLED;
 	led_control.led_mask = 0xff;
 	led_control.timestamp = hrt_absolute_time();

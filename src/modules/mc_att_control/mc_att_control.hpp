@@ -99,7 +99,7 @@ private:
 	/**
 	 * Check for parameter update and handle it.
 	 */
-	 void		engine_failure_poll();  // Yuneec specific
+	void		engine_failure_poll();  // Yuneec specific
 	void		battery_status_poll();
 	void		parameter_update_poll();
 	void		sensor_bias_poll();

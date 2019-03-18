@@ -9,14 +9,8 @@ pipeline {
     stages {
         stage('build') {
             steps {
-                sh 'mkdir -p Tools/Maneuvers/build'
-                sh 'pushd Tools/Maneuvers/build'
-                sh 'cmake ../src'
-                sh 'make'
-                sh 'popd'
-                sh 'pushd integrationtests/ulogtests/external/pyulgresample'
-                sh 'FLIT_ROOT_INSTALL=1 flit install'
-                sh 'popd'
+                sh 'Tools/make_maneuver.sh'
+                sh 'integrationtests/ulogtests/external/install_pyulgresample.sh'
                 sh 'make distclean'
                 sh 'make px4_sitl_default'
                 sh 'make px4_sitl_default sitl_gazebo'

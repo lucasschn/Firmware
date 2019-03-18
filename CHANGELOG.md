@@ -3,28 +3,48 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Changed
-* Changed minimum altitude for OBS. avoidance from 1.5m to 2.0m (#2675)
+* Keep vehicle heading constant during ROI. This improves yaw-tracking in ROI. (#3153)
+* Increased maximum allowed distance to 1st mission waypoint from 900m to 4000m (#3182)
+* Increase return to ground control station safety distance from 3m to 5m (#3196)
 
 ### Fixed
-* [Regression] Play low-battery warning tunes only once (#3073)
-* Gimbal-lock within acceptance radius (#3137)
+* Pauses at the end of a tune are now respected. Fixes low battery and error tunes. (#3159)
+* H520 HITL functional even without battery plugged in (#3164)
+* Fixed eccentric camera pitching while ROI is active (#3166)
+* Lower case messages for battery warnings etc, fixing weird pronunciation in DataPilot (#3171)
+* Landing gear rise when doing compass calibration, corner case when toggling the switch during calibration(#3045, #3157)
+* Improved corner case handling when ESC firmware update fails (#2907)
+* [Regression] Restored functionality of structure scan. Bug introduced with #3153 (#3187)
+* Force landing gear to keep the state during takeoff (#3197)
+* Gimbal yaw problems in ROI (#3204)
 
 ### Added
-* Only allow takeoff without GPS in indoor mode (#2808, #3055)
 * RC loss alarm enabled for when RC is disconnected after flying, but the drone is still powered (#3126)
 
 
-## [v1.8.0-1.5.11]
+## [v1.8.0-1.6.0]
 ### Changed
+* Changed minimum altitude for OBS. avoidance from 1.5m to 2.0m (#2675)
 * New (less annoying) tune for low-battery warning (#3095)
 * Only rotate gimbal to face towards ROI, not the entire drone (#3121)
+
 
 ### Fixed
 * The drone wouldn't face straight forward when flying a survey after a ROI mission (#3121)
 * Don't run motor-check in HITL (#3120, #3089)
+* Camera now has correct orientation in structure scan (#2322, #3121)
+* [Regression] Play low-battery warning tunes only once (#3073)
+* Gimbal-lock within acceptance radius (#3137)
+
 
 ### Added
 * Added landing gear state to logger (#3111, #3117)
+* Only allow takeoff without GPS in indoor mode (#2808, #3055)
+
+
+## [v1.8.0-1.5.11]
+### Fixed
+* [Regression] Hotfix landing gear not lowering in RTL to GCS because altitude 0 (#3162, #3110)
 
 
 ## [v1.8.0-1.5.10]
@@ -130,8 +150,179 @@ All notable changes to this project will be documented in this file.
 * Multi-battery missions now resumable after low-battery emergency landing (#1999)
 
 
-## [v1.7.3-1.4]
-See ongoing changelog here: https://github.com/YUNEEC/Firmware/blob/release_1.4.0/CHANGELOG.md
+## v1.7.3-1.4.22
+### Fixed
+* Fix jMAVSim SITL on macOS (#2899)
+* Fix SITL packager for macOS (#2899)
+* ST10C loiter button now fully interrupts safety RTL (#2964)
+
+
+## v1.7.3-1.4.21
+### Fixed
+* Porting Preflightcheck fixes form upstream (#2911)
+
+## v1.7.3-1.4.20
+### Changed
+* Fix tortoise slider not working after vehicle configuration reset (#2894)
+
+
+## v1.7.3-1.4.19
+### Changed
+* Always resetting COM_RC_LOSS_MAN to 1 on reboot (#2829)
+
+### Fixed
+* AP not removing old logs from SD card when it fills up (#2844)
+* Brief slow-downs in survey missions (#2849)
+* "yaw-to-north" fix (again) for gimbal version 2.39.9 (#2839)
+
+
+## v1.7.3-1.4.18
+### Fixed
+* Fix yawing to North for LOITER-TIME mission items (#2805)
+
+
+## v1.7.3-1.4.17
+### Fixed
+* HITL not connecting to the drone, fixed using a known NuttX patch (#2793, #2813)
+
+
+## v1.7.3-1.4.16
+### Fixed
+* Parameter reset happining if one version number different (from #2726)
+* Fix parameter acks for int parameters (#2762)
+* Added deadzone for RC gimbal control (#2700, #2708)
+
+
+## v1.7.3-1.4.15
+### Fixed
+* Landing gear goes up if drone tilted (#2737)
+* ST10C RTL doesn't persist after 1st button push (#2738)
+* Properly initialize gimbal attitude (#2730)
+* Use absolute yaw angle mode for gimbal (#2730)
+* Fix gimbal yaw angle during RTL and land (#2730)
+* Fix USB connection regression (#2730)
+
+
+## v1.7.3-1.4.14
+### Added
+* Time estimate for RTL (#2560, #2076)
+* Added safety trigger based on RTL time estimate (#2563)
+
+### Changed
+* Removing logger in HITL, frees up memory (#2713, #2493)
+
+
+## v1.7.3-1.4.13
+### Added
+* Resetting parameters when switching between releases (#2691)
+
+
+## v1.7.3-1.4.12
+### Fixed
+* Team-Mode pitch- and yaw-mode set by slave (#2699)
+
+
+## v1.7.3-1.4.11
+### Changed
+* Lifting restriction on parameter `COM_RC_LOSS_MAN` (#2602)
+
+
+## v1.7.3-1.4.10
+### Added
+* Added ST10c support (#2506)
+* Added parameter for adjusting RTL cone radius (#2592)
+
+### Fixed
+* Lifting restriction on parameter `SYS_PARAM_VER` (#2589, #2575, #2579)
+* Too small minimal yawspeed with turtle mode (#2251, #2594)
+
+
+## v1.7.3-1.4.9
+### Fixed
+* Sonar-based obstacle avoidance increased trigger range and reliability (#2456)
+
+
+## v1.7.3-1.4.8
+### Fixed
+* Switched to mixed channel RC channel parsing for team mode slave
+
+### Added
+* Use left stick for slave pitch gimbal control in velocity mode
+
+
+## v1.7.3-1.4.7
+### Fixed
+* Fixed Five-Rotor-Mode issues (#2406)
+
+
+## v1.7.3-1.4.6
+### Fixed
+* Remote control loss reaction when slave disconnects (#2381)
+
+
+## v1.7.3-1.4.5
+### Fixed
+* Increase parameter default version number to apply new values for 1.5 beta testers
+
+
+## v1.7.3-1.4.4
+### Fixed
+* Team mode reconnection problems (#2391)
+
+
+## v1.7.3-1.4.3
+### Added
+* Basic Team mode support (#2349)
+
+
+## v1.7.3-1.4.2
+### Fixed
+* Yaw input also gets scaled using the turtle slider (#2235)
+
+
+## v1.7.3-1.4.1
+### Fixed
+* Multi-battery missions now resumable after low-battery emergency landing (#1999)
+
+
+## v1.7.3-1.4.0beta2
+### Added
+* Yaw stick deadzone and exponential curve (#1910)
+
+### Changed
+
+### Fixed
+* Compass calibration uses less memory, now also works after a flight (#1884)
+
+
+## v1.7.3-1.4.0beta1
+### Changed
+* Allow changing RC mode in flight (#1840)
+
+### Fixed
+* Battery deep discharge when USB is plugged
+* Low battery beep warning no longer continuous
+* Land descend rate slow down depending on mode
+
+
+## v1.7.3-1.4.0alpha1
+### Added
+* Support for remote control modes 1,2,3,4 (#985)
+* Remaining battery time estimate during flight
+* Indoor mode to disable GPS usage completely (#1677)
+* HITL (Hardware In The Loop) support for H520
+* Adjustable rise and descend speeds (#1824)
+
+### Changed
+* New H520 ESC Firmware 2.03
+* Switch to raw ST16S hardware input mapping (requires ST16 update!)
+* Improved crash detection (#1546)
+
+### Fixed
+* Hover and capture producing blurry images (#1450)
+* Direction change delay in rabit mode
+* For reported jerky flight
+* Improved tune playback (#1771, #1883)
 
 
 ## [v1.6.5-1.3.1]

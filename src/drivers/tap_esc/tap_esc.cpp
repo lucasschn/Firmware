@@ -905,17 +905,17 @@ void TAP_ESC::cycle()
 
 		// Is there right now a tone that needs to be played?
 		// the return value is 0 if one tone need to be played and 1 if the sequence needs to continue
-		if (parse_ret_val >= 0 && frequency > 0 && duration > 0 && strength > 0) {
+		if (parse_ret_val >= 0 && frequency > 0 && duration > 0 && strength > 0 &&
+		    (!_is_armed || _armed.manual_lockdown)) {
 			esc_tune_packet.frequency = frequency;
 			esc_tune_packet.duration_ms = (uint16_t)(duration / 1000); // convert to ms
 			esc_tune_packet.strength = (_hitl ? tune_control_s::STRENGTH_HITL : strength);
-			// set next tone call time
-			_next_tone = now + silence + duration;
 
-			if (!_is_armed || _armed.manual_lockdown) {
-				send_tune_packet(esc_tune_packet);
-			}
+			send_tune_packet(esc_tune_packet);
 		}
+
+		// set next tone call time
+		_next_tone = now + silence + duration;
 
 		// Does a tone follow after this one?
 		_play_tone = (parse_ret_val > 0);

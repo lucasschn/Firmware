@@ -245,6 +245,17 @@ Mission::on_active()
 		// needs to rotate such that ROI is in the field of view.
 		// ROI only makes sense for multicopters.
 		heading_sp_update();
+
+	} else if (_param_mnt_yaw_ctl.get() &&
+		   _navigator->get_vstatus()->is_rotary_wing &&
+		   _navigator->get_vroi().mode == vehicle_roi_s::ROI_LOCATION) {
+
+		// Yuneec hack: We need to call heading_sp_update() in order to keep yaw
+		// constant during an ROI waypoint mission.
+		heading_sp_update();
+
+	} else {
+		_yaw_lock = NAN; //reset yaw-lock
 	}
 
 	// TODO: Add vtol heading update method if required.
@@ -1186,11 +1197,22 @@ Mission::heading_sp_update()
 		// Depending on ROI-mode, update heading
 		switch (_navigator->get_vroi().mode) {
 		case vehicle_roi_s::ROI_LOCATION: {
-				// ROI is a fixed location. Vehicle needs to point towards that location
-				point_to_latlon[0] = _navigator->get_vroi().lat;
-				point_to_latlon[1] = _navigator->get_vroi().lon;
-				// No yaw offset required
-				yaw_offset = 0.0f;
+
+				if (!_param_mnt_yaw_ctl.get()) {
+					// ROI is a fixed location. Vehicle needs to point towards that location because no gimbal control available
+					point_to_latlon[0] = _navigator->get_vroi().lat;
+					point_to_latlon[1] = _navigator->get_vroi().lon;
+					// No yaw offset required
+					yaw_offset = 0.0f;
+
+				} else {
+					// Just keep heading. Gimbal will point towards ROI.
+					point_to_latlon[0] = _navigator->get_global_position()->lat;
+					point_to_latlon[1] = _navigator->get_global_position()->lon;
+					// No yaw offset required
+					yaw_offset = 0.0f;
+				}
+
 				break;
 			}
 
@@ -1199,6 +1221,7 @@ Mission::heading_sp_update()
 				point_to_latlon[0] = pos_sp_triplet->current.lat;
 				point_to_latlon[1] = pos_sp_triplet->current.lon;
 				// Add the gimbal's yaw offset
+				// TODO: review offset for ROI_WPNEXT
 				yaw_offset = _navigator->get_vroi().yaw_offset;
 				break;
 			}
@@ -1226,6 +1249,17 @@ Mission::heading_sp_update()
 			_mission_item.yaw = yaw;
 			pos_sp_triplet->current.yaw = _mission_item.yaw;
 			pos_sp_triplet->current.yaw_valid = PX4_ISFINITE(yaw);
+			_yaw_lock = NAN; // reset yaw-lock
+
+		} else {
+
+			if (!PX4_ISFINITE(_yaw_lock)) {
+				_yaw_lock = _navigator->get_global_position()->yaw;
+			}
+
+			_mission_item.yaw = _yaw_lock;
+			pos_sp_triplet->current.yaw = _yaw_lock;
+			pos_sp_triplet->current.yaw_valid = PX4_ISFINITE(_yaw_lock);
 		}
 
 		// we set yaw directly so we can run this in parallel to the FOH update

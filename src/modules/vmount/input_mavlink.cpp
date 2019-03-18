@@ -138,9 +138,19 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 			_cur_roi_mode = vehicle_roi.mode;
 
 			//set all other control data fields to defaults
-			for (int i = 0; i < 3; ++i) {
-				_control_data.stabilize_axis[i] = false;
-			}
+			// for (int i = 0; i < 3; ++i) {
+			// 	_control_data.stabilize_axis[i] = false;
+			// }
+
+			/* Yuneec specific:
+			   Stabilize pitch and roll, meaning that the setpoints will be in global
+				frame instead of body frame. For some reason these global modes
+				perform better for roll and pitch. Yaw on the other hand corrects
+				faster in body frame control mode.
+			*/
+			_control_data.stabilize_axis[0] = true; // roll
+			_control_data.stabilize_axis[1] = true; // pitch
+			_control_data.stabilize_axis[2] = false; // yaw
 		}
 
 		// check whether the position setpoint got updated

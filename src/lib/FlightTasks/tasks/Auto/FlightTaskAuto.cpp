@@ -1,3 +1,4 @@
+
 /****************************************************************************
  *
  *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
@@ -264,6 +265,10 @@ void FlightTaskAuto::_set_heading_from_mode()
 		// in the subclasses where the velocity setpoints are generated.
 		v.setAll(NAN);
 		break;
+
+
+	case 4:  // Heading does not change: lock
+		v.setZero();
 	}
 
 	if (PX4_ISFINITE(v.length())) {

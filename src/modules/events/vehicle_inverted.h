@@ -74,6 +74,7 @@ protected:
 
 	struct manual_control_setpoint_s _manual_control_sp {};
 	struct vehicle_land_detected_s _land_detector {};
+	struct vehicle_status_flags_s _status_flags {};
 
 	struct landing_gear_s _landing_gear {};
 private:

@@ -4614,7 +4614,7 @@ void Commander::battery_status_check()
 			if (!armed.armed && (battery.warning != _battery_warning)) {
 
 				if (battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
-					mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
+					mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery, shut system down");
 					px4_usleep(300000);
 
 					int ret_val = px4_shutdown_request(false, false);
@@ -4650,11 +4650,11 @@ void Commander::battery_status_check()
 						switch(s){
 							case TRANSITION_CHANGED:
 								warning_action_on = true;
-								mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, RETURNING TO LAND.");
+								mavlink_log_emergency(&mavlink_log_pub, "Flight time low, returning to land");
 								break;
 
 							default:
-								mavlink_log_emergency(&mavlink_log_pub, "FLIGHT TIME LOW, LAND NOW!");
+								mavlink_log_emergency(&mavlink_log_pub, "Flight time low, land now!");
 						}
 						rtl_time_actions_done = true;
 				}

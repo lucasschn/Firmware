@@ -1,3 +1,4 @@
+
 pipeline {
     agent {
       docker {
@@ -14,18 +15,9 @@ pipeline {
                 sh 'make distclean'
                 sh 'make px4_sitl_default'
                 sh 'make px4_sitl_default sitl_gazebo'
+                sh 'integrationtests/ulogtests/test_runner.sh. mission'
             }
-            post {
-              always {
-                sh 'make distclean'
-              }
-            }
-        } // stage build
-
-        stage('integration tests') {
-          steps {
-            sh 'Tools/ulogtests/test_runner.sh. mission'
           }
-        }
+        } // stage build
     }
 }

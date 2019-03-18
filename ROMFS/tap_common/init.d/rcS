@@ -518,6 +518,7 @@ else
 	else
 		set MAVLINK_DEV /dev/mavlink
 		mavlink start -r 20000 -d ${MAVLINK_DEV} -m config -b ${BAUDRATE}
+		sleep 1  # Added because otherwise HITL communication would not be working
 		mavlink start -r 800000 -d /dev/ttyACM0 -b 921600 -m config -x
 
 		# Give the stream a little time to come up...

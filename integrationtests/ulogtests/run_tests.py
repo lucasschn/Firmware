@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import multiprocessing as mp
 import os
@@ -177,7 +177,9 @@ if __name__ == "__main__":
             )
             p_test = subprocess.Popen(
                 [
-                    "py.test",
+                    "python3",
+                    "-m",
+                    "pytest",
                     "-s",
                     deselected_tests,
                     testfile,

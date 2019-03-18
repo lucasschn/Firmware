@@ -1,67 +1,37 @@
 pipeline {
     agent {
       docker {
-        image 'px4io/px4-dev-simulation:2019-02-14'
+        label 'docker'
+        image 'yuneecatl/px4-dev-simulation-python3:2019-03-18'
         args '-e HOME=$WORKSPACE -v /tmp/ccache:/tmp/ccache:rw'
       }
     }
     stages {
         stage('build') {
             steps {
-                sh 'echo asdfasfdasdfas'
-                //sh './Tools/maneuver.sh'
-                //sh './integrationtests/ulogtests/test_runner.sh mission'
+                sh 'mkdir -p Tools/Maneuvers/build'
+                sh 'pushd Tools/Maneuvers/build'
+                sh 'cmake ../src'
+                sh 'make'
+                sh 'popd'
+                sh 'pushd integrationtests/ulogtests/external/pyulgresample'
+                sh 'FLIT_ROOT_INSTALL=1 flit install'
+                sh 'popd'
+                sh 'make distclean'
+                sh 'make px4_sitl_default'
+                sh 'make px4_sitl_default sitl_gazebo'
             }
+            post {
+              always {
+                sh 'make distclean'
+              }
+            }
+        } // stage build
+
+        stage('integration tests') {
+          steps {
+            sh 'Tools/ulogtests/test_runner.sh. mission'
+          }
         }
     }
 }
-
-//pipeline {
-//  agent { label 'docker'}
-//
-//  stages {
-//
-//    stage('Build') {
-//      agent {
-//        docker {
-//          image 'px4io/px4io/px4-dev-simulation:2019-02-14'
-//          args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE --cap-add SYS_PTRACE --entrypoint=""'
-//        }
-//      }
-//      steps {
-//        sh 'export'
-//        sh 'make distclean'
-//        sh 'ccache -z'
-//        sh 'make px4_sitl_default'
-//        sh 'make px4_sitl_default sitl_gazebo'
-//        sh 'make px4_sitl_default package'
-//		sh 'mkdir Tools/Maneuvers/build && cd Tools/Maneuvers/build'
-//		sh 'cmake ../src && make'
-//        sh 'ccache -s'
-//      }
-//      post {
-//        always {
-//            sh 'make distclean'
-//			sh 'rm -rf Tools/Maneuvers/build'
-//        }
-//      }
-//    } // stage Build
-//
-//	stage('Integration Tests') {
-//		agent {
-//          docker {
-//            image 'px4io/px4io/px4-dev-simulation:2019-02-14'
-//            args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE --cap-add SYS_PTRACE --entrypoint=""'
-//        }
-//      }
-//		steps {
-//			sh 'integrationtests/ulogtests/test_runner.sh mission'
-//		}
-//	}
-//  }
-//
-//  environment {
-//    CCACHE_DIR = '/tmp/ccache'
-//    CI = true
-//  }
-//}

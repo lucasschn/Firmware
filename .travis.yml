@@ -34,11 +34,11 @@ matrix:
       services:
         - docker
       env: BUILD_TARGET=tests_linux
-    - os: linux
-      sudo: required
-      services:
-        - docker
-      env: BUILD_TARGET=clang-tidy
+    # - os: linux
+    #   sudo: required
+    #   services:
+    #     - docker
+    #   env: BUILD_TARGET=clang-tidy
     - os: osx
       sudo: true
       osx_image: xcode9.2

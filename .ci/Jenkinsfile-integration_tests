@@ -14,7 +14,7 @@ pipeline {
                 sh 'integrationtests/ulogtests/external/install_pyulgresample.sh'
                 sh 'make px4_sitl_default'
                 sh 'make px4_sitl_default sitl_gazebo'
-                sh 'pip3 install pyyaml'
+                sh 'pip3 install pyyaml' //todo: should be part of docker image
             }
         }//build
         stage('test') {

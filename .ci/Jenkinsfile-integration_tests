@@ -12,7 +12,6 @@ pipeline {
             steps {
                 sh 'Tools/make_maneuver.sh'
                 sh 'integrationtests/ulogtests/external/install_pyulgresample.sh'
-                sh 'make distclean'
                 sh 'make px4_sitl_default'
                 sh 'make px4_sitl_default sitl_gazebo'
                 sh 'pip3 install pyyaml'

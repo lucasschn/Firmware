@@ -8,16 +8,16 @@ pipeline {
       }
     }
     stages {
-        stage('build') {
+        stage('build-test') {
             steps {
                 sh 'Tools/make_maneuver.sh'
                 sh 'integrationtests/ulogtests/external/install_pyulgresample.sh'
                 sh 'make distclean'
                 sh 'make px4_sitl_default'
                 sh 'make px4_sitl_default sitl_gazebo'
-                sh 'integrationtests/ulogtests/test_runner.sh. mission'
+                sh 'pip3 install pyyaml'
+                sh './integrationtests/ulogtests/test_runner.sh mission'
             }
-          }
-        } // stage build
-    }
+        }
+    } // stage build
 }

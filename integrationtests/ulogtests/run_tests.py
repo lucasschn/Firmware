@@ -61,7 +61,7 @@ if __name__ == "__main__":
     yaml_file = open(
         os.path.dirname(__file__) + "/configs/" + args.maneuver_name + ".yml", "r"
     )
-    config = yaml.load(yaml_file)
+    config = yaml.safe_load(yaml_file)
 
     deactivate_tests = config["deactivate_tests"]
     simulation_setup = config["simulation_setup"]

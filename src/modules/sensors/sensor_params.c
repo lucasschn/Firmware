@@ -55,7 +55,8 @@ PARAM_DEFINE_INT32(CAL_BARO_PRIME, 0);
  * @value 0 Model with Pitot
  * @value 1 Model without Pitot (1.5 mm tubes)
  * @value 2 Tube Pressure Drop
- * @group Sensor Calibration
+ *
+ * @group Sensors
  */
 PARAM_DEFINE_INT32(CAL_AIR_CMODEL, 0);
 
@@ -65,7 +66,7 @@ PARAM_DEFINE_INT32(CAL_AIR_CMODEL, 0);
  * See the CAL_AIR_CMODEL explanation on how this parameter should be set.
  *
  *
- * @group Sensor Calibration
+ * @group Sensors
  */
 PARAM_DEFINE_FLOAT(CAL_AIR_TUBELEN, 0.2f);
 
@@ -76,7 +77,7 @@ PARAM_DEFINE_FLOAT(CAL_AIR_TUBELEN, 0.2f);
  * @max 100
  * @unit millimeter
  *
- * @group Sensor Calibration
+ * @group Sensors
  */
 PARAM_DEFINE_FLOAT(CAL_AIR_TUBED_MM, 1.5f);
 
@@ -85,6 +86,7 @@ PARAM_DEFINE_FLOAT(CAL_AIR_TUBED_MM, 1.5f);
  *
  * The offset (zero-reading) in Pascal
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);

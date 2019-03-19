@@ -43,6 +43,7 @@
 #include <lib/conversion/rotation.h>
 #include <perf/perf_counter.h>
 #include <px4_workqueue.h>
+#include <systemlib/err.h>
 
 // Register mapping
 static constexpr uint8_t WHO_AM_I_M = 0x4F;
@@ -115,7 +116,9 @@ private:
 	unsigned		_call_mag_interval{0};
 
 	mag_calibration_s	_mag_scale{};
-	unsigned		_mag_range_ga{0};
+
+	static constexpr float	_mag_range_scale{1.5f / 1000.0f}; // 1.5 milligauss/LSB
+	static constexpr float	_mag_range_ga{49.152f};
 
 	int			_class_instance{-1};
 

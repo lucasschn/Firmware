@@ -284,7 +284,7 @@ static int read_bin_version(const char * fw_paths[])
 
 	ret = TAP_ESC_UPLOADER::initialise_firmware_file(&fw_paths[0], fw_fd);
 	if (ret < 0) {
-		PX4_LOG("initialise firmware file failed");
+		PX4_INFO("initialise firmware file failed");
 		return ret;
 	}
 

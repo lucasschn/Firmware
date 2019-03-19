@@ -38,6 +38,8 @@
 
 #include <drivers/device/device.h>
 
+#include <uORB/Publication.hpp>
+
 #include <v2.0/yuneec/mavlink.h>
 #include <v2.0/mavlink_types.h>
 

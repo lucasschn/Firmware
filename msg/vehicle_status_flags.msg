@@ -1,5 +1,7 @@
 # This is a struct used by the commander internally.
 
+uint64 timestamp				# time since system start (microseconds)
+
 bool condition_calibration_enabled
 bool condition_system_sensors_initialized
 bool condition_system_hotplug_timeout		# true if the hotplug sensor search is over
@@ -13,6 +15,7 @@ bool condition_local_velocity_valid		# set to true by the commander app if the q
 bool condition_last_local_altitude_valid
 bool condition_local_altitude_valid
 bool condition_power_input_valid                # set if input power is valid
+bool condition_battery_healthy                # set if battery is available and not low
 
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check

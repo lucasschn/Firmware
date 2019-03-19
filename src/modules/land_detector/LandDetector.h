@@ -174,9 +174,6 @@ protected:
 	/** Time in us that inverted conditions have to hold before triggering inverted. */
 	static constexpr uint64_t INVERTED_DETECTOR_TRIGGER_TIME_US = 500000;
 
-	int _parameterSub{-1};
-	int _armingSub{-1};
-
 	LandDetectionState _state{LandDetectionState::LANDED};
 
 	systemlib::Hysteresis _freefall_hysteresis{false};
@@ -209,6 +206,9 @@ private:
 	perf_counter_t	_cycle_perf;
 
 	bool _previous_arming_state{false}; ///< stores the previous _arming.armed state
+
+	int _parameterSub{-1};
+	int _armingSub{-1};
 };
 
 

@@ -1,8 +1,8 @@
-#!nsh
+#!/bin/sh
 
 set VEHICLE_TYPE vtol
 
-if [ $AUTOCNF == yes -o $NEW_DEFAULTS == yes ]
+if [ $AUTOCNF = yes -o $NEW_DEFAULTS = yes ]
 then
 	param set MC_ROLL_P 6.0
 	param set MC_PITCH_P 6.0

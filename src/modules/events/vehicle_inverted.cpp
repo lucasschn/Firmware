@@ -44,8 +44,9 @@
 #include <px4_log.h>
 
 #include <DevMgr.hpp>
-#include <drivers/drv_gpio.h>
 #include <drivers/drv_pwm_output.h>
+
+#define PX4FMU_DEVICE_PATH	"/dev/px4fmu" // TODO(YUNEEC): This looks wrong
 
 namespace events
 {

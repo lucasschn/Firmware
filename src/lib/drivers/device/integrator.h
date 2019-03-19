@@ -48,7 +48,7 @@
 class Integrator
 {
 public:
-	Integrator(uint64_t auto_reset_interval = 4000 /* 250 Hz */, bool coning_compensation = false);
+	Integrator(uint32_t auto_reset_interval = 4000 /* 250 Hz */, bool coning_compensation = false);
 	~Integrator() = default;
 
 	// no copy, assignment, move, move assignment
@@ -67,7 +67,7 @@ public:
 	 * @return		true if putting the item triggered an integral reset and the integral should be
 	 *			published.
 	 */
-	bool put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &integral, uint64_t &integral_dt);
+	bool put(const uint64_t &timestamp, const matrix::Vector3f &val, matrix::Vector3f &integral, uint32_t &integral_dt);
 
 	/**
 	 * Put an item into the integral but provide an interval instead of a timestamp.
@@ -81,8 +81,7 @@ public:
 	 * @return		true if putting the item triggered an integral reset and the integral should be
 	 *			published.
 	 */
-	bool put_with_interval(unsigned interval_us, matrix::Vector3f &val, matrix::Vector3f &integral,
-			       uint64_t &integral_dt);
+	bool put_with_interval(unsigned interval_us, matrix::Vector3f &val, matrix::Vector3f &integral, uint32_t &integral_dt);
 
 	/**
 	 * Get the current integral and reset the integrator if needed.
@@ -91,7 +90,7 @@ public:
 	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
 	 * @return		the integral since the last read-reset
 	 */
-	matrix::Vector3f	get(bool reset, uint64_t &integral_dt);
+	matrix::Vector3f	get(bool reset, uint32_t &integral_dt);
 
 
 	/**
@@ -103,18 +102,18 @@ public:
 	 * @param filtered_val	The integral differentiated by the integration time.
 	 * @return		the integral since the last read-reset
 	 */
-	matrix::Vector3f	get_and_filtered(bool reset, uint64_t &integral_dt, matrix::Vector3f &filtered_val);
+	matrix::Vector3f	get_and_filtered(bool reset, uint32_t &integral_dt, matrix::Vector3f &filtered_val);
 
 
 	/**
 	 * Set auto reset interval during runtime. This won't reset the integrator.
 	 *
-	 * @param auto_reset_interval	    	New reset time interval for the integrator.
+	 * @param auto_reset_interval	    	New reset time interval for the integrator (+- 10%).
 	 */
-	void set_autoreset_interval(uint64_t auto_reset_interval) { _auto_reset_interval = auto_reset_interval; }
+	void set_autoreset_interval(uint32_t auto_reset_interval) { _auto_reset_interval = 0.90f * auto_reset_interval; }
 
 private:
-	uint64_t _auto_reset_interval{0};			/**< the interval after which the content will be published
+	uint32_t _auto_reset_interval{0};			/**< the interval after which the content will be published
 							     and the integrator reset, 0 if no auto-reset */
 
 	uint64_t _last_integration_time{0};		/**< timestamp of the last integration step */
@@ -132,5 +131,5 @@ private:
 	 *
 	 * @param integral_dt	Get the dt in us of the current integration.
 	 */
-	void _reset(uint64_t &integral_dt);
+	void _reset(uint32_t &integral_dt);
 };

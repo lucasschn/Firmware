@@ -102,10 +102,10 @@ int SendEvent::start()
 		return 0;
 	}
 
-	// subscribe to the topics
+	// Subscribe to the topics.
 	_subscriber_handler.subscribe();
 
-	// Kick off the cycling. We can call it directly because we're already in the work queue context
+	// Kick off the cycling. We can call it directly because we're already in the work queue context.
 	cycle();
 
 	return 0;
@@ -121,11 +121,10 @@ void SendEvent::initialize_trampoline(void *arg)
 	}
 
 	send_event->start();
-	_object = send_event;
+	_object.store(send_event);
 }
 
-void
-SendEvent::cycle_trampoline(void *arg)
+void SendEvent::cycle_trampoline(void *arg)
 {
 	SendEvent *obj = reinterpret_cast<SendEvent *>(arg);
 
@@ -248,13 +247,6 @@ The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, e
 	return 0;
 }
 
-
-int send_event_main(int argc, char *argv[])
-{
-	return SendEvent::main(argc, argv);
-}
-
-
 int SendEvent::custom_command(int argc, char *argv[])
 {
 	if (!strcmp(argv[0], "temperature_calibration")) {
@@ -311,6 +303,11 @@ int SendEvent::custom_command(int argc, char *argv[])
 	}
 
 	return 0;
+}
+
+int send_event_main(int argc, char *argv[])
+{
+	return SendEvent::main(argc, argv);
 }
 
 } /* namespace events */

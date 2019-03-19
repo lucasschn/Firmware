@@ -1,5 +1,7 @@
 # this file is only used in the position_setpoint triple as a dependency
 
+uint64 timestamp		# time since system start (microseconds)
+
 uint8 SETPOINT_TYPE_POSITION=0	# position setpoint
 uint8 SETPOINT_TYPE_VELOCITY=1	# velocity setpoint
 uint8 SETPOINT_TYPE_LOITER=2	# loiter setpoint
@@ -30,7 +32,6 @@ bool alt_valid		# do not set for 3D position control. Set to true if you want z-
 float64 lat			# latitude, in deg
 float64 lon			# longitude, in deg
 float32 alt			# altitude AMSL, in m
-
 float32 yaw			# yaw (only for multirotors), in rad [-PI..PI), NaN = hold current yaw
 bool yaw_valid			# true if yaw setpoint valid
 float32 yawspeed		# yawspeed (only for multirotors, in rad/s)

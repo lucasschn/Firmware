@@ -102,8 +102,8 @@ bool FlightTaskOrbit::sendTelemetry()
 	_orbit_status.radius = math::signNoZero(_v) * _r;
 	_orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
 
-	if (globallocalconverter_toglobal(_center(0), _center(1), _position_setpoint(2),
-					  &_orbit_status.x, &_orbit_status.y, &_orbit_status.z)) {
+	if (globallocalconverter_toglobal(_center(0), _center(1), _position_setpoint(2),  &_orbit_status.x, &_orbit_status.y,
+					  &_orbit_status.z)) {
 		return false; // don't send the message if the transformation failed
 	}
 
@@ -152,7 +152,7 @@ bool FlightTaskOrbit::activate()
 	bool ret = FlightTaskManualAltitudeSmooth::activate();
 	_r = _radius_min;
 	_v =  1.f;
-	_center = Vector2f(_position.data());
+	_center = Vector2f(_position);
 	_center(0) -= _r;
 
 	// need a valid position and velocity
@@ -179,8 +179,8 @@ bool FlightTaskOrbit::update()
 	setVelocity(v);
 
 	// xy velocity to go around in a circle
-	Vector2f center_to_position = Vector2f(_position.data()) - _center;
-	Vector2f velocity_xy = Vector2f(-center_to_position(1), center_to_position(0));
+	Vector2f center_to_position = Vector2f(_position) - _center;
+	Vector2f velocity_xy(-center_to_position(1), center_to_position(0));
 	velocity_xy = velocity_xy.unit_or_zero();
 	velocity_xy *= _v;
 

@@ -87,12 +87,12 @@ PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
 
 /**
- * Yuneec H520 specific: Fixposition RTK on H520
- *
- * Fixposition RTK is connected through the Real Sense port on the H520
- *
- * @reboot_required true
- * @boolean
- * @group GPS
- */
+* Yuneec H520 specific: Fixposition RTK on H520
+*
+* Fixposition RTK is connected through the Real Sense port on the H520
+*
+* @reboot_required true
+* @boolean
+* @group GPS
+*/
 PARAM_DEFINE_INT32(GPS_FIXPOS_RTK, 0);

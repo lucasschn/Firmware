@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 # Un comment and use set +e to ignore and set -e to enable 'exit on error control'
 set +e
 # Un comment the line below to help debug scripts by printing a trace of the script commands
@@ -35,7 +35,7 @@ set +e
 # /dev/ttyS6: Smart Battery (Not connected on H520S-000-R1)(UART7)
 # /dev/ttyS7: console / J23			(UART8)
 
-# TAP_V4 HW Serial map:
+# YUNEEC_TAP_V4 HW Serial map:
 # /dev/ttyS0: GPS     		(USART1)
 # /dev/ttyS1: Sonar(Front)	(USART2)
 # /dev/ttyS2: OF+Sonar		(USART3)
@@ -45,7 +45,7 @@ set +e
 # /dev/ttyS6: Smart Battery	(UART7)
 # /dev/ttyS7: console		(UART8)
 
-if ver hwcmp TAP_V3 TAP_V4
+if ver hwcmp YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 #
 # Mount the procfs.
@@ -71,12 +71,19 @@ set RELEASE_VER 0  # no release version
 
 # Log file location
 set LOG_FILE /fs/microsd/bootlog.txt
-if ver hwcmp TAP_V1
+if ver hwcmp YUNEEC_TAP_V1
 then
 	set DATAMAN_OPT -r
 fi
 set START_LOGGER 0
 set PARAM_FILE /fs/microsd/params
+
+#
+# Start the ORB (first app to start)
+# tone_alarm and tune_control
+# is dependent.
+#
+uorb start
 
 #
 # Try to mount the microSD card.
@@ -104,7 +111,7 @@ else
 			unset DATAMAN_OPT
 		else
 			echo "ERROR [init] Format failed"
-			#tone_alarm MNBG
+			#tune_control play -t 17
 			set LOG_FILE /dev/null
 			set PARAM_FILE /dev/null
 		fi
@@ -118,11 +125,6 @@ else
 fi
 
 #
-# Start the ORB (first app to start)
-#
-uorb start
-
-#
 # Start the MTD
 #
 mtd start
@@ -130,8 +132,7 @@ mtd start
 #
 # Load parameters
 #
-
-if ver hwcmp TAP_V2 TAP_V3 TAP_V4
+if ver hwcmp YUNEEC_TAP_V2 YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 
 	# now load from SD card, which can override the temp calib params
@@ -163,7 +164,7 @@ fi
 
 unset PARAM_FILE
 
-if ver hwcmp TAP_V2 TAP_V3 TAP_V4
+if ver hwcmp YUNEEC_TAP_V2 YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 	camera_trigger start
 fi
@@ -171,7 +172,7 @@ fi
 #
 # Start system state indicator
 #
-if ver hwcmp TAP_V4
+if ver hwcmp YUNEEC_TAP_V4
 then
 	rgbled_pwm start
 fi
@@ -181,7 +182,7 @@ fi
 #
 if param compare SYS_AUTOSTART 0
 then
-	if ver hwcmp TAP_V4
+	if ver hwcmp YUNEEC_TAP_V4
 	then
 		param set SYS_AUTOSTART 4100
 	else
@@ -206,7 +207,7 @@ fi
 #
 if param compare SYS_AUTOSTART 6001
 then
-	if ver hwcmp TAP_V4
+	if ver hwcmp YUNEEC_TAP_V4
 	then
 		param set SYS_AUTOSTART 4001
 	else
@@ -219,7 +220,7 @@ fi
 #
 if param compare SYS_AUTOSTART 4001
 then
-	if ver hwcmp TAP_V4
+	if ver hwcmp YUNEEC_TAP_V4
 	then
 		param set SYS_AUTOSTART 4100
 	fi
@@ -241,7 +242,7 @@ set NEW_DEFAULTS no
 if param compare SYS_PARAM_VER ${DEFAULTS_VER}
 then
 else
-	echo "Switched to different parameter version. Resetting parameters."
+	echo "New parameter VER: Resetting params"
 	set NEW_DEFAULTS yes
 fi
 
@@ -249,7 +250,7 @@ fi
 if param compare SYS_RELEASE_VER ${RELEASE_VER}
 then
 else
-	echo "Switched to different firmware release. Resetting parameters."
+	echo "New release VER: Resetting params"
 	set NEW_DEFAULTS yes
 fi
 
@@ -271,12 +272,12 @@ set GIMBAL_TTY /dev/ttyS1
 set OFDM_TTY /dev/ttyS2
 set ESC_TTY /dev/ttyS4
 
-if ver hwcmp TAP_V2
+if ver hwcmp YUNEEC_TAP_V2
 then
 	set ESC_TTY /dev/ttyS2
 fi
 
-if ver hwcmp TAP_V3 TAP_V4
+if ver hwcmp YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 	set GIMBAL_TTY /dev/ttyS3
 fi
@@ -293,25 +294,15 @@ sh /etc/init.d/rc.autostart
 param set COM_RC_LOSS_MAN 1
 
 #
-# Play startup tune
-#
-if [ ${NEW_DEFAULTS} == yes ]
-then
-	# TODO: play update tune?
-else
-	tune_control play -t 1 -s 30
-fi
-
-#
 # If autoconfig parameter was set, reset it and save parameters
 #
-if [ ${AUTOCNF} == yes ]
+if [ ${AUTOCNF} = yes ]
 then
 	param set SYS_AUTOCONFIG 0
 fi
 unset AUTOCNF
 
-if [ ${NEW_DEFAULTS} == yes ]
+if [ ${NEW_DEFAULTS} = yes ]
 then
 	param set SYS_PARAM_VER ${DEFAULTS_VER}
 	param set SYS_RELEASE_VER ${RELEASE_VER}
@@ -323,9 +314,9 @@ fi
 #
 # Set default output if not set
 #
-if [ ${OUTPUT_MODE} == none ]
+if [ ${OUTPUT_MODE} = none ]
 then
-	if [ ${USE_IO} == yes ]
+	if [ ${USE_IO} = yes ]
 	then
 		set OUTPUT_MODE io
 	else
@@ -360,16 +351,16 @@ then
 fi
 
 
-if [ ${DO_TEMP_CALIB} == 0 ]
+if [ ${DO_TEMP_CALIB} = 0 ]
 then
 
-	if [ ${HITL_ON} == no ]
+	if [ ${HITL_ON} = no ]
 	then
 		set GPS_PORT /dev/ttyS0
 
 		if param compare GPS_FIXPOS_RTK 1
 		then
-			if ver hwcmp TAP_V2
+			if ver hwcmp YUNEEC_TAP_V2
 			then
 				# Start the Fixposition RTK GPS on Real Sense port on H520
 				set GPS_PORT /dev/ttyS3
@@ -390,7 +381,7 @@ then
 fi
 
 #
-# Start the RC input driver and allocated the 3 PWM
+# Allocate the 3 PWM
 # one for landing gear in group 0 chan 0
 # two for Sonar in group 1 chan 0 and 1.
 # chan 1 will be reconfigured as capture, but ONLY
@@ -399,9 +390,9 @@ fi
 #
 fmu mode_pwm3
 
-if [ ${HITL_ON} == no ]
+if [ ${HITL_ON} = no ]
 then
-	if ver hwcmp TAP_V1
+	if ver hwcmp YUNEEC_TAP_V1
 	then
 	# On TAP-V1 use 400 Hz PWM output for landing gear
 		pwm rate -c 1 -r 400
@@ -429,6 +420,11 @@ then
 	pwm failsafe -c 1 -p 1000
 fi
 
+#
+# Start the RC input driver
+#
+rc_input start
+
 
 
 # make sure to start temperature calibration after the sensors
@@ -441,7 +437,7 @@ unset TEMP_CALIB_ARGS
 
 
 
-if [ ${HITL_ON} == no ]
+if [ ${HITL_ON} = no ]
 then
 	sh /etc/init.d/rc.sensors
 	commander start
@@ -455,6 +451,15 @@ fi
 #
 load_mon start
 
+#
+# Play startup tune
+#
+if [ ${NEW_DEFAULTS} = yes ]
+then
+	# TODO: play update tune?
+else
+	tune_control play -t 1 -s 30
+fi
 
 # mavlink baudrate for Gimbal UART
 if param compare SYS_COMPANION 57600
@@ -469,15 +474,15 @@ fi
 param set MAV_PROTO_VER 2
 
 # mavlink rate depends on baudrate
-if ver hwcmp TAP_V4
+if ver hwcmp YUNEEC_TAP_V4
 then
 	set MAV_RATE 40000
 else
 	set MAV_RATE 8000
 fi
 
-# starts a full mavlink instance for the gimbal port on TAP_V3 hardware
-if ver hwcmp TAP_V3 TAP_V4
+# starts a full mavlink instance for the gimbal port on YUNEEC_TAP_V3 hardware
+if ver hwcmp YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 	# mavlink instance for the gimbal port
 	vmount start -d ${GIMBAL_TTY} -b ${BAUDRATE}
@@ -498,19 +503,29 @@ else
 	vmount start -d /dev/ymavlink -b ${BAUDRATE}
 
 	# run mavlink (the same instance) on USB and gimbal port
-	if [ ${HITL_ON} == no ]
+	if [ ${HITL_ON} = no ]
 	then
 		set MAVLINK_DEV /dev/mavlink_dup
 		mavlink_dup start -d ${MAVLINK_DEV}
 		mavlink_dup add -d /dev/mavlink -b ${BAUDRATE}
 		mavlink_dup add -d /dev/ttyACM0 -p
 		mavlink start -r ${MAV_RATE} -d ${MAVLINK_DEV} -m config -b ${BAUDRATE}
+
+		# Give the stream a little time to come up...
+		sleep 1
+
 		mavlink stream -d ${MAVLINK_DEV} -s SYSTEM_TIME -r 0.5
 	else
 		set MAVLINK_DEV /dev/mavlink
 		mavlink start -r 20000 -d ${MAVLINK_DEV} -m config -b ${BAUDRATE}
-		mavlink stream -d /dev/mavlink -s SYSTEM_TIME -r 0.5
+		sleep 1  # Added because otherwise HITL communication would not be working
 		mavlink start -r 800000 -d /dev/ttyACM0 -b 921600 -m config -x
+
+		# Give the stream a little time to come up...
+		sleep 1
+
+		mavlink stream -d /dev/mavlink -s SYSTEM_TIME -r 0.5
+
 	fi
 
 
@@ -534,17 +549,17 @@ unset MAV_RATE
 #
 # Logging
 #
-if ver hwcmp TAP_V2
+if ver hwcmp YUNEEC_TAP_V2
 then
-		if [ ${HITL_ON} == yes ]
+		if [ ${HITL_ON} = yes ]
 		then
 			# prevent starting logger on H520 in HITL mode - not enough memory
 			set START_LOGGER 0
-			echo "logger: Not enough RAM in H520 HITL to start logger"
+			echo "Not starting logger in H520 HITL"
 		fi
 fi
 
-if [ ${START_LOGGER} == 1 ]
+if [ ${START_LOGGER} = 1 ]
 then
 	set LOGGER_ARGS ""
 	if param compare SDLOG_MODE 1
@@ -569,16 +584,16 @@ unset BAUDRATE
 #
 # Fixed wing setup
 #
-if [ ${VEHICLE_TYPE} == fw ]
+if [ ${VEHICLE_TYPE} = fw ]
 then
 
-	if [ ${MIXER} == none ]
+	if [ ${MIXER} = none ]
 	then
 		# Set default mixer for fixed wing if not defined
 		set MIXER AERT
 	fi
 
-	if [ ${MAV_TYPE} == none ]
+	if [ ${MAV_TYPE} = none ]
 	then
 		# Use MAV_TYPE = 1 (fixed wing) if not defined
 		set MAV_TYPE 1
@@ -596,49 +611,49 @@ fi
 #
 # Multicopters setup
 #
-if [ ${VEHICLE_TYPE} == mc ]
+if [ ${VEHICLE_TYPE} = mc ]
 then
 
-	if [ ${MIXER} == none ]
+	if [ ${MIXER} = none ]
 	then
 		echo "INFO  [init] Mixer undefined"
 	fi
 
-	if [ ${MAV_TYPE} == none ]
+	if [ ${MAV_TYPE} = none ]
 	then
 		# Use mixer to detect vehicle type
-		if [ ${MIXER} == quad_x -o ${MIXER} == quad_+ ]
+		if [ ${MIXER} = quad_x -o ${MIXER} = quad_+ ]
 		then
 			set MAV_TYPE 2
 		fi
-		if [ ${MIXER} == quad_w ]
+		if [ ${MIXER} = quad_w ]
 		then
 			set MAV_TYPE 2
 		fi
-		if [ ${MIXER} == quad_h ]
+		if [ ${MIXER} = quad_h ]
 		then
 			set MAV_TYPE 2
 		fi
-		if [ ${MIXER} == tri_y_yaw- -o ${MIXER} == tri_y_yaw+ ]
+		if [ ${MIXER} = tri_y_yaw- -o ${MIXER} = tri_y_yaw+ ]
 		then
 			set MAV_TYPE 15
 		fi
-		if [ ${MIXER} == hexa_x -o ${MIXER} == hexa_+ ]
+		if [ ${MIXER} = hexa_x -o ${MIXER} = hexa_+ ]
 		then
 			set MAV_TYPE 13
 		fi
-		if [ ${MIXER} == hexa_cox ]
+		if [ ${MIXER} = hexa_cox ]
 		then
 			set MAV_TYPE 13
 		fi
-		if [ ${MIXER} == octo_x -o ${MIXER} == octo_+ ]
+		if [ ${MIXER} = octo_x -o ${MIXER} = octo_+ ]
 		then
 			set MAV_TYPE 14
 		fi
 	fi
 
 	# Still no MAV_TYPE found
-	if [ ${MAV_TYPE} == none ]
+	if [ $MAV_TYPE = none ]
 	then
 		echo "WARN  [init] Unknown MAV_TYPE"
 		param set MAV_TYPE 2
@@ -647,7 +662,7 @@ then
 	fi
 
 	# Load mixer and configure outputs
-	if [ ${HITL_ON} == yes ]
+	if [ ${HITL_ON} = yes ]
 	then
 		# Override mixer to quad_x for HITL simulation
 		set MIXER quad_x
@@ -655,7 +670,7 @@ then
 	sh /etc/init.d/rc.interface
 
 
-	if [ $DO_TEMP_CALIB == 0 ]
+	if [ $DO_TEMP_CALIB = 0 ]
 	then
 		# Start standard multicopter apps
 		sh /etc/init.d/rc.mc_apps
@@ -691,18 +706,24 @@ fi
 
 set REALSENSE_PORT /dev/ttyS3
 
-if ver hwcmp TAP_V3
+if ver hwcmp YUNEEC_TAP_V3
 then
 	set REALSENSE_PORT /dev/ttyS1
 fi
 
-if ver hwcmp TAP_V3
+if ver hwcmp YUNEEC_TAP_V3
 then
 	realsense start -d ${REALSENSE_PORT}
 fi
 
+# There is no further script processing, so we can free some RAM
+# XXX potentially unset all script variables.
 unset REALSENSE_PORT
 unset DEFAULTS_VER
 unset RELEASE_VER
+#unset TUNE_ERR
+unset LOG_FILE
+unset DATAMAN_OPT
 
+# Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete

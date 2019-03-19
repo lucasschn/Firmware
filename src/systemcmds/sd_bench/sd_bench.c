@@ -44,7 +44,6 @@
 
 #include <px4_config.h>
 #include <px4_module.h>
-#include <px4_includes.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
 
@@ -64,7 +63,7 @@ static inline unsigned int time_fsync(int fd);
 
 __EXPORT int	sd_bench_main(int argc, char *argv[]);
 
-static const char *BENCHMARK_FILE = PX4_ROOTFSDIR"/fs/microsd/benchmark.tmp";
+static const char *BENCHMARK_FILE = PX4_STORAGEDIR"/benchmark.tmp";
 
 static int num_runs; ///< number of runs
 static int run_duration; ///< duration of a single run [ms]

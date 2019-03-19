@@ -1,5 +1,7 @@
 # Fused local position in NED.
 
+uint64 timestamp			# time since system start (microseconds)
+
 bool xy_valid				# true if x and y are valid
 bool z_valid				# true if z is valid
 bool v_xy_valid				# true if vy and vy are valid
@@ -61,4 +63,4 @@ float32 vz_max				# maximum vertical speed - set to 0 when limiting not required
 float32 hagl_min			# minimum height above ground level - set to 0 when limiting not required (meters)
 float32 hagl_max			# maximum height above ground level - set to 0 when limiting not required (meters)
 
-# TOPICS vehicle_local_position vehicle_local_position_groundtruth vehicle_vision_position
+# TOPICS vehicle_local_position vehicle_local_position_groundtruth

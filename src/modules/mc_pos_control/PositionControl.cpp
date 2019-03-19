@@ -39,6 +39,7 @@
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include "Utility/ControlMath.hpp"
+#include <px4_defines.h>
 
 using namespace matrix;
 
@@ -54,24 +55,17 @@ void PositionControl::updateState(const PositionControlStates &states)
 	_vel_dot = states.acceleration;
 }
 
-void PositionControl::_setCtrlFlagTrue()
+void PositionControl::_setCtrlFlag(bool value)
 {
 	for (int i = 0; i <= 2; i++) {
-		_is_pos_controlled[i] = _is_vel_controlled[i] = true;
-	}
-}
-
-void PositionControl::_setCtrlFlagFalse()
-{
-	for (int i = 0; i <= 2; i++) {
-		_is_pos_controlled[i] = _is_vel_controlled[i] = false;
+		_ctrl_pos[i] = _ctrl_vel[i] = value;
 	}
 }
 
 bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &setpoint)
 {
-	// Only for logging purpose: by default we use the entire position-velocity control-loop pipeline
-	_setCtrlFlagTrue();
+	// by default we use the entire position-velocity control-loop pipeline (flag only for logging purpose)
+	_setCtrlFlag(true);
 
 	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
 	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
@@ -92,6 +86,7 @@ bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &se
 void PositionControl::generateThrustYawSetpoint(const float dt)
 {
 	if (_skip_controller) {
+
 		// Already received a valid thrust set-point.
 		// Limit the thrust vector.
 		float thr_mag = _thr_sp.length();
@@ -148,7 +143,7 @@ bool PositionControl::_interfaceMapping()
 			// Velocity controller is active without position control.
 			// Set integral states and setpoints to 0
 			_pos_sp(i) = _pos(i) = 0.0f;
-			_is_pos_controlled[i] = false; // position control-loop is not used
+			_ctrl_pos[i] = false; // position control-loop is not used
 
 			// thrust setpoint is not supported in velocity control
 			_thr_sp(i) = NAN;
@@ -164,7 +159,7 @@ bool PositionControl::_interfaceMapping()
 			// Set all integral states and setpoints to 0
 			_pos_sp(i) = _pos(i) = 0.0f;
 			_vel_sp(i) = _vel(i) = 0.0f;
-			_is_pos_controlled[i] = _is_vel_controlled[i] = false; // position/velocity control loops are not used
+			_ctrl_pos[i] = _ctrl_vel[i] = false; // position/velocity control loop is not used
 
 			// Reset the Integral term.
 			_thr_int(i) = 0.0f;
@@ -210,8 +205,8 @@ bool PositionControl::_interfaceMapping()
 		// throttle down such that vehicle goes down with
 		// 70% of throttle range between min and hover
 		_thr_sp(2) = -(MPC_THR_MIN.get() + (MPC_THR_HOVER.get() - MPC_THR_MIN.get()) * 0.7f);
-		// position and velocity control-loops are not used (note: only for logging purpose)
-		_setCtrlFlagFalse();
+		// position and velocity control-loop is currently unused (flag only for logging purpose)
+		_setCtrlFlag(false);
 	}
 
 	return !(failsafe);
@@ -225,8 +220,8 @@ void PositionControl::_positionController()
 
 	// Constrain horizontal velocity by prioritizing the velocity component along the
 	// the desired position setpoint over the feed-forward term.
-	const Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(vel_sp_position(0), vel_sp_position(1)),
-				   Vector2f(&(_vel_sp - vel_sp_position)(0)), _constraints.speed_xy);
+	const Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(vel_sp_position),
+				   Vector2f(_vel_sp - vel_sp_position), _constraints.speed_xy);
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
 	// Constrain velocity in z-direction.
@@ -311,25 +306,17 @@ void PositionControl::_velocityController(const float &dt)
 			_thr_sp(1) = thrust_desired_NE(1) / mag * thrust_max_NE;
 		}
 
-		// Get the direction of (r-y) in NE-direction.
-		float direction_NE = Vector2f(vel_err(0), vel_err(1)) * Vector2f(_vel_sp(0), _vel_sp(1));
+		// Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
+		// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
+		float arw_gain = 2.f / MPC_XY_VEL_P.get();
 
-		// Apply Anti-Windup in NE-direction.
-		bool stop_integral_NE = (thrust_desired_NE * thrust_desired_NE >= thrust_max_NE * thrust_max_NE &&
-					 direction_NE >= 0.0f);
+		Vector2f vel_err_lim;
+		vel_err_lim(0) = vel_err(0) - (thrust_desired_NE(0) - _thr_sp(0)) * arw_gain;
+		vel_err_lim(1) = vel_err(1) - (thrust_desired_NE(1) - _thr_sp(1)) * arw_gain;
 
-		if (!stop_integral_NE) {
-			_thr_int(0) += vel_err(0) * MPC_XY_VEL_I.get() * dt;
-			_thr_int(1) += vel_err(1) * MPC_XY_VEL_I.get() * dt;
-
-			// magnitude of thrust integral can never exceed maximum throttle in NE
-			float integral_mag_NE = Vector2f(&_thr_int(0)).length();
-
-			if (integral_mag_NE > 0.0f && integral_mag_NE > thrust_max_NE) {
-				_thr_int(0) = _thr_int(0) / integral_mag_NE * thrust_max_NE;
-				_thr_int(1) = _thr_int(1) / integral_mag_NE * thrust_max_NE;
-			}
-		}
+		// Update integral
+		_thr_int(0) += MPC_XY_VEL_I.get() * vel_err_lim(0) * dt;
+		_thr_int(1) += MPC_XY_VEL_I.get() * vel_err_lim(1) * dt;
 	}
 }
 

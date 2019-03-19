@@ -39,6 +39,12 @@
 
 #include <unistd.h>
 
+St24Helper::~St24Helper()
+{
+	orb_unsubscribe(_vehicle_landed_sub);
+	orb_unsubscribe(_vehicle_status_sub);
+}
+
 void St24Helper::init(int rcs_fd)
 {
 	_vehicle_landed_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
@@ -60,7 +66,7 @@ void St24Helper::bind()
 	ReceiverFcPacket *bind_packet = st24_get_bind_packet();
 	// send 3 more bytes 2 for header and 1 for crc
 	int ret = ::write(_rcs_fd, (uint8_t *)bind_packet, (bind_packet->length + 3));
-	PX4_INFO("Sent ST24 bind command res: %d", ret);
+	printf("Sent ST24 bind command res: %d", ret);
 }
 
 void St24Helper::cycle(bool rc_lost, bool armed)

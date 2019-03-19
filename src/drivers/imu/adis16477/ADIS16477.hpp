@@ -49,6 +49,7 @@
 #include <lib/conversion/rotation.h>
 #include <perf/perf_counter.h>
 #include <ecl/geo/geo.h>
+#include <systemlib/err.h>
 
 #define ADIS16477_GYRO_DEFAULT_RATE					250
 #define ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ	30
@@ -181,15 +182,13 @@ private:
 	bool			publish_accel(const ADISReport &report);
 	bool			publish_gyro(const ADISReport &report);
 
-	uint16_t		read_reg(uint8_t reg);
-	void			write_reg(uint8_t reg, uint8_t val);
+	uint16_t		read_reg16(uint8_t reg);
 
-	/**
-	 * Measurement self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			self_test();
+	void			write_reg(uint8_t reg, uint8_t value);
+	void			write_reg16(uint8_t reg, uint16_t value);
+
+	// ADIS16477 onboard self test
+	bool 			self_test();
 
 	/*
 	  set low pass filter frequency

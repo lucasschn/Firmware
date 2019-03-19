@@ -48,6 +48,7 @@
 #include <px4_workqueue.h>
 #include <drivers/device/device.h>
 #include <px4_defines.h>
+#include <containers/Array.hpp>
 #include <px4_log.h>
 #include <platforms/px4_getopt.h>
 
@@ -63,7 +64,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
 #include <getopt.h>
 
 #include <perf/perf_counter.h>
@@ -85,7 +85,6 @@
 
 #include <board_config.h>
 #include <drivers/drv_input_capture.h>
-#include <drivers/drv_gpio.h>
 #include <drivers/drv_pwm_output.h>
 
 #include <DevMgr.hpp>
@@ -108,6 +107,8 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
+#define PX4FMU_DEVICE_PATH	"/dev/px4fmu" // TODO(YUNEEC): This looks wrong
+
 using namespace DriverFramework;
 
 int static cmp(const void *a, const void *b)
@@ -115,7 +116,7 @@ int static cmp(const void *a, const void *b)
 	return (*(const float *)a > *(const float *)b);
 }
 
-class HC_SR04 : public device::CDev
+class HC_SR04 : public cdev::CDev
 {
 public:
 	HC_SR04(uint8_t rotation, bool enable_median_filter, bool enable_obsavoid_switch);
@@ -162,10 +163,10 @@ private:
 
 	float				_min_distance;
 	float				_max_distance;
-	float 				_mf_window[_MF_WINDOW_SIZE] = {};
-	float				_mf_window_sorted[_MF_WINDOW_SIZE] = {};
+	float 				_mf_window[_MF_WINDOW_SIZE] {};
+	float				_mf_window_sorted[_MF_WINDOW_SIZE] {};
 	int 				_mf_cycle_counter;
-	work_s				_work = {};
+	work_s				_work{};
 	ringbuffer::RingBuffer	*_reports;
 	volatile enum {
 		Uninitialized = 0,
@@ -190,7 +191,7 @@ private:
 	perf_counter_t		_buffer_overflows;
 
 
-	std::vector<float>
+	px4::Array<float, 6>
 	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
 
 	int 				_manual_sub;
@@ -273,7 +274,7 @@ private:
 extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[]);
 
 HC_SR04::HC_SR04(uint8_t rotation, bool enable_median_filter, bool enable_obsavoid_switch) :
-	CDev("HC_SR04", SR04_DEVICE_PATH),
+	CDev(SR04_DEVICE_PATH),
 	_min_distance(SR04_MIN_DISTANCE),
 	_max_distance(SR04_MAX_DISTANCE),
 	_mf_cycle_counter(0),
@@ -294,8 +295,6 @@ HC_SR04::HC_SR04(uint8_t rotation, bool enable_median_filter, bool enable_obsavo
 	_pwm_output_active(false)
 
 {
-	/* enable debug() calls */
-	_debug_enabled = false;
 }
 
 HC_SR04::~HC_SR04()
@@ -461,21 +460,11 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -517,35 +506,6 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */

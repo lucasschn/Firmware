@@ -1,4 +1,5 @@
 # EKF blended position in WGS84 coordinates.
+uint64 timestamp		# time since system start (microseconds)
 int32 lat			# Latitude in 1E-7 degrees
 int32 lon			# Longitude in 1E-7 degrees
 int32 alt			# Altitude in 1E-3 meters above MSL, (millimetres)
@@ -13,4 +14,6 @@ float32 vel_e_m_s		# GPS East velocity, (metres/sec)
 float32 vel_d_m_s		# GPS Down velocity, (metres/sec)
 bool vel_ned_valid		# True if NED velocity is valid
 uint8 satellites_used		# Number of satellites used
+float32 heading			# heading angle of XYZ body frame rel to NED. Set to NaN if not available and updated (used for dual antenna GPS), (rad, [-PI, PI])
+float32 heading_offset		# heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])
 uint8 selected			# GPS selection: 0: GPS1, 1: GPS2. 2: GPS1+GPS2 blend

@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,9 +32,12 @@
  *
  ****************************************************************************/
 
+
 /**
  * @file simulator.h
- * A device simulator
+ *
+ * This module interfaces via MAVLink to a software in the loop simulator (SITL)
+ * such as jMAVSim or Gazebo.
  */
 
 #pragma once
@@ -43,7 +47,9 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/irlock_report.h>
@@ -62,10 +68,10 @@
 #include <v2.0/mavlink_types.h>
 #include <v2.0/yuneec/mavlink.h>
 #include <lib/ecl/geo/geo.h>
+
 namespace simulator
 {
 
-// FIXME - what is the endianness of these on actual device?
 #pragma pack(push, 1)
 struct RawAccelData {
 	float temperature;
@@ -112,7 +118,7 @@ struct RawAirspeedData {
 
 #pragma pack(push, 1)
 struct RawGPSData {
-	int64_t timestamp;
+	uint64_t timestamp;
 	int32_t lat;
 	int32_t lon;
 	int32_t alt;
@@ -184,7 +190,8 @@ protected:
 	RType _buf[2];
 };
 
-};
+} // namespace simulator
+
 
 class Simulator : public ModuleParams
 {
@@ -205,6 +212,11 @@ public:
 		sample(float a, float b, float c) : x(a), y(b), z(c) {}
 	};
 
+	enum class InternetProtocol {
+		TCP,
+		UDP
+	};
+
 	static int start(int argc, char *argv[]);
 
 	bool getRawAccelReport(uint8_t *buf, int len);
@@ -222,6 +234,9 @@ public:
 	void write_airspeed_data(void *buf);
 
 	bool isInitialized() { return _initialized; }
+
+	void set_ip(InternetProtocol ip);
+	void set_port(unsigned port);
 
 private:
 	Simulator() : ModuleParams(nullptr),
@@ -244,16 +259,13 @@ private:
 		_gyro_pub(nullptr),
 		_mag_pub(nullptr),
 		_flow_pub(nullptr),
-		_vision_position_pub(nullptr),
-		_vision_attitude_pub(nullptr),
+		_visual_odometry_pub(nullptr),
 		_dist_pub(nullptr),
 		_battery_pub(nullptr),
 		_param_sub(-1),
 		_initialized(false),
 		_realtime_factor(1.0),
-		_system_type(0)
 #ifndef __PX4_QURT
-		,
 		_rc_channels_pub(nullptr),
 		_attitude_pub(nullptr),
 		_gpos_pub(nullptr),
@@ -275,11 +287,6 @@ private:
 		_vehicle_status{}
 #endif
 	{
-		// We need to know the type for the correct mapping from
-		// actuator controls to the hil actuator message.
-		param_t param_system_type = param_find("MAV_TYPE");
-		param_get(param_system_type, &_system_type);
-
 		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++)
 		{
 			_actuator_outputs_sub[i] = -1;
@@ -330,13 +337,15 @@ private:
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
 	orb_advert_t _flow_pub;
-	orb_advert_t _vision_position_pub;
-	orb_advert_t _vision_attitude_pub;
+	orb_advert_t _visual_odometry_pub;
 	orb_advert_t _dist_pub;
 	orb_advert_t _battery_pub;
 	orb_advert_t _irlock_report_pub;
 
 	int				_param_sub;
+
+	unsigned _port = 14560;
+	InternetProtocol _ip = InternetProtocol::UDP;
 
 	bool _initialized;
 	double _realtime_factor;		///< How fast the simulation runs in comparison to real system time
@@ -347,13 +356,10 @@ private:
 	Battery _battery;
 	battery_status_s _battery_status{};
 
-	// For param MAV_TYPE
-	int32_t _system_type;
-
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
 	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
-	int publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink);
+	int publish_odometry_topic(mavlink_message_t *odom_mavlink);
 	int publish_distance_topic(mavlink_distance_sensor_t *dist);
 
 #ifndef __PX4_QURT
@@ -385,13 +391,18 @@ private:
 	struct vehicle_status_s _vehicle_status;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s ///< battery drain interval
+		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s, ///< battery drain interval
+		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _battery_min_percentage, //<minimum battery percentage
+		(ParamInt<px4::params::MAV_TYPE>) _param_system_type
+
 	)
 
 	void poll_topics();
 	void handle_message(mavlink_message_t *msg, bool publish);
 	void send_controls();
-	void pollForMAVLinkMessages(bool publish, int udp_port);
+	void send_heartbeat();
+	void request_hil_state_quaternion();
+	void pollForMAVLinkMessages(bool publish);
 
 	void pack_actuator_message(mavlink_hil_actuator_controls_t &actuator_msg, unsigned index);
 	void send_mavlink_message(const mavlink_message_t &aMsg);

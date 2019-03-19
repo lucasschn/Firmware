@@ -418,13 +418,13 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 		ellipsoid_jacob[1] = 1.0f * (((*offdiag_x * A) + (*diag_y    * B) + (*offdiag_z * C)) / length);
 		ellipsoid_jacob[2] = 1.0f * (((*offdiag_y * A) + (*offdiag_z * B) + (*diag_z    * C)) / length);
 		// 3-5: partial derivative (diag offset wrt fitness fn) fn operated on sample
-		ellipsoid_jacob[3] = -1.0f * ((x[k] + *offset_x) * A) / length;
-		ellipsoid_jacob[4] = -1.0f * ((y[k] + *offset_y) * B) / length;
-		ellipsoid_jacob[5] = -1.0f * ((z[k] + *offset_z) * C) / length;
+		ellipsoid_jacob[3] = -1.0f * ((x[k] - *offset_x) * A) / length;
+		ellipsoid_jacob[4] = -1.0f * ((y[k] - *offset_y) * B) / length;
+		ellipsoid_jacob[5] = -1.0f * ((z[k] - *offset_z) * C) / length;
 		// 6-8: partial derivative (off-diag offset wrt fitness fn) fn operated on sample
-		ellipsoid_jacob[6] = -1.0f * (((y[k] + *offset_y) * A) + ((x[k] + *offset_x) * B)) / length;
-		ellipsoid_jacob[7] = -1.0f * (((z[k] + *offset_z) * A) + ((x[k] + *offset_x) * C)) / length;
-		ellipsoid_jacob[8] = -1.0f * (((z[k] + *offset_z) * B) + ((y[k] + *offset_y) * C)) / length;
+		ellipsoid_jacob[6] = -1.0f * (((y[k] - *offset_y) * A) + ((x[k] - *offset_x) * B)) / length;
+		ellipsoid_jacob[7] = -1.0f * (((z[k] - *offset_z) * A) + ((x[k] - *offset_x) * C)) / length;
+		ellipsoid_jacob[8] = -1.0f * (((z[k] - *offset_z) * B) + ((y[k] - *offset_y) * C)) / length;
 
 		for (uint8_t i = 0; i < 9; i++) {
 			// compute JTJ
@@ -606,7 +606,7 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 				/* not still, reset still start time */
 				if (t_still != 0) {
 					calibration_log_info(mavlink_log_pub, "[cal] detected motion, hold still...");
-					usleep(200000);
+					px4_usleep(200000);
 					t_still = 0;
 				}
 			}
@@ -740,16 +740,16 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		calibration_log_info(mavlink_log_pub, "[cal] pending:%s", pendingStr);
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
-		usleep(20000);
+		px4_usleep(20000);
 		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, cancel_sub, sub_accel,
 							lenient_still_position);
 
 		if (orient == DETECT_ORIENTATION_ERROR) {
 			orientation_failures++;
 			calibration_log_info(mavlink_log_pub, "[cal] detected motion, hold still...");
-			usleep(20000);
+			px4_usleep(20000);
 			continue;
 		}
 
@@ -758,14 +758,14 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 			orientation_failures++;
 			set_tune(TONE_NOTIFY_NEGATIVE_TUNE);
 			calibration_log_info(mavlink_log_pub, "[cal] %s side already completed", detect_orientation_str(orient));
-			usleep(20000);
+			px4_usleep(20000);
 			continue;
 		}
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		orientation_failures = 0;
 
 		// Call worker routine
@@ -776,9 +776,9 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 
 		// Note that this side is complete
 		side_data_collected[orient] = true;
@@ -786,7 +786,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		// output neutral tune
 		set_tune(TONE_NOTIFY_NEUTRAL_TUNE);
 		rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST, 3, 2);
-		usleep(600000); // incease sleep to let the white color get trough
+		px4_usleep(600000); // incease sleep to let the white color get trough
 		rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST, 0, 2);
 	}
 
@@ -831,21 +831,26 @@ calibrate_return calibrate_from_hex_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		uint8_t mask;
-		switch(side_complete_count) {
-			case 0:
-			case 3:
-				mask = 0x12;
-				break;
-			case 1:
-			case 4:
-				mask = 0x24;
-				break;
-			case 2:
-			case 5:
-				mask = 0x09;
-				break;
-			default: mask = 0x00;
+
+		switch (side_complete_count) {
+		case 0:
+		case 3:
+			mask = 0x12;
+			break;
+
+		case 1:
+		case 4:
+			mask = 0x24;
+			break;
+
+		case 2:
+		case 5:
+			mask = 0x09;
+			break;
+
+		default: mask = 0x00;
 		}
+
 		rgbled_set_mag_cali(mask);
 
 		/* inform user which orientations are still needed */
@@ -860,14 +865,14 @@ calibrate_return calibrate_from_hex_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		calibration_log_info(mavlink_log_pub, "[cal] pending:%s", pendingStr);
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
-		usleep(20000);
+		px4_usleep(20000);
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 
 		// Call worker routine
 		result = calibration_worker(orient, cancel_sub, worker_data);
@@ -877,9 +882,9 @@ calibrate_return calibrate_from_hex_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 
 		// Note that this side is complete
 		side_data_collected[orient] = true;
@@ -887,21 +892,22 @@ calibrate_return calibrate_from_hex_orientation(orb_advert_t *mavlink_log_pub,
 
 		// output neutral tune
 		set_tune(TONE_NOTIFY_NEUTRAL_TUNE);
-		usleep(200000);
+		px4_usleep(200000);
 	}
 
 	return result;
 }
 
-calibrate_return calibrate_detect_rotation(orb_advert_t *mavlink_log_pub, int cancel_sub, hrt_abstime detection_deadline)
+calibrate_return calibrate_detect_rotation(orb_advert_t *mavlink_log_pub, int cancel_sub,
+		hrt_abstime detection_deadline)
 {
-		/*
-	 * Detect if the system is rotating.
-	 *
-	 * We're detecting this as a general rotation on any axis, not necessary on the one we
-	 * asked the user for. This is because we really just need two roughly orthogonal axes
-	 * for a good result, so we're not constraining the user more than we have to.
-	 */
+	/*
+	* Detect if the system is rotating.
+	*
+	* We're detecting this as a general rotation on any axis, not necessary on the one we
+	* asked the user for. This is because we really just need two roughly orthogonal axes
+	* for a good result, so we're not constraining the user more than we have to.
+	*/
 
 	hrt_abstime last_gyro = 0;
 	float gyro_x_integral = 0.0f;
@@ -928,7 +934,6 @@ calibrate_return calibrate_detect_rotation(orb_advert_t *mavlink_log_pub, int ca
 		/* abort with timeout */
 		if (hrt_absolute_time() > detection_deadline) {
 			result = calibrate_return_error;
-			warnx("int: %8.4f, %8.4f, %8.4f", (double)gyro_x_integral, (double)gyro_y_integral, (double)gyro_z_integral);
 			calibration_log_critical(mavlink_log_pub, "Failed: This calibration requires rotation.");
 			break;
 		}
@@ -967,14 +972,17 @@ calibrate_return calibrate_detect_rotation(orb_advert_t *mavlink_log_pub, int ca
 int calibrate_cancel_subscribe()
 {
 	int vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+
 	if (vehicle_command_sub >= 0) {
 		// make sure we won't read any old messages
 		struct vehicle_command_s cmd;
 		bool update;
+
 		while (orb_check(vehicle_command_sub, &update) == 0 && update) {
 			orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &cmd);
 		}
 	}
+
 	return vehicle_command_sub;
 }
 
@@ -1014,12 +1022,12 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, int cancel_sub)
 		// ignore internal commands, such as VEHICLE_CMD_DO_MOUNT_CONTROL from vmount
 		if (cmd.from_external) {
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION &&
-					(int)cmd.param1 == 0 &&
-					(int)cmd.param2 == 0 &&
-					(int)cmd.param3 == 0 &&
-					(int)cmd.param4 == 0 &&
-					(int)cmd.param5 == 0 &&
-					(int)cmd.param6 == 0) {
+			    (int)cmd.param1 == 0 &&
+			    (int)cmd.param2 == 0 &&
+			    (int)cmd.param3 == 0 &&
+			    (int)cmd.param4 == 0 &&
+			    (int)cmd.param5 == 0 &&
+			    (int)cmd.param6 == 0) {
 				calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
 				return true;

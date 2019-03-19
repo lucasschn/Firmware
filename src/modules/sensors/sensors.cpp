@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -66,7 +66,6 @@
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_airspeed.h>
-#include <drivers/drv_px4flow.h>
 
 #include <airspeed/airspeed.h>
 #include <parameters/param.h>
@@ -449,6 +448,10 @@ Sensors::adc_poll()
 		int   bat_voltage_v_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
 		int   bat_voltage_i_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
 
+		if (_parameters.battery_adc_channel >= 0) {  // overwrite default
+			bat_voltage_v_chan[0] = _parameters.battery_adc_channel;
+		}
+
 		/* The valid signals (HW dependent) are associated with each brick */
 		bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
 
@@ -669,7 +672,8 @@ Sensors::run()
 		 * if a gyro fails) */
 		int pret = px4_poll(&poll_fds, 1, 50);
 
-		/* if pret == 0 it timed out - periodic check for should_exit(), etc. */
+		/* If pret == 0 it timed out but we should still do all checks and potentially copy
+		 * other gyros. */
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -680,8 +684,7 @@ Sensors::run()
 				_voted_sensors_update.initialize_sensors();
 			}
 
-			usleep(1000);
-
+			px4_usleep(1000);
 			continue;
 		}
 

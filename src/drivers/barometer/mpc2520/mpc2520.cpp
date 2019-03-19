@@ -103,7 +103,7 @@ public:
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	static int print_usage(const char *reason = nullptr);
-	static int print_formatted_report(baro_report report);
+	static int print_formatted_report(sensor_baro_s report);
 
 protected:
 	Device			*_interface;
@@ -272,7 +272,7 @@ int MPC2520::init()
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
-	struct baro_report brp;
+	sensor_baro_s brp;
 	/* do a first measurement cycle to populate reports with valid data */
 	_measure_phase = 0;
 	_reports->flush();
@@ -486,8 +486,8 @@ int MPC2520::set_measure_mode(MPC2520_MEAS_MODE mode)
 
 ssize_t MPC2520::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct baro_report);
-	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_baro_s);
+	sensor_baro_s *brp = reinterpret_cast<sensor_baro_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -543,21 +543,11 @@ int MPC2520::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop_cycle();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
 			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -597,30 +587,6 @@ int MPC2520::ioctl(struct file *filp, int cmd, unsigned long arg)
 					return OK;
 				}
 			}
-		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-			return OK;
 		}
 
 	case SENSORIOCRESET:
@@ -723,7 +689,7 @@ int MPC2520::collect()
 
 	perf_begin(_sample_perf);
 
-	struct baro_report report;
+	sensor_baro_s report;
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
@@ -816,7 +782,7 @@ TODO
 	return PX4_OK;
 }
 
-int MPC2520::print_formatted_report(baro_report report){
+int MPC2520::print_formatted_report(sensor_baro_s report){
 	warnx("pressure:\t%10.4f [Pa]", (double)report.pressure);
 	warnx("temperature:\t %8.4f [C]", (double)report.temperature);
 	warnx("time:\t\t  %lld [us]\n", report.timestamp);
@@ -959,7 +925,7 @@ struct mpc2520_bus_option &find_bus(enum MPC2520_BUS busid)
 void test(enum MPC2520_BUS busid)
 {
 	struct mpc2520_bus_option &bus = find_bus(busid);
-	struct baro_report report;
+	sensor_baro_s report;
 	ssize_t sz;
 	int ret;
 
@@ -980,11 +946,6 @@ void test(enum MPC2520_BUS busid)
 
 	warnx("Performing single read");
 	MPC2520::print_formatted_report(report);
-
-	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		errx(1, "failed to set queue depth");
-	}
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {

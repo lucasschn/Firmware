@@ -246,11 +246,7 @@ static px4_sem_t g_sys_state_mutex_mission;
 static px4_sem_t g_sys_state_mutex_fence;
 
 /* The data manager store file handle and file name */
-#if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
-static const char *default_device_path = PX4_ROOTFSDIR"/dataman";
-#else
-static const char *default_device_path = PX4_ROOTFSDIR"/fs/microsd/dataman";
-#endif
+static const char *default_device_path = PX4_STORAGEDIR "/dataman";
 static char *k_data_manager_device_path = nullptr;
 
 #if defined(FLASH_BASED_DATAMAN)
@@ -1024,7 +1020,7 @@ _ram_flash_flush()
 	dm_operations_data.ram_flash.flush_timeout_usec = 0;
 
 	ssize_t ret = up_progmem_getpage(k_dataman_flash_sector->address);
-	ret = up_progmem_erasepage(ret);
+	ret = up_progmem_eraseblock(ret);
 
 	if (ret < 0) {
 		PX4_WARN("Error erasing flash sector %u", k_dataman_flash_sector->page);
@@ -1068,6 +1064,7 @@ _ram_flash_wait(px4_sem_t *sem)
 	const uint64_t diff = dm_operations_data.ram_flash.flush_timeout_usec - now;
 	struct timespec abstime;
 	abstime.tv_sec = diff / USEC_PER_SEC;
+	// FIXME: this could be made more performant.
 	abstime.tv_nsec = (diff % USEC_PER_SEC) * NSEC_PER_USEC;
 
 	px4_sem_timedwait(sem, &abstime);

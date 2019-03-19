@@ -111,11 +111,6 @@ RTL::on_activation()
 		_rtl_state = RTL_STATE_HOME;
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Flying straight to home");
 
-	} else if (_navigator->get_position_setpoint_triplet()->current.valid
-		   && _navigator->get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-		// Skip straight to land if already performing a land.
-		_rtl_state = RTL_STATE_LAND;
-
 	} else if ((rtl_type() == RTL_LAND) && _navigator->on_mission_landing()) {
 		// RTL straight to RETURN state, but mission will takeover for landing.
 

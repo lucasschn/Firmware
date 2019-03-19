@@ -1,5 +1,7 @@
 # Bezier Trajectory description. See also Mavlink TRAJECTORY msg
 
+uint64 timestamp # time since system start (microseconds)
+
 uint8 POINT_0 = 0
 uint8 POINT_1 = 1
 uint8 POINT_2 = 2

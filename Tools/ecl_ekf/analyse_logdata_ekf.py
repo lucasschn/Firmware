@@ -323,7 +323,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['beta_innov'], 'b')
         plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['beta_innov_var']), 'r')
         plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['beta_innov_var']), 'r')
-        plt.title('Sythetic Sideslip Innovations')
+        plt.title('Synthetic Sideslip Innovations')
         plt.ylabel('innovation (rad)')
         plt.xlabel('time (sec)')
         plt.grid()
@@ -1303,15 +1303,23 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         test_results['tas_sensor_status'][0] = 'Warning'
     # check for IMU sensor warnings
     if ((test_results.get('imu_coning_peak')[0] > check_levels.get('imu_coning_peak_warn')) or
-            (test_results.get('imu_coning_mean')[0] > check_levels.get('imu_coning_mean_warn')) or
-            (test_results.get('imu_hfdang_peak')[0] > check_levels.get('imu_hfdang_peak_warn')) or
-            (test_results.get('imu_hfdang_mean')[0] > check_levels.get('imu_hfdang_mean_warn')) or
-            (test_results.get('imu_hfdvel_peak')[0] > check_levels.get('imu_hfdvel_peak_warn')) or
+            (test_results.get('imu_coning_mean')[0] > check_levels.get('imu_coning_mean_warn'))):
+        test_results['master_status'][0] = 'Warning'
+        test_results['imu_sensor_status'][0] = 'Warning'
+        test_results['imu_vibration_check'][0] = 'Warning'
+        print('IMU gyro coning check warning.')
+    if ((test_results.get('imu_hfdang_peak')[0] > check_levels.get('imu_hfdang_peak_warn')) or
+            (test_results.get('imu_hfdang_mean')[0] > check_levels.get('imu_hfdang_mean_warn'))):
+        test_results['master_status'][0] = 'Warning'
+        test_results['imu_sensor_status'][0] = 'Warning'
+        test_results['imu_vibration_check'][0] = 'Warning'
+        print('IMU gyro vibration check warning.')
+    if ((test_results.get('imu_hfdvel_peak')[0] > check_levels.get('imu_hfdvel_peak_warn')) or
             (test_results.get('imu_hfdvel_mean')[0] > check_levels.get('imu_hfdvel_mean_warn'))):
         test_results['master_status'][0] = 'Warning'
         test_results['imu_sensor_status'][0] = 'Warning'
         test_results['imu_vibration_check'][0] = 'Warning'
-        print('IMU vibration check warning.')
+        print('IMU accel vibration check warning.')
     if ((test_results.get('imu_dang_bias_median')[0] > check_levels.get('imu_dang_bias_median_warn')) or
             (test_results.get('imu_dvel_bias_median')[0] > check_levels.get('imu_dvel_bias_median_warn'))):
         test_results['master_status'][0] = 'Warning'

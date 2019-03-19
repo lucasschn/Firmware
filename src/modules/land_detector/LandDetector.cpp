@@ -40,7 +40,7 @@
 
 #include "LandDetector.h"
 
-#include <cfloat>
+#include <float.h>
 
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -63,6 +63,18 @@ LandDetector::LandDetector() :
 LandDetector::~LandDetector()
 {
 	perf_free(_cycle_perf);
+
+	if (_armingSub >= 0) {
+		orb_unsubscribe(_armingSub);
+	}
+
+	if (_parameterSub >= 0) {
+		orb_unsubscribe(_parameterSub);
+	}
+
+	if (_landDetectedPub) {
+		orb_unadvertise(_landDetectedPub);
+	}
 }
 
 int LandDetector::start()
@@ -83,7 +95,7 @@ void LandDetector::_cycle()
 {
 	perf_begin(_cycle_perf);
 
-	if (_object == nullptr) { // not initialized yet
+	if (_object.load() == nullptr) { // not initialized yet
 		// Advertise the first land detected uORB.
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.freefall = false;
@@ -98,11 +110,12 @@ void LandDetector::_cycle()
 
 		// Initialize uORB topics.
 		_armingSub = orb_subscribe(ORB_ID(actuator_armed));
+		_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 		_initialize_topics();
 
 		_check_params(true);
 
-		_object = this;
+		_object.store(this);
 	}
 
 	_check_params(false);

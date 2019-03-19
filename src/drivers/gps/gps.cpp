@@ -50,6 +50,7 @@
 
 
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <stdint.h>
@@ -62,6 +63,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <px4_cli.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_module.h>
@@ -73,7 +75,6 @@
 #include <matrix/math.hpp>
 #include <systemlib/err.h>
 #include <parameters/param.h>
-#include <drivers/drv_gps.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
@@ -85,12 +86,22 @@
 #include "devices/src/ubx.h"
 #include "devices/src/mtk.h"
 #include "devices/src/ashtech.h"
+#include "devices/src/emlid_reach.h"
 
+#ifdef __PX4_LINUX
+#include <linux/spi/spidev.h>
+#endif /* __PX4_LINUX */
 
 #define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
-#define GPS_WAIT_BEFORE_READ	20		// ms, wait before reading to save read() calls
 
+typedef enum {
+	GPS_DRIVER_MODE_NONE = 0,
+	GPS_DRIVER_MODE_UBX,
+	GPS_DRIVER_MODE_MTK,
+	GPS_DRIVER_MODE_ASHTECH,
+	GPS_DRIVER_MODE_EMLIDREACH
+} gps_driver_mode_t;
 
 /* struct for dynamic allocation of satellite info data */
 struct GPS_Sat_Info {
@@ -111,7 +122,7 @@ public:
 	};
 
 	GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps, bool enable_sat_info,
-	    Instance instance);
+	    Instance instance, unsigned configured_baudrate);
 	virtual ~GPS();
 
 	/** @see ModuleBase */
@@ -148,6 +159,7 @@ private:
 
 	int				_serial_fd{-1};					///< serial interface to GPS
 	unsigned			_baudrate{0};					///< current baudrate
+	const unsigned			_configured_baudrate{0};			///< configured baudrate (0=auto-detect)
 	char				_port[20] {};					///< device / serial port path
 
 	bool				_healthy{false};				///< flag to signal if the GPS is ok
@@ -254,7 +266,8 @@ extern "C" __EXPORT int gps_main(int argc, char *argv[]);
 
 
 GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps,
-	 bool enable_sat_info, Instance instance) :
+	 bool enable_sat_info, Instance instance, unsigned configured_baudrate) :
+	_configured_baudrate(configured_baudrate),
 	_mode(mode),
 	_interface(interface),
 	_fake_gps(fake_gps),
@@ -266,6 +279,7 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 	_port[sizeof(_port) - 1] = '\0';
 
 	_report_gps_pos.heading = NAN;
+	_report_gps_pos.heading_offset = NAN;
 
 	/* create satellite info data object if requested */
 	if (enable_sat_info) {
@@ -288,7 +302,7 @@ GPS::~GPS()
 		unsigned int i = 0;
 
 		do {
-			usleep(20000); // 20 ms
+			px4_usleep(20000); // 20 ms
 			++i;
 		} while (_secondary_instance && i < 100);
 	}
@@ -378,17 +392,21 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 			 * If we have all requested data available, read it without waiting.
 			 * If more bytes are available, we'll go back to poll() again.
 			 */
+			const unsigned character_count = 32; // minimum bytes that we want to read
+			unsigned baudrate = _baudrate == 0 ? 115200 : _baudrate;
+			const unsigned sleeptime = character_count * 1000000 / (baudrate / 10);
+
 #ifdef __PX4_NUTTX
 			int err = 0;
-			int bytesAvailable = 0;
-			err = ioctl(_serial_fd, FIONREAD, (unsigned long)&bytesAvailable);
+			int bytes_available = 0;
+			err = ioctl(_serial_fd, FIONREAD, (unsigned long)&bytes_available);
 
-			if ((err != 0) || (bytesAvailable < (int)buf_length)) {
-				usleep(GPS_WAIT_BEFORE_READ * 1000);
+			if (err != 0 || bytes_available < (int)character_count) {
+				px4_usleep(sleeptime);
 			}
 
 #else
-			usleep(GPS_WAIT_BEFORE_READ * 1000);
+			px4_usleep(sleeptime);
 #endif
 
 			ret = ::read(_serial_fd, buf, buf_length);
@@ -403,7 +421,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 #else
 	/* For QURT, just use read for now, since this doesn't block, we need to slow it down
 	 * just a bit. */
-	usleep(10000);
+	px4_usleep(10000);
 	return ::read(_serial_fd, buf, buf_length);
 #endif
 }
@@ -601,6 +619,27 @@ GPS::run()
 			PX4_ERR("GPS: failed to open serial port: %s err: %d", _port, errno);
 			return;
 		}
+
+#ifdef __PX4_LINUX
+
+		if (_interface == GPSHelper::Interface::SPI) {
+			int spi_speed = 1000000; // make sure the bus speed is not too high (required on RPi)
+			int status_value = ioctl(_serial_fd, SPI_IOC_WR_MAX_SPEED_HZ, &spi_speed);
+
+			if (status_value < 0) {
+				PX4_ERR("SPI_IOC_WR_MAX_SPEED_HZ failed for %s (%d)", _port, errno);
+				return;
+			}
+
+			status_value = ioctl(_serial_fd, SPI_IOC_RD_MAX_SPEED_HZ, &spi_speed);
+
+			if (status_value < 0) {
+				PX4_ERR("SPI_IOC_RD_MAX_SPEED_HZ failed for %s (%d)", _port, errno);
+				return;
+			}
+		}
+
+#endif /* __PX4_LINUX */
 	}
 
 	param_t handle = param_find("GPS_YAW_OFFSET");
@@ -649,13 +688,14 @@ GPS::run()
 			_report_gps_pos.vel_ned_valid = true;
 			_report_gps_pos.satellites_used = 10;
 			_report_gps_pos.heading = NAN;
+			_report_gps_pos.heading_offset = NAN;
 
 			/* no time and satellite information simulated */
 
 
 			publish();
 
-			usleep(200000);
+			px4_usleep(200000);
 
 		} else {
 
@@ -682,17 +722,22 @@ GPS::run()
 				_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
 				break;
 
+			case GPS_DRIVER_MODE_EMLIDREACH:
+				_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+				break;
+
 			default:
 				break;
 			}
 
-			_baudrate = 0; // auto-detect
+			_baudrate = _configured_baudrate;
 
 			if (_helper && _helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
 
 				/* reset report */
 				memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 				_report_gps_pos.heading = NAN;
+				_report_gps_pos.heading_offset = heading_offset;
 
 				if (_mode == GPS_DRIVER_MODE_UBX) {
 
@@ -743,6 +788,10 @@ GPS::run()
 //							mode_str = "ASHTECH";
 //							break;
 //
+//						case GPS_DRIVER_MODE_EMLIDREACH:
+//							mode_str = "EMLID REACH";
+//							break;
+//
 //						default:
 //							break;
 //						}
@@ -770,8 +819,12 @@ GPS::run()
 					break;
 
 				case GPS_DRIVER_MODE_ASHTECH:
+					_mode = GPS_DRIVER_MODE_EMLIDREACH;
+					break;
+
+				case GPS_DRIVER_MODE_EMLIDREACH:
 					_mode = GPS_DRIVER_MODE_UBX;
-					usleep(500000); // tried all possible drivers. Wait a bit before next round
+					px4_usleep(500000); // tried all possible drivers. Wait a bit before next round
 					break;
 
 				default:
@@ -779,7 +832,7 @@ GPS::run()
 				}
 
 			} else {
-				usleep(500000);
+				px4_usleep(500000);
 			}
 
 		}
@@ -838,6 +891,10 @@ GPS::print_status()
 			PX4_INFO("protocol: ASHTECH");
 			break;
 
+		case GPS_DRIVER_MODE_EMLIDREACH:
+			PX4_INFO("protocol: EMLIDREACH");
+			break;
+
 		default:
 			break;
 		}
@@ -874,6 +931,9 @@ GPS::publish()
 	if (_instance == Instance::Main || _is_gps_main_advertised) {
 		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
 				 ORB_PRIO_DEFAULT);
+		// Heading/yaw data can be updated at a lower rate than the other navigation data.
+		// The uORB message definition requires this data to be set to a NAN if no new valid data is available.
+		_report_gps_pos.heading = NAN;
 		_is_gps_main_advertised = true;
 	}
 }
@@ -919,18 +979,22 @@ so that they can be used in other projects as well (eg. QGroundControl uses them
 For testing it can be useful to fake a GPS signal (it will signal the system that it has a valid position):
 $ gps stop
 $ gps start -f
+Starting 2 GPS devices (the main GPS on /dev/ttyS3 and the secondary on /dev/ttyS4):
+gps start -d /dev/ttyS3 -e /dev/ttyS4
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("gps", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "GPS device", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('e', nullptr, "<file:dev>", "Optional secondary GPS device", true);
+	PRINT_MODULE_USAGE_PARAM_INT('g', 0, 0, 3000000, "Baudrate (secondary GPS, can also be p:<param_name>)", true);
 
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Fake a GPS signal (useful for testing)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Enable publication of satellite info", true);
 
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "uart", "spi|uart", "GPS interface", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash", "GPS Protocol (default=auto select)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml", "GPS Protocol (default=auto select)", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
@@ -952,7 +1016,7 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 	}
 
 	int task_id = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				   SCHED_PRIORITY_SLOW_DRIVER, 1630,
+				   SCHED_PRIORITY_SLOW_DRIVER, 1600,
 				   entry_point, (char *const *)argv);
 
 	if (task_id < 0) {
@@ -993,8 +1057,10 @@ GPS *GPS::instantiate(int argc, char *argv[])
 
 GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 {
-	const char *device_name = GPS_DEFAULT_UART_PORT;
+	const char *device_name = "/dev/ttyS3";
 	const char *device_name_secondary = nullptr;
+	int baudrate_main = 0;
+	int baudrate_secondary = 0;
 	bool fake_gps = false;
 	bool enable_sat_info = false;
 	GPSHelper::Interface interface = GPSHelper::Interface::UART;
@@ -1005,8 +1071,21 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:e:fsi:p:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:d:e:fg:si:p:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+		case 'b':
+			if (px4_get_parameter_value(myoptarg, baudrate_main) != 0) {
+				PX4_ERR("baudrate parsing failed");
+				error_flag = true;
+			}
+			break;
+		case 'g':
+			if (px4_get_parameter_value(myoptarg, baudrate_secondary) != 0) {
+				PX4_ERR("baudrate parsing failed");
+				error_flag = true;
+			}
+			break;
+
 		case 'd':
 			device_name = myoptarg;
 			break;
@@ -1046,6 +1125,9 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			} else if (!strcmp(myoptarg, "ash")) {
 				mode = GPS_DRIVER_MODE_ASHTECH;
 
+			} else if (!strcmp(myoptarg, "eml")) {
+				mode = GPS_DRIVER_MODE_EMLIDREACH;
+
 			} else {
 				PX4_ERR("unknown interface: %s", myoptarg);
 				error_flag = true;
@@ -1069,7 +1151,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 	GPS *gps;
 	if (instance == Instance::Main) {
-		gps = new GPS(device_name, mode, interface, fake_gps, enable_sat_info, instance);
+		gps = new GPS(device_name, mode, interface, fake_gps, enable_sat_info, instance, baudrate_main);
 
 		if (gps && device_name_secondary) {
 			task_spawn(argc, argv, Instance::Secondary);
@@ -1078,7 +1160,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 			do {
 				/* wait up to 1s */
-				usleep(2500);
+				px4_usleep(2500);
 
 			} while (!_secondary_instance && ++i < 400);
 
@@ -1087,7 +1169,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			}
 		}
 	} else { // secondary instance
-		gps = new GPS(device_name_secondary, mode, interface, fake_gps, enable_sat_info, instance);
+		gps = new GPS(device_name_secondary, mode, interface, fake_gps, enable_sat_info, instance, baudrate_secondary);
 	}
 
 	return gps;

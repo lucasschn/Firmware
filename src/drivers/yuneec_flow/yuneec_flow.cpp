@@ -105,7 +105,7 @@ int Yuneec_Flow::task_spawn(int argc, char *argv[])
 	// Instantiate task
 	Yuneec_Flow *flow = nullptr;
 
-	if (_object == nullptr) {
+	if (!is_running()) {
 		flow = new Yuneec_Flow();
 
 		if (flow == nullptr) {
@@ -114,7 +114,7 @@ int Yuneec_Flow::task_spawn(int argc, char *argv[])
 		}
 	}
 
-	_object = flow;
+	_object.store(flow);
 
 	// schedule a cycle to start things
 	int ret = work_queue(HPWORK, &_work, (worker_t)&Yuneec_Flow::cycle_trampoline, flow, 0);

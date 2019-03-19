@@ -8,15 +8,19 @@ pipeline {
       }
     }
     stages {
-        stage('build-test') {
+        stage('build') {
             steps {
                 sh 'Tools/make_maneuver.sh'
                 sh 'integrationtests/ulogtests/external/install_pyulgresample.sh'
                 sh 'make px4_sitl_default'
                 sh 'make px4_sitl_default sitl_gazebo'
                 sh 'pip3 install pyyaml'
+            }
+        }//build
+        stage('test') {
+            steps {
                 sh './integrationtests/ulogtests/test_runner.sh mission'
             }
         }
-    } // stage build
+    }//stages
 }

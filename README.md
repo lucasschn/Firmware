@@ -5,9 +5,10 @@ The original readme can be found [here](https://github.com/PX4/Firmware/blob/mas
 ## Yuneec build targets
 | Drone  | make target  |
 |---|---|
-| H520  | `make tap-v2_default`  |
-| H520C  | `make tap-v3_default`  |
-| Mantis Q  | `make tap-v4_v18s` |
+| H520  | `make yuneec-tap-v2_default`  |
+| H520C  | `make yuneec-tap-v3_default`  |
+| H520C (OFDM) | `make yuneec-tap-v3_ofdm`  |
+| Mantis Q  | `make yuneec-tap-v4_v18s` |
 
 ## Creating new release branch
 1. Update the develop branch on your machine: `git checkout develop && git pull`

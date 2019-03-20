@@ -2,25 +2,49 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fixed
+* H520 HITL functional even without battery plugged in (#3164)
+* Improved corner case handling when ESC firmware update fails (#2907)
+
+
+## [v1.8.0-1.6.5]
+### Fixed
+(needs to be cherry-picked)
+
+
+## [v1.8.0-1.6.4]
 ### Changed
-* Keep vehicle heading constant during ROI. This improves yaw-tracking in ROI. (#3153)
-* Increased maximum allowed distance to 1st mission waypoint from 900m to 4000m (#3182)
 * Increase return to ground control station safety distance from 3m to 5m (#3196)
 
 ### Fixed
-* Pauses at the end of a tune are now respected. Fixes low battery and error tunes. (#3159)
-* H520 HITL functional even without battery plugged in (#3164)
-* Fixed eccentric camera pitching while ROI is active (#3166)
-* Lower case messages for battery warnings etc, fixing weird pronunciation in DataPilot (#3171)
-* Landing gear rise when doing compass calibration, corner case when toggling the switch during calibration(#3045, #3157)
-* Improved corner case handling when ESC firmware update fails (#2907)
-* [Regression] Restored functionality of structure scan. Bug introduced with #3153 (#3187)
 * Force landing gear to keep the state during takeoff (#3197)
 * Gimbal yaw problems in ROI (#3204)
 * Prevent old ROI settings from interfering with follow-up missions (#3203)
 
+
+## [v1.8.0-1.6.3]
+### Changed
+* Increased maximum allowed distance to 1st mission waypoint from 900m to 4000m (#3182)
+
+### Fixed
+* [Regression] Restored functionality of structure scan. Bug introduced with 1.6.1 (#3187)
+
+
+## [v1.8.0-1.6.2]
+### Fixed
+* Landing gear rise when doing compass calibration, corner case when toggling the switch during calibration(#3045, #3157)
+
+
+## [v1.8.0-1.6.1]
 ### Added
 * RC loss alarm enabled for when RC is disconnected after flying, but the drone is still powered (#3126)
+* Keep vehicle heading constant during ROI. This improves yaw-tracking in ROI. (#3153)
+
+### Fixed
+* Pauses at the end of a tune are now respected. Fixes low battery and error tunes. (#3159)
+* [Regression] Hotfix landing gear not lowering in RTL to GCS because altitude 0 (#3162, #3110)
+* Fixed eccentric camera pitching while ROI is active (#3166)
+* Lower case messages for battery warnings etc, fixing weird pronunciation in DataPilot (#3171)
 
 
 ## [v1.8.0-1.6.0]
@@ -41,11 +65,6 @@ All notable changes to this project will be documented in this file.
 ### Added
 * Added landing gear state to logger (#3111, #3117)
 * Only allow takeoff without GPS in indoor mode (#2808, #3055)
-
-
-## [v1.8.0-1.5.11]
-### Fixed
-* [Regression] Hotfix landing gear not lowering in RTL to GCS because altitude 0 (#3162, #3110)
 
 
 ## [v1.8.0-1.5.10]

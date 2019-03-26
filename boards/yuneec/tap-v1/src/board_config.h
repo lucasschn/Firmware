@@ -209,7 +209,7 @@
 #define HRT_TIMER           1  /* use timer1 for the HRT */
 #define HRT_TIMER_CHANNEL   1  /* use capture/compare channel */
 
-#define	BOARD_NAME "TAP_V1"
+#define	BOARD_NAME "YUNEEC_TAP_V1"
 
 /* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
  * system_power interface, and herefore provides the true logic

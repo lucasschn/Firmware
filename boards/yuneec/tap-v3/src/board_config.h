@@ -612,7 +612,7 @@
 Yuneec Board specific settings define board name
 *******************************************************************************/
 
-#define	BOARD_NAME "TAP_V3"
+#define	BOARD_NAME "YUNEEC_TAP_V3"
 
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
 #define BOARD_USE_ESC_CURRENT_REPORT // each ESC reports its current estimate

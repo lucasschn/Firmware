@@ -22,7 +22,7 @@ then
 	# Control parameters setting for TAP
 	#
 
-	if ver hwcmp TAP_V1
+	if ver hwcmp YUNEEC_TAP_V1
 	then
 		# TAP v1
 		# pitch angle & rate setting
@@ -146,7 +146,7 @@ then
 		param set MPC_MAN_TILT_MAX 24
 
 		# Gyro already temperature calibrated and ID constant
-		if ver hwcmp TAP_V2
+		if ver hwcmp YUNEEC_TAP_V2
 		then
 			param set CAL_GYRO0_ID 3670290
 		fi
@@ -233,7 +233,7 @@ then
 
 	# Enable power circuit breaker
 	# HOTFIX: This disables the preflight checks for 5v and 3.3v power rails
-	# which are not available on TAP_V2. Should find a better solution.
+	# which are not available on YUNEEC_TAP_V2. Should find a better solution.
 	param set CBRK_SUPPLY_CHK 894281
 
 	# Fault tolerant control

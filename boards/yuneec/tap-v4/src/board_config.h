@@ -624,7 +624,7 @@ Yuneec Board specific settings define board name
 #define BOARD_MAP_ESC_TO_PX4_OUT  {2, 1, 3, 0, 4, 5, 6, 7}
 
 #undef BOARD_NAME
-#define	BOARD_NAME "TAP_V4"
+#define	BOARD_NAME "YUNEEC_TAP_V4"
 
 #define BOARD_TAP_ESC_NO_VERIFY_CONFIG
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc

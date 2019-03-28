@@ -2422,7 +2422,7 @@ Commander::run()
 						    || !status_flags.condition_global_position_valid
 						    || !status_flags.condition_local_position_valid)
 						   && !ekf2_indoor_mode && require_indoor_mode_or_home) {
-						print_reject_arm("NOT ARMING: No GPS - Wait or switch to indoor mode");
+						print_reject_arm("NOT ARMING: No GPS! Wait or switch to indoor mode");
 
 					} else if (internal_state.main_state != _desired_flight_mode) {
 						print_reject_arm("NOT ARMING: conditions for flight mode not met.");

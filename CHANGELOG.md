@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 * H520 HITL functional even without battery plugged in (#3164)
 * Improved corner case handling when ESC firmware update fails (#2907)
+* "Wait for GPS or use indoor mode" mavlink message too long (#3296)
 
 
 ## [v1.8.0-1.6.5]

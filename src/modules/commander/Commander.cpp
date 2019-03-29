@@ -686,7 +686,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 			if (no_mode_switch_geofence) {
 				main_ret = TRANSITION_DENIED;
-				mavlink_log_critical(&mavlink_log_pub, "Geofence violated. Please, switch to RTL.");
+				mavlink_log_critical(&mavlink_log_pub, "Geofence violated. Please switch to RTL.");
 				break;
 			}
 
@@ -3311,7 +3311,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 					       && new_mode != commander_state_s::MAIN_STATE_AUTO_RTL;
 
 		if (no_mode_switch_geofence) {
-			mavlink_log_critical(&mavlink_log_pub, "Geofence violated. Please, switch to RTL.");
+			mavlink_log_critical(&mavlink_log_pub, "Geofence violated. Please switch to RTL.");
 			return res;
 		}
 

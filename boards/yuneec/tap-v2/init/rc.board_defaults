@@ -1,0 +1,53 @@
+#!/bin/sh
+#
+# YUNEEC TAP-v2 specific board defaults
+#------------------------------------------------------------------------------
+
+set GIMBAL_TTY /dev/ttyS1
+set ESC_TTY /dev/ttyS2
+
+#
+# Fixposition RTK emulates a ublox GPS sensor, but runs on the Realsense
+# port of the H520.
+#
+if param compare GPS_FIXPOS_RTK 1
+then
+	set GPS_PORT /dev/ttyS3
+fi
+
+#
+# Set parameters and env variables for selected AUTOSTART
+#
+if param compare SYS_AUTOSTART 0
+then
+	param set SYS_AUTOSTART 6021
+	param set SYS_AUTOCONFIG 1
+fi
+
+#
+# H520 has very limited memory. HITL requires slightly more memory, so
+# we canshould not run the logger at the same time.
+#
+if [ ${HITL_ON} = yes ]
+then
+	set START_LOGGER 0
+	echo "Not starting logger in H520 HITL"
+fi
+
+#
+# This is to migrate everyone from 6001 to param 6021.
+# TODO: remove this again once enough time has passed
+#
+if param compare SYS_AUTOSTART 6001
+then
+	param set SYS_AUTOSTART 6021
+fi
+
+#
+# 3DR-specific:
+# Override RC loss parameter
+# This parameter has been opened up for a use-case with 3DR. However, we want
+# to make sure, that it always defaults to `1`. This means the external
+# application will have to change the parameter after every reboot.
+#
+param set COM_RC_LOSS_MAN 1

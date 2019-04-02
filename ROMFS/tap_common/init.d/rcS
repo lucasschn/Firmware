@@ -45,6 +45,13 @@ set +e
 # /dev/ttyS6: Smart Battery	(UART7)
 # /dev/ttyS7: console		(UART8)
 
+#
+# Set default paramter values.
+# Do not add intra word spaces
+# it wastes flash
+#
+set GPS_PORT /dev/ttyS0
+
 if ver hwcmp YUNEEC_TAP_V3 YUNEEC_TAP_V4
 then
 #
@@ -71,10 +78,6 @@ set RELEASE_VER 0  # no release version
 
 # Log file location
 set LOG_FILE /fs/microsd/bootlog.txt
-if ver hwcmp YUNEEC_TAP_V1
-then
-	set DATAMAN_OPT -r
-fi
 set START_LOGGER 0
 set PARAM_FILE /fs/microsd/params
 
@@ -164,33 +167,6 @@ fi
 
 unset PARAM_FILE
 
-if ver hwcmp YUNEEC_TAP_V2 YUNEEC_TAP_V3 YUNEEC_TAP_V4
-then
-	camera_trigger start
-fi
-
-#
-# Start system state indicator
-#
-if ver hwcmp YUNEEC_TAP_V4
-then
-	rgbled_pwm start
-fi
-
-#
-# Set parameters and env variables for selected AUTOSTART
-#
-if param compare SYS_AUTOSTART 0
-then
-	if ver hwcmp YUNEEC_TAP_V4
-	then
-		param set SYS_AUTOSTART 4100
-	else
-		param set SYS_AUTOSTART 6021
-	fi
-	param set SYS_AUTOCONFIG 1
-fi
-
 #
 # Activate hardware in the loop mode using param SYS_HITL = 1.
 #
@@ -201,30 +177,18 @@ else
 	set HITL_ON no
 fi
 
-#
-# This is to migrate everyone from 6001 to param 6021.
-# TODO: remove this again once enough time has passed
-#
-if param compare SYS_AUTOSTART 6001
-then
-	if ver hwcmp YUNEEC_TAP_V4
-	then
-		param set SYS_AUTOSTART 4001
-	else
-		param set SYS_AUTOSTART 6021
-	fi
-fi
 
 #
-# This is to migrate everyone from 4001 to param 4100.
+# Optional board defaults: rc.board_defaults
 #
-if param compare SYS_AUTOSTART 4001
+set BOARD_RC_DEFAULTS /etc/init.d/rc.board_defaults
+if [ -f $BOARD_RC_DEFAULTS ]
 then
-	if ver hwcmp YUNEEC_TAP_V4
-	then
-		param set SYS_AUTOSTART 4100
-	fi
+	echo "Board defaults: ${BOARD_RC_DEFAULTS}"
+	sh $BOARD_RC_DEFAULTS
 fi
+unset BOARD_RC_DEFAULTS
+
 #
 # Set AUTOCNF flag to use it in AUTOSTART scripts
 #
@@ -268,30 +232,14 @@ set PWM_MAX none
 set FMU_MODE pwm
 set MAV_TYPE none
 set FAILSAFE none
-set GIMBAL_TTY /dev/ttyS1
-set OFDM_TTY /dev/ttyS2
-set ESC_TTY /dev/ttyS4
-
-if ver hwcmp YUNEEC_TAP_V2
-then
-	set ESC_TTY /dev/ttyS2
-fi
-
-if ver hwcmp YUNEEC_TAP_V3 YUNEEC_TAP_V4
-then
-	set GIMBAL_TTY /dev/ttyS3
-fi
-
-# Start canned airframe config
-sh /etc/init.d/rc.autostart
 
 #
-# Override RC loss parameter
-# This parameter has been opened up for a use-case with 3DR. However, we want
-# to make sure, that it always defaults to `1`. This means the external
-# application will have to change the parameter after every reboot.
+# Set parameters and env variables for selected AUTOSTART.
 #
-param set COM_RC_LOSS_MAN 1
+if ! param compare SYS_AUTOSTART 0
+then
+	sh /etc/init.d/rc.autostart
+fi
 
 #
 # If autoconfig parameter was set, reset it and save parameters
@@ -356,17 +304,6 @@ then
 
 	if [ ${HITL_ON} = no ]
 	then
-		set GPS_PORT /dev/ttyS0
-
-		if param compare GPS_FIXPOS_RTK 1
-		then
-			if ver hwcmp YUNEEC_TAP_V2
-			then
-				# Start the Fixposition RTK GPS on Real Sense port on H520
-				set GPS_PORT /dev/ttyS3
-			fi
-		fi
-
 		# Start GPS
 		gps start -d ${GPS_PORT}
 
@@ -439,6 +376,18 @@ unset TEMP_CALIB_ARGS
 
 if [ ${HITL_ON} = no ]
 then
+	#
+	# board sensors: rc.sensors
+	#
+	set BOARD_RC_SENSORS /etc/init.d/rc.board_sensors
+	if [ -f $BOARD_RC_SENSORS ]
+	then
+		echo "Board sensors: ${BOARD_RC_SENSORS}"
+		sh $BOARD_RC_SENSORS
+	fi
+	unset BOARD_RC_SENSORS
+
+
 	sh /etc/init.d/rc.sensors
 	commander start
 else
@@ -549,16 +498,6 @@ unset MAV_RATE
 #
 # Logging
 #
-if ver hwcmp YUNEEC_TAP_V2
-then
-		if [ ${HITL_ON} = yes ]
-		then
-			# prevent starting logger on H520 in HITL mode - not enough memory
-			set START_LOGGER 0
-			echo "Not starting logger in H520 HITL"
-		fi
-fi
-
 if [ ${START_LOGGER} = 1 ]
 then
 	set LOGGER_ARGS ""
@@ -704,26 +643,30 @@ else
 	fi
 fi
 
-set REALSENSE_PORT /dev/ttyS3
-
-if ver hwcmp YUNEEC_TAP_V3
+#
+# Optional board supplied extras: rc.board_extras
+#
+set BOARD_RC_EXTRAS /etc/init.d/rc.board_extras
+if [ -f $BOARD_RC_EXTRAS ]
 then
-	set REALSENSE_PORT /dev/ttyS1
+	echo "Board extras: ${BOARD_RC_EXTRAS}"
+	sh $BOARD_RC_EXTRAS
 fi
+unset BOARD_RC_EXTRAS
 
-if ver hwcmp YUNEEC_TAP_V3
-then
-	realsense start -d ${REALSENSE_PORT}
-fi
 
-# There is no further script processing, so we can free some RAM
-# XXX potentially unset all script variables.
-unset REALSENSE_PORT
+#
+# Unset all script parameters to free RAM.
+#
 unset DEFAULTS_VER
 unset RELEASE_VER
-#unset TUNE_ERR
 unset LOG_FILE
 unset DATAMAN_OPT
+unset ESC_TTY
+unset GIMBAL_TTY
+unset OFDM_TTY
 
+#
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
+#
 mavlink boot_complete

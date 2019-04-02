@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# YUNEEC TAP-v4 specific board extras init
+#------------------------------------------------------------------------------
+
+camera_trigger start
+
+#
+# Start system state indicator
+#
+rgbled_pwm start

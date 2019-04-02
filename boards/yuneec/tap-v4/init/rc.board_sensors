@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# YUNEEC TAP-v4 specific board sensors init
+#------------------------------------------------------------------------------
+
+mpc2520 -I start
+
+# External I2C bus
+# hmc5883 -C -T -X -R 6 start  # (Not used?)
+ist8310 -C -R 4 start
+
+# start hc_sr04 (forward-facing)
+hc_sr04 -R 0 -m -a start
+
+# internal SPI bus
+mpu6000 -s -R 2 -T 20602 start

@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# YUNEEC TAP-v4 specific board defaults
+#------------------------------------------------------------------------------
+
+set GIMBAL_TTY /dev/ttyS3
+set ESC_TTY /dev/ttyS4
+set OFDM_TTY /dev/ttyS2
+
+#
+# This is to migrate everyone from 6001 to param 4100.
+# TODO: remove this again once enough time has passed
+#
+if param compare SYS_AUTOSTART 6001
+then
+	param set SYS_AUTOSTART 4100
+fi
+
+#
+# This is to migrate everyone from 4001 to param 4100.
+#
+if param compare SYS_AUTOSTART 4001
+then
+	param set SYS_AUTOSTART 4100
+fi
+
+#
+# Set parameters and env variables for selected AUTOSTART
+#
+if param compare SYS_AUTOSTART 0
+then
+	param set SYS_AUTOSTART 4100
+	param set SYS_AUTOCONFIG 1
+fi

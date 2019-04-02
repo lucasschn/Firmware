@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# YUNEEC TAP-v3 specific board extras init
+#------------------------------------------------------------------------------
+
+camera_trigger start
+
+# Realsense
+realsense start -d /dev/ttyS1

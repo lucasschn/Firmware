@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
 * Improved speech output of "Geofence violated" message (#3274)
 * [PUBLIC] Reconnecting RC now stops RC alarm (#3297)
 * Tunes are no longer interrupted by themselves when sent multiple times (#3297)
+* Improved speech output of "Geofence violated" message (3274)
+
+### Changed
+* Re-ordered startup scripts into board specific files for tap-v1/2/3/4 (#3284)
 
 
 ## [v1.8.0-1.6.5]

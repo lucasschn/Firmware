@@ -52,13 +52,10 @@ set +e
 #
 set GPS_PORT /dev/ttyS0
 
-if ver hwcmp YUNEEC_TAP_V3 YUNEEC_TAP_V4
-then
 #
-# Mount the procfs.
+# Mount the procfs
 #
-	mount -t procfs /proc
-fi
+mount -t procfs /proc
 
 #
 # Start CDC/ACM serial driver

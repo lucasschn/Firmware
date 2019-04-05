@@ -103,6 +103,7 @@ RCInput::init()
 	// disable CPPM input by mapping it away from the timer capture input
 	px4_arch_unconfiggpio(GPIO_PPM_IN);
 #  endif
+	// ST24 helper function init
 	_st24_helper.init(_rcs_fd);
 #endif
 
@@ -302,7 +303,7 @@ RCInput::cycle()
 
 		const hrt_abstime cycle_timestamp = hrt_absolute_time();
 
-#if defined(SPEKTRUM_POWER)
+#if defined(RC_SERIAL_PORT)
 		/* vehicle command */
 		bool vehicle_command_updated = false;
 		orb_check(_vehicle_cmd_sub, &vehicle_command_updated);
@@ -315,6 +316,7 @@ RCInput::cycle()
 			if ((unsigned int)vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
 				if (!_rc_scan_locked /* !_armed.armed */) { // TODO: add armed check?
 					if ((int)vcmd.param1 == 0) {
+#if defined(SPEKTRUM_POWER)
 						// DSM binding command
 						int dsm_bind_mode = (int)vcmd.param2;
 
@@ -331,6 +333,10 @@ RCInput::cycle()
 						}
 
 						bind_spektrum(dsm_bind_pulses);
+#endif
+
+					} else if ((int)vcmd.param1 == 1) {
+						_st24_helper.bind();
 					}
 
 				} else {
@@ -339,31 +345,12 @@ RCInput::cycle()
 			}
 		}
 
-
-#endif /* SPEKTRUM_POWER */
-
-// YUNEEC specific
-#ifdef RC_SERIAL_PORT
 		bool updated = false;
 		orb_check(_armed_sub, &updated);
 		actuator_armed_s armed = {};
 
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &armed);
-		}
-
-		/* vehicle command */
-		orb_check(_vehicle_cmd_sub, &updated);
-
-		if (updated) {
-			vehicle_command_s vcmd = {};
-			orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub, &vcmd);
-
-			// Check for a pairing command
-			if ((unsigned int)vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR
-			    && !_rc_scan_locked && (int)vcmd.param1 == 1) {
-				_st24_helper.bind();
-			}
 		}
 
 		_st24_helper.cycle(_rc_in.rc_lost, armed.armed);

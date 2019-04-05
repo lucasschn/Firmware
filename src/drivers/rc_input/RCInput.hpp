@@ -119,7 +119,7 @@ private:
 
 	hrt_abstime _rc_scan_begin{0};
 
-	bool _rc_scan_locked{true};
+	bool _rc_scan_locked{false};
 	bool _report_lock{true};
 
 	unsigned	_current_update_interval{4000};

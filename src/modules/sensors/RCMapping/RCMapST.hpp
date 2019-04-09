@@ -56,6 +56,48 @@ using namespace time_literals;
 namespace sensors
 {
 
+class Button
+{
+
+public:
+	Button(bool init_state, bool trigger_high = false):
+		_state(init_state),
+		_prev_pushed(init_state),
+		_trigger_high(trigger_high)
+	{
+	}
+
+	~Button() {}
+
+	void update_state(const bool pushed)
+	{
+		if (_trigger_high) {
+			// button was pushed when going from false (low) to true (high)
+			if (!_prev_pushed && pushed) {
+				_state = !_state;
+			}
+
+		} else {
+			// button was pushde when going from true (high) to false (low)
+			if (_prev_pushed && !pushed) {
+				_state = !_state;
+			}
+		}
+
+		_prev_pushed = pushed;
+	}
+
+	bool get_state()
+	{
+		return _state;
+	}
+
+private:
+	bool _state;
+	bool _prev_pushed;
+	bool _trigger_high;
+};
+
 class RCMapST : public RCMap
 {
 public:
@@ -161,6 +203,23 @@ protected:
 		}
 	}
 
+	int button(int offset_count, const input_rc_s &input_rc)
+	{
+		if ((input_rc.values[CHANNEL_TWO_WAY_SWITCH] >> offset_count) & 0x1) {
+			_aux_button.update_state(true);
+
+		} else {
+			_aux_button.update_state(false);
+		}
+
+		if (_aux_button.get_state()) {
+			return manual_control_setpoint_s::SWITCH_POS_ON;
+
+		} else {
+			return manual_control_setpoint_s::SWITCH_POS_OFF;
+		}
+	}
+
 	/**
 	 * Process Kill switch shortcut
 	 * to trigger: press the arm button three times with low throttle within KILL_HOTKEY_TIME_US
@@ -206,6 +265,6 @@ private:
 	hrt_abstime _kill_hotkey_start_time = 0; // the time when the hotkey started to measure timeout
 	int _kill_hotkey_count = 0; //  how many times the button was pressed during the hotkey timeout
 	bool _arm_button_pressed_last = false; //if the button was pressed last time to detect a transition
+	Button _aux_button{false}; //aux button pusehd / not pushed
 };
-
 } // namespace sensors

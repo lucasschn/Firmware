@@ -77,6 +77,7 @@ public:
 		man.arm_switch = two_way_switch((int)TwoWay::arm_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
 
 		// TODO: add remaining buttons: AUX, photo, video, trim
+		man.aux3 = button((int)TwoWay::aux_button, input_rc);
 
 		return RCMapST::map(man, input_rc, parameters);
 	}

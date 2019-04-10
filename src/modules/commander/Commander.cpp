@@ -3301,7 +3301,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags, &internal_state);
 
 		if (res == TRANSITION_DENIED) {
-			print_reject_mode("mission");
+			print_reject_mode("MISSION");
 
 		} else {
 			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
@@ -3312,7 +3312,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
 
 		if (res == TRANSITION_DENIED) {
-			print_reject_mode("loiter");
+			print_reject_mode("LOITER");
 
 		} else {
 			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes

@@ -78,7 +78,6 @@ public:
 		man.mode_slot = manual_control_setpoint_s::MODE_SLOT_2;
 		//const bool photo_button_pressed = two_way_switch(TwoWay::photo_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
 		//const bool video_button_pressed = two_way_switch(TwoWay::video_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
-		man.aux3 = manual_control_setpoint_s::SWITCH_POS_OFF; // Aux does not exist for st10C
 
 		man.gear_switch = three_way_switch((int)ThreeWay::right_switch, CHANNEL_THREE_WAY_SWITCH, input_rc);
 

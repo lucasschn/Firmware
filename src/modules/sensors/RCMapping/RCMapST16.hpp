@@ -72,12 +72,12 @@ public:
 		man.gimbal_yaw_mode = three_way_switch((int)ThreeWay::pan_switch, CHANNEL_THREE_WAY_SWITCH, input_rc);
 		man.gimbal_pitch_mode = three_way_switch((int)ThreeWay::tilt_switch, CHANNEL_THREE_WAY_SWITCH, input_rc);
 		man.gear_switch = two_way_switch((int)TwoWay::gear_switch, CHANNEL_TWO_WAY_SWITCH, input_rc);
+		man.mission_button = button((int)TwoWay::aux_button, input_rc);
 
 		// buttons
 		man.arm_switch = two_way_switch((int)TwoWay::arm_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
 
 		// TODO: add remaining buttons: AUX, photo, video, trim
-		man.aux3 = button((int)TwoWay::aux_button, input_rc);
 
 		return RCMapST::map(man, input_rc, parameters);
 	}

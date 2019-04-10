@@ -3205,6 +3205,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		 (_last_sp_man.loiter_switch == sp_man.loiter_switch) &&
 		 (_last_sp_man.mode_slot == sp_man.mode_slot) &&
 		 (_last_sp_man.stab_switch == sp_man.stab_switch) &&
+		 (_last_sp_man.mission_button == sp_man.mission_button) &&
 		 (_last_sp_man.man_switch == sp_man.man_switch)))) {
 
 		// store the last manual control setpoint set by the pilot in a manual state
@@ -3286,6 +3287,32 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 
 		if (res == TRANSITION_DENIED) {
 			print_reject_mode("AUTO HOLD");
+
+		} else {
+			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
+			return res;
+		}
+	}
+
+	// Yuneec specific
+	// The mission button can be used to start a mission if the vehicle is already in air.
+	// If the vehicle is executing a mission, the mission button can be used to switch between loiter and misison.
+	if (sp_man.mission_button == manual_control_setpoint_s::SWITCH_POS_ON) {
+		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags, &internal_state);
+
+		if (res == TRANSITION_DENIED) {
+			print_reject_mode("mission");
+
+		} else {
+			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
+			return res;
+		}
+
+	} else if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION && sp_man.mission_button == manual_control_setpoint_s::SWITCH_POS_OFF) {
+		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
+
+		if (res == TRANSITION_DENIED) {
+			print_reject_mode("loiter");
 
 		} else {
 			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes

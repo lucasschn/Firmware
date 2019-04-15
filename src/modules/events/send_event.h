@@ -37,6 +37,7 @@
 #include "status_display.h"
 #include "rc_loss_alarm.h"
 #include "vehicle_inverted.h"
+#include "yuneec_factory_calib.h"
 
 #include <px4_workqueue.h>
 #include <px4_module.h>
@@ -134,6 +135,9 @@ private:
 	rc_loss::RC_Loss_Alarm *_rc_loss_alarm = nullptr;
 	inverted::VehicleInverted *_vehicle_inverted = nullptr;
 
+	/** @var _shake_calibration Pointer to the shake calibration routine object */
+	yuneec_factory_calib::ShakeCalibration *_shake_calibration = nullptr;
+
 	/** @var _command_ack_pub The command ackowledgement topic. */
 	orb_advert_t _command_ack_pub = nullptr;
 
@@ -144,7 +148,8 @@ private:
 
 		/** @var _param_rc_loss The RC comms loss status flag. */
 		(ParamBool<px4::params::EV_TSK_RC_LOSS>) _param_rc_loss,
-		(ParamBool<px4::params::EV_TSK_INV_GEAR>) _param_inv_gear
+		(ParamBool<px4::params::EV_TSK_INV_GEAR>) _param_inv_gear,
+		(ParamInt<px4::params::CAL_MAG0_ID>) _param_cal_mag0_id
 	)
 };
 

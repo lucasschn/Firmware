@@ -20,6 +20,10 @@ void SubscriberHandler::subscribe()
 		_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	}
 
+	if (_vehicle_command_ack_sub < 0) {
+		_vehicle_command_ack_sub = orb_subscribe(ORB_ID(vehicle_command_ack));
+	}
+
 	if (_vehicle_status_sub < 0) {
 		_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	}
@@ -62,6 +66,11 @@ void SubscriberHandler::unsubscribe()
 		_vehicle_command_sub = -1;
 	}
 
+	if (_vehicle_command_ack_sub >= 0) {
+		orb_unsubscribe(_vehicle_command_ack_sub);
+		_vehicle_command_ack_sub = -1;
+	}
+
 	if (_vehicle_status_sub >= 0) {
 		orb_unsubscribe(_vehicle_status_sub);
 		_vehicle_status_sub = -1;
@@ -102,6 +111,12 @@ void SubscriberHandler::check_for_updates()
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::VehicleCommand;
+	}
+
+	orb_check(_vehicle_command_ack_sub, &updated);
+
+	if (updated) {
+		_update_bitfield |= (uint32_t)StatusMask::VehicleCommandAck;
 	}
 
 	orb_check(_vehicle_status_sub, &updated);

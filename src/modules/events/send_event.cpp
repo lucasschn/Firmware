@@ -79,6 +79,10 @@ SendEvent::SendEvent() : ModuleParams(nullptr)
 	if (_param_inv_gear.get()) {
 		_vehicle_inverted = new inverted::VehicleInverted(_subscriber_handler);
 	}
+
+	if (_param_cal_mag0_id.get() == 0) {
+		_shake_calibration = new yuneec_factory_calib::ShakeCalibration(_subscriber_handler);
+	}
 }
 
 SendEvent::~SendEvent()
@@ -93,6 +97,10 @@ SendEvent::~SendEvent()
 
 	if (_vehicle_inverted != nullptr) {
 		delete _vehicle_inverted;
+	}
+
+	if (_shake_calibration != nullptr) {
+		delete _shake_calibration;
 	}
 }
 
@@ -153,6 +161,10 @@ void SendEvent::cycle()
 
 	if (_vehicle_inverted != nullptr) {
 		_vehicle_inverted->process();
+	}
+
+	if (_shake_calibration != nullptr) {
+		_shake_calibration->process();
 	}
 
 	work_queue(LPWORK, &_work, (worker_t)&SendEvent::cycle_trampoline, this,

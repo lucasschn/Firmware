@@ -5,6 +5,7 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/smart_heading.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
@@ -29,6 +30,7 @@ public:
 	int get_battery_status_sub() const { return _battery_status_sub; }
 	int get_cpuload_sub() const { return _cpuload_sub; }
 	int get_vehicle_command_sub() const { return _vehicle_command_sub; }
+	int get_vehicle_command_ack_sub() const { return _vehicle_command_ack_sub; }
 	int get_vehicle_status_sub() const { return _vehicle_status_sub; }
 	int get_vehicle_status_flags_sub() const { return _vehicle_status_flags_sub; }
 	int get_vehicle_attitude_sub() const { return _vehicle_attitude_sub; }
@@ -42,6 +44,7 @@ public:
 	bool battery_status_updated() const { return _update_bitfield & (uint32_t)StatusMask::BatteryStatus; }
 	bool cpuload_updated() const { return _update_bitfield & (uint32_t)StatusMask::CpuLoad; }
 	bool vehicle_command_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleCommand; }
+	bool vehicle_command_ack_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleCommandAck; }
 	bool vehicle_status_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleStatus; }
 	bool vehicle_status_flags_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleStatusFlags; }
 	bool vehicle_attitude_updated() const { return _update_bitfield & (uint32_t)StatusMask::VehicleAttitude; }
@@ -60,7 +63,8 @@ private:
 		VehicleAttitude = (0x01 << 5),
 		SmartHeading = (0x01 << 6),
 		ManualControlSP = (0x01 << 7),
-		VehicleLandDetected = (0x01 << 8)
+		VehicleLandDetected = (0x01 << 8),
+		VehicleCommandAck = (0x01 << 9)
 	};
 
 	// TODO: incorporate the subscriber into a vector of int
@@ -68,6 +72,7 @@ private:
 	int _cpuload_sub = -1;
 	int _smart_heading_sub = -1;
 	int _vehicle_command_sub = -1;
+	int _vehicle_command_ack_sub = -1;
 	int _vehicle_status_sub = -1;
 	int _vehicle_status_flags_sub = -1;
 	int _vehicle_attitude_sub = -1;

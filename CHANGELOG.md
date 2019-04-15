@@ -18,6 +18,10 @@ All notable changes to this project will be documented in this file.
 * Commander logging strings improved readability and consistency (#3315)
 
 
+### Added
+* [Regression] Restored the "factory calibration by shaking the vehicle" feature (#3306) 
+
+
 ## [v1.8.0-1.6.5]
 ### Fixed
 (needs to be cherry-picked)

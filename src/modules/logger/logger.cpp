@@ -2099,6 +2099,13 @@ void Logger::write_version(LogType type)
 	if (type == LogType::Mission) {
 		write_info(type, "log_type", "mission");
 	}
+
+// Yuenec-specific: Log restricted build
+#ifdef BUILD_WITH_RESTRICTED_SYSTEM_ACCESS
+	write_info(type, "yuneec_restricted_build", true);
+#else
+	write_info(type, "yuneec_restricted_build", false);
+#endif /* BUILD_WITH_RESTRICTED_SYSTEM_ACCESS */
 }
 
 void Logger::write_parameters(LogType type)

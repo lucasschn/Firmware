@@ -22,6 +22,10 @@ All notable changes to this project will be documented in this file.
 * [Regression] Restored the "factory calibration by shaking the vehicle" feature (#3306) 
 
 
+### Added
+* Logging whether Firmware flashed was built using RESTRICTED_BUILD or not (#3318)
+
+
 ## [v1.8.0-1.6.5]
 ### Fixed
 (needs to be cherry-picked)

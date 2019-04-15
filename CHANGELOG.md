@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 * Re-ordered startup scripts into board specific files for tap-v1/2/3/4 (#3284)
+* Commander logging strings improved readability and consistency (#3315)
 
 
 ## [v1.8.0-1.6.5]

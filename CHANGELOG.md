@@ -17,6 +17,9 @@ All notable changes to this project will be documented in this file.
 * Re-ordered startup scripts into board specific files for tap-v1/2/3/4 (#3284)
 * Commander logging strings improved readability and consistency (#3315)
 
+### Added
+* [PUBLIC] Update description for COM_RC_LOSS_PARAM (#3317)
+
 
 ### Added
 * [Regression] Restored the "factory calibration by shaking the vehicle" feature (#3306) 

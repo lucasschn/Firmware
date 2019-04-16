@@ -3308,7 +3308,8 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 			return res;
 		}
 
-	} else if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION && sp_man.mission_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+	} else if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION
+		   && sp_man.mission_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
 		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
 
 		if (res == TRANSITION_DENIED) {

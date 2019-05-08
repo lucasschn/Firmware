@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 * Improved speech output of "Geofence violated" message (#3274)
 * `free` command working again in nuttx shell. Have to mount `/proc` on startup. (#3302)
 * [Regression] Fix unreliable RC binding on H520C (tap-v3) (#3304)
+* [PUBLIC] Prevent arming when not all sticks are centered (#3331) (DE:Arming nicht erlaubt wenn einer oder mehrere RC sticks nicht mittig stehen)
+* [PUBLIC] Fixed speech-output of stick warning message (#3334) (DE:Verbesserte Sprachausgabe wenn RC sticks nicht mittig stehen beim Arming)
 
 ### Changed
 * Re-ordered startup scripts into board specific files for tap-v1/2/3/4 (#3284)

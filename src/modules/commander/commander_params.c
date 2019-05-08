@@ -732,6 +732,19 @@ PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
 PARAM_DEFINE_INT32(COM_ARM_AUTH, 256010);
 
 /**
+ * Off-center tolerance for all four RC sticks (x,y,z,r) for arming phase.
+ * If one or more sticks deviate from their center by more than the specified
+ * value, arming will be denied. This is a safety feature to protect against
+ * faulty RC hardware and bad stick calibrations.
+ *
+ * @group Commander
+ * @min 0.01
+ * @max 0.5
+ *
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_STK_TOL, 0.05);
+
+/**
  * Loss of position failsafe activation delay.
  *
  * This sets number of seconds that the position checks need to be failed before the failsafe will activate.

@@ -1282,6 +1282,7 @@ Commander::run()
 	param_t _param_offboard_loss_timeout = param_find("COM_OF_LOSS_T");
 	param_t _param_arm_without_gps = param_find("COM_ARM_WO_GPS");
 	param_t _param_arm_switch_is_button = param_find("COM_ARM_SWISBTN");
+	param_t _param_arm_stick_tolerance = param_find("COM_ARM_STK_TOL");
 	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
 	param_t _param_gohome_land_interrupt = param_find("COM_ALLOW_INT");
@@ -2393,6 +2394,14 @@ Commander::run()
 					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
 					(sp_man.z < 0.1f || in_arming_grace_period);
 
+			// Yuneec-specific: Require all sticks to be centered when arming
+			float tolerance;
+			param_get(_param_arm_stick_tolerance, &tolerance);
+			const bool sticks_are_centered = rc_stick_centered(sp_man.x, 0.0f, tolerance) &&
+							 rc_stick_centered(sp_man.y, 0.0f, tolerance) &&
+							 rc_stick_centered(sp_man.z, 0.5f, tolerance) &&
+							 rc_stick_centered(sp_man.r, 0.0f, tolerance);
+
 			if (!in_armed_state &&
 			    status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 			    (stick_in_lower_right || (arm_button_pressed && arming_button_switch_allowed) || arm_switch_to_arm_transition)) {
@@ -2426,6 +2435,9 @@ Commander::run()
 
 					} else if (internal_state.main_state != _desired_flight_mode) {
 						print_reject_arm("Not arming: Conditions for flight mode not met");
+
+					} else if (!sticks_are_centered) {
+						print_reject_arm("Not arming: One or more RC sticks not centered");
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 						arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_ARMED, &armed,
@@ -4853,4 +4865,10 @@ void Commander::estimator_check(bool *status_changed)
 
 	check_valid(lpos.timestamp, _failsafe_pos_delay.get() * 1_s, lpos.z_valid,
 		    &(status_flags.condition_local_altitude_valid), status_changed);
+}
+
+bool Commander::rc_stick_centered(float stick_value, float center, float tolerance)
+{
+	return stick_value <= (float)center + tolerance &&
+	       stick_value >= (float)center - tolerance;
 }

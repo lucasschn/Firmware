@@ -15,7 +15,7 @@ All notable changes to this project will be documented in this file.
 * [PUBLIC] Prevent arming when not all sticks are centered (#3331) (DE:Arming nicht erlaubt wenn einer oder mehrere RC sticks nicht mittig stehen)
 * [PUBLIC] Fixed speech-output of stick warning message (#3334) (DE:Verbesserte Sprachausgabe wenn RC sticks nicht mittig stehen beim Arming)
 * ecl library updated to current upstream version to include alignment fixes (#3310)
-
+* [PUBLIC] Fixed issue on some drones where mag calibration would run a second time after first completion (#3337) (DE:Unter gewissen Bedingungen wurde die Kompass Kalibrierung nach Beendigung ein zweites mal gestartet)
 
 ### Changed
 * Re-ordered startup scripts into board specific files for tap-v1/2/3/4 (#3284)

@@ -67,6 +67,13 @@ void ShakeCalibration::process()
 
 	switch (_stage) {
 	case Stage::DETECTING_SHAKES: {
+			// Check for an ongoing calibration triggered by another event (i.e. mavlink, QGC, DataPilot)
+			if (_status_flags.condition_calibration_enabled) {
+				PX4_INFO("Calibration already running. Stopping ShakeCalibration routine.");
+				_stage = Stage::DO_NOTHING;
+				break;
+			}
+
 			// TODO: Use Hysteresis to detect shakes
 
 			/* get pitch angle of the vehicle, trigger calibration by nodding two times*/
@@ -186,6 +193,9 @@ void ShakeCalibration::process()
 			send_vehicle_command(_cmd);
 		}
 
+		break;
+
+	case Stage::DO_NOTHING:
 		break;
 	}
 }

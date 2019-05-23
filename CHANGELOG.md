@@ -2,34 +2,64 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-### Fixed
-* H520 HITL functional even without battery plugged in (#3164)
-* Improved corner case handling when ESC firmware update fails (#2907)
-* "Wait for GPS or use indoor mode" mavlink message too long (#3296)
-* Improved speech output of "Geofence violated" message (#3274)
-* [PUBLIC] Reconnecting RC now stops RC alarm (#3297)
-* Tunes are no longer interrupted by themselves when sent multiple times (#3297)
-* Improved speech output of "Geofence violated" message (#3274)
-* `free` command working again in nuttx shell. Have to mount `/proc` on startup. (#3302)
-* [Regression] Fix unreliable RC binding on H520C (tap-v3) (#3304)
-* [PUBLIC] Prevent arming when not all sticks are centered (#3331) (DE:Arming nicht erlaubt wenn einer oder mehrere RC sticks nicht mittig stehen)
-* [PUBLIC] Fixed speech-output of stick warning message (#3334) (DE:Verbesserte Sprachausgabe wenn RC sticks nicht mittig stehen beim Arming)
-* ecl library updated to current upstream version to include alignment fixes (#3310)
-* [PUBLIC] Fixed issue on some drones where mag calibration would run a second time after first completion (#3337) (DE:Unter gewissen Bedingungen wurde die Kompass Kalibrierung nach Beendigung ein zweites mal gestartet)
-
 ### Changed
 * Re-ordered startup scripts into board specific files for tap-v1/2/3/4 (#3284)
 * Commander logging strings improved readability and consistency (#3315)
 
+### Fixed
+* H520 HITL functional even without battery plugged in (#3164)
+* Improved corner case handling when ESC firmware update fails (#2907)
+* "Wait for GPS or use indoor mode" mavlink message too long (#3296)
+* Tunes are no longer interrupted by themselves when sent multiple times (#3297)
+* `free` command working again in nuttx shell. Have to mount `/proc` on startup. (#3302)
+* [Regression] Fix unreliable RC binding on H520C (tap-v3) (#3304)
+* ecl library updated to current upstream version to include alignment fixes (#3310)
+
+
+## [v1.8.0-1.6.11]
+### Fixed
+* [PUBLIC] Fixed issue on some drones where mag calibration would run a second time after first completion (#3337) (DE:Unter gewissen Bedingungen wurde die Kompass Kalibrierung nach Beendigung ein zweites mal gestartet)
+
+
+## [v1.8.0-1.6.10]
+### Fixed
+* [PUBLIC] Fixed speech-output of stick warning message (#3334) (DE:Verbesserte Sprachausgabe wenn RC sticks nicht mittig stehen beim Arming)
+
+
+## [v1.8.0-1.6.9]
+### Fixed
+* [PUBLIC] Prevent arming when not all sticks are centered (#3331) (DE:Arming nicht erlaubt wenn einer oder mehrere RC sticks nicht mittig stehen)
+
+
+## [v1.8.0-1.6.8]
+### Fixed
+<!-- TODO: NEEDS CP! * [PUBLIC] Prevent drone from yawing during "Hover and Capture" segments in missions (#10828) (DE:Orientierung von Drohne bleibt Konstant in "Hover and Capture" Segmenten in Missionen) -->
+
+
+## [v1.8.0-1.6.7]
+### Fixed
+<!-- TODO: NEEDS CP! * Allow unrestricted modification of parameter RCMAP_AUX (#3325) -->
+
 ### Added
-* [PUBLIC] Update description for COM_RC_LOSS_PARAM (#3317)
+<!-- TODO: NEEDS CP! * Parameter for AUX-button setting (#3325) -->
 
+
+## [v1.8.0-1.6.6]
+### Fixed
+<!-- TODO: NEEDS CP! * [Regression] It was possible to arm the drone when the battery was less than 10% (#3212, #3214)
+* "Wait for GPS or use indoor mode" mavlink message too long (#3296) -->
+* Improved speech output of "Geofence violated" message (#3274)
+* [PUBLIC] Reconnecting RC now cancels RC Loss Alarm (#3297) (DE:RC Verbindungsalarm wird deaktiviert wenn Verbindung wiederhergestellt wurde)
+* [PUBLIC] Improved playback of RC Loss Alarm (#3297) (DE:Wiedergabe von RC Verbindungsalarm verbessert)
+* Tunes are no longer interrupted by themselves when sent multiple times (#3297)
+<!-- TODO: NEEDS CP! * [PUBLIC] Vehicle no longer rotates when mission is paused (#3307) (DE:Drohne behält Rotation bei wenn Missionen pausiert werden) -->
+<!-- TODO: NEEDS CP! * [PUBLIC] Vehicle no longer rotates when entering LOITER mode from mission (#3313) (DE:Drohne behält Orientierung bei wenn vom Flugmodus MISSION zu LOITER gewechselt wird) -->
+* Update description for COM_RC_LOSS_PARAM (#3317)
+<!-- TODO: NEEDS CP! * Position lock more conservative (#3319) -->
 
 ### Added
-* [Regression] Restored the "factory calibration by shaking the vehicle" feature (#3306) 
-
-
-### Added
+* [Regression] Restored the "factory calibration by shaking the vehicle" feature (#3306)
+<!-- TODO: NEEDS CP! * Start/stop missions using the AUX button (#3308) -->
 * Logging whether Firmware flashed was built using RESTRICTED_BUILD or not (#3318)
 
 

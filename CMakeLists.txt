@@ -286,6 +286,13 @@ if( "$ENV{PX4_RESTRICTED_BUILD}" STREQUAL "1")
 	add_definitions(-DBUILD_WITH_RESTRICTED_SYSTEM_ACCESS)
 endif()
 
+if( "$ENV{PX4_EPISCI_BUILD}" STREQUAL "1")
+	message("=======================")
+	message("BUILDING EPISCI FLAVOUR")
+	message("=======================")
+	add_definitions(-DBUILD_EPISCI_FALVOUR)
+endif()
+
 # Setup install paths
 if (${PX4_PLATFORM} STREQUAL "posix")
 

@@ -144,28 +144,41 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					return;
 				}
 
-#ifdef BUILD_WITH_RESTRICTED_SYSTEM_ACCESS
+				bool parameter_change_allowed = true;
 
+#ifdef BUILD_WITH_RESTRICTED_SYSTEM_ACCESS
 				// only allow setting the following params
-				if (strcmp(name, "COM_LED_MODE") != 0 &&
-				    strcmp(name, "COM_RC_LOSS_MAN") != 0 &&
-				    strcmp(name, "EKF2_INDOOR_MODE") != 0 &&
-				    strcmp(name, "GF_ACTION") != 0 &&
-				    strcmp(name, "GF_MAX_HOR_DIST") != 0 &&
-				    strcmp(name, "GF_MAX_VER_DIST") != 0 &&
-				    strcmp(name, "GPS_FIXPOS_RTK") != 0 &&
-				    strcmp(name, "MPC_VEL_MANUAL") != 0 &&
-				    strcmp(name, "MPC_VEL_MAN_DN") != 0 &&
-				    strcmp(name, "MPC_VEL_MAN_UP") != 0 &&
-				    strcmp(name, "RTL_CONE_DIST") != 0 &&
-				    strcmp(name, "RTL_RETURN_ALT") != 0 &&
-				    strcmp(name, "RC_MODE") != 0 &&
-				    strcmp(name, "RTL_TO_GCS") != 0 &&
-				    strcmp(name, "SYS_HITL") != 0) {
+				parameter_change_allowed = strcmp(name, "COM_LED_MODE") == 0 ||
+							   strcmp(name, "COM_RC_LOSS_MAN") == 0 ||
+							   strcmp(name, "EKF2_INDOOR_MODE") == 0 ||
+							   strcmp(name, "GF_ACTION") == 0 ||
+							   strcmp(name, "GF_MAX_HOR_DIST") == 0 ||
+							   strcmp(name, "GF_MAX_VER_DIST") == 0 ||
+							   strcmp(name, "GPS_FIXPOS_RTK") == 0 ||
+							   strcmp(name, "MPC_VEL_MANUAL") == 0 ||
+							   strcmp(name, "MPC_VEL_MAN_DN") == 0 ||
+							   strcmp(name, "MPC_VEL_MAN_UP") == 0 ||
+							   strcmp(name, "RTL_CONE_DIST") == 0 ||
+							   strcmp(name, "RTL_RETURN_ALT") == 0 ||
+							   strcmp(name, "RC_MODE") == 0 ||
+							   strcmp(name, "RTL_TO_GCS") == 0 ||
+							   strcmp(name, "SYS_HITL") == 0;
+#endif /* BUILD_WITH_RESTRICTED_SYSTEM_ACCESS */
+
+#ifdef BUILD_EPISCI_FALVOUR
+
+				// Open custom parameters for episci
+				if (!parameter_change_allowed && strcmp(name, "MAV_SYS_ID") == 0) {
+					parameter_change_allowed = true;
+				}
+
+#endif
+
+				if (!parameter_change_allowed) {
+					PX4_INFO("Parameter modification not allowed");
 					return;
 				}
 
-#endif /* BUILD_WITH_RESTRICTED_SYSTEM_ACCESS */
 
 				/* attempt to find parameter, set and send it */
 				param_t param = param_find_no_notification(name);

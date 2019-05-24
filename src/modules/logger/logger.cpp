@@ -2106,6 +2106,11 @@ void Logger::write_version(LogType type)
 #else
 	write_info(type, "yuneec_restricted_build", false);
 #endif /* BUILD_WITH_RESTRICTED_SYSTEM_ACCESS */
+
+// Yuneec partner flavours
+#ifdef BUILD_EPISCI_FALVOUR
+	write_info(type, "custom_build_for_episci", true);
+#endif
 }
 
 void Logger::write_parameters(LogType type)

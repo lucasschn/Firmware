@@ -16,6 +16,11 @@ All notable changes to this project will be documented in this file.
 * ecl library updated to current upstream version to include alignment fixes (#3310)
 
 
+## [v1.8.0-1.6.12]
+### Added
+* Added custom build for our partner "episci" (#3343)
+
+
 ## [v1.8.0-1.6.11]
 ### Fixed
 * [PUBLIC] Fixed issue on some drones where mag calibration would run a second time after first completion (#3337) (DE:Unter gewissen Bedingungen wurde die Kompass Kalibrierung nach Beendigung ein zweites mal gestartet)

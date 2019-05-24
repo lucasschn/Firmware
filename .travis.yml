@@ -23,7 +23,12 @@ matrix:
       sudo: required
       services:
         - docker
-      env: BUILD_TARGET=qgc_firmware
+      env: BUILD_TARGET=autopilot
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=autopilot_episci
     - os: linux
       sudo: required
       services:
@@ -50,13 +55,15 @@ cache:
 before_install:
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then sudo apt-get install genromfs && pip install empy jinja2; fi
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew tap PX4/px4; brew update; brew upgrade; brew install px4-dev; brew tap osrf/simulation; brew install gazebo7 opencv; brew install s3cmd && sudo -H easy_install pip && pip install --user numpy toml empy catkin_pkg jinja2 pyyaml; fi
-  - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then pip install --user s3cmd pycrypto pyserial; sudo apt-get install -y curl; fi
+  - if [[ "${BUILD_TARGET}" = *"autopilot"* && "${TRAVIS_BRANCH}" != "coverity" ]]; then pip install --user s3cmd pycrypto pyserial; sudo apt-get install -y curl; fi
 
 script:
     # Exit if one of the scripts fails.
   - set -e
-  - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+  - if [[ "${BUILD_TARGET}" = "autopilot" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'PX4_RESTRICTED_BUILD=1 make check_yuneec_tap-v2_default check_yuneec_tap-v3_default';
+    elif [[ "${BUILD_TARGET}" = "autopilot_episci" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+      ./Tools/docker_run.sh 'PX4_RESTRICTED_BUILD=1 PX4_EPISCI_BUILD=1 make check_yuneec_tap-v2_default check_yuneec_tap-v3_default';
     elif [[ "${BUILD_TARGET}" = "check_format" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'make check_format';
     elif [[ "${BUILD_TARGET}" = "tests_linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
@@ -69,7 +76,7 @@ script:
 
 after_success:
   - set -ev
-  - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+  - if [[ "${BUILD_TARGET}" = *"autopilot"* && "${TRAVIS_BRANCH}" != "coverity" ]]; then
 
       ./Tools/check_deploy.sh;
 
@@ -109,29 +116,29 @@ after_success:
       fi;
 
       if [[ ! -z "${TRAVIS_PULL_REQUEST_BRANCH}" ]]; then
-        upload_to_s3 s3autopilot/autopilot.yuneec autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/autopilot.yuneec application/octet-stream;
-        upload_to_s3 s3autopilot/version          autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/version text/plain;
-        upload_to_s3 s3autopilot/hash             autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/hash text/plain;
-        upload_to_s3 s3autopilot/git              autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/git text/plain;
-        upload_to_s3 s3autopilot/timestamp        autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/timestamp text/plain;
-        upload_to_s3 s3autopilot/changelog        autopilot/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/changelog text/plain;
+        upload_to_s3 s3autopilot/autopilot.yuneec ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/autopilot.yuneec application/octet-stream;
+        upload_to_s3 s3autopilot/version          ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/version text/plain;
+        upload_to_s3 s3autopilot/hash             ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/hash text/plain;
+        upload_to_s3 s3autopilot/git              ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/git text/plain;
+        upload_to_s3 s3autopilot/timestamp        ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/timestamp text/plain;
+        upload_to_s3 s3autopilot/changelog        ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/changelog text/plain;
       else
-        upload_to_s3 s3autopilot/autopilot.yuneec autopilot/${BRANCH}/$release_type/latest/autopilot.yuneec application/octet-stream;
-        upload_to_s3 s3autopilot/version          autopilot/${BRANCH}/$release_type/latest/version text/plain;
-        upload_to_s3 s3autopilot/hash             autopilot/${BRANCH}/$release_type/latest/hash text/plain;
-        upload_to_s3 s3autopilot/git              autopilot/${BRANCH}/$release_type/latest/git text/plain;
-        upload_to_s3 s3autopilot/timestamp        autopilot/${BRANCH}/$release_type/latest/timestamp text/plain;
-        upload_to_s3 s3autopilot/changelog        autopilot/${BRANCH}/$release_type/latest/changelog text/plain;
+        upload_to_s3 s3autopilot/autopilot.yuneec ${BUILD_TARGET}/${BRANCH}/$release_type/latest/autopilot.yuneec application/octet-stream;
+        upload_to_s3 s3autopilot/version          ${BUILD_TARGET}/${BRANCH}/$release_type/latest/version text/plain;
+        upload_to_s3 s3autopilot/hash             ${BUILD_TARGET}/${BRANCH}/$release_type/latest/hash text/plain;
+        upload_to_s3 s3autopilot/git              ${BUILD_TARGET}/${BRANCH}/$release_type/latest/git text/plain;
+        upload_to_s3 s3autopilot/timestamp        ${BUILD_TARGET}/${BRANCH}/$release_type/latest/timestamp text/plain;
+        upload_to_s3 s3autopilot/changelog        ${BUILD_TARGET}/${BRANCH}/$release_type/latest/changelog text/plain;
 
-        upload_to_s3 s3autopilot/autopilot.yuneec autopilot/${BRANCH}/$release_type/${fwversion}/autopilot.yuneec application/octet-stream;
-        upload_to_s3 s3autopilot/version          autopilot/${BRANCH}/$release_type/${fwversion}/version text/plain;
-        upload_to_s3 s3autopilot/hash             autopilot/${BRANCH}/$release_type/${fwversion}/hash text/plain;
-        upload_to_s3 s3autopilot/git              autopilot/${BRANCH}/$release_type/${fwversion}/git text/plain;
-        upload_to_s3 s3autopilot/timestamp        autopilot/${BRANCH}/$release_type/${fwversion}/timestamp text/plain;
-        upload_to_s3 s3autopilot/changelog        autopilot/${BRANCH}/$release_type/${fwversion}/changelog text/plain;
+        upload_to_s3 s3autopilot/autopilot.yuneec ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/autopilot.yuneec application/octet-stream;
+        upload_to_s3 s3autopilot/version          ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/version text/plain;
+        upload_to_s3 s3autopilot/hash             ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/hash text/plain;
+        upload_to_s3 s3autopilot/git              ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/git text/plain;
+        upload_to_s3 s3autopilot/timestamp        ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/timestamp text/plain;
+        upload_to_s3 s3autopilot/changelog        ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/changelog text/plain;
       fi;
 
-      if [[ is_release -eq 1 ]]; then
+      if [[ is_release -eq 1 && "${BUILD_TARGET}" = "autopilot" ]]; then
         ./Tools/publish_slack_notification.sh ${TRAVIS_TAG};
       fi;
     fi;
@@ -147,4 +154,4 @@ deploy:
     on:
       tags: true
       repo: YUNEEC/Firmware
-      condition: $BUILD_TARGET = qgc_firmware
+      condition: $BUILD_TARGET = autopilot

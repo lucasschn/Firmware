@@ -2,15 +2,16 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+
+## [v1.8.2-1.7.0]
 ### Changed
 * Re-ordered startup scripts into board specific files for tap-v1/2/3/4 (#3284)
-* Commander logging strings improved readability and consistency (#3315)
+* [PUBLIC] Commander logging strings improved readability and consistency (#3315)
 
 ### Fixed
-* H520 HITL functional even without battery plugged in (#3164)
+* [PUBLIC] H520 HITL functional even without battery plugged in (#3164)
 * Improved corner case handling when ESC firmware update fails (#2907)
-* "Wait for GPS or use indoor mode" mavlink message too long (#3296)
-* Tunes are no longer interrupted by themselves when sent multiple times (#3297)
 * `free` command working again in nuttx shell. Have to mount `/proc` on startup. (#3302)
 * [Regression] Fix unreliable RC binding on H520C (tap-v3) (#3304)
 * ecl library updated to current upstream version to include alignment fixes (#3310)
@@ -51,8 +52,8 @@ All notable changes to this project will be documented in this file.
 
 ## [v1.8.0-1.6.6]
 ### Fixed
-<!-- TODO: NEEDS CP! * [Regression] It was possible to arm the drone when the battery was less than 10% (#3212, #3214)
-* "Wait for GPS or use indoor mode" mavlink message too long (#3296) -->
+<!-- TODO: NEEDS CP! * [Regression] It was possible to arm the drone when the battery was less than 10% (#3212, #3214) -->
+* "Wait for GPS or use indoor mode" mavlink message too long (#3296)
 * Improved speech output of "Geofence violated" message (#3274)
 * [PUBLIC] Reconnecting RC now cancels RC Loss Alarm (#3297) (DE:RC Verbindungsalarm wird deaktiviert wenn Verbindung wiederhergestellt wurde)
 * [PUBLIC] Improved playback of RC Loss Alarm (#3297) (DE:Wiedergabe von RC Verbindungsalarm verbessert)

@@ -7,7 +7,6 @@ All notable changes to this project will be documented in this file.
 ## [v1.8.2-1.7.0]
 ### Changed
 * Re-ordered startup scripts into board specific files for tap-v1/2/3/4 (#3284)
-* [PUBLIC] Commander logging strings improved readability and consistency (#3315)
 
 ### Fixed
 * [PUBLIC] H520 HITL functional even without battery plugged in (#3164)
@@ -15,6 +14,13 @@ All notable changes to this project will be documented in this file.
 * `free` command working again in nuttx shell. Have to mount `/proc` on startup. (#3302)
 * [Regression] Fix unreliable RC binding on H520C (tap-v3) (#3304)
 * ecl library updated to current upstream version to include alignment fixes (#3310)
+
+
+## [v1.8.0-1.6.13]
+### Changed
+* Commander logging strings improved readability and consistency (#3315)
+* [PUBLIC] Improved understandability of info and warning messages (#3315) (DE:Verbesserte Verständlichkeit von Info-Meldungen und Warnungen)
+<!-- TODO: NEEDS CP! * [PUBLIC] Increased maximum radius in Orbit from 100m to 400m (#3355) (DE:Maximaler Radius für Orbit von 100m auf 400m erhöht) -->
 
 
 ## [v1.8.0-1.6.12]

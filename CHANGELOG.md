@@ -60,7 +60,7 @@ All notable changes to this project will be documented in this file.
 
 ## [v1.8.0-1.6.6]
 ### Fixed
-<!-- TODO: NEEDS CP! * [Regression] It was possible to arm the drone when the battery was less than 10% (#3212, #3214) -->
+* [Regression] It was possible to arm the drone when the battery was less than 10% (#3212, #3214)
 * "Wait for GPS or use indoor mode" mavlink message too long (#3296)
 * Improved speech output of "Geofence violated" message (#3274)
 * [PUBLIC] Reconnecting RC now cancels RC Loss Alarm (#3297) (DE:RC Verbindungsalarm wird deaktiviert wenn Verbindung wiederhergestellt wurde)

@@ -23,7 +23,8 @@ bool circuit_breaker_engaged_enginefailure_check
 bool circuit_breaker_engaged_gpsfailure_check
 bool circuit_breaker_flight_termination_disabled
 bool circuit_breaker_engaged_usb_check
-bool circuit_breaker_engaged_posfailure_check	# set to true when the position valid checks have been disabled
+bool circuit_breaker_engaged_posfailure_check
+bool circuit_breaker_engaged_avionics_check	# set to true when the position valid checks have been disabled
 
 bool offboard_control_signal_found_once
 bool offboard_control_signal_lost

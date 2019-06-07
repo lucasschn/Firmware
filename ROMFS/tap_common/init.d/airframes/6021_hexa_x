@@ -234,7 +234,13 @@ then
 	# Enable power circuit breaker
 	# HOTFIX: This disables the preflight checks for 5v and 3.3v power rails
 	# which are not available on YUNEEC_TAP_V2. Should find a better solution.
-	param set CBRK_SUPPLY_CHK 894281
+	param set CBRK_SUPPLY_CHK 0
+	if ver hwcmp YUNEEC_TAP_V2
+	then
+		param set CBRK_AVIO_CHK 586987
+	else
+		param set CBRK_AVIO_CHK 0
+	fi
 
 	# Fault tolerant control
 	# 0: disabled

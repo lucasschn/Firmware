@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+* Set GPS driver baudrate to 115200 when Fixposition RTK is enabled (#3365)
 
 
 ## [v1.8.2-1.7.0]

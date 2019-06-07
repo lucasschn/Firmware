@@ -51,6 +51,7 @@ set +e
 # it wastes flash
 #
 set GPS_PORT /dev/ttyS0
+set GPS_ARGS ""
 
 #
 # Mount the procfs
@@ -302,9 +303,10 @@ then
 	if [ ${HITL_ON} = no ]
 	then
 		# Start GPS
-		gps start -d ${GPS_PORT}
+		gps start -d ${GPS_PORT} ${GPS_ARGS}
 
 		unset GPS_PORT
+		unset GPS_ARGS
 
 	fi
 

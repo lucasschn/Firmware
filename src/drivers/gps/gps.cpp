@@ -434,7 +434,13 @@ void GPS::handleInjectDataTopic()
 
 	bool updated = false;
 
+	// Yuneec-specific: Hacky solution for limiting the number of consecutive injection data writes and force
+	// a read in between. Otherwise we don't get GPS readings.
+	const size_t max_consec_writes = 6;
+	size_t iter = 0;
+
 	do {
+		iter++;
 		orb_check(_orb_inject_data_fd, &updated);
 
 		if (updated) {
@@ -449,7 +455,11 @@ void GPS::handleInjectDataTopic()
 
 			++_last_rate_rtcm_injection_count;
 		}
-	} while (updated);
+
+		if (iter == max_consec_writes) {
+			break;
+		}
+	} while (updated && iter < max_consec_writes);
 }
 
 bool GPS::injectData(uint8_t *data, size_t len)

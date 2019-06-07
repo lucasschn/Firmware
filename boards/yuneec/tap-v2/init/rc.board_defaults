@@ -13,6 +13,7 @@ set ESC_TTY /dev/ttyS2
 if param compare GPS_FIXPOS_RTK 1
 then
 	set GPS_PORT /dev/ttyS3
+	set GPS_ARGS "-b 115200"
 fi
 
 #

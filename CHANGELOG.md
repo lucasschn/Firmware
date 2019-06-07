@@ -45,7 +45,7 @@ All notable changes to this project will be documented in this file.
 
 ## [v1.8.0-1.6.8]
 ### Fixed
-<!-- TODO: NEEDS CP! * [PUBLIC] Prevent drone from yawing during "Hover and Capture" segments in missions (#10828) (DE:Orientierung von Drohne bleibt Konstant in "Hover and Capture" Segmenten in Missionen) -->
+* [PUBLIC] Prevent drone from yawing during "Hover and Capture" segments in missions (#10828) (DE:Orientierung von Drohne bleibt Konstant in "Hover and Capture" Segmenten in Missionen)
 
 
 ## [v1.8.0-1.6.7]

@@ -16,7 +16,7 @@ pipeline {
         sh 'export'
         sh 'make distclean'
         sh 'ccache -z'
-        sh 'git fetch --tags'
+        //sh 'git fetch --tags'
         sh 'make px4_sitl_default'
         sh 'make px4_sitl_default sitl_gazebo'
         sh 'make px4_sitl_default package'

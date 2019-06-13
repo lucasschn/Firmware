@@ -168,11 +168,6 @@ private:
 	void data_link_checks(int32_t highlatencydatalink_loss_timeout, int32_t highlatencydatalink_regain_timeout,
 			      int32_t datalink_loss_timeout, int32_t datalink_regain_timeout, bool *status_changed);
 
-	/**
-	 * Check if RC stick are centered.
-	 */
-	static bool inline rc_stick_centered(float stick_value, float center, float tolerance);
-
 	// telemetry variables
 	struct telemetry_data {
 		int subscriber = -1;

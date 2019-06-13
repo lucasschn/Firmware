@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Added
 * Set GPS driver baudrate to 115200 when Fixposition RTK is enabled (#3365)
+* Require RC sticks to be centered also when a takeoff vehicle_command is issued. For example using the GUI. (#3372)
 
 
 ## [v1.8.2-1.7.0]

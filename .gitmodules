@@ -62,6 +62,6 @@
 	path = Tools/Maneuvers
 	url = https://github.com/YUNEEC/maneuvers.git
 	name = maneuvers
-[submodule "pyulgresample"]
-	path = integrationtests/ulogtests/external/pyulgresample
-	url = https://github.com/YUNEEC/pyulgresample.git
+[submodule "integrationtests/ulogtests/pyulgtests"]
+	path = integrationtests/ulogtests/pyulgtests
+	url = git@github.com:YUNEEC/pyulgtests.git

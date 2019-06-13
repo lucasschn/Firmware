@@ -1,26 +1,36 @@
 
 pipeline {
     agent {
-      docker {
-        label 'docker'
-        image 'yuneecatl/px4-dev-simulation-python3:2019-03-18'
-        args '-e HOME=$WORKSPACE -v /tmp/ccache:/tmp/ccache:rw'
+        docker {
+            label 'docker'
+            image 'yuneecatl/px4-dev-simulation-python3:2019-03-18'
+            args '-v /tmp/ccache:/tmp/ccache:rw -e HOME=$WORKSPACE --cap-add SYS_PTRACE --entrypoint=""'
       }
     }
+
     stages {
         stage('build') {
             steps {
+                sh 'export'
+                sh 'ccache -z'
+                sh 'pip3 install pyyaml'
+                sh 'pip3 install pyulgresample'
                 sh 'Tools/make_maneuver.sh'
-                sh 'integrationtests/ulogtests/external/install_pyulgresample.sh'
                 sh 'make px4_sitl_default'
                 sh 'make px4_sitl_default sitl_gazebo'
-                sh 'pip3 install pyyaml' //todo: should be part of docker image
             }
+
         }//build
         stage('test') {
             steps {
                 sh './integrationtests/ulogtests/test_runner.sh mission'
             }
-        }
+
+            post {
+                always {
+                    sh 'make distclean'
+                }
+            }
+        }//stage test
     }//stages
 }

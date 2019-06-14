@@ -37,6 +37,7 @@
 #include "status_display.h"
 #include "rc_loss_alarm.h"
 #include "vehicle_inverted.h"
+#include "yuneec_version_query.h"
 #include "yuneec_factory_calib.h"
 
 #include <px4_workqueue.h>
@@ -137,6 +138,9 @@ private:
 
 	/** @var _shake_calibration Pointer to the shake calibration routine object */
 	yuneec_factory_calib::ShakeCalibration *_shake_calibration = nullptr;
+
+	/** @var _version_query Pointer to the version query routine objct */
+	yuneec_version_query::VersionQuery *_version_query = nullptr;
 
 	/** @var _command_ack_pub The command ackowledgement topic. */
 	orb_advert_t _command_ack_pub = nullptr;

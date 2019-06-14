@@ -83,6 +83,8 @@ SendEvent::SendEvent() : ModuleParams(nullptr)
 	if (_param_cal_mag0_id.get() == 0) {
 		_shake_calibration = new yuneec_factory_calib::ShakeCalibration(_subscriber_handler);
 	}
+
+	_version_query = new yuneec_version_query::VersionQuery(_subscriber_handler);
 }
 
 SendEvent::~SendEvent()
@@ -101,6 +103,10 @@ SendEvent::~SendEvent()
 
 	if (_shake_calibration != nullptr) {
 		delete _shake_calibration;
+	}
+
+	if (_version_query != nullptr) {
+		delete _version_query;
 	}
 }
 
@@ -165,6 +171,10 @@ void SendEvent::cycle()
 
 	if (_shake_calibration != nullptr) {
 		_shake_calibration->process();
+	}
+
+	if (_version_query != nullptr) {
+		_version_query->process();
 	}
 
 	work_queue(LPWORK, &_work, (worker_t)&SendEvent::cycle_trampoline, this,

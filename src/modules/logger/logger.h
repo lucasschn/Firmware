@@ -46,6 +46,7 @@
 #include <px4_module.h>
 
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/yuneec_component_version.h>
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
@@ -398,6 +399,9 @@ private:
 	param_t						_log_utc_offset{PARAM_INVALID};
 	param_t						_log_dirs_max{PARAM_INVALID};
 	param_t						_mission_log{PARAM_INVALID};
+
+	yuneec_component_version_s _camera_version{};
+	yuneec_component_version_s _gimbal_version{};
 };
 
 } //namespace logger

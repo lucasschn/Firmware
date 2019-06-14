@@ -82,6 +82,7 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/yuneec_component_version.h>
 
 #include "mavlink_ftp.h"
 #include "mavlink_log_handler.h"
@@ -163,6 +164,10 @@ private:
 	void handle_message_debug(mavlink_message_t *msg);
 	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_debug_float_array(mavlink_message_t *msg);
+
+	void handle_message_autopilot_version(mavlink_message_t *msg);
+	void handle_message_camera_information(mavlink_message_t *msg);
+
 
 	void *receive_thread(void *arg);
 
@@ -248,6 +253,8 @@ private:
 	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
 	orb_advert_t _command_ack_pub;
+	orb_advert_t _yuneec_camera_version_pub;
+	orb_advert_t _yuneec_gimbal_version_pub;
 	int _control_mode_sub;
 	int _actuator_armed_sub;
 	int _vehicle_attitude_sub;

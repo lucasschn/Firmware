@@ -48,6 +48,7 @@ px4_add_module(
 		temperature_calibration/task.cpp
 		vehicle_inverted.cpp
 		yuneec_factory_calib.cpp
+		yuneec_version_query.cpp
 	DEPENDS
 		modules__uORB
 	)

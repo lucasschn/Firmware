@@ -147,6 +147,7 @@ set(msg_files
 	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
+	yuneec_component_version.msg
 	)
 
 if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")

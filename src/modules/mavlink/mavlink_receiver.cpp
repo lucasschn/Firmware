@@ -163,6 +163,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_debug_array_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
+	_yuneec_camera_version_pub(nullptr),
+	_yuneec_gimbal_version_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_actuator_armed_sub(orb_subscribe(ORB_ID(actuator_armed))),
 	_vehicle_attitude_sub(orb_subscribe(ORB_ID(vehicle_attitude))),
@@ -349,6 +351,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_debug_float_array(msg);
 		break;
 
+	case MAVLINK_MSG_ID_CAMERA_INFORMATION:
+		handle_message_camera_information(msg);
+		break;
+
+	case MAVLINK_MSG_ID_AUTOPILOT_VERSION:
+		handle_message_autopilot_version(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -398,6 +408,43 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	/* If we've received a valid message, mark the flag indicating so.
 	   This is used in the '-w' command-line flag. */
 	_mavlink->set_has_received_messages(true);
+}
+
+void MavlinkReceiver::handle_message_autopilot_version(mavlink_message_t *msg)
+{
+	// Handle gimbal version
+	if (msg->compid == 154) {
+		mavlink_autopilot_version_t autopilot_version;
+		mavlink_msg_autopilot_version_decode(msg, &autopilot_version);
+
+		struct yuneec_component_version_s version {};
+		version.firmware_version = autopilot_version.flight_sw_version;
+
+		if (_yuneec_gimbal_version_pub == nullptr) {
+			_yuneec_gimbal_version_pub = orb_advertise(ORB_ID(yuneec_gimbal_version), &version);
+
+		} else {
+			orb_publish(ORB_ID(yuneec_gimbal_version), _yuneec_gimbal_version_pub, &version);
+		}
+	}
+}
+
+void MavlinkReceiver::handle_message_camera_information(mavlink_message_t *msg)
+{
+	mavlink_camera_information_t camera_information;
+	mavlink_msg_camera_information_decode(msg, &camera_information);
+
+	struct yuneec_component_version_s version {};
+	version.firmware_version = camera_information.firmware_version;
+	char *model_string = reinterpret_cast<char *>(camera_information.model_name);
+	strncpy(version.model_name, model_string, sizeof(version.model_name));
+
+	if (_yuneec_camera_version_pub == nullptr) {
+		_yuneec_camera_version_pub = orb_advertise(ORB_ID(yuneec_camera_version), &version);
+
+	} else {
+		orb_publish(ORB_ID(yuneec_camera_version), _yuneec_camera_version_pub, &version);
+	}
 }
 
 bool

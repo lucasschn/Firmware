@@ -50,6 +50,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/yuneec_component_version.h>
 
 #include <drivers/drv_hrt.h>
 #include <px4_getopt.h>
@@ -640,7 +641,7 @@ void Logger::add_default_topics()
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
-	add_topic("tecs_status", 200);
+	// add_topic("tecs_status", 200);  // NOTE(YUNEEC): Saving memory
 	add_topic("trajectory_setpoint", 200);
 	add_topic("telemetry_status");
 	// add_topic("vehicle_air_data", 200);  // NOTE(YUNEEC): Saving memory
@@ -951,6 +952,9 @@ void Logger::run()
 		}
 	}
 
+	int yuneec_camera_version_sub = orb_subscribe(ORB_ID(yuneec_camera_version));
+	int yuneec_gimbal_version_sub = orb_subscribe(ORB_ID(yuneec_gimbal_version));
+
 	int ntopics = add_topics_from_file(PX4_STORAGEDIR "/etc/logging/logger_topics.txt");
 
 	if (ntopics > 0) {
@@ -1056,6 +1060,18 @@ void Logger::run()
 	int next_subscribe_topic_index = -1; // this is used to distribute the checks over time
 
 	while (!should_exit()) {
+		bool yuneec_version_updated;
+		ret = orb_check(yuneec_camera_version_sub, &yuneec_version_updated);
+
+		if (ret == 0 && yuneec_version_updated) {
+			orb_copy(ORB_ID(yuneec_camera_version), yuneec_camera_version_sub, &_camera_version);
+		}
+
+		ret = orb_check(yuneec_gimbal_version_sub, &yuneec_version_updated);
+
+		if (ret == 0 && yuneec_version_updated) {
+			orb_copy(ORB_ID(yuneec_gimbal_version), yuneec_gimbal_version_sub, &_gimbal_version);
+		}
 
 		// Start/stop logging when system arm/disarm
 		const bool logging_started = check_arming_state(vehicle_status_sub, (MissionLogType)mission_log_mode);
@@ -2100,7 +2116,7 @@ void Logger::write_version(LogType type)
 		write_info(type, "log_type", "mission");
 	}
 
-// Yuenec-specific: Log restricted build
+	// Yuenec-specific: Log restricted build
 #ifdef BUILD_WITH_RESTRICTED_SYSTEM_ACCESS
 	write_info(type, "yuneec_restricted_build", true);
 #else
@@ -2115,6 +2131,15 @@ void Logger::write_version(LogType type)
 #ifdef BUILD_3DR_FLAVOUR
 	write_info(type, "custom_build_for_3dr", true);
 #endif
+
+	// Yuneec-specific: Log camera and gimbal versions
+	char version_str[5];
+	sprintf(&version_str[0], "%u", _camera_version.firmware_version);
+	write_info(type, "cam_ver", version_str);
+	write_info(type, "cam_name", _camera_version.model_name);
+
+	sprintf(&version_str[0], "%u", _gimbal_version.firmware_version);
+	write_info(type, "gmbl_ver", version_str);
 }
 
 void Logger::write_parameters(LogType type)

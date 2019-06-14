@@ -33,6 +33,11 @@ matrix:
       sudo: required
       services:
         - docker
+      env: BUILD_TARGET=autopilot_3dr
+    - os: linux
+      sudo: required
+      services:
+        - docker
       env: BUILD_TARGET=check_format
     - os: linux
       sudo: required
@@ -64,6 +69,8 @@ script:
       ./Tools/docker_run.sh 'PX4_RESTRICTED_BUILD=1 make check_yuneec_tap-v2_default check_yuneec_tap-v3_default';
     elif [[ "${BUILD_TARGET}" = "autopilot_episci" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'PX4_RESTRICTED_BUILD=1 PX4_EPISCI_BUILD=1 make check_yuneec_tap-v2_default check_yuneec_tap-v3_default';
+    elif [[ "${BUILD_TARGET}" = "autopilot_3dr" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+    ./Tools/docker_run.sh 'PX4_3DR_BUILD=1 make check_yuneec_tap-v2_default check_yuneec_tap-v3_default';
     elif [[ "${BUILD_TARGET}" = "check_format" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'make check_format';
     elif [[ "${BUILD_TARGET}" = "tests_linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then

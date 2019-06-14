@@ -19,6 +19,11 @@ All notable changes to this project will be documented in this file.
 * ecl library updated to current upstream version to include alignment fixes (#3310)
 
 
+## [v1.8.0-1.6.14]
+### Added
+* Added custom build for our partner "3DR" (#3367)
+
+
 ## [v1.8.0-1.6.13]
 ### Changed
 * Commander logging strings improved readability and consistency (#3315)

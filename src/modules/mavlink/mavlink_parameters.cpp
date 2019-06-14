@@ -165,13 +165,18 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 							   strcmp(name, "SYS_HITL") == 0;
 #endif /* BUILD_WITH_RESTRICTED_SYSTEM_ACCESS */
 
-#ifdef BUILD_EPISCI_FALVOUR
+#ifdef BUILD_EPISCI_FLAVOUR
 
 				// Open custom parameters for episci
 				if (!parameter_change_allowed && strcmp(name, "MAV_SYS_ID") == 0) {
 					parameter_change_allowed = true;
 				}
 
+#endif
+
+#ifdef BUILD_3DR_FLAVOUR
+				// Open all parameters for 3DR
+				parameter_change_allowed = true;
 #endif
 
 				if (!parameter_change_allowed) {

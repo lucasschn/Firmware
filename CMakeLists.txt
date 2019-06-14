@@ -290,7 +290,14 @@ if( "$ENV{PX4_EPISCI_BUILD}" STREQUAL "1")
 	message("=======================")
 	message("BUILDING EPISCI FLAVOUR")
 	message("=======================")
-	add_definitions(-DBUILD_EPISCI_FALVOUR)
+	add_definitions(-DBUILD_EPISCI_FLAVOUR)
+endif()
+
+if( "$ENV{PX4_3DR_BUILD}" STREQUAL "1")
+	message("=======================")
+	message("BUILDING 3DR FLAVOUR")
+	message("=======================")
+	add_definitions(-DBUILD_3DR_FLAVOUR)
 endif()
 
 # Setup install paths

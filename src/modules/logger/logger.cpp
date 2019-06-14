@@ -2108,8 +2108,12 @@ void Logger::write_version(LogType type)
 #endif /* BUILD_WITH_RESTRICTED_SYSTEM_ACCESS */
 
 // Yuneec partner flavours
-#ifdef BUILD_EPISCI_FALVOUR
+#ifdef BUILD_EPISCI_FLAVOUR
 	write_info(type, "custom_build_for_episci", true);
+#endif
+
+#ifdef BUILD_3DR_FLAVOUR
+	write_info(type, "custom_build_for_3dr", true);
 #endif
 }
 

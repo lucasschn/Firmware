@@ -582,7 +582,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 		param_get(param_find("COM_ARM_STK_TOL"), &tolerance);
 		const bool sticks_are_centered = rc_stick_centered(sp_man.x, 0.0f, tolerance) &&
 						 rc_stick_centered(sp_man.y, 0.0f, tolerance) &&
-						 rc_stick_centered(sp_man.z, 0.5f, tolerance) &&
+						 sp_man.z <= 0.5f &&
 						 rc_stick_centered(sp_man.r, 0.0f, tolerance);
 
 		if (!sticks_are_centered) {

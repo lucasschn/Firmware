@@ -2452,8 +2452,8 @@ Commander::run()
 					float tolerance;
 					param_get(_param_arm_stick_tolerance, &tolerance);
 					const bool sticks_are_centered = rc_stick_centered(sp_man.x, 0.0f, tolerance) &&
-							 rc_stick_centered(sp_man.y, 0.0f, tolerance) &&
-							 rc_stick_centered(sp_man.r, 0.0f, tolerance);
+									 rc_stick_centered(sp_man.y, 0.0f, tolerance) &&
+									 rc_stick_centered(sp_man.r, 0.0f, tolerance);
 
 					const bool throttle_is_low = sp_man.z <= 0.5f;
 

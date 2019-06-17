@@ -138,7 +138,7 @@ public:
 	void setYawHandler(WeatherVane *ext_yaw_handler) {_current_task.task->setYawHandler(ext_yaw_handler);}
 
 	/**
-	 *  This method will re-activate current task.
+	 *   This method will re-activate current task.
 	 */
 	void reActivate();
 

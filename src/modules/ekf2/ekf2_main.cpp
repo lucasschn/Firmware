@@ -764,6 +764,7 @@ void Ekf2::run()
 		ekf2_timestamps.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 
 		// update all other topics if they have new data
+
 		bool vehicle_status_updated = false;
 
 		// yuneec-specific:

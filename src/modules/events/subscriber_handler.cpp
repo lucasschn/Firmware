@@ -104,15 +104,15 @@ void SubscriberHandler::unsubscribe()
 
 void SubscriberHandler::check_for_updates()
 {
-	bool updated = false;
+	bool updated;
 	_update_bitfield = 0;
-
 	orb_check(_vehicle_command_sub, &updated);
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::VehicleCommand;
 	}
 
+	updated = false;
 	orb_check(_vehicle_command_ack_sub, &updated);
 
 	if (updated) {
@@ -125,18 +125,21 @@ void SubscriberHandler::check_for_updates()
 		_update_bitfield |= (uint32_t)StatusMask::VehicleStatus;
 	}
 
+	updated = false;
 	orb_check(_vehicle_status_flags_sub, &updated);
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::VehicleStatusFlags;
 	}
 
+	updated = false;
 	orb_check(_battery_status_sub, &updated);
 
 	if (updated) {
 		_update_bitfield |= (uint32_t)StatusMask::BatteryStatus;
 	}
 
+	updated = false;
 	orb_check(_cpuload_sub, &updated);
 
 	if (updated) {

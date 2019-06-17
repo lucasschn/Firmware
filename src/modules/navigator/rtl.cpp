@@ -37,7 +37,6 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
- * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include "rtl.h"
@@ -188,13 +187,13 @@ RTL::set_rtl_item()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	// check if we are pretty close to home already
-	float home_dist = get_distance_to_next_waypoint(home.lat, home.lon, gpos.lat, gpos.lon);
+	// Check if we are pretty close to home already.
+	const float home_dist = get_distance_to_next_waypoint(home.lat, home.lon, gpos.lat, gpos.lon);
 
-	// compute the return altitude
+	// Compute the return altitude
 	float return_alt = get_rtl_altitude();
 
-	// we are close to home, limit climb to min
+	// We are close to home, limit climb to min
 	// if (home_dist < _param_rtl_min_dist.get()) {
 	// 	return_alt = home.alt + _param_descend_alt.get();
 	// }

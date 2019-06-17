@@ -33,8 +33,8 @@
 
 /**
  * @file mc_pos_control_main.cpp
- * Multicopter position controller
- * */
+ * Multicopter position controller.
+ */
 
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -1034,6 +1034,7 @@ MulticopterPositionControl::start_flight_task()
 
 	// manual altitude control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL || task_failure) {
+		should_disable_task = false;
 		int error = 0;
 
 		switch (MPC_POS_MODE.get()) {
@@ -1045,7 +1046,6 @@ MulticopterPositionControl::start_flight_task()
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
 			break;
 		}
-		should_disable_task = false;
 
 		if (error != 0) {
 			if (prev_failure_count == 0) {

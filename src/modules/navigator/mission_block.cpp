@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,6 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Sander Smeets <sander@droneslab.com>
  * @author Andreas Antener <andreas@uaventure.com>
- * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include "mission_block.h"
@@ -369,7 +368,7 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
-	/* --- tap specific brake */
+	/* --- Yuneec specific brake */
 
 	/* check if velocity needs to be reached
 	 * Note: the position controller either tracks position/yaw or velocity */

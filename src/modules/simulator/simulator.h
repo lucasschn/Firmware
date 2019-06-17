@@ -392,7 +392,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s, ///< battery drain interval
-		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _battery_min_percentage, //<minimum battery percentage
+		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _battery_min_percentage, //< minimum battery percentage
 		(ParamInt<px4::params::MAV_TYPE>) _param_system_type
 
 	)

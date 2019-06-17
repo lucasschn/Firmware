@@ -17,7 +17,7 @@ enum class params {
 {%- for param in params %}
 	{{ param.attrib["name"] }},
 {%- endfor %}
-
+	
 	_COUNT
 };
 
@@ -34,3 +34,4 @@ static const constexpr int param_types_array[] =  {
 
 
 #endif /* __cplusplus */
+

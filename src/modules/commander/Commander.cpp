@@ -38,7 +38,6 @@
  *
  * @TODO This application is currently in a rewrite process. Main changes:
  *			- Calibration routines are moved into the event system
- *
  *			- Commander is rewritten as class
  *			- State machines will be model driven
  */

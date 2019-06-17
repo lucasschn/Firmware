@@ -576,6 +576,8 @@ void print_status()
 
 transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, const char *armedBy)
 {
+	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
+
 	// Yuneec-specific: Require all sticks to be centered and throttle less than 0.5 when arming
 	if (arm) {
 		float tolerance;
@@ -585,7 +587,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 						 rc_stick_centered(sp_man.r, 0.0f, tolerance);
 
 		if (!sticks_are_centered) {
-			transition_result_t arming_res = TRANSITION_DENIED;
+			arming_res = TRANSITION_DENIED;
 			print_reject_arm("Not arming: One or more RC sticks not centered");
 			return arming_res;
 		}
@@ -593,13 +595,11 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 		const bool throttle_is_low = sp_man.z <= 0.5f;
 
 		if (!throttle_is_low) {
-			transition_result_t arming_res = TRANSITION_DENIED;
+			arming_res = TRANSITION_DENIED;
 			print_reject_arm("Not arming: Throttle stick is above center");
 			return arming_res;
 		}
 	}
-
-	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
 	// Transition the armed state. By passing mavlink_log_pub to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.

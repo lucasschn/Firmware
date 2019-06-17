@@ -12,11 +12,11 @@ uint8 ESC_CONNECTION_TYPE_ONESHOOT = 2			# One Shoot PPM
 uint8 ESC_CONNECTION_TYPE_I2C = 3			# I2C
 uint8 ESC_CONNECTION_TYPE_CAN = 4			# CAN-Bus
 
-uint16 counter  					# incremented by the writing thread everytime new data is stored
+uint16 counter						# incremented by the writing thread everytime new data is stored
 
-uint8 esc_count						# number of connected ESCs
+uint8 esc_count						# number of connected ESCs. 8 is currently the maximum!
 uint8 esc_connectiontype				# how ESCs connected to the system
 
-esc_report[8] esc
-
-engine_failure_report engine_failure_report # the ESC or motor report of engine failure
+esc_report[8] esc					# Detailed report for each ESC
+uint8 motor_state_flags					# Summary failure report of all ESCs. 1 error, 0 OK. Motors |  7  |  6  |  5  | ... |  1  |  0  |
+float32 ftc_delta_pwm					# Delta PWM caused by FTC in case of motor failure

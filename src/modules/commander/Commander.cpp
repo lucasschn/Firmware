@@ -87,6 +87,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
@@ -1310,7 +1311,6 @@ Commander::run()
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
 	param_t _param_gohome_land_interrupt = param_find("COM_ALLOW_INT");
 	param_t _param_allow_interrupt_min_alt = param_find("COM_MIN_ALT");
-	param_t _param_disarm_crash = param_find("COM_DISARM_CRASH");
 	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
 	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
 
@@ -1462,6 +1462,9 @@ Commander::run()
 	struct position_setpoint_triplet_s pos_sp_triplet;
 	memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
 
+	/* Subscribe to esc_status  */
+	int esc_status_sub = orb_subscribe(ORB_ID(esc_status));
+
 	/* Subscribe to system power */
 	int system_power_sub = orb_subscribe(ORB_ID(system_power));
 
@@ -1553,7 +1556,6 @@ Commander::run()
 	float ef_time_thres = 1000.0f;
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
-	float disarm_when_crash = 0;
 	float land_interrupt_delay = 0; /* if stick interrupt for rtl/land is ON, the vehicle will switch back */
 	/* to rtl/land if sticks are not moved AND time land_interrupt_delay passed */
 
@@ -1570,6 +1572,9 @@ Commander::run()
 
 	int32_t ekf2_indoor_mode{0};
 	int32_t require_indoor_mode_or_home{0};
+
+	// Yuneec-specific: motor failure count for special disarm cases
+	uint8_t motor_failures = 0;
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool failsafe_old = false;
@@ -1671,7 +1676,6 @@ Commander::run()
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
-			param_get(_param_disarm_crash, &disarm_when_crash);
 			param_get(_param_flight_uuid, &flight_uuid);
 
 			param_get(_param_land_interrupt_delay, &land_interrupt_delay);
@@ -1975,9 +1979,8 @@ Commander::run()
 		if (armed.armed && land_detector.landed && _disarm_when_landed_timeout.get() > FLT_EPSILON) {
 			auto_disarm_hysteresis.set_state_and_update(true);
 
-		} else if (armed.armed && land_detector.crash && disarm_when_crash > FLT_EPSILON) {
-			//TODO
-			//Now it needs a lot of verification
+		} else if (armed.armed && land_detector.crash) {
+			// TODO: Do something when crash is detected
 
 		} else {
 			auto_disarm_hysteresis.set_state_and_update(false);
@@ -2369,8 +2372,25 @@ Commander::run()
 					able_to_skip_landdetector = false;
 				}
 
-				/* Also skip landdetector if vehicle is crashed */
-				able_to_skip_landdetector = able_to_skip_landdetector || land_detector.crash;
+				// Count number of failing motors
+				orb_check(esc_status_sub, &updated);
+
+				if (updated) {
+					esc_status_s esc_status {};
+					orb_copy(ORB_ID(esc_status), esc_status_sub, &esc_status);
+
+					motor_failures = 0;
+
+					for (uint8_t i_motor = 0; i_motor < esc_status.esc_count; i_motor++) {
+						if ((esc_status.motor_state_flags >> i_motor) & 0x01) {
+							motor_failures++;
+						}
+					}
+				}
+
+				/* Also skip landdetector if vehicle is crashed.
+				   Two or more motor failures count as a crash too */
+				able_to_skip_landdetector = able_to_skip_landdetector || land_detector.crash || motor_failures >= 2;
 
 				if (land_detector.landed) {
 					/* we disarm directly */

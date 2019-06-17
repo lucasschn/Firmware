@@ -504,7 +504,7 @@ bool TAP_ESC::esc_critical_failure(uint8_t channel_id)
 	bool critical_error = false;
 
 	// If the motor has shown a failure once, do not check it again
-	if (_esc_feedback.engine_failure_report.motor_state & (1 << channel_id)) {
+	if (_esc_feedback.motor_state_flags & (1 << channel_id)) {
 		critical_error = true;
 
 	} else {
@@ -557,7 +557,7 @@ bool TAP_ESC::esc_critical_failure(uint8_t channel_id)
 
 		if (critical_error) {
 			// set this motor's failure flag to true
-			_esc_feedback.engine_failure_report.motor_state |= 1 << channel_id;
+			_esc_feedback.motor_state_flags |= 1 << channel_id;
 		}
 	}
 
@@ -622,7 +622,7 @@ void TAP_ESC::cycle()
 		// This is a hotfix for issue #1454 (restoring FTC to original functionality)
 		// We tell the mixer that FTC is running by suddenly reducing the number
 		// of outputs by 1.
-		uint8_t num_outputs = _esc_feedback.engine_failure_report.motor_state == 0 ?
+		uint8_t num_outputs = _esc_feedback.motor_state_flags == 0 ?
 				      _channels_count : _channels_count - 1;
 
 		/* can we mix? */
@@ -715,7 +715,7 @@ void TAP_ESC::cycle()
 								_fault_tolerant_control->recalculate_pwm_outputs(
 									_outputs.output[channel_id],
 									_outputs.output[DIAG_MOTOR_MAP[channel_id]],
-									_esc_feedback.engine_failure_report.delta_pwm);
+									_esc_feedback.ftc_delta_pwm);
 
 
 							// stop the failing motor
@@ -870,7 +870,7 @@ void TAP_ESC::cycle()
 			_first_failing_motor = -1;
 
 			// Also clear any motor failure flags
-			_esc_feedback.engine_failure_report.motor_state = 0;
+			_esc_feedback.motor_state_flags = 0;
 
 			// reset motor start check
 			_motor_start_problem = false;

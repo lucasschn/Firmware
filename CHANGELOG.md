@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 * Set GPS driver baudrate to 115200 when Fixposition RTK is enabled (#3365)
 * Require RC sticks to be centered also when a takeoff vehicle_command is issued. For example using the GUI. (#3372)
-* Log camera and gimbal versions in flight log (#3346)
+
 
 ## [v1.8.2-1.7.0]
 ### Changed
@@ -17,6 +17,14 @@ All notable changes to this project will be documented in this file.
 * `free` command working again in nuttx shell. Have to mount `/proc` on startup. (#3302)
 * [Regression] Fix unreliable RC binding on H520C (tap-v3) (#3304)
 * ecl library updated to current upstream version to include alignment fixes (#3310)
+
+
+## [v1.8.0-1.6.15]
+### Added
+* Log camera and gimbal versions in flight log (#3346)
+
+### Changed
+* [PUBLIC] Improved manual disarming in the event of a crash (#3350) (DE:Manuelles Disarming verbessert im Falle eines Absturzes oder Umkippen der Drohne)
 
 
 ## [v1.8.0-1.6.14]

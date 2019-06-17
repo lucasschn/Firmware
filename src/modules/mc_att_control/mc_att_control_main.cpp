@@ -708,7 +708,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	Vector3f rates_d_scaled;
 
 	/* check engine failure mode */
-	if (_esc_status_report.engine_failure_report.motor_state != OK) {
+	if (_esc_status_report.motor_state_flags != OK) {
 		rates_p_scaled = _ftc_rate_p;
 		rates_i_scaled = _ftc_rate_i;
 		rates_d_scaled = _ftc_rate_d;

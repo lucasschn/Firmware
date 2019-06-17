@@ -302,22 +302,6 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
 PARAM_DEFINE_FLOAT(COM_DISARM_LAND, -1.0f);
 
 /**
- * Time-out for auto disarm after crashing
- *
- * A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be
- * automatically disarmed in case a crash situation has been detected during this period.
- *
- * A negative value means that automatic disarming triggered by a crash is disabled.
- *
- * @group Commander
- * @min -1
- * @max 20
- * @unit s
- * @decimal 2
- */
-PARAM_DEFINE_FLOAT(COM_DISARM_CRASH, -1.0f);
-
-/**
  * Allow arming without GPS
  *
  * The default allows to arm the vehicle without GPS signal.

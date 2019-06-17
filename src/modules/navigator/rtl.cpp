@@ -455,7 +455,7 @@ RTL::set_rtl_item()
 	}
 
 	// it will not set mission yaw setpoint when the vehicle enter fault tolerant control(yaw control tracking is not good)
-	if (_navigator->get_esc_report()->engine_failure_report.motor_state != OK) {
+	if (_navigator->get_esc_report()->motor_state_flags != OK) {
 		_mission_item.yaw = NAN;
 	}
 

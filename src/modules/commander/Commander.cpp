@@ -586,8 +586,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 
 		if (!sticks_are_centered) {
 			transition_result_t arming_res = TRANSITION_DENIED;
-			tune_negative(true);
-			mavlink_log_critical(mavlink_log_pub_local, "Not arming: One or more RC sticks not centered");
+			print_reject_arm("Not arming: One or more RC sticks not centered");
 			return arming_res;
 		}
 
@@ -595,8 +594,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 
 		if (!throttle_is_low) {
 			transition_result_t arming_res = TRANSITION_DENIED;
-			tune_negative(true);
-			mavlink_log_critical(mavlink_log_pub_local, "Not arming: Throttle stick has to be below center");
+			print_reject_arm("Not arming: Throttle stick is above center");
 			return arming_res;
 		}
 	}
@@ -2444,18 +2442,20 @@ Commander::run()
 					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
 					(sp_man.z < 0.1f || in_arming_grace_period);
 
-			// Yuneec-specific: Require all sticks to be centered when arming
-			float tolerance;
-			param_get(_param_arm_stick_tolerance, &tolerance);
-			const bool sticks_are_centered = rc_stick_centered(sp_man.x, 0.0f, tolerance) &&
-							 rc_stick_centered(sp_man.y, 0.0f, tolerance) &&
-							 rc_stick_centered(sp_man.z, 0.5f, tolerance) &&
-							 rc_stick_centered(sp_man.r, 0.0f, tolerance);
-
 			if (!in_armed_state &&
 			    status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 			    (stick_in_lower_right || (arm_button_pressed && arming_button_switch_allowed) || arm_switch_to_arm_transition)) {
 				if ((stick_on_counter == rc_arm_hyst) || arm_switch_to_arm_transition) {
+
+
+					// Yuneec-specific: Require all sticks to be centered when arming
+					float tolerance;
+					param_get(_param_arm_stick_tolerance, &tolerance);
+					const bool sticks_are_centered = rc_stick_centered(sp_man.x, 0.0f, tolerance) &&
+							 rc_stick_centered(sp_man.y, 0.0f, tolerance) &&
+							 rc_stick_centered(sp_man.r, 0.0f, tolerance);
+
+					const bool throttle_is_low = sp_man.z <= 0.5f;
 
 					/* we check outside of the transition function here because the requirement
 					 * for being in manual mode only applies to manual arming actions.
@@ -2488,6 +2488,9 @@ Commander::run()
 
 					} else if (!sticks_are_centered) {
 						print_reject_arm("Not arming: One or more RC sticks not centered");
+
+					} else if (!throttle_is_low) {
+						print_reject_arm("Not arming: Throttle stick is above center");
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 						arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_ARMED, &armed,

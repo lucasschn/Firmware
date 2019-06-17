@@ -576,19 +576,27 @@ void print_status()
 
 transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, const char *armedBy)
 {
-	// Yuneec-specific: Require all sticks to be centered when arming
+	// Yuneec-specific: Require all sticks to be centered and throttle less than 0.5 when arming
 	if (arm) {
 		float tolerance;
 		param_get(param_find("COM_ARM_STK_TOL"), &tolerance);
 		const bool sticks_are_centered = rc_stick_centered(sp_man.x, 0.0f, tolerance) &&
 						 rc_stick_centered(sp_man.y, 0.0f, tolerance) &&
-						 sp_man.z <= 0.5f &&
 						 rc_stick_centered(sp_man.r, 0.0f, tolerance);
 
 		if (!sticks_are_centered) {
 			transition_result_t arming_res = TRANSITION_DENIED;
 			tune_negative(true);
 			mavlink_log_critical(mavlink_log_pub_local, "Not arming: One or more RC sticks not centered");
+			return arming_res;
+		}
+
+		const bool throttle_is_low = sp_man.z <= 0.5f;
+
+		if (!throttle_is_low) {
+			transition_result_t arming_res = TRANSITION_DENIED;
+			tune_negative(true);
+			mavlink_log_critical(mavlink_log_pub_local, "Not arming: Throttle stick has to be below center");
 			return arming_res;
 		}
 	}

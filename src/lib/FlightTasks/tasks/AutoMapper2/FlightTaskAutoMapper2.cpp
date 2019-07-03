@@ -95,7 +95,7 @@ bool FlightTaskAutoMapper2::update()
 
 	// during mission and reposition, raise the landing gears but only
 	// if altitude is high enough
-	if (_highEnoughForLandingGear()) {
+	if (highEnoughForLandingGear(2.0f, _alt_above_ground)) {
 		_gear.landing_gear = landing_gear_s::GEAR_UP;
 	}
 
@@ -179,10 +179,4 @@ void FlightTaskAutoMapper2::updateParams()
 
 	// make sure that alt1 is above alt2
 	MPC_LAND_ALT1.set(math::max(MPC_LAND_ALT1.get(), MPC_LAND_ALT2.get()));
-}
-
-bool FlightTaskAutoMapper2::_highEnoughForLandingGear()
-{
-	// return true if altitude is above two meters
-	return _alt_above_ground > 2.0f;
 }

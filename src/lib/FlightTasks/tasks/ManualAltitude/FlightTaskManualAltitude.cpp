@@ -274,19 +274,19 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 
 void FlightTaskManualAltitude::_respectGroundSlowdown()
 {
-	float dist_to_ground = NAN;
+	_dist_to_ground = NAN;
 
 	// if there is a valid distance to bottom or vertical distance to home
 	if (PX4_ISFINITE(_dist_to_bottom)) {
-		dist_to_ground = _dist_to_bottom;
+		_dist_to_ground = _dist_to_bottom;
 
 	} else if (_sub_home_position->get().valid_alt) {
-		dist_to_ground = -(_position(2) - _sub_home_position->get().z);
+		_dist_to_ground = -(_position(2) - _sub_home_position->get().z);
 	}
 
 	// limit downwards speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
-	if (PX4_ISFINITE(dist_to_ground)) {
-		const float slowdown_limit = math::gradual(dist_to_ground,
+	if (PX4_ISFINITE(_dist_to_ground)) {
+		const float slowdown_limit = math::gradual(_dist_to_ground,
 					     MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
 					     MPC_LAND_SPEED.get(), _constraints.speed_down);
 		_velocity_setpoint(2) = math::min(_velocity_setpoint(2), slowdown_limit);
@@ -353,6 +353,14 @@ bool FlightTaskManualAltitude::update()
 {
 	_scaleSticks();
 	_updateSetpoints();
+
+	// Yuneec-special
+	// When the takeoff height exceeds 10 meters and forced only once per flight.
+	// the landing gear is forcibly retracted for better wifi signal transmission.
+	if (highEnoughForLandingGear(10.0f, _dist_to_ground) && !_have_force_gear_up) {
+		_gear.landing_gear = landing_gear_s::GEAR_UP;
+		_have_force_gear_up = true;
+	}
 
 	return true;
 }

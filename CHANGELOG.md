@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 * Don't require throttle to be centered, but only <= 50% for takeoff (#3389)
+* Force landing gear up above 10m when manual control(#3398)
 
 
 ## [v1.8.2-1.7.0]

@@ -41,6 +41,7 @@
 #pragma once
 
 #include "FlightTaskAuto.hpp"
+#include "UtilityFunctions.hpp"
 
 class FlightTaskAutoMapper : public FlightTaskAuto
 {
@@ -76,5 +77,4 @@ private:
 
 	void _reset(); /**< Resets member variables to current vehicle state */
 	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
-	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
 };

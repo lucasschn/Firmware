@@ -40,6 +40,7 @@
 #pragma once
 
 #include "FlightTaskManual.hpp"
+#include "UtilityFunctions.hpp"
 #include <uORB/topics/home_position.h>
 
 class FlightTaskManualAltitude : public FlightTaskManual
@@ -88,6 +89,7 @@ private:
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	bool _terrain_follow{false}; /**< true when the vehicle is following the terrain height */
 	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
+	bool _have_force_gear_up{false};
 
 	/**
 	 * Distance to ground during terrain following.
@@ -96,6 +98,10 @@ private:
 	 * _dist_to_ground_lock.
 	 */
 	float _dist_to_ground_lock = NAN;
+
+	float _dist_to_ground =
+		0.0f; /**< If home provided, then it is altitude above home, otherwise it is altitude above local position reference. */
+
 
 	/**
 	 * Terrain following.

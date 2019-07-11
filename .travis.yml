@@ -95,6 +95,7 @@ after_success:
       date > s3autopilot/timestamp;
       cp CHANGELOG.md s3autopilot/changelog;
       sha256sum s3autopilot/autopilot.yuneec | head -c 64 > s3autopilot/hash;
+      openssl aes-256-cbc -in build/yuneec_tap-v2_default/yuneec_tap-v2_default.elf -out s3autopilot/autopilot.elf.encrypted -k ${AUTOPILOT_AES_KEY}
 
       is_alpha=`echo "$TRAVIS_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+-[0-9]\+.[0-9]\+.[0-9]\+alpha[0-9]\+$' | wc -l`;
       is_beta=`echo "$TRAVIS_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+-[0-9]\+.[0-9]\+.[0-9]\+beta[0-9]\+$' | wc -l`;
@@ -129,6 +130,7 @@ after_success:
         upload_to_s3 s3autopilot/git              ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/git text/plain;
         upload_to_s3 s3autopilot/timestamp        ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/timestamp text/plain;
         upload_to_s3 s3autopilot/changelog        ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/changelog text/plain;
+        upload_to_s3 s3autopilot/autopilot.elf.encrypted    ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/autopilot.elf.encrypted text/plain;
       else
         upload_to_s3 s3autopilot/autopilot.yuneec ${BUILD_TARGET}/${BRANCH}/$release_type/latest/autopilot.yuneec application/octet-stream;
         upload_to_s3 s3autopilot/version          ${BUILD_TARGET}/${BRANCH}/$release_type/latest/version text/plain;
@@ -136,6 +138,7 @@ after_success:
         upload_to_s3 s3autopilot/git              ${BUILD_TARGET}/${BRANCH}/$release_type/latest/git text/plain;
         upload_to_s3 s3autopilot/timestamp        ${BUILD_TARGET}/${BRANCH}/$release_type/latest/timestamp text/plain;
         upload_to_s3 s3autopilot/changelog        ${BUILD_TARGET}/${BRANCH}/$release_type/latest/changelog text/plain;
+        upload_to_s3 s3autopilot/autopilot.elf.encrypted    ${BUILD_TARGET}/${BRANCH}/$release_type/latest/autopilot.elf.encrypted text/plain;
 
         upload_to_s3 s3autopilot/autopilot.yuneec ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/autopilot.yuneec application/octet-stream;
         upload_to_s3 s3autopilot/version          ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/version text/plain;
@@ -143,6 +146,7 @@ after_success:
         upload_to_s3 s3autopilot/git              ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/git text/plain;
         upload_to_s3 s3autopilot/timestamp        ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/timestamp text/plain;
         upload_to_s3 s3autopilot/changelog        ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/changelog text/plain;
+        upload_to_s3 s3autopilot/autopilot.elf.encrypted    ${BUILD_TARGET}/${BRANCH}/$release_type/latest/autopilot.elf.encrypted text/plain;
       fi;
 
       if [[ is_release -eq 1 && "${BUILD_TARGET}" = "autopilot" ]]; then

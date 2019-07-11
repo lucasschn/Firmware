@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 * Set GPS driver baudrate to 115200 when Fixposition RTK is enabled (#3365)
 * Require RC sticks to be centered also when a takeoff vehicle_command is issued. For example using the GUI. (#3372)
+* Deploy encrypted firmware elf file to AWS for release debugging
 
 ### Changed
 * Don't require throttle to be centered, but only <= 50% for takeoff (#3389)

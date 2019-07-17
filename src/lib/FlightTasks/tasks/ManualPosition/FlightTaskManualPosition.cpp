@@ -71,22 +71,12 @@ bool FlightTaskManualPosition::updateInitialize()
 	       && PX4_ISFINITE(_velocity(1));
 }
 
-void FlightTaskManualPosition::_setDynamicConstraints()
-{
-	// set task specific constraint
-	FlightTaskManualAltitude::_setDynamicConstraints();
-
-	if (MPC_XY_VEL_MAX.get() >= MPC_VEL_MANUAL.get()) {
-		_constraints.speed_xy = MPC_VEL_MANUAL.get();
-	}
-}
-
-bool FlightTaskManualPosition::activate()
+bool FlightTaskManualPosition::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	// all requirements from altitude-mode still have to hold
-	bool ret = FlightTaskManualAltitude::activate();
+	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
 
-	_constraints.tilt = math::radians(MPC_TILTMAX_AIR.get());
+	_constraints.tilt = math::radians(_param_mpc_tiltmax_air.get());
 
 	_position_setpoint(0) = _position(0);
 	_position_setpoint(1) = _position(1);
@@ -105,7 +95,7 @@ void FlightTaskManualPosition::_scaleSticks()
 		_constraints.speed_xy = AVOIDANCE_SPEED;
 
 	} else {
-		_constraints.speed_xy = MPC_VEL_MANUAL.get();
+		_constraints.speed_xy = _param_mpc_vel_manual.get();
 	}
 
 	// Use same scaling as for FlightTaskManualAltitude
@@ -123,6 +113,7 @@ void FlightTaskManualPosition::_scaleSticks()
 		stick_xy = stick_xy.normalized() * mag;
 	}
 
+	// scale the stick inputs
 	if (PX4_ISFINITE(_sub_vehicle_local_position->get().vxy_max)) {
 		// estimator provides vehicle specific max
 
@@ -135,7 +126,7 @@ void FlightTaskManualPosition::_scaleSticks()
 		// raise the limit at a constant rate up to the user specified value
 
 		if (_velocity_scale < _constraints.speed_xy) {
-			_velocity_scale += _deltatime * MPC_ACC_HOR_ESTM.get();
+			_velocity_scale += _deltatime * _param_mpc_acc_hor_estm.get();
 
 		} else {
 			_velocity_scale = _constraints.speed_xy;
@@ -163,7 +154,7 @@ void FlightTaskManualPosition::_updateXYlock()
 	/* If position lock is not active, position setpoint is set to NAN.*/
 	const float vel_xy_norm = Vector2f(_velocity).length();
 	const bool apply_brake = Vector2f(_velocity_setpoint).length() < FLT_EPSILON;
-	const bool stopped = (MPC_HOLD_MAX_XY.get() < FLT_EPSILON || vel_xy_norm < MPC_HOLD_MAX_XY.get());
+	const bool stopped = (_param_mpc_hold_max_xy.get() < FLT_EPSILON || vel_xy_norm < _param_mpc_hold_max_xy.get());
 
 	if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(0))) {
 		_position_setpoint(0) = _position(0);
@@ -197,4 +188,14 @@ void FlightTaskManualPosition::_updateSetpoints()
 
 	_thrust_setpoint.setAll(NAN); // don't require any thrust setpoints
 	_updateXYlock(); // check for position lock
+}
+
+void FlightTaskManualPosition::_setDefaultConstraints()
+{
+	// set task specific constraint
+	FlightTaskManualAltitude::_setDefaultConstraints();
+
+	if (_param_mpc_xy_vel_max.get() >= _param_mpc_vel_manual.get()) {
+		_constraints.speed_xy = _param_mpc_vel_manual.get();
+	}
 }

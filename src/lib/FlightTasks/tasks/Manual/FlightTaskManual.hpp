@@ -63,7 +63,7 @@ protected:
 	int _gear_switch_old = manual_control_setpoint_s::SWITCH_POS_NONE; /**< old switch state*/
 	bool _avoidance_on = false; /**< true if avoidance is on */
 
-	float stickDeadzone() const { return MPC_HOLD_DZ.get(); }
+	float stickDeadzone() const { return _param_mpc_hold_dz.get(); }
 
 private:
 
@@ -73,13 +73,13 @@ private:
 	uORB::Subscription<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_HOLD_DZ>) MPC_HOLD_DZ, /**< 0-deadzone around the center for the sticks */
+					(ParamFloat<px4::params::MPC_HOLD_DZ>) _param_mpc_hold_dz, /**< 0-deadzone around the center for the sticks */
 					(ParamFloat<px4::params::MPC_XY_MAN_EXPO>)
-					_xy_vel_man_expo, /**< ratio of exponential curve for stick input in xy direction */
+					_param_mpc_xy_man_expo, /**< ratio of exponential curve for stick input in xy direction */
 					(ParamFloat<px4::params::MPC_Z_MAN_EXPO>)
-					_z_vel_man_expo, /**< ratio of exponential curve for stick input in z direction */
+					_param_mpc_z_man_expo, /**< ratio of exponential curve for stick input in z direction */
 					(ParamFloat<px4::params::MPC_YAW_EXPO>)
-					_yaw_expo, /**< ratio of exponential curve for stick input in yaw for modes except acro */
-					(ParamFloat<px4::params::COM_RC_LOSS_T>) COM_RC_LOSS_T /**< time at which commander considers RC lost */
+					_param_mpc_yaw_expo, /**< ratio of exponential curve for stick input in yaw for modes except acro */
+					(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t /**< time at which commander considers RC lost */
 				       )
 };

@@ -75,7 +75,6 @@
 #include <px4_time.h>
 #include <circuit_breaker/circuit_breaker.h>
 #include <systemlib/err.h>
-#include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
 
@@ -1982,13 +1981,13 @@ Commander::run()
 		}
 
 		if (armed.armed && land_detector.landed && _disarm_when_landed_timeout.get() > FLT_EPSILON) {
-			auto_disarm_hysteresis.set_state_and_update(true);
+			auto_disarm_hysteresis.set_state_and_update(true, hrt_absolute_time());
 
 		} else if (armed.armed && land_detector.crash) {
 			// TODO: Do something when crash is detected
 
 		} else {
-			auto_disarm_hysteresis.set_state_and_update(false);
+			auto_disarm_hysteresis.set_state_and_update(false, hrt_absolute_time());
 		}
 
 		if (auto_disarm_hysteresis.get_state()) {
@@ -2261,7 +2260,7 @@ Commander::run()
 					/* We interrupted land via sticks */
 					control_mode.flag_control_updated = true;
 					main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
-					land_interrupt_hysteresis.set_state_and_update(true);
+					land_interrupt_hysteresis.set_state_and_update(true, hrt_absolute_time());
 				}
 			}
 
@@ -2272,7 +2271,7 @@ Commander::run()
 			    fabsf(_local_position_sub.get().vx) < 0.3f && fabsf(_local_position_sub.get().vy) < 0.3f) {
 
 				/* set land interrupt hysteresis to false since sticks are not moving */
-				land_interrupt_hysteresis.set_state_and_update(false);
+				land_interrupt_hysteresis.set_state_and_update(false, hrt_absolute_time());
 
 				if (!land_interrupt_hysteresis.get_state()) {
 					control_mode.flag_control_updated = false;
@@ -2281,7 +2280,7 @@ Commander::run()
 
 			} else {
 				/* stick are still moving */
-				land_interrupt_hysteresis.set_state_and_update(true);
+				land_interrupt_hysteresis.set_state_and_update(true, hrt_absolute_time());
 			}
 		}
 

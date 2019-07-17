@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,46 +32,50 @@
  ****************************************************************************/
 
 /**
- * @file hysteresis.cpp
+ * @file FlightManualAltitudeSmoothVel.hpp
  *
- * @author Julian Oes <julian@oes.ch>
+ * Flight task for manual controlled altitude using the velocity smoothing library
  */
 
-#include <px4_log.h>
-#include "systemlib/hysteresis/hysteresis.h"
+#pragma once
 
+#include "FlightTaskManualAltitude.hpp"
+#include "VelocitySmoothing.hpp"
 
-namespace systemlib
+class FlightTaskManualAltitudeSmoothVel : public FlightTaskManualAltitude
 {
+public:
+	FlightTaskManualAltitudeSmoothVel() = default;
+	virtual ~FlightTaskManualAltitudeSmoothVel() = default;
 
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
+	void reActivate() override;
 
-void
-Hysteresis::set_state_and_update(const bool new_state)
-{
-	if (new_state != _state) {
-		if (new_state != _requested_state) {
-			_requested_state = new_state;
-			_last_time_to_change_state = hrt_absolute_time();
-		}
+protected:
 
-	} else {
-		_requested_state = _state;
-	}
+	virtual void _updateSetpoints() override;
 
-	update();
-}
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
+		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
+	)
 
-void
-Hysteresis::update()
-{
-	if (_requested_state != _state) {
+private:
 
-		if (hrt_elapsed_time(&_last_time_to_change_state) >= (_state ?
-				_hysteresis_time_from_true_us :
-				_hysteresis_time_from_false_us)) {
-			_state = _requested_state;
-		}
-	}
-}
+	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
+	void _resetPositionLock();
+	void _initEkfResetCounters();
+	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 
-} // namespace systemlib
+	VelocitySmoothing _smoothing; ///< Smoothing in z direction
+	float _vel_sp_smooth;
+	bool _position_lock_z_active{false};
+	float _position_setpoint_z_locked{NAN};
+
+	/* counters for estimator local position resets */
+	struct {
+		uint8_t z;
+		uint8_t vz;
+	} _reset_counters{0, 0};
+};

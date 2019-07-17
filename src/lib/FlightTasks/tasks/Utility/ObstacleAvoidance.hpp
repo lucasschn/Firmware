@@ -41,7 +41,7 @@
 
 #include <px4_module_params.h>
 #include <matrix/matrix/math.hpp>
-#include <systemlib/hysteresis/hysteresis.h>
+#include <lib/hysteresis/hysteresis.h>
 
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/home_position.h>

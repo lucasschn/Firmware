@@ -214,12 +214,13 @@ void LandDetector::_update_state()
 {
 	/* when we are landed we also have ground contact for sure but only one output state can be true at a particular time
 	 * with higher priority for landed */
-	_freefall_hysteresis.set_state_and_update(_get_freefall_state());
-	_crash_hysteresis.set_state_and_update(_get_crash_state());
-	_inverted_hysteresis.set_state_and_update(_get_inverted_state());
-	_landed_hysteresis.set_state_and_update(_get_landed_state());
-	_maybe_landed_hysteresis.set_state_and_update(_get_maybe_landed_state());
-	_ground_contact_hysteresis.set_state_and_update(_get_ground_contact_state());
+	const hrt_abstime now_us = hrt_absolute_time();
+	_freefall_hysteresis.set_state_and_update(_get_freefall_state(), now_us);
+	_crash_hysteresis.set_state_and_update(_get_crash_state(), now_us);
+	_inverted_hysteresis.set_state_and_update(_get_inverted_state(), now_us);
+	_landed_hysteresis.set_state_and_update(_get_landed_state(), now_us);
+	_maybe_landed_hysteresis.set_state_and_update(_get_maybe_landed_state(), now_us);
+	_ground_contact_hysteresis.set_state_and_update(_get_ground_contact_state(), now_us);
 
 	if (_crash_hysteresis.get_state()) {
 		_state = LandDetectionState::CRASH;

@@ -89,7 +89,7 @@ const struct {
 #endif
 	{"sf0x",		sf0x_tests_main,	0},
 	{"uorb",		uorb_tests_main,	0},
-	{"hysteresis",		test_hysteresis,	0},
+	//{"hysteresis",		test_hysteresis,	0},
 
 	{"mixer",		test_mixer,	OPT_NOJIGTEST},
 	{"autodeclination",	test_autodeclination,	0},

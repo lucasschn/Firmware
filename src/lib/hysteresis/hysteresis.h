@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,43 +49,31 @@ namespace systemlib
 class Hysteresis
 {
 public:
-	Hysteresis(bool init_state) :
+	explicit Hysteresis(bool init_state) :
 		_state(init_state),
-		_requested_state(init_state),
-		_hysteresis_time_from_true_us(0),
-		_hysteresis_time_from_false_us(0),
-		_last_time_to_change_state(0)
+		_requested_state(init_state)
 	{}
+	Hysteresis() = delete; // no default constructor
 
-	~Hysteresis()
-	{}
+	~Hysteresis() = default;
 
-	void set_hysteresis_time_from(const bool from_state, const hrt_abstime new_hysteresis_time_us)
-	{
-		if (from_state == true) {
-			_hysteresis_time_from_true_us = new_hysteresis_time_us;
+	bool get_state() const { return _state; }
 
-		} else {
-			_hysteresis_time_from_false_us = new_hysteresis_time_us;
-		}
-	}
+	void set_hysteresis_time_from(const bool from_state, const hrt_abstime new_hysteresis_time_us);
 
-	bool get_state() const
-	{
-		return _state;
-	}
+	void set_state_and_update(const bool new_state, const hrt_abstime &now_us);
 
-	void set_state_and_update(const bool new_state);
-
-	void update();
+	void update(const hrt_abstime &now_us);
 
 private:
 
+	hrt_abstime _last_time_to_change_state{0};
+
+	hrt_abstime _time_from_true_us{0};
+	hrt_abstime _time_from_false_us{0};
+
 	bool _state;
 	bool _requested_state;
-	hrt_abstime _hysteresis_time_from_true_us;
-	hrt_abstime _hysteresis_time_from_false_us;
-	hrt_abstime _last_time_to_change_state;
 };
 
 } // namespace systemlib

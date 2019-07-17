@@ -194,7 +194,7 @@ void ObstacleAvoidance::stopInFront(const Vector3f &position, const float yaw, c
 
 		if (obstacle_ahead) {
 			// vehicle just detected an obstacle
-			_obstacle_lock_hysteresis.set_state_and_update(true);
+			_obstacle_lock_hysteresis.set_state_and_update(true, hrt_absolute_time());
 			_yaw_obstacle_lock = yaw;
 		}
 
@@ -209,7 +209,7 @@ void ObstacleAvoidance::stopInFront(const Vector3f &position, const float yaw, c
 
 			// stay in obstacle lock when trying to go forwards without yawing 30 degree away from the last obstacle
 			_obstacle_lock_hysteresis.set_state_and_update(vel_sp_heading(0) > FLT_EPSILON &&
-					fabsf(yaw - _yaw_obstacle_lock) > math::radians(UNLOCK_YAW));
+					fabsf(yaw - _yaw_obstacle_lock) > math::radians(UNLOCK_YAW), hrt_absolute_time());
 
 			// we don't allow movement perpendicular to heading direction
 			vel_sp_heading(1) = 0.0f;
@@ -255,7 +255,7 @@ void ObstacleAvoidance::stopInFront(const Vector3f &position, const float yaw, c
 
 	} else {
 		// release lock if obstacle avoidance off
-		_obstacle_lock_hysteresis.set_state_and_update(false);
+		_obstacle_lock_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
 }
 

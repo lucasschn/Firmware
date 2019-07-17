@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,34 +32,63 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskOffboard.hpp
+ * @file hysteresis.cpp
+ *
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#pragma once
+#include "hysteresis.h"
 
-#include "FlightTask.hpp"
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/position_setpoint.h>
-
-class FlightTaskOffboard : public FlightTask
+namespace systemlib
 {
-public:
-	FlightTaskOffboard() = default;
 
-	virtual ~FlightTaskOffboard() = default;
-	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
-	bool update() override;
-	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
-	bool updateInitialize() override;
+void
+Hysteresis::set_hysteresis_time_from(const bool from_state, const hrt_abstime new_hysteresis_time_us)
+{
+	if (from_state == true) {
+		_time_from_true_us = new_hysteresis_time_us;
 
-protected:
-	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
-private:
-	matrix::Vector3f _position_lock{};
+	} else {
+		_time_from_false_us = new_hysteresis_time_us;
+	}
+}
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
-					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
-					(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_mis_takeoff_alt
-				       )
-};
+void
+Hysteresis::set_state_and_update(const bool new_state, const hrt_abstime &now_us)
+{
+	if (new_state != _state) {
+		if (new_state != _requested_state) {
+			_requested_state = new_state;
+			_last_time_to_change_state = now_us;
+		}
+
+	} else {
+		_requested_state = _state;
+	}
+
+	update(now_us);
+}
+
+void
+Hysteresis::update(const hrt_abstime &now_us)
+{
+	if (_requested_state != _state) {
+
+		const hrt_abstime elapsed = now_us - _last_time_to_change_state;
+
+		if (_state && !_requested_state) {
+			// true -> false
+			if (elapsed >= _time_from_true_us) {
+				_state = false;
+			}
+
+		} else if (!_state && _requested_state) {
+			// false -> true
+			if (elapsed >= _time_from_false_us) {
+				_state = true;
+			}
+		}
+	}
+}
+
+} // namespace systemlib

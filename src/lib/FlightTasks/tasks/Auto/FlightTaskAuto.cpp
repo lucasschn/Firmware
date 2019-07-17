@@ -63,14 +63,14 @@ bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_arr
 	return true;
 }
 
-bool FlightTaskAuto::activate()
+bool FlightTaskAuto::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTask::activate();
+	bool ret = FlightTask::activate(last_setpoint);
 	_position_setpoint = _position;
 	_velocity_setpoint = _velocity;
-	_yaw_setpoint = _yaw;
+	_yaw_setpoint = _yaw_sp_prev = _yaw;
 	_yawspeed_setpoint = 0.0f;
-	_setDynamicConstraints();
+	_setDefaultConstraints();
 	return ret;
 }
 
@@ -88,6 +88,43 @@ bool FlightTaskAuto::updateInitialize()
 	      && PX4_ISFINITE(_velocity(2));
 
 	return ret;
+}
+
+bool FlightTaskAuto::updateFinalize()
+{
+	// All the auto FlightTasks have to comply with defined maximum yaw rate
+	// If the FlightTask generates a yaw or a yawrate setpoint that exceeds this value
+	// it will see its setpoint constrained here
+	_limitYawRate();
+	_constraints.want_takeoff = _checkTakeoff();
+	return true;
+}
+
+void FlightTaskAuto::_limitYawRate()
+{
+	const float yawrate_max = math::radians(_param_mpc_yawrauto_max.get());
+
+	_yaw_sp_aligned = true;
+
+	if (PX4_ISFINITE(_yaw_setpoint) && PX4_ISFINITE(_yaw_sp_prev)) {
+		// Limit the rate of change of the yaw setpoint
+		const float dyaw_desired = matrix::wrap_pi(_yaw_setpoint - _yaw_sp_prev);
+		const float dyaw_max = yawrate_max * _deltatime;
+		const float dyaw = math::constrain(dyaw_desired, -dyaw_max, dyaw_max);
+		_yaw_setpoint = _yaw_sp_prev + dyaw;
+		_yaw_setpoint = matrix::wrap_pi(_yaw_setpoint);
+		_yaw_sp_prev = _yaw_setpoint;
+
+		// The yaw setpoint is aligned when its rate is not saturated
+		_yaw_sp_aligned = fabsf(dyaw_desired) < fabsf(dyaw_max);
+	}
+
+	if (PX4_ISFINITE(_yawspeed_setpoint)) {
+		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
+
+		// The yaw setpoint is aligned when its rate is not saturated
+		_yaw_sp_aligned = fabsf(_yawspeed_setpoint) < yawrate_max;
+	}
 }
 
 bool FlightTaskAuto::_evaluateTriplets()
@@ -118,10 +155,13 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// Always update cruise speed since that can change without waypoint changes.
 	_mc_cruise_speed = _sub_triplet_setpoint->get().current.cruising_speed;
 
-	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f) || (_mc_cruise_speed > _constraints.speed_xy)) {
-		// Use default limit.
+	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
+		// If no speed is planned use the default cruise speed as limit
 		_mc_cruise_speed = _constraints.speed_xy;
 	}
+
+	// Ensure planned cruise speed is below the maximum such that the smooth trajectory doesn't get capped
+	_mc_cruise_speed = math::min(_mc_cruise_speed, _param_mpc_xy_vel_max.get());
 
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
 	Vector3f tmp_target;
@@ -136,10 +176,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 		} else {
 			tmp_target(0) = _lock_position_xy(0);
 			tmp_target(1) = _lock_position_xy(1);
-			_lock_position_xy.setAll(NAN);
 		}
 
 	} else {
+		// reset locked position if current lon and lat are valid
+		_lock_position_xy.setAll(NAN);
+
 		// Convert from global to local frame.
 		map_projection_project(&_reference_position,
 				       _sub_triplet_setpoint->get().current.lat, _sub_triplet_setpoint->get().current.lon, &tmp_target(0), &tmp_target(1));
@@ -153,8 +195,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	bool triplet_update = true;
 
-	if (!(fabsf(_triplet_target(0) - tmp_target(0)) > 0.001f || fabsf(_triplet_target(1) - tmp_target(1)) > 0.001f
-	      || fabsf(_triplet_target(2) - tmp_target(2)) > 0.001f)) {
+	if (PX4_ISFINITE(_triplet_target(0))
+	    && PX4_ISFINITE(_triplet_target(1))
+	    && PX4_ISFINITE(_triplet_target(2))
+	    && fabsf(_triplet_target(0) - tmp_target(0)) < 0.001f
+	    && fabsf(_triplet_target(1) - tmp_target(1)) < 0.001f
+	    && fabsf(_triplet_target(2) - tmp_target(2)) < 0.001f) {
 		// Nothing has changed: just keep old waypoints.
 		triplet_update = false;
 
@@ -227,7 +273,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_mission_gear = _sub_triplet_setpoint->get().current.landing_gear;
 	}
 
-	if (MPC_OBS_AVOID.get() && _sub_vehicle_status->get().is_rotary_wing) {
+	if (_param_com_obs_avoid.get()
+	    && _sub_vehicle_status->get().is_rotary_wing) {
 		_checkAvoidanceProgress();
 	}
 
@@ -239,9 +286,10 @@ void FlightTaskAuto::_set_heading_from_mode()
 
 	Vector2f v; // Vector that points towards desired location
 
-	switch (MPC_YAW_MODE.get()) {
+	switch (_param_mpc_yaw_mode.get()) {
 
 	case 0: // Heading points towards the current waypoint.
+	case 4: // Same as 0 but yaw fisrt and then go
 		v = Vector2f(_target) - Vector2f(_position);
 		break;
 
@@ -265,8 +313,7 @@ void FlightTaskAuto::_set_heading_from_mode()
 		v.setAll(NAN);
 		break;
 
-
-	case 4:  // Heading does not change: lock
+	case 5:  // Heading does not change: lock
 		v.setZero();
 	}
 
@@ -337,7 +384,7 @@ void FlightTaskAuto::_checkAvoidanceProgress()
 
 	const float pos_to_target_z = fabsf(_triplet_target(2) - _position(2));
 
-	if (pos_to_target.length() < _target_acceptance_radius && pos_to_target_z > NAV_MC_ALT_RAD.get()) {
+	if (pos_to_target.length() < _target_acceptance_radius && pos_to_target_z > _param_nav_mc_alt_rad.get()) {
 		// vehicle above or below the target waypoint
 		pos_control_status.altitude_acceptance = pos_to_target_z + 0.5f;
 	}
@@ -405,21 +452,21 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 	}
 }
 
-void FlightTaskAuto::_setDynamicConstraints()
+void FlightTaskAuto::_setDefaultConstraints()
 {
-	FlightTask::_setDynamicConstraints();
+	FlightTask::_setDefaultConstraints();
 
 	// only adjust limits if the new limit is lower
-	if (MPC_XY_VEL_MAX.get() >= MPC_XY_CRUISE.get()) {
-		_constraints.speed_xy = MPC_XY_CRUISE.get();
+	if (_param_mpc_xy_vel_max.get() >= _param_mpc_xy_cruise.get()) {
+		_constraints.speed_xy = _param_mpc_xy_cruise.get();
 	}
 
-	if (MPC_Z_VEL_MAX_UP.get() >= MPC_VEL_Z_AUTO.get()) {
-		_constraints.speed_up = MPC_VEL_Z_AUTO.get();
+	if (_param_mpc_z_vel_max_up.get() >= _param_mpc_vel_z_auto.get()) {
+		_constraints.speed_up = _param_mpc_vel_z_auto.get();
 	}
 
-	if (MPC_Z_VEL_MAX_DN.get() >= MPC_VEL_Z_AUTO.get()) {
-		_constraints.speed_down = MPC_VEL_Z_AUTO.get();
+	if (_param_mpc_z_vel_max_dn.get() >= _param_mpc_vel_z_auto.get()) {
+		_constraints.speed_down = _param_mpc_vel_z_auto.get();
 	}
 }
 

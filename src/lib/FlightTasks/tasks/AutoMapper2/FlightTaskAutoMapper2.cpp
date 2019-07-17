@@ -40,9 +40,9 @@
 
 using namespace matrix;
 
-bool FlightTaskAutoMapper2::activate()
+bool FlightTaskAutoMapper2::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskAuto::activate();
+	bool ret = FlightTaskAuto::activate(last_setpoint);
 	_reset();
 	return ret;
 }
@@ -50,7 +50,7 @@ bool FlightTaskAutoMapper2::activate()
 bool FlightTaskAutoMapper2::update()
 {
 	// always reset constraints because they might change depending on the type
-	_setDynamicConstraints();
+	_setDefaultConstraints();
 
 	_updateAltitudeAboveGround();
 
@@ -122,13 +122,14 @@ void FlightTaskAutoMapper2::_prepareIdleSetpoints()
 
 void FlightTaskAutoMapper2::_prepareLandSetpoints()
 {
+	float land_speed = _getLandSpeed();
+
 	// Keep xy-position and go down with landspeed
 	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
-	const float speed_lnd = (_alt_above_ground > MPC_LAND_ALT1.get()) ? _constraints.speed_down : MPC_LAND_SPEED.get();
-	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, speed_lnd));
+	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, land_speed));
 
 	// set constraints
-	_constraints.tilt = MPC_TILTMAX_LND.get();
+	_constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
@@ -136,7 +137,8 @@ void FlightTaskAutoMapper2::_prepareTakeoffSetpoints()
 {
 	// Takeoff is completely defined by target position
 	_position_setpoint = _target;
-	const float speed_tko = (_alt_above_ground > MPC_LAND_ALT1.get()) ? _constraints.speed_up : MPC_TKO_SPEED.get();
+	const float speed_tko = (_alt_above_ground > _param_mpc_land_alt1.get()) ? _constraints.speed_up :
+				_param_mpc_tko_speed.get();
 	_velocity_setpoint = Vector3f(NAN, NAN, -speed_tko); // Limit the maximum vertical speed
 
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
@@ -178,5 +180,36 @@ void FlightTaskAutoMapper2::updateParams()
 	FlightTaskAuto::updateParams();
 
 	// make sure that alt1 is above alt2
-	MPC_LAND_ALT1.set(math::max(MPC_LAND_ALT1.get(), MPC_LAND_ALT2.get()));
+	_param_mpc_land_alt1.set(math::max(_param_mpc_land_alt1.get(), _param_mpc_land_alt2.get()));
+}
+
+float FlightTaskAutoMapper2::_getLandSpeed()
+{
+	bool rc_assist_enabled = _param_mpc_land_rc_help.get();
+	bool rc_is_valid = !_sub_vehicle_status->get().rc_signal_lost;
+
+	float throttle = 0.5f;
+
+	if (rc_is_valid && rc_assist_enabled) {
+		throttle = _sub_manual_control_setpoint->get().z;
+	}
+
+	float speed = 0;
+
+	if (_alt_above_ground > _param_mpc_land_alt1.get()) {
+		speed = _constraints.speed_down;
+
+	} else {
+		float land_speed = _param_mpc_land_speed.get();
+		float head_room = _constraints.speed_down - land_speed;
+
+		speed = land_speed + 2 * (0.5f - throttle) * head_room;
+
+		// Allow minimum assisted land speed to be half of parameter
+		if (speed < land_speed * 0.5f) {
+			speed = land_speed * 0.5f;
+		}
+	}
+
+	return speed;
 }

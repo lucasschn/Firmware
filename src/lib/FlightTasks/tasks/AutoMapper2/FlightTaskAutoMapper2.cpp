@@ -95,8 +95,8 @@ bool FlightTaskAutoMapper2::update()
 
 	// during mission and reposition, raise the landing gears but only
 	// if altitude is high enough
-	if (highEnoughForLandingGear(2.0f, _alt_above_ground)) {
-		_gear.landing_gear = landing_gear_s::GEAR_UP;
+	if (_mission_gear == landing_gear_s::GEAR_DOWN || highEnoughForLandingGear(2.0f, _alt_above_ground)) {
+		_gear.landing_gear = _mission_gear;
 	}
 
 	// update previous type

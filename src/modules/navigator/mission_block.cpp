@@ -56,6 +56,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 
 using matrix::wrap_pi;
+static constexpr float SIGMA_NORM		=	0.001f;
 
 MissionBlock::MissionBlock(Navigator *navigator) :
 	NavigatorMode(navigator)
@@ -390,13 +391,33 @@ MissionBlock::is_mission_item_reached()
 
 	} else if (_waypoint_position_reached && _waypoint_yaw_reached) {
 
+		const position_setpoint_s &next_sp = _navigator->get_position_setpoint_triplet()->next;
+
 		// For MC, the time-counter only starts once the vehicle is below a velocity threshold. This ensures
 		// that the vehicle first comes to rest before proceeding to the next waypoint.
-		if (_navigator->get_vstatus()->is_rotary_wing && _mission_item.time_inside > 0.0f) {
+		if (_navigator->get_vstatus()->is_rotary_wing && (_mission_item.time_inside > 0.0f || !next_sp.valid)) {
 			float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
 					       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
 
-			if (velocity > _navigator->get_hold_max_xy_threshold()) {
+			// the difference between the position-setpoint from the position controller and the actual waypoint
+			float distance_target = matrix::Vector2f(matrix::Vector2f(_navigator->get_position_setpoint_triplet()->current.x,
+						_navigator->get_position_setpoint_triplet()->current.y) -
+						matrix::Vector2f(_navigator->get_local_position_setpoint()->x, _navigator->get_local_position_setpoint()->y)).length();
+
+			// error between setpoint yaw and estimated yaw
+			float dyaw = 0.0f;
+
+			if (PX4_ISFINITE(_navigator->get_local_position_setpoint()->yaw)) {
+				dyaw = matrix::wrap_pi(_navigator->get_local_position_setpoint()->yaw - _navigator->get_local_position()->yaw);
+			}
+
+			// check if yaw is aligned
+			const float yawrate_max = math::radians(_navigator->get_mpc_yawrauto_max());
+			const float dyaw_max = yawrate_max * _navigator->get_deltatime();
+			bool yaw_aligned = fabsf(dyaw) < fabsf(dyaw_max);
+
+			// waypoint is considered reached if velocity is close to 0, distance between setpoint and target is small, and yaw is aligned
+			if (velocity > _navigator->get_hold_max_xy_threshold() || distance_target > (10.0f * SIGMA_NORM) || !yaw_aligned) {
 				return false;
 			}
 		}
@@ -410,7 +431,6 @@ MissionBlock::is_mission_item_reached()
 		    (now - _time_first_inside_orbit >= (hrt_abstime)(get_time_inside(_mission_item) * 1e6f))) {
 
 			position_setpoint_s &curr_sp = _navigator->get_position_setpoint_triplet()->current;
-			const position_setpoint_s &next_sp = _navigator->get_position_setpoint_triplet()->next;
 
 			const float range = get_distance_to_next_waypoint(curr_sp.lat, curr_sp.lon, next_sp.lat, next_sp.lon);
 

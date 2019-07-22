@@ -73,6 +73,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/trajectory_waypoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/uORB.h>
@@ -166,6 +167,7 @@ public:
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
 	struct follow_target_s *get_target_motion() { return &_target_motion; }
+	struct vehicle_local_position_setpoint_s *get_local_position_setpoint() {return &_local_position_setpoint; }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 
@@ -316,6 +318,9 @@ public:
 	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
 	float		get_vtol_reverse_delay() const { return _param_reverse_delay; }
 
+	float 		get_mpc_yawrauto_max() const { return _param_mpc_yawrauto_max.get(); };
+	float 		get_deltatime() const { return _deltatime; };
+
 	bool		force_vtol();
 
 private:
@@ -337,6 +342,8 @@ private:
 	int 	_manual_sub{-1}; /**< manual setpoint subscription */
 	/* --- */
 	int 	_target_motion_sub{-1}; /**< target subscription */
+
+	int		_local_position_setpoint_sub{-1}; /**< local position setpoint subscription */
 
 
 	orb_advert_t	_geofence_result_pub{nullptr};
@@ -366,6 +373,8 @@ private:
 	esc_status_s 					_esc_report{};/**< esc status report include engine failure report */
 	vehicle_control_mode_s				_control_mode{};		/**< vehicle control mode */
 	landing_gear_s					_landing_gear_state{};
+	vehicle_local_position_setpoint_s _local_position_setpoint{}; /**< local position setpoint from position controller */
+
 	/* --- */
 	// Publications
 	geofence_result_s				_geofence_result{};
@@ -423,7 +432,8 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_yaw_timeout,
 		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_yaw_err,
 
-		(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _param_hold_max_xy
+		(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _param_hold_max_xy,
+		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max
 	)
 
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
@@ -434,6 +444,7 @@ private:
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
 	float _mission_throttle{-1.0f};
+	float _deltatime{0.0f};
 
 	// update subscriptions
 	void		global_position_update();
@@ -450,6 +461,7 @@ private:
 	/* --- tap specific update subscription */
 	void		vehicle_esc_report_update();
 	void 		landing_gear_update();
+	void 		local_position_setpoint_update();
 	/* --- */
 
 	void 		local_reference_update();

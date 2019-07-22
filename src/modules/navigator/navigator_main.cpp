@@ -131,6 +131,12 @@ Navigator::local_position_update()
 }
 
 void
+Navigator::local_position_setpoint_update()
+{
+	orb_copy(ORB_ID(vehicle_local_position_setpoint), _local_position_setpoint_sub, &_local_position_setpoint);
+}
+
+void
 Navigator::local_reference_update()
 {
 	// This method is the same as the method used in the mc_pos_control.
@@ -313,6 +319,8 @@ Navigator::run()
 	/* --- tap specific subscription and update */
 	_esc_report_sub = orb_subscribe(ORB_ID(esc_status));
 	_landing_gear_sub = orb_subscribe(ORB_ID(landing_gear));
+	_local_position_setpoint_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+
 	vehicle_esc_report_update();
 	landing_gear_update();
 
@@ -328,6 +336,7 @@ Navigator::run()
 	manual_update();
 	target_motion_update();
 	params_update();
+	local_position_setpoint_update();
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1] = {};
@@ -342,6 +351,8 @@ Navigator::run()
 	hrt_abstime last_geofence_check = 0;
 
 	reset_target_motion();
+
+	hrt_abstime time_stamp_last_loop = hrt_absolute_time(); // time stamp of last loop iteration
 
 	while (!should_exit()) {
 
@@ -366,6 +377,11 @@ Navigator::run()
 		}
 
 		perf_begin(_loop_perf);
+
+		/* delta-time */
+		const hrt_abstime time_stamp_current = hrt_absolute_time();
+		_deltatime = (time_stamp_current - time_stamp_last_loop) / 1e6f;
+		time_stamp_last_loop = time_stamp_current;
 
 		bool updated;
 
@@ -464,6 +480,13 @@ Navigator::run()
 		} else if (hrt_elapsed_time(&_target_motion.timestamp) > TARGET_MOTION_CHECK_INTERVAL) {
 			// Too much time passed since the last update. Don't use target motion.
 			reset_target_motion();
+		}
+
+		// local position setpoint update
+		orb_check(_local_position_setpoint_sub, &updated);
+
+		if (updated) {
+			local_position_setpoint_update();
 		}
 
 		/* vehicle_command updated */
@@ -986,6 +1009,7 @@ Navigator::run()
 	// Yuneec specific unsubscribe
 	orb_unsubscribe(_esc_report_sub);
 	orb_unsubscribe(_landing_gear_sub);
+	orb_unsubscribe(_local_position_setpoint_sub);
 }
 
 int Navigator::task_spawn(int argc, char *argv[])

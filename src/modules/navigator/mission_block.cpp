@@ -369,6 +369,8 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
+	_hover_requested = false;
+
 	/* --- Yuneec specific brake */
 
 	/* check if velocity needs to be reached
@@ -399,6 +401,8 @@ MissionBlock::is_mission_item_reached()
 			float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
 					       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
 
+			_hover_requested = true; //vehicle is requested to hover at current location
+
 			// the difference between the position-setpoint from the position controller and the actual waypoint
 			float distance_target = matrix::Vector2f(matrix::Vector2f(_navigator->get_position_setpoint_triplet()->current.x,
 						_navigator->get_position_setpoint_triplet()->current.y) -
@@ -417,7 +421,7 @@ MissionBlock::is_mission_item_reached()
 			bool yaw_aligned = fabsf(dyaw) < fabsf(dyaw_max);
 
 			// waypoint is considered reached if velocity is close to 0, distance between setpoint and target is small, and yaw is aligned
-			if (velocity > _navigator->get_hold_max_xy_threshold() || distance_target > (10.0f * SIGMA_NORM) || !yaw_aligned) {
+			if (velocity > _navigator->get_hold_max_xy_threshold() || distance_target > (100.0f * SIGMA_NORM) || !yaw_aligned) {
 				return false;
 			}
 		}
@@ -481,6 +485,12 @@ MissionBlock::reset_mission_item_reached()
 void
 MissionBlock::issue_command(const mission_item_s &item)
 {
+
+	if (item.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE && _hover_requested) {
+		// to give camera enough time to capture image, we delay next item
+		_delay_next_item = true;
+	}
+
 	if (item_contains_position(item)) {
 		return;
 	}

@@ -202,8 +202,23 @@ Mission::on_active()
 		set_mission_items();
 	}
 
-	/* lets check if we reached the current mission item */
-	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
+	/* lets check if we reached the current mission item
+	   For hover and capture, a delay is added to give the camera enough time to capture the image before proceeding
+	to the next mission-item.
+	   Better solution: wait for a camera ack before proceeding */
+	if (_delay_next_item) {
+
+		if (_time_stamp_delay_hover_activation == 0) {
+			_time_stamp_delay_hover_activation = hrt_absolute_time();
+		}
+
+		if ((hrt_absolute_time() - _time_stamp_delay_hover_activation) / 1e6f >= _param_mis_delay_item.get()) {
+			_time_stamp_delay_hover_activation = 0;
+			_delay_next_item = false;
+
+		}
+
+	} else if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
 		/* If we just completed a takeoff which was inserted before the right waypoint,
 		   there is no need to report that we reached it because we didn't. */
 		if (_work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
@@ -659,6 +674,8 @@ Mission::set_mission_items()
 		_navigator->set_position_setpoint_triplet_updated();
 		return;
 	}
+
+	read_mission_item(1, &_mission_item_next);
 
 	/*********************************** handle mission item *********************************************/
 

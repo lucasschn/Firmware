@@ -248,7 +248,8 @@ private:
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_dist_1wp,
 		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_dist_between_wps,
 		(ParamInt<px4::params::MIS_ALTMODE>) _param_altmode,
-		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mnt_yaw_ctl
+		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mnt_yaw_ctl,
+		(ParamFloat<px4::params::MIS_DELAY_ITEM>) _param_mis_delay_item
 	)
 
 	struct mission_s _offboard_mission {};
@@ -292,4 +293,7 @@ private:
 
 	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
 	bool _execution_mode_changed{false};
+
+	hrt_abstime _time_stamp_delay_hover_activation = 0; /**< time stamp when task was activated */
+
 };

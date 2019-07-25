@@ -161,3 +161,15 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
+
+/**
+ * Delay next mission item.
+ *
+ * @unit s
+ * @min 0
+ * @max 10
+ * @decimal 1
+ * @increment 0.5
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_DELAY_ITEM, 2.0f);

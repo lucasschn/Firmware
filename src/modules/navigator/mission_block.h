@@ -141,14 +141,20 @@ protected:
 	float get_absolute_altitude_for_item(struct mission_item_s &mission_item) const;
 
 	mission_item_s _mission_item{};
+	mission_item_s _mission_item_next{};
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
 	bool _waypoint_velocity_reached{false};
+	bool _delay_next_item;
 
 	hrt_abstime _time_first_inside_orbit{0};
 	hrt_abstime _action_start{0};
 	hrt_abstime _time_wp_reached{0};
 
 	orb_advert_t    _actuator_pub{nullptr};
+
+private:
+	bool _hover_requested{false}; /**< True if vehicle hover is requested. */
+
 };

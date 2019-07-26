@@ -11,6 +11,9 @@ All notable changes to this project will be documented in this file.
 * Don't require throttle to be centered, but only <= 50% for takeoff (#3389)
 * Force landing gear up above 10m when manual control(#3398)
 
+### Fixed
+* rc-stick tolerance to throttle stick (#3423)
+* Acceleration for up/down direction for FlighttaskAutoline (#3423)
 
 ## [v1.8.2-1.7.0]
 ### Changed

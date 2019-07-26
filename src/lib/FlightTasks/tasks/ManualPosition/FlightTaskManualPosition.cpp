@@ -101,7 +101,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	// Use same scaling as for FlightTaskManualAltitude
 	FlightTaskManualAltitude::_scaleSticks();
 
-	/* Constrain length of stick inputs to 1 for xy*/
+	// Constrain length of stick inputs to 1 for xy
 	Vector2f stick_xy(&_sticks_expo(0));
 
 	// Yuneec specific speed scale (turtle slider)
@@ -140,10 +140,10 @@ void FlightTaskManualPosition::_scaleSticks()
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);
 
-	// collision prevention
-	if (_collision_prevention.is_active()) {
-		_collision_prevention.modifySetpoint(vel_sp_xy, _constraints.speed_xy);
-	}
+	// collision prevention TODO: this is from upstream and requires testing and changes on Smooth-position
+	//if (_collision_prevention.is_active()) {
+	//	_collision_prevention.modifySetpoint(vel_sp_xy, _constraints.speed_xy);
+	//}
 
 	_velocity_setpoint(0) = vel_sp_xy(0);
 	_velocity_setpoint(1) = vel_sp_xy(1);

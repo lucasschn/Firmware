@@ -69,7 +69,13 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN); // altitude is controlled from position/velocity
 	_position_setpoint(2) = _position(2);
 	_velocity_setpoint(2) = 0.0f;
-	_setDefaultConstraints();
+	return ret;
+}
+
+
+void FlightTaskManualAltitude::_setDefaultConstraints()
+{
+	FlightTaskManual::_setDefaultConstraints();
 
 	_constraints.tilt = math::radians(_param_mpc_man_tilt_max.get());
 
@@ -87,10 +93,16 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 		_constraints.max_distance_to_ground = INFINITY;
 	}
 
+	if (_param_mpc_z_vel_max_up.get() >= _param_mpc_vel_man_up.get()) {
+		_constraints.speed_up = _param_mpc_vel_man_up.get();
+	}
+
+	if (_param_mpc_z_vel_max_dn.get() >= _param_mpc_vel_man_dn.get()) {
+		_constraints.speed_down = _param_mpc_vel_man_dn.get();
+	}
+
 	_max_speed_up = _constraints.speed_up;
 	_min_speed_down = _constraints.speed_down;
-
-	return ret;
 }
 
 void FlightTaskManualAltitude::_scaleSticks()

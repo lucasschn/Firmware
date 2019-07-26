@@ -94,9 +94,14 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 	_setSpeedAtTarget();
 	Vector2f pos_sp_to_dest(_target - _position_setpoint);
 	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < _param_nav_mc_alt_rad.get();
+	const float prev_to_target_length = Vector2f(_target - _prev_wp).length();
 
-	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < _target_acceptance_radius) ||
-	    (!has_reached_altitude && pos_sp_to_dest.length() < _target_acceptance_radius)) {
+	const float position_lock_threshold = 0.1f;
+
+	if ((_speed_at_target < SIGMA_NORM
+	     && pos_sp_to_dest.length() < math::min(_target_acceptance_radius, position_lock_threshold)) ||
+	    (!has_reached_altitude && pos_sp_to_dest.length() < _target_acceptance_radius) ||
+	    prev_to_target_length < _target_acceptance_radius) {
 
 		// Vehicle reached target in xy and no passing required. Lock position
 		_position_setpoint(0) = _target(0);
@@ -275,7 +280,8 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 
 		// get the sign of vel_sp_z
 		_velocity_setpoint(2) = (flying_upward) ? -speed_sp : speed_sp;
-		_position_setpoint(2) = NAN; // We don't care about position setpoint
+		// set position-setpoint to current position as it is required to determine if target has been reached
+		_position_setpoint(2) = _position(2);
 
 	} else {
 

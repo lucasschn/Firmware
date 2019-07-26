@@ -57,6 +57,7 @@ protected:
 	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
 	virtual void _updateSetpoints(); /**< updates all setpoints */
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
+	void _setDefaultConstraints() override;
 	bool _checkTakeoff() override;
 
 	/**
@@ -83,7 +84,9 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_SPEED>)
 					_param_mpc_land_speed, /**< desired downwards speed when approaching the ground */
 					(ParamFloat<px4::params::MPC_TKO_SPEED>)
-					_param_mpc_tko_speed /**< desired upwards speed when still close to the ground */
+					_param_mpc_tko_speed, /**< desired upwards speed when still close to the ground */
+					(ParamFloat<px4::params::MPC_VEL_MAN_UP>) _param_mpc_vel_man_up,
+					(ParamFloat<px4::params::MPC_VEL_MAN_DN>) _param_mpc_vel_man_dn
 				       )
 private:
 	/**

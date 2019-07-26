@@ -208,6 +208,10 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_triplet_target = tmp_target;
 		_target_acceptance_radius = _sub_triplet_setpoint->get().current.acceptance_radius;
 
+		if (_target_acceptance_radius < _param_nav_acc_rad.get()) {
+			_target_acceptance_radius =  _param_nav_acc_rad.get();
+		}
+
 		if (!PX4_ISFINITE(_triplet_target(0)) || !PX4_ISFINITE(_triplet_target(1))) {
 			// Horizontal target is not finite.
 			_triplet_target(0) = _position(0);
@@ -498,7 +502,7 @@ State FlightTaskAuto::_getCurrentState()
 
 	State return_state = State::none;
 
-	if (u_prev_to_target * pos_to_target < 0.0f) {
+	if (u_prev_to_target * pos_to_target < 0.0f && pos_to_target.length() > _target_acceptance_radius) {
 		// Target is behind.
 		return_state = State::target_behind;
 

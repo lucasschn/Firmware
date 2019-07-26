@@ -115,6 +115,8 @@ protected:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 					(ParamFloat<px4::params::MPC_CRUISE_90>) _param_mpc_cruise_90, // speed at corner when angle is 90 degrees move to line
+					(ParamFloat<px4::params::NAV_ACC_RAD>)
+					_param_nav_acc_rad, // acceptance radius at which waypoints are updated move to line
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
 					_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
 					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,

@@ -591,7 +591,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 			return arming_res;
 		}
 
-		const bool throttle_is_low = sp_man.z <= 0.5f;
+		const bool throttle_is_low = sp_man.z <= 0.5f + tolerance;
 
 		if (!throttle_is_low) {
 			arming_res = TRANSITION_DENIED;
@@ -2454,7 +2454,7 @@ Commander::run()
 									 rc_stick_centered(sp_man.y, 0.0f, tolerance) &&
 									 rc_stick_centered(sp_man.r, 0.0f, tolerance);
 
-					const bool throttle_is_low = sp_man.z <= 0.5f;
+					const bool throttle_is_low = sp_man.z <= 0.5f + tolerance;
 
 					/* we check outside of the transition function here because the requirement
 					 * for being in manual mode only applies to manual arming actions.

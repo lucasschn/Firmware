@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 * Don't require throttle to be centered, but only <= 50% for takeoff (#3389)
 * Force landing gear up above 10m when manual control(#3398)
 * Updated mavlink and gazebo to latest (#3430)
+* Tighten the requirements for a reached mission waypoint (#3417)
+* Delay next mission item after MAV_CMD_IMAGE_CAPTURE_START via MIS_DELAY_ITEM (#3417)
 
 ### Fixed
 * rc-stick tolerance to throttle stick (#3423)

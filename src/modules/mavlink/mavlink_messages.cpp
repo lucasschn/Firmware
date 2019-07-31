@@ -2378,7 +2378,7 @@ protected:
 			static constexpr size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
 			static_assert(POS_URT_SIZE == (sizeof(msg.pose_covariance) / sizeof(msg.pose_covariance[0])),
 				      "Odometry Pose Covariance matrix URT array size mismatch");
-			static_assert(VEL_URT_SIZE == (sizeof(msg.twist_covariance) / sizeof(msg.twist_covariance[0])),
+			static_assert(VEL_URT_SIZE == (sizeof(msg.velocity_covariance) / sizeof(msg.velocity_covariance[0])),
 				      "Odometry Velocity Covariance matrix URT array size mismatch");
 
 			// copy pose covariances
@@ -2389,7 +2389,7 @@ protected:
 			// copy velocity covariances
 			//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
 			for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-				msg.twist_covariance[i] = odom.velocity_covariance[i];
+				msg.velocity_covariance[i] = odom.velocity_covariance[i];
 			}
 
 			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &msg);

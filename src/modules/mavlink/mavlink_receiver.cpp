@@ -1306,7 +1306,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	const size_t VEL_URT_SIZE = sizeof(odometry.velocity_covariance) / sizeof(odometry.velocity_covariance[0]);
 	static_assert(POS_URT_SIZE == (sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0])),
 		      "Odometry Pose Covariance matrix URT array size mismatch");
-	static_assert(VEL_URT_SIZE == (sizeof(odom.twist_covariance) / sizeof(odom.twist_covariance[0])),
+	static_assert(VEL_URT_SIZE == (sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0])),
 		      "Odometry Velocity Covariance matrix URT array size mismatch");
 
 	// create a method to simplify covariance copy
@@ -1333,7 +1333,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 		//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
 		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-			odometry.velocity_covariance[i] = odom.twist_covariance[i];
+			odometry.velocity_covariance[i] = odom.velocity_covariance[i];
 		}
 
 	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
@@ -1355,7 +1355,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 			//TODO: Apply rotation matrix to transform from body-fixed to earth-fixed NED frame
 			for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-				odometry.velocity_covariance[i] = odom.twist_covariance[i];
+				odometry.velocity_covariance[i] = odom.velocity_covariance[i];
 			}
 
 		}
@@ -1380,7 +1380,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 			//TODO: Apply rotation matrix to transform from earth-fixed to body-fixed NED frame
 			for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-				odometry.velocity_covariance[i] = odom.twist_covariance[i];
+				odometry.velocity_covariance[i] = odom.velocity_covariance[i];
 			}
 
 		}

@@ -55,15 +55,6 @@ public:
 	void on_activation() override;
 	void on_active() override;
 
-	// TODO: share this with mission
-	enum mission_yaw_mode {
-		MISSION_YAWMODE_NONE = 0,
-		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
-		MISSION_YAWMODE_FRONT_TO_HOME = 2,
-		MISSION_YAWMODE_BACK_TO_HOME = 3,
-		MISSION_YAWMODE_MAX = 4
-	};
-
 private:
 	/**
 	 * Use the stored reposition location of the navigator
@@ -76,5 +67,17 @@ private:
 	 */
 	void set_loiter_position();
 
+	/**
+	 * Move to next loiter item
+	 */
+	void advance_loiter();
+
+	enum LOITERState {
+		LOITER_STATE_NONE = 0,
+		LOITER_STATE_BRAKE,
+		LOITER_STATE_LOITER,
+	} _loiter_state;
+
 	bool _loiter_pos_set{false};
+
 };

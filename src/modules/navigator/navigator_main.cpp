@@ -482,7 +482,6 @@ Navigator::run()
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
-				position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
 				// store current position as previous position and goal as next
 				rep->previous.yaw = get_global_position()->yaw;
@@ -528,20 +527,25 @@ Navigator::run()
 						rep->current.alt = get_global_position()->alt;
 					}
 
-				} else if (PX4_ISFINITE(cmd.param7) && curr->current.valid
-					   && PX4_ISFINITE(curr->current.lat)
-					   && PX4_ISFINITE(curr->current.lon)) {
-
-					// Altitude without position change
-					rep->current.lat = curr->current.lat;
-					rep->current.lon = curr->current.lon;
-					rep->current.alt = cmd.param7;
-
-				} else {
+				} else { // no position target set in xy
 					// All three set to NaN - hold in current position
 					rep->current.lat = get_global_position()->lat;
 					rep->current.lon = get_global_position()->lon;
 					rep->current.alt = get_global_position()->alt;
+
+					if (PX4_ISFINITE(cmd.param7)) { //received alittude change
+						// All three set to NaN - hold in current position
+						rep->current.alt = cmd.param7;
+					}
+
+					if (_vstatus.is_rotary_wing) {
+						// set acceptance radius large because we set target to current location,
+						// but we don't want to trigger any acceptance-radius logic. 30 is an
+						// arbitrary value: large enough to ensure that during normal coniditon
+						// acceptance-radius logic is not triggered, but small enough in the case
+						// a fly-away during mission (for whatever reason) needs to be caught.
+						rep->current.acceptance_radius = 30.0f;
+					}
 				}
 
 				/* make sure that it never exceeds maximum altitude */

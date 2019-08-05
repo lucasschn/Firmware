@@ -44,7 +44,8 @@
 
 Loiter::Loiter(Navigator *navigator) :
 	MissionBlock(navigator),
-	ModuleParams(navigator)
+	ModuleParams(navigator),
+	_loiter_state(LOITER_STATE_NONE)
 {
 }
 
@@ -61,6 +62,7 @@ Loiter::on_activation()
 		reposition();
 
 	} else {
+		_loiter_state = LOITER_STATE_BRAKE;
 		set_loiter_position();
 	}
 }
@@ -75,6 +77,29 @@ Loiter::on_active()
 	// reset the loiter position if we get disarmed
 	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
 		_loiter_pos_set = false;
+
+	} else if (_loiter_state != LOITER_STATE_LOITER && is_mission_item_reached()) {
+		advance_loiter();
+		set_loiter_position();
+	}
+}
+
+void
+Loiter::advance_loiter()
+{
+	switch (_loiter_state) {
+	case LOITER_STATE_BRAKE:
+		_loiter_state = LOITER_STATE_LOITER;
+
+		break;
+
+	case LOITER_STATE_LOITER:
+		_loiter_state = LOITER_STATE_LOITER;
+
+		break;
+
+	default:
+		break;
 	}
 }
 
@@ -98,10 +123,28 @@ Loiter::set_loiter_position()
 		return;
 	}
 
-	_loiter_pos_set = true;
+	switch (_loiter_state) {
+	case LOITER_STATE_BRAKE: {
 
-	// set current mission item to loiter
-	set_loiter_item(&_mission_item, _navigator->get_loiter_min_alt());
+			/* slow down before loiter */
+			set_brake_item(&_mission_item);
+
+			break;
+		}
+
+	case LOITER_STATE_LOITER: {
+
+			_loiter_pos_set = true;
+
+			// set current mission item to loiter
+			set_loiter_item(&_mission_item, _navigator->get_loiter_min_alt());
+
+			break;
+		}
+
+	default:
+		break;
+	}
 
 	// convert mission item to current setpoint
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();

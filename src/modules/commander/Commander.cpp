@@ -675,6 +675,11 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 					if ((main_ret != TRANSITION_DENIED)) {
 						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
+						// Logging GOTO action.
+						if (PX4_ISFINITE(cmd.param5) || PX4_ISFINITE(cmd.param6)) {
+							mavlink_log_critical(&mavlink_log_pub, "GOTO Lat:%f,Lon:%f", cmd.param5, cmd.param6);
+						}
+
 					} else {
 						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 						mavlink_log_critical(&mavlink_log_pub, "Reposition command rejected");

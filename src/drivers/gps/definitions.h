@@ -48,6 +48,7 @@
 
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
+#include <uORB/topics/gps_event_info.h>
 
 #define gps_usleep px4_usleep
 

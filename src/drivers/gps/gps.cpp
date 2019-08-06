@@ -80,6 +80,7 @@
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/gps_dump.h>
+#include <uORB/topics/gps_event_info.h>
 
 #include <board_config.h>
 
@@ -87,6 +88,7 @@
 #include "devices/src/mtk.h"
 #include "devices/src/ashtech.h"
 #include "devices/src/emlid_reach.h"
+#include "yuneec_devices/unicore.h"
 
 #ifdef __PX4_LINUX
 #include <linux/spi/spidev.h>
@@ -100,7 +102,8 @@ typedef enum {
 	GPS_DRIVER_MODE_UBX,
 	GPS_DRIVER_MODE_MTK,
 	GPS_DRIVER_MODE_ASHTECH,
-	GPS_DRIVER_MODE_EMLIDREACH
+	GPS_DRIVER_MODE_EMLIDREACH,
+	GPS_DRIVER_MODE_UNICORE
 } gps_driver_mode_t;
 
 /* struct for dynamic allocation of satellite info data */
@@ -177,6 +180,7 @@ private:
 
 	orb_advert_t			_report_gps_pos_pub{nullptr};			///< uORB pub for gps position
 	orb_advert_t			_report_sat_info_pub{nullptr};			///< uORB pub for satellite info
+	orb_advert_t            _report_event_info_pub{nullptr};        ///< uORB pub for gps event info
 
 	int				_gps_orb_instance{-1};				///< uORB multi-topic instance
 	int				_gps_sat_orb_instance{-1};			///< uORB multi-topic instance for satellite info
@@ -729,11 +733,16 @@ GPS::run()
 				break;
 
 			case GPS_DRIVER_MODE_ASHTECH:
-				_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
+				// In Yuneec we don't use this,disable it for unicore driver start normally.
+				//_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
 				break;
 
 			case GPS_DRIVER_MODE_EMLIDREACH:
 				_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+				break;
+
+			case GPS_DRIVER_MODE_UNICORE:
+				_helper = new GPSDriverUnicore(&GPS::callback, this, &_report_gps_pos);
 				break;
 
 			default:
@@ -749,7 +758,7 @@ GPS::run()
 				_report_gps_pos.heading = NAN;
 				_report_gps_pos.heading_offset = heading_offset;
 
-				if (_mode == GPS_DRIVER_MODE_UBX) {
+				if (_mode == GPS_DRIVER_MODE_UBX || _mode == GPS_DRIVER_MODE_UNICORE) {
 
 					/* GPS is obviously detected successfully, reset statistics */
 					_helper->resetUpdateRates();
@@ -825,10 +834,14 @@ GPS::run()
 					break;
 
 				case GPS_DRIVER_MODE_MTK:
-					_mode = GPS_DRIVER_MODE_ASHTECH;
+					_mode = GPS_DRIVER_MODE_UNICORE;
 					break;
 
-				case GPS_DRIVER_MODE_ASHTECH:
+				// Yuneec-special:Prevent unicore data from being applied to ashtech driver parsing.
+				// case GPS_DRIVER_MODE_ASHTECH:
+				// 	_mode = GPS_DRIVER_MODE_EMLIDREACH;
+				// 	break;
+				case GPS_DRIVER_MODE_UNICORE:
 					_mode = GPS_DRIVER_MODE_EMLIDREACH;
 					break;
 
@@ -862,6 +875,7 @@ GPS::run()
 	}
 
 	orb_unadvertise(_report_gps_pos_pub);
+	orb_unadvertise(_report_event_info_pub);
 }
 
 
@@ -905,6 +919,10 @@ GPS::print_status()
 			PX4_INFO("protocol: EMLIDREACH");
 			break;
 
+		case GPS_DRIVER_MODE_UNICORE:
+			PX4_INFO("protocol: UNICORE");
+			break;
+
 		default:
 			break;
 		}
@@ -939,8 +957,31 @@ void
 GPS::publish()
 {
 	if (_instance == Instance::Main || _is_gps_main_advertised) {
-		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
-				 ORB_PRIO_DEFAULT);
+		// Yuneec Fixposition/Unicore RTK Specific:
+		// This is for getting an accurate position/time for the camera images,
+		if (_report_gps_pos.fix_type == 7) {
+
+			gps_event_info_s report_event_info = {};
+
+			report_event_info.timestamp = hrt_absolute_time();
+			report_event_info.event_utc_time = _report_gps_pos.time_utc_usec;
+
+			report_event_info.lat = _report_gps_pos.lat;
+			report_event_info.lon = _report_gps_pos.lon;
+			report_event_info.hgt = _report_gps_pos.alt;
+
+			if (_report_event_info_pub == nullptr) {
+				_report_event_info_pub = orb_advertise(ORB_ID(gps_event_info), &report_event_info);
+
+			} else {
+				orb_publish(ORB_ID(gps_event_info), &_report_event_info_pub, &report_event_info);
+			}
+
+		} else {
+			orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
+					 ORB_PRIO_DEFAULT);
+		}
+
 		// Heading/yaw data can be updated at a lower rate than the other navigation data.
 		// The uORB message definition requires this data to be set to a NAN if no new valid data is available.
 		_report_gps_pos.heading = NAN;
@@ -976,15 +1017,12 @@ int GPS::print_usage(const char *reason)
 ### Description
 GPS driver module that handles the communication with the device and publishes the position via uORB.
 It supports multiple protocols (device vendors) and by default automatically selects the correct one.
-
 The module supports a secondary GPS device, specified via `-e` parameter. The position will be published
 on the second uORB topic instance, but it's currently not used by the rest of the system (however the
 data will be logged, so that it can be used for comparisons).
-
 ### Implementation
 There is a thread for each device polling for data. The GPS protocol classes are implemented with callbacks
 so that they can be used in other projects as well (eg. QGroundControl uses them too).
-
 ### Examples
 For testing it can be useful to fake a GPS signal (it will signal the system that it has a valid position):
 $ gps stop
@@ -1004,7 +1042,7 @@ gps start -d /dev/ttyS3 -e /dev/ttyS4
 	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Enable publication of satellite info", true);
 
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "uart", "spi|uart", "GPS interface", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml", "GPS Protocol (default=auto select)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml|unicore", "GPS Protocol (default=auto select)", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
@@ -1137,6 +1175,9 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 			} else if (!strcmp(myoptarg, "eml")) {
 				mode = GPS_DRIVER_MODE_EMLIDREACH;
+
+			} else if (!strcmp(myoptarg, "unicore")) {
+				mode = GPS_DRIVER_MODE_UNICORE;
 
 			} else {
 				PX4_ERR("unknown interface: %s", myoptarg);

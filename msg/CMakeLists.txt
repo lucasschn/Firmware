@@ -62,6 +62,7 @@ set(msg_files
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
+	gps_event_info.msg
 	home_position.msg
 	input_rc.msg
 	iridiumsbd_status.msg

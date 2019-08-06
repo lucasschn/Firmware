@@ -185,10 +185,7 @@ static float _eph_threshold_adj =
 static bool _skip_pos_accuracy_check = false;
 
 bool low_battery_voltage_actions_done = false;
-bool critical_battery_voltage_actions_done = false;
-bool emergency_battery_voltage_actions_done = false;
 bool dangerous_battery_level_requests_poweroff = false;
-int32_t low_bat_action = 0;
 
 // Geofence actions
 static bool geofence_loiter_on = false;
@@ -659,31 +656,21 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 			// Check if a mode switch had been requested
 			if ((((uint32_t)cmd.param2) & 1) > 0) {
-				// check if a critical or emergency action is in progress and if the battery failsafe mode is not WARNING
-				bool battery_critical_action = (emergency_battery_voltage_actions_done || critical_battery_voltage_actions_done)
-							       && (low_bat_action != 0);
 
-				// NOTE: The if{} is Yuneec-specific, upstream code follows in the else{}
-				if (battery_critical_action) {
-					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-					mavlink_log_critical(&mavlink_log_pub, "Low battery state! Pause rejected");
+				transition_result_t main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_LOITER,
+							       status_flags, &internal_state);
+
+				if ((main_ret != TRANSITION_DENIED)) {
+					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+					// Logging GOTO action.
+					if (PX4_ISFINITE(cmd.param5) || PX4_ISFINITE(cmd.param6)) {
+						mavlink_log_critical(&mavlink_log_pub, "GOTO Lat:%f,Lon:%f", cmd.param5, cmd.param6);
+					}
 
 				} else {
-					transition_result_t main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_LOITER,
-								       status_flags, &internal_state);
-
-					if ((main_ret != TRANSITION_DENIED)) {
-						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-
-						// Logging GOTO action.
-						if (PX4_ISFINITE(cmd.param5) || PX4_ISFINITE(cmd.param6)) {
-							mavlink_log_critical(&mavlink_log_pub, "GOTO Lat:%f,Lon:%f", cmd.param5, cmd.param6);
-						}
-
-					} else {
-						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-						mavlink_log_critical(&mavlink_log_pub, "Reposition command rejected");
-					}
+					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+					mavlink_log_critical(&mavlink_log_pub, "Reposition command rejected");
 				}
 
 			} else {
@@ -701,21 +688,9 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 			transition_result_t main_ret = TRANSITION_NOT_CHANGED;
 
-			/* If parameter COM_LOW_BAT_ACT configures an automatic low battery reaction (not only Warning 0) prevent switching out of it unless switching to MANUAL, AUTO_RTL (critical battery only) or AUTO_LAND. */
-			bool no_mode_switch_low_battery = low_bat_action != 0 && critical_battery_voltage_actions_done &&
-							  (emergency_battery_voltage_actions_done || custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_RTL) &&
-							  custom_main_mode != PX4_CUSTOM_MAIN_MODE_MANUAL &&
-							  custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-
 			/* if the UAV is outside the geofence radius or altitude and the action taken is either Loiter or RTL do not allow to switch to any mode other than AUTO_RTL. */
 			bool no_mode_switch_geofence = (geofence_loiter_on || geofence_rtl_on) && geofence_result.geofence_violated
 						       && custom_sub_mode != PX4_CUSTOM_SUB_MODE_AUTO_RTL;
-
-			if (no_mode_switch_low_battery) {
-				main_ret = TRANSITION_DENIED;
-				mavlink_log_critical(&mavlink_log_pub, "Cannot switch out of low battery reaction");
-				break;
-			}
 
 			if (no_mode_switch_geofence) {
 				main_ret = TRANSITION_DENIED;
@@ -1997,9 +1972,6 @@ Commander::run()
 
 		if (auto_disarm_hysteresis.get_state()) {
 			arm_disarm(false, &mavlink_log_pub, "Auto disarm on land");
-
-			// if battery_status is emergency, disarmed and emergency_battery_voltage_actions_done false the MAV will shutdown
-			emergency_battery_voltage_actions_done = false;
 		}
 
 		if (!warning_action_on) {
@@ -2253,19 +2225,25 @@ Commander::run()
 		float current_relative_alt = _global_position_sub.get().alt - _home_pub.get().alt;
 
 		if (gohome_land_interrupt) {
-			if (!emergency_battery_voltage_actions_done && (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND
-					|| pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) && (
+			if ((pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND
+			     || pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) && (
 				    internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
-				    internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL)) {
+				    internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
+				    internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)) {
 				if ((fabsf(sp_man.x - 0.f) > min_interrupt_stick_change ||
 				     fabsf(sp_man.y - 0.f) > min_interrupt_stick_change ||
 				     (sp_man.z - 0.5f) > min_interrupt_stick_change) &&
 				    current_relative_alt > allow_interrupt_min_alt) {
 
-					/* We interrupted land via sticks */
-					control_mode.flag_control_updated = true;
-					main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
-					land_interrupt_hysteresis.set_state_and_update(true, hrt_absolute_time());
+					//Yuneec: Because 3DR and ST10 we allow the loiter mode to be interrupted
+					if ((internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER &&
+					     _battery_warning > battery_status_s::BATTERY_WARNING_LOW) ||
+					    internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER) {
+						/* We interrupted land/loiter via sticks */
+						control_mode.flag_control_updated = true;
+						main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
+						land_interrupt_hysteresis.set_state_and_update(true, hrt_absolute_time());
+					}
 				}
 			}
 

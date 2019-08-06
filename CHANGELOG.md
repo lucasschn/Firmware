@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 * Updated mavlink and gazebo to latest (#3430)
 * Tighten the requirements for a reached mission waypoint (#3417)
 * Delay next mission item after MAV_CMD_IMAGE_CAPTURE_START via MIS_DELAY_ITEM (#3417)
+* Allow loiter mode to be interrupted by stick movement
 
 ### Fixed
 * rc-stick tolerance to throttle stick (#3423)

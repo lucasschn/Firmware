@@ -23,7 +23,6 @@
 #define UNICORE_WAIT_GPGGA              "GPGGA"
 
 #define UNICORE_TIMEOUT_RESPONSE        1000    //ms
-#define UNICORE_TIMEOUT_BOOTUP          8000    //ms
 #define UNICORE_TIMEOUT_GPGGA           15000   //ms
 
 #define UNICORE_TIMEOUT_READ            10      //ms

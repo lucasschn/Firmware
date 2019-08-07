@@ -42,7 +42,7 @@ GPSDriverUnicore::configure(unsigned &baudrate, OutputMode output_mode)
 	buffer_init();
 
 	/* wait board bootup */
-	waitforack((char *)UNICORE_WAIT_BOOTUP, UNICORE_TIMEOUT_BOOTUP);
+	waitforack((char *)UNICORE_WAIT_BOOTUP, UNICORE_TIMEOUT_RESPONSE);
 
 	if (sendconfig(UNICORE_CONFIG_GPGGA, UNICORE_TIMEOUT_RESPONSE)) {
 		goto errout;

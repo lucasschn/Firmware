@@ -9,10 +9,26 @@ sh /etc/init.d/rc.mc_defaults
 
 if [ $AUTOCNF = yes ]
 then
+	# attitude controller PID gains
 	param set MC_PITCHRATE_P 0.1
+	param set MC_PITCHRATE_I 0.1
+	param set MC_PITCHRATE_D 0.001
 	param set MC_ROLLRATE_P 0.05
-	param set MPC_XY_VEL_I 0.2
+	param set MC_ROLLRATE_I 0.1
+	param set MC_ROLLRATE_D 0.001
+	param set MC_YAWRATE_P 0.3
+	param set MC_YAWRATE_I 0.5
+	param set MC_YAWRATE_D 0
+
+	# position controller PID gains
 	param set MPC_XY_VEL_P 0.15
+	param set MPC_XY_VEL_I 0.2
+	param set MPC_XY_VEL_D 0
+	param set MPC_XY_P 0.8
+	param set MPC_Z_VEL_P 0.15
+	param set MPC_Z_VEL_I 0.2
+	param set MPC_Z_VEL_D 0
+	param set MPC_Z_P 1
 
 	param set RTL_DESCEND_ALT 10
 	param set RTL_LAND_DELAY 0

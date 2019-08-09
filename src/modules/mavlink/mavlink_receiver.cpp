@@ -150,6 +150,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_ping_pub(nullptr),
 	_rc_pub(nullptr),
 	_manual_pub(nullptr),
+	_slave_rc_pub(nullptr),
 	_obstacle_distance_pub(nullptr),
 	_trajectory_waypoint_pub(nullptr),
 	_land_detector_pub(nullptr),
@@ -279,8 +280,12 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_manual_control(msg);
 		break;
 
+	case MAVLINK_MSG_ID_RC_CHANNELS:
+		handle_message_rc_channels(msg);
+		break;
+
 	case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
-		handle_message_rc_channels_override(msg);
+		handle_message_rc_slave_channels(msg);
 		break;
 
 	case MAVLINK_MSG_ID_HEARTBEAT:
@@ -1875,15 +1880,10 @@ MavlinkReceiver::decode_switch_pos_n(uint16_t buttons, unsigned sw)
 }
 
 void
-MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
+MavlinkReceiver::handle_message_rc_channels(mavlink_message_t *msg)
 {
-	mavlink_rc_channels_override_t man;
-	mavlink_msg_rc_channels_override_decode(msg, &man);
-
-	// Check target
-	if (man.target_system != 0 && man.target_system != _mavlink->get_system_id()) {
-		return;
-	}
+	mavlink_rc_channels_t man;
+	mavlink_msg_rc_channels_decode(msg, &man);
 
 	// fill uORB message
 	struct input_rc_s rc = {};
@@ -1937,6 +1937,97 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	int instance; // provides the instance ID or the publication
 	ORB_PRIO priority = ORB_PRIO_HIGH; // since it is an override, set priority high
 	orb_publish_auto(ORB_ID(input_rc), &_rc_pub, &rc, &instance, priority);
+}
+
+/* Yuneec specific
+ * The rc channels for the slave to control gimbal (Team mode)
+ */
+void
+MavlinkReceiver::handle_message_rc_slave_channels(mavlink_message_t *msg)
+{
+	mavlink_rc_channels_override_t man;
+	mavlink_msg_rc_channels_override_decode(msg, &man);
+
+	// Check target
+	if (man.target_system != 0 && man.target_system != _mavlink->get_system_id()) {
+		return;
+	}
+
+	struct input_rc_s slave_rc = {};
+
+	/* the channels for gimbal control(team mode) */
+	slave_rc.timestamp = hrt_absolute_time();
+
+	slave_rc.timestamp_last_signal = slave_rc.timestamp;
+
+	slave_rc.rssi = RC_INPUT_RSSI_MAX;
+
+	slave_rc.rc_failsafe = false;
+
+	slave_rc.rc_lost = false;
+
+	slave_rc.rc_lost_frame_count = 0;
+
+	slave_rc.rc_total_frame_count = 1;
+
+	slave_rc.rc_ppm_frame_length = 0;
+
+	slave_rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
+
+	slave_rc.values[0] = man.chan1_raw;
+
+	slave_rc.values[1] = man.chan2_raw;
+
+	slave_rc.values[2] = man.chan3_raw;
+
+	slave_rc.values[3] = man.chan4_raw;
+
+	slave_rc.values[4] = man.chan5_raw;
+
+	slave_rc.values[5] = man.chan6_raw;
+
+	slave_rc.values[6] = man.chan7_raw;
+
+	slave_rc.values[7] = man.chan8_raw;
+
+	slave_rc.values[8] = man.chan9_raw;
+
+	slave_rc.values[9] = man.chan10_raw;
+
+	slave_rc.values[10] = man.chan11_raw;
+
+	slave_rc.values[11] = man.chan12_raw;
+
+	slave_rc.values[12] = man.chan13_raw;
+
+	slave_rc.values[13] = man.chan14_raw;
+
+	slave_rc.values[14] = man.chan15_raw;
+
+	slave_rc.values[15] = man.chan16_raw;
+
+	slave_rc.values[16] = man.chan17_raw;
+
+	slave_rc.values[17] = man.chan18_raw;
+
+	// check how many channels are valid
+	for (int i = 17; i >= 0; i--) {
+		const bool ignore_field = slave_rc.values[i] == UINT16_MAX ||
+					  (slave_rc.values[i] == 0 && (i > 7));
+
+		if (!ignore_field) {
+			slave_rc.channel_count = i + 1;
+			break;
+		}
+	}
+
+	if (_slave_rc_pub == nullptr) {
+		_slave_rc_pub = orb_advertise(ORB_ID(slave_rc), &slave_rc);
+
+	} else {
+		orb_publish(ORB_ID(slave_rc), _slave_rc_pub, &slave_rc);
+	}
+
 }
 
 void

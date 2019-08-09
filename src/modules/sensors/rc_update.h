@@ -47,6 +47,7 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/manual_control_setpoint.h>
+
 namespace sensors
 {
 
@@ -95,7 +96,6 @@ private:
 	RCMapping _rcmapping;
 
 	int		_rc_parameter_map_sub = -1;		/**< rc parameter map subscription */
-
 	orb_advert_t	_rc_pub = nullptr;		/**< raw r/c control topic */
 	orb_advert_t	_manual_control_pub = nullptr;	/**< manual control signal topic */
 	orb_advert_t	_actuator_group_3_pub = nullptr;/**< manual control as actuator topic */
@@ -105,8 +105,14 @@ private:
 	struct InputRCset {
 		int sub = -1; //input_rc_s subscription
 		input_rc_s input = {}; //input_rc_s data
-		bool signal_valid = false; //indicates if requirements are met for a valid signal
+		bool signal_valid = false; // indicates if requirements are met for a valid signal
 	} _inputs_rc[ORB_MULTI_MAX_INSTANCES];
+
+	struct InputSlaveRCset {
+		int slave_rc_sub = -1;	// slave rc subscripton
+		input_rc_s slave_rc = {};	// slave_rc_s data
+		bool signal_valid = false; // indicates if requirements are met for a valid signal
+	} _slave_rc;
 
 	struct manual_control_setpoint_s _manual_sp;
 
@@ -163,6 +169,11 @@ private:
 	 * Check and set validity of signal
 	 */
 	void set_signal_validity(InputRCset &input_set);
+
+	/**
+	 * Check and set validity of slave rc
+	 */
+	void set_slave_signal_validity(InputSlaveRCset &input_slave_set);
 
 	/**
 	 * Adjust validity of signal based on failsafe channel.

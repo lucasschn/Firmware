@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 * Delay next mission item after MAV_CMD_IMAGE_CAPTURE_START via MIS_DELAY_ITEM (#3417)
 * Allow loiter mode to be interrupted by stick movement
 * Tuned the PID gains for attitude and position controller for Typhoon H480 (#3437)
+* Changed the priority of dual uplink and add new message for rc & slave rc (#3419)
 
 ### Fixed
 * rc-stick tolerance to throttle stick (#3423)

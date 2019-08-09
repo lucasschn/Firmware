@@ -88,7 +88,7 @@ public:
 	 * Map ST10C team mode slave data (channels) on top of the existing manual_control_setpoint
 	 * @return error code according to RCMap::Error
 	 */
-	int mapSlave(manual_control_setpoint_s &man, const input_rc_s &input_rc, const sensors::Parameters &parameters)
+	int mapSlave(manual_control_setpoint_s &man, const input_rc_s &slave_rc, const sensors::Parameters &parameters)
 	{
 		// currently unsupported
 		return (int)Error::Version;

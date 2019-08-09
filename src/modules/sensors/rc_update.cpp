@@ -82,6 +82,12 @@ int RCUpdate::init()
 		}
 	}
 
+	_slave_rc.slave_rc_sub = orb_subscribe(ORB_ID(slave_rc));
+
+	if (_slave_rc.slave_rc_sub < 0) {
+		init_success = false;
+	}
+
 	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
 
 	if (_rc_parameter_map_sub < 0) {
@@ -102,6 +108,7 @@ void RCUpdate::deinit()
 		_inputs_rc[i].sub = -1;
 	}
 
+	orb_unsubscribe(_slave_rc.slave_rc_sub);
 	orb_unsubscribe(_rc_parameter_map_sub);
 }
 
@@ -302,6 +309,17 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 		set_signal_validity(_inputs_rc[i]);
 	}
 
+	// check if subscriber has updated
+	orb_check(_slave_rc.slave_rc_sub, &rc_updated);
+
+	if (rc_updated) {
+		orb_copy(ORB_ID(slave_rc), _slave_rc.slave_rc_sub, &_slave_rc.slave_rc);
+
+	}
+
+	// check slave rc validity
+	set_slave_signal_validity(_slave_rc);
+
 	// generate manual setpoints based on link mode
 	if (_parameters.rc_link_mode == 0) {
 
@@ -344,8 +362,21 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 		}
 
 	} else if (_parameters.rc_link_mode == 3) {
-		// normal master mapping
-		if (map_to_control_setpoint(parameter_handles, ORB_PRIO_DEFAULT)) {
+
+		// use zigbee as backup in case rc is lost
+		if (map_to_control_setpoint(parameter_handles, ORB_PRIO_HIGH)) {
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0;
+
+			// team mode slave control
+			if (map_from_team_mode(parameter_handles)) {
+				// Team mode did not succeed, but nothing to do.
+			}
+
+			publish_manual_inputs();
+			//always publish rc_channels
+			publish_rc_channels();
+
+		} else if (map_to_control_setpoint(parameter_handles, ORB_PRIO_DEFAULT)) {
 			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 			// team mode slave control
@@ -354,7 +385,6 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			}
 
 			publish_manual_inputs();
-			publish_rc_channels();
 		}
 	}
 }
@@ -423,34 +453,17 @@ RCUpdate::map_from_team_mode(const ParameterHandles &parameter_handles)
 		return false;
 	}
 
-	// check if there is a second link with high priority
-	input_rc_s gimbal_input{};
-	int32_t priority;
-	bool second_link = false;
-
-	for (InputRCset &e : _inputs_rc) {
-
-		// get priority
-		orb_priority(e.sub, &priority);
-
-		if (e.signal_valid && priority == ORB_PRIO_HIGH) {
-			gimbal_input = e.input;
-			second_link = true;
-			break;
+	if (_slave_rc.signal_valid) {
+		// overwrite stick inputs with st16 gimbal mapping
+		if (_rcmapping.mapSlave(_manual_sp, _slave_rc.slave_rc, _parameters)) {
+			// inform user that version does not match
+			print_rc_error_message("Old slave remote control version, please update!");
+			return false;
 		}
-	}
 
-	if (!second_link) {
-		// no second link available
+	} else {
+		// no slave link available
 		return false;
-	}
-
-	// overwrite stick inputs with st16 gimbal mapping
-	if (_rcmapping.mapSlave(_manual_sp, gimbal_input, _parameters)) {
-		// inform user that version does not match
-		print_rc_error_message("Old slave remote control version, please update!");
-		return false;
-
 	}
 
 	return true;
@@ -482,6 +495,23 @@ RCUpdate::set_signal_validity(InputRCset &input_set)
 	if (input_set.input.rc_lost || input_set.input.rc_failsafe || input_set.input.channel_count < 4 || rc_timeout) {
 		// signal is lost or not enough channels
 		input_set.signal_valid = false;
+	}
+}
+
+void
+RCUpdate::set_slave_signal_validity(InputSlaveRCset &input_slave_set)
+{
+	// detect RC signal loss
+	input_slave_set.signal_valid = true;
+
+	const bool rc_timeout = (hrt_absolute_time() - input_slave_set.slave_rc.timestamp_last_signal) > hrt_abstime(
+					_parameters.rc_loss_t * 1e6f);
+
+	// check flags and require at least four channels to consider the signal valid
+	if (input_slave_set.slave_rc.rc_lost || input_slave_set.slave_rc.rc_failsafe
+	    || input_slave_set.slave_rc.channel_count < 4 || rc_timeout) {
+		// signal is lost or not enough channels
+		input_slave_set.signal_valid = false;
 	}
 }
 

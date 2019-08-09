@@ -141,7 +141,8 @@ private:
 	void handle_message_set_attitude_target(mavlink_message_t *msg);
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
-	void handle_message_rc_channels_override(mavlink_message_t *msg);
+	void handle_message_rc_channels(mavlink_message_t *msg);
+	void handle_message_rc_slave_channels(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_ping(mavlink_message_t *msg);
 	void handle_message_hil_sensor(mavlink_message_t *msg);
@@ -239,6 +240,7 @@ private:
 	orb_advert_t _ping_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
+	orb_advert_t _slave_rc_pub;
 	orb_advert_t _obstacle_distance_pub;
 	orb_advert_t _trajectory_waypoint_pub;
 	orb_advert_t _land_detector_pub;

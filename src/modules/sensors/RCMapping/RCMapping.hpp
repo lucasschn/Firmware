@@ -72,15 +72,15 @@ public:
 		}
 	}
 
-	int mapSlave(manual_control_setpoint_s &manual_control_setpoint, const input_rc_s &input_rc,
+	int mapSlave(manual_control_setpoint_s &manual_control_setpoint, const input_rc_s &slave_rc,
 		     const sensors::Parameters &parameters)
 	{
 		// check for the M4 raw output channel mapping version embedded in channel 9 to decide which remote it is
-		int version = input_rc.values[9 - 1] >> 8 & 0xF;
+		int version = slave_rc.values[9 - 1] >> 8 & 0xF;
 
 		switch (version) {
 		case RCMapST16::RAW_CHANNEL_MAPPING_VER_ST16:
-			return _st16.mapSlave(manual_control_setpoint, input_rc, parameters);
+			return _st16.mapSlave(manual_control_setpoint, slave_rc, parameters);
 
 		default:
 			return (int)RCMap::Error::Version;

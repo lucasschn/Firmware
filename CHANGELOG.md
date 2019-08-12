@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 * Tuned the PID gains for attitude and position controller for Typhoon H480 (#3437)
 * Changed the priority of dual uplink and add new message for rc & slave rc (#3419)
 * Increased takeoff-ramp-speed (#3440)
+* Increase number of file descriptors in NuttX from 50 to 54 (#3438)
 
 ### Fixed
 * rc-stick tolerance to throttle stick (#3423)

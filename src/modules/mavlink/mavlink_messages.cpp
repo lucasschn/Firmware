@@ -106,6 +106,8 @@
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/camera_exposure_request.h>
+#include <uORB/topics/gps_event_info.h>
 #include <uORB/uORB.h>
 
 using matrix::wrap_2pi;
@@ -4900,6 +4902,90 @@ protected:
 	}
 };
 
+class MavlinkStreamExposureEventAck : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamExposureEventAck::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "EXPOSURE_EVENT_ACK";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_EXPOSURE_EVENT_ACK;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamExposureEventAck(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_exposure_event_ack_time > 0) ? MAVLINK_MSG_ID_EXPOSURE_EVENT_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+private:
+	MavlinkOrbSubscription *_exposure_event_ack_sub;
+	MavlinkOrbSubscription *_gps_event_info_sub;
+	MavlinkOrbSubscription *_att_sub;
+
+	uint64_t _exposure_event_ack_time;
+	uint64_t _gps_event_info_time;
+	uint64_t _att_time;
+	struct gps_event_info_s _gps_event_info;
+	struct camera_exposure_request_s _camera_exposure_request;
+	struct vehicle_attitude_s _att;
+
+	/* do not allow top copying this class */
+	MavlinkStreamExposureEventAck(MavlinkStreamExposureEventAck &);
+	MavlinkStreamExposureEventAck &operator = (const MavlinkStreamExposureEventAck &);
+protected:
+	explicit MavlinkStreamExposureEventAck(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_exposure_event_ack_sub(_mavlink->add_orb_subscription(ORB_ID(camera_exposure_request))),
+		_gps_event_info_sub(_mavlink->add_orb_subscription(ORB_ID(gps_event_info))),
+		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
+		_exposure_event_ack_time(0),
+		_gps_event_info_time(0),
+		_att_time(0),
+		_gps_event_info{},
+		_camera_exposure_request{},
+		_att{}
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		mavlink_exposure_event_ack_t msg = {};
+
+		if (_exposure_event_ack_sub->update_if_changed(&_camera_exposure_request)) {
+			_gps_event_info_sub->update(&_gps_event_info_time, &_gps_event_info);
+			_att_sub->update(&_att_time, &_att);
+			matrix::Eulerf euler = matrix::Quatf(_att.q);
+
+			msg.time_utc = _gps_event_info.event_utc_time;	//us precision
+			msg.lat = _gps_event_info.lat;
+			msg.lon = _gps_event_info.lon;
+			msg.alt = (int32_t)(_gps_event_info.hgt * 1e3);	//mm
+			msg.roll = euler.phi();
+			msg.pitch = euler.theta();
+			msg.yaw = euler.psi();
+
+			mavlink_msg_exposure_event_ack_send_struct(_mavlink->get_channel(), &msg);
+		}
+
+		return true;
+	}
+};
+
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -4958,7 +5044,9 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
 	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
 	StreamListItem(&MavlinkStreamGps::new_instance, &MavlinkStreamGps::get_name_static, &MavlinkStreamGps::get_id_static),
-	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static)
+	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static),
+	StreamListItem(&MavlinkStreamExposureEventAck::new_instance, &MavlinkStreamExposureEventAck::get_name_static, &MavlinkStreamExposureEventAck::get_id_static)
+
 };
 
 const char *get_stream_name(const uint16_t msg_id)

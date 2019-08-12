@@ -166,6 +166,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_command_ack_pub(nullptr),
 	_yuneec_camera_version_pub(nullptr),
 	_yuneec_gimbal_version_pub(nullptr),
+	_camera_exposure_request_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_actuator_armed_sub(orb_subscribe(ORB_ID(actuator_armed))),
 	_vehicle_attitude_sub(orb_subscribe(ORB_ID(vehicle_attitude))),
@@ -364,6 +365,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_autopilot_version(msg);
 		break;
 
+	case MAVLINK_MSG_ID_EXPOSURE_EVENT_REQUEST:
+		handle_message_exposure_info_request(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -431,6 +436,28 @@ void MavlinkReceiver::handle_message_autopilot_version(mavlink_message_t *msg)
 		} else {
 			orb_publish(ORB_ID(yuneec_gimbal_version), _yuneec_gimbal_version_pub, &version);
 		}
+	}
+}
+
+void MavlinkReceiver::handle_message_exposure_info_request(mavlink_message_t *msg)
+{
+	mavlink_exposure_event_request_t exposure_info_request_mavlink;
+	mavlink_msg_exposure_event_request_decode(msg, &exposure_info_request_mavlink);
+
+	if (msg->compid != MAV_COMP_ID_CAMERA) {
+		// If the request not come from camera , return it!
+		return;
+	}
+
+	camera_exposure_request_s camera_exposure_request = {};
+	camera_exposure_request.timestamp = hrt_absolute_time();
+	camera_exposure_request.camera_requset_update = true;
+
+	if (_camera_exposure_request_pub == nullptr) {
+		_camera_exposure_request_pub = orb_advertise(ORB_ID(camera_exposure_request), &camera_exposure_request);
+
+	} else {
+		orb_publish(ORB_ID(camera_exposure_request), _camera_exposure_request_pub, &camera_exposure_request);
 	}
 }
 

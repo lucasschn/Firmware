@@ -184,6 +184,7 @@ private:
 
 	int				_gps_orb_instance{-1};				///< uORB multi-topic instance
 	int				_gps_sat_orb_instance{-1};			///< uORB multi-topic instance for satellite info
+	int             _repprt_event_instance{-1};         ///< uORB multi-topic instance for report event
 
 	float				_rate{0.0f};					///< position update rate
 	float				_rate_rtcm_injection{0.0f};			///< RTCM message injection rate
@@ -970,12 +971,8 @@ GPS::publish()
 			report_event_info.lon = _report_gps_pos.lon;
 			report_event_info.hgt = _report_gps_pos.alt;
 
-			if (_report_event_info_pub == nullptr) {
-				_report_event_info_pub = orb_advertise(ORB_ID(gps_event_info), &report_event_info);
-
-			} else {
-				orb_publish(ORB_ID(gps_event_info), &_report_event_info_pub, &report_event_info);
-			}
+			orb_publish_auto(ORB_ID(gps_event_info), &_report_event_info_pub, &report_event_info, &_repprt_event_instance,
+					 ORB_PRIO_DEFAULT);
 
 		} else {
 			orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,

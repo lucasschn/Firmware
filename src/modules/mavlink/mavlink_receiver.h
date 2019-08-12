@@ -83,6 +83,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/yuneec_component_version.h>
+#include <uORB/topics/camera_exposure_request.h>
 
 #include "mavlink_ftp.h"
 #include "mavlink_log_handler.h"
@@ -168,7 +169,7 @@ private:
 
 	void handle_message_autopilot_version(mavlink_message_t *msg);
 	void handle_message_camera_information(mavlink_message_t *msg);
-
+	void handle_message_exposure_info_request(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
@@ -257,6 +258,7 @@ private:
 	orb_advert_t _command_ack_pub;
 	orb_advert_t _yuneec_camera_version_pub;
 	orb_advert_t _yuneec_gimbal_version_pub;
+	orb_advert_t _camera_exposure_request_pub;
 	int _control_mode_sub;
 	int _actuator_armed_sub;
 	int _vehicle_attitude_sub;

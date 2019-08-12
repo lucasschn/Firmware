@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 * Deploy encrypted firmware elf file to AWS for release debugging
 * Added yuneec-specific Unicore GPS driver (#3424)
 * Added "gps_event" message for camera-RTK synchronization (#3424)
+* Added new message for image EXIF (#3428)
 
 ### Changed
 * Don't require throttle to be centered, but only <= 50% for takeoff (#3389)

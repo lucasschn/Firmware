@@ -86,6 +86,7 @@ then
 		param set MPC_Z_P 0.85
 		param set MPC_Z_VEL_D 0
 		param set MPC_Z_VEL_I 0.085
+		param set MPC_TKO_RAMP_T 0.5
 
 		# Manual stick input parameters
 		param set RC_FLT_SMP_RATE 33

@@ -26,6 +26,7 @@ All notable changes to this project will be documented in this file.
 * rc-stick tolerance to throttle stick (#3423)
 * Acceleration for up/down direction for FlighttaskAutoline (#3423)
 * Vehicle no longer rotates 180 during mission pause (#3432)
+* Critical orbit failsafe improvement. Prevents drone from crashing when RC is lost during orbit (#3446) [ch3072]
 
 ## [v1.8.2-1.7.0]
 ### Changed

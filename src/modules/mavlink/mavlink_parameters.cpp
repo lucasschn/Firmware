@@ -168,7 +168,11 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 #ifdef BUILD_EPISCI_FLAVOUR
 
 				// Open custom parameters for episci
-				if (!parameter_change_allowed && strcmp(name, "MAV_SYS_ID") == 0) {
+				if (!parameter_change_allowed && (strcmp(name, "MAV_SYS_ID") == 0 ||
+								  strcmp(name, "COM_RC_LOSS_T") == 0 ||
+								  strcmp(name, "COM_DL_LOSS_T") == 0 ||
+								  strcmp(name, "NAV_DLL_ACT") == 0 ||
+								  strcmp(name, "NAV_RCL_ACT") == 0)) {
 					parameter_change_allowed = true;
 				}
 

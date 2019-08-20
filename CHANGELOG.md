@@ -21,6 +21,8 @@ All notable changes to this project will be documented in this file.
 * Changed the priority of dual uplink and add new message for rc & slave rc (#3419)
 * Increased takeoff-ramp-speed (#3440)
 * Increase number of file descriptors in NuttX from 50 to 54 (#3438)
+* New changes for our partner "episci"
+
 
 ### Fixed
 * rc-stick tolerance to throttle stick (#3423)

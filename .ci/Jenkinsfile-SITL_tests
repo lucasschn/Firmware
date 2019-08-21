@@ -123,7 +123,7 @@ def createTestNode(Map test_def) {
 
           } catch (exc) {
             // save all test artifacts for debugging
-            archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.ulg, .ros/**/rosunit-*.xml, .ros/**/rostest-*.log')
+            // archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.ulg, .ros/**/rosunit-*.xml, .ros/**/rostest-*.log')
             test_ok = false
           }
 
@@ -133,7 +133,7 @@ def createTestNode(Map test_def) {
             sh('px4-px4_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
           } catch (exc) {
             // save log analysis artifacts for debugging
-            archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
+            // archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
             // FIXME: don't let the script to fail the build
             // test_ok = false
           }

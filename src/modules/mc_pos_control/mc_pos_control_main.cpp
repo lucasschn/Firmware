@@ -70,7 +70,6 @@
 #include "Takeoff.hpp"
 
 /* --- yuneec specific */
-#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/landing_gear.h>
 /* --- END yuneec specific */
 
@@ -113,9 +112,7 @@ private:
 	/* --- yuneec specific declarations */
 	/* landing gear */
 	int		_manual_sub{-1};			/**< notification of manual control updates */
-	int   _pos_sp_triplet_sub{-1};
 	struct manual_control_setpoint_s		_manual = {};		/**< r/c channel data */
-	struct position_setpoint_triplet_s _pos_sp_triplet = {};
 	/* --- END yuneec specific declarations */
 
 	bool 		_in_smooth_takeoff = false; 		/**<true if takeoff ramp is applied */
@@ -515,12 +512,6 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 	}
 
-	orb_check(_pos_sp_triplet_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
-	}
-
 	// END Yuneec-specific
 }
 
@@ -643,7 +634,6 @@ MulticopterPositionControl::run()
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(vehicle_trajectory_waypoint));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 
 	// get initial values for all parameters and subscribtions
 	parameters_update(true);

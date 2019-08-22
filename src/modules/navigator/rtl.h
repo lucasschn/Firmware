@@ -141,7 +141,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_RETURN_ALT>) _param_return_alt,
-		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_min_loiter_alt, // NOTE: Yuneec specific, has been deleted upstream
+		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_min_takeoff_alt, // NOTE: Yuneec specific, has been deleted upstream
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_alt,
 		(ParamInt<px4::params::GF_ACTION>) _param_gf_actions,
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_descend_alt,

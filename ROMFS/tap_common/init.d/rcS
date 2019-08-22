@@ -71,7 +71,7 @@ sercon
 # calibration but will reset the system tuning and gains
 # to reflect the new defaults
 #
-set DEFAULTS_VER 100
+set DEFAULTS_VER 101
 set RELEASE_VER 0  # no release version
 
 # Log file location

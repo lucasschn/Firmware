@@ -568,7 +568,7 @@ RTL::get_rtl_altitude()
 
 	// and also make sure that an absolute minimum altitude is obeyed so the landing gear does not catch.
 	climb_alt = math::max(climb_alt,
-			      _return_location.alt + _param_min_loiter_alt.get());
+			      _return_location.alt + _param_min_takeoff_alt.get());
 
 	// if RTL altitude is greater than the maximum allowed altitude, change RTL climb altitude to be inside the geofence
 	if ((_param_return_alt.get() > _param_gf_alt.get()

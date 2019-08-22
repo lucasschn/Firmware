@@ -35,12 +35,12 @@ pipeline {
       steps {
         script {
           def missions = [
-            [
-              name: "FW",
-              test: "mavros_posix_test_mission.test",
-              mission: "FW_mission_1",
-              vehicle: "plane"
-            ],
+            //[
+            //  name: "FW",
+            //  test: "mavros_posix_test_mission.test",
+            //  mission: "FW_mission_1",
+            //  vehicle: "plane"
+            //],
 
             [
               name: "MC_box",
@@ -61,24 +61,24 @@ pipeline {
               vehicle: "iris"
             ],
 
-            [
-              name: "VTOL_standard",
-              test: "mavros_posix_test_mission.test",
-              mission: "VTOL_mission_1",
-              vehicle: "standard_vtol"
-            ],
-            [
-              name: "VTOL_tailsitter",
-              test: "mavros_posix_test_mission.test",
-              mission: "VTOL_mission_1",
-              vehicle: "tailsitter"
-            ],
-            [
-              name: "VTOL_tiltrotor",
-              test: "mavros_posix_test_mission.test",
-              mission: "VTOL_mission_1",
-              vehicle: "tiltrotor"
-            ],
+            //[
+            //  name: "VTOL_standard",
+            //  test: "mavros_posix_test_mission.test",
+            //  mission: "VTOL_mission_1",
+            //  vehicle: "standard_vtol"
+            //],
+            //[
+            //  name: "VTOL_tailsitter",
+            //  test: "mavros_posix_test_mission.test",
+            //  mission: "VTOL_mission_1",
+            //  vehicle: "tailsitter"
+            //],
+            //[
+            //  name: "VTOL_tiltrotor",
+            //  test: "mavros_posix_test_mission.test",
+            //  mission: "VTOL_mission_1",
+            //  vehicle: "tiltrotor"
+            //],
 
           ]
 

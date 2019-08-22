@@ -134,7 +134,7 @@ void FlightTaskAutoMapper::_generateTakeoffSetpoints()
 	_constraints.speed_up = math::gradual(_alt_above_ground, _param_mpc_land_alt2.get(),
 					      _param_mpc_land_alt1.get(), _param_mpc_tko_speed.get(), _constraints.speed_up);
 
-	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+	_gear.landing_gear = landing_gear_s::GEAR_UP;
 }
 
 void FlightTaskAutoMapper::_generateVelocitySetpoints()

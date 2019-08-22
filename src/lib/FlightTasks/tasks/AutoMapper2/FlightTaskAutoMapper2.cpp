@@ -141,7 +141,7 @@ void FlightTaskAutoMapper2::_prepareTakeoffSetpoints()
 				_param_mpc_tko_speed.get();
 	_velocity_setpoint = Vector3f(NAN, NAN, -speed_tko); // Limit the maximum vertical speed
 
-	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+	_gear.landing_gear = landing_gear_s::GEAR_UP;
 }
 
 void FlightTaskAutoMapper2::_prepareVelocitySetpoints()

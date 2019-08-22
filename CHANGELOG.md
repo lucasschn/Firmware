@@ -114,6 +114,7 @@ All notable changes to this project will be documented in this file.
 * Vehicle no longer rotates 180 during mission pause (#3432)
 * Critical orbit failsafe improvement. Prevents drone from crashing when RC is lost during orbit (#3446) [ch3072]
 * Set the minimum hover height parameter to -1 (#3454) [ch3997]
+* Default landing-gear up in takeoff mode (#3455)
 
 
 

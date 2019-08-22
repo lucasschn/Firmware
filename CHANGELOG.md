@@ -10,6 +10,50 @@ All notable changes to this project will be documented in this file.
 * Added "gps_event" message for camera-RTK synchronization (#3424)
 * Added new message for image EXIF (#3428)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Changed
 * Don't require throttle to be centered, but only <= 50% for takeoff (#3389)
 * Force landing gear up above 10m when manual control(#3398)
@@ -24,11 +68,120 @@ All notable changes to this project will be documented in this file.
 * New changes for our partner "episci"
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Fixed
 * rc-stick tolerance to throttle stick (#3423)
 * Acceleration for up/down direction for FlighttaskAutoline (#3423)
 * Vehicle no longer rotates 180 during mission pause (#3432)
 * Critical orbit failsafe improvement. Prevents drone from crashing when RC is lost during orbit (#3446) [ch3072]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## [v1.8.2-1.7.0]
 ### Changed

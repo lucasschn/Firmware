@@ -163,6 +163,8 @@ static uint8_t main_state_before_rtl = commander_state_s::MAIN_STATE_MAX;
 static manual_control_setpoint_s sp_man = {};		///< the current manual control setpoint
 static manual_control_setpoint_s _last_sp_man = {};	///< the manual control setpoint valid at the last mode switch
 static uint8_t _last_sp_man_arm_switch = 0;
+static uint8_t _last_data_source = 0;
+
 
 static struct vtol_vehicle_status_s vtol_status = {};
 static struct cpuload_s cpuload = {};
@@ -1757,6 +1759,20 @@ Commander::run()
 
 		if (updated) {
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
+
+			//Yuneec-special:Prompt the pilot when manual_control_setpoint.data_source change
+			if (_last_data_source != sp_man.data_source) {
+				if (sp_man.data_source == manual_control_setpoint_s::SOURCE_RC) {
+
+					mavlink_log_info(&mavlink_log_pub, "Manual control data source switch from wifi to rc.");
+
+				} else {
+					mavlink_log_info(&mavlink_log_pub, "Manual control data source switch from rc to wifi.");
+
+				}
+
+				_last_data_source = sp_man.data_source;
+			}
 		}
 
 		orb_check(offboard_control_mode_sub, &updated);

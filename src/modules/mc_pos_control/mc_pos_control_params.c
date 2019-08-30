@@ -836,3 +836,14 @@ PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_DIST_BRAKE, 8.0f);
+
+/**
+ * Flag to enable landing gear auto rise
+ *
+ * If true, enable landing gear auto rise
+ * If false, disable landing gear auto rise
+ *
+ * @boolean
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_GEAR_AUTO, 0);

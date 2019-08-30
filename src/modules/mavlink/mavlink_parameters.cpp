@@ -162,7 +162,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 							   strcmp(name, "RTL_RETURN_ALT") == 0 ||
 							   strcmp(name, "RC_MODE") == 0 ||
 							   strcmp(name, "RTL_TO_GCS") == 0 ||
-							   strcmp(name, "SYS_HITL") == 0;
+							   strcmp(name, "SYS_HITL") == 0 ||
+							   strcmp(name, "MPC_GEAR_AUTO") == 0;
 #endif /* BUILD_WITH_RESTRICTED_SYSTEM_ACCESS */
 
 #ifdef BUILD_EPISCI_FLAVOUR

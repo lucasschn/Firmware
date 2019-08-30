@@ -376,7 +376,7 @@ bool FlightTaskManualAltitude::update()
 	// Yuneec-special
 	// When the takeoff height exceeds 10 meters and forced only once per flight.
 	// the landing gear is forcibly retracted for better wifi signal transmission.
-	if (highEnoughForLandingGear(10.0f, _dist_to_ground) && !_have_force_gear_up) {
+	if (_param_mpc_gear_auto.get() && highEnoughForLandingGear(10.0f, _dist_to_ground) && !_have_force_gear_up) {
 		_gear.landing_gear = landing_gear_s::GEAR_UP;
 		_have_force_gear_up = true;
 	}

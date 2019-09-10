@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 * Added yuneec-specific Unicore GPS driver (#3424)
 * Added "gps_event" message for camera-RTK synchronization (#3424)
 * Added new message for image EXIF (#3428)
-* Prompt the pilot when manual_control_setpoint.data_source change (#3461)
+* Inform the pilot when manual_control_setpoint.data_source changes (#3461) [ch4547]
 * Add parameters to control the automatic operation of the landing gear (#3462)
 
 

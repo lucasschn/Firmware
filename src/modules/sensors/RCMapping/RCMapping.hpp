@@ -58,9 +58,9 @@ public:
 		const sensors::Parameters &parameters)
 	{
 		// check for the M4 raw output channel mapping version embedded in channel 9 to decide which remote it is
-		int version = input_rc.values[9 - 1] >> 8 & 0xF;
+		_version = input_rc.values[9 - 1] >> 8 & 0xF;
 
-		switch (version) {
+		switch (_version) {
 		case RCMapST16::RAW_CHANNEL_MAPPING_VER_ST16:
 			return _st16.map(manual_control_setpoint, input_rc, parameters);
 
@@ -75,10 +75,8 @@ public:
 	int mapSlave(manual_control_setpoint_s &manual_control_setpoint, const input_rc_s &slave_rc,
 		     const sensors::Parameters &parameters)
 	{
-		// check for the M4 raw output channel mapping version embedded in channel 9 to decide which remote it is
-		int version = slave_rc.values[9 - 1] >> 8 & 0xF;
-
-		switch (version) {
+		// the case where the slave != master is NOT yet supported
+		switch (_version) {
 		case RCMapST16::RAW_CHANNEL_MAPPING_VER_ST16:
 			return _st16.mapSlave(manual_control_setpoint, slave_rc, parameters);
 
@@ -87,9 +85,26 @@ public:
 		}
 	}
 
+	void update_params()
+	{
+		switch (_version) {
+		case RCMapST16::RAW_CHANNEL_MAPPING_VER_ST16:
+			_st16.update_params();
+			break;
+
+		case RCMapST10C::RAW_CHANNEL_MAPPING_VER_ST10C:
+			_st10c.update_params();
+			break;
+
+		default:
+			_st16.update_params();
+		}
+	}
+
 private:
 	RCMapST16 _st16;
 	RCMapST10C _st10c;
+	int _version;
 };
 
 } // namespace sensors

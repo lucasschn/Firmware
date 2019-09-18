@@ -72,7 +72,7 @@ sercon
 # to reflect the new defaults
 #
 set DEFAULTS_VER 101
-set RELEASE_VER 0  # no release version
+set RELEASE_VER 16  # no release version
 
 # Log file location
 set LOG_FILE /fs/microsd/bootlog.txt

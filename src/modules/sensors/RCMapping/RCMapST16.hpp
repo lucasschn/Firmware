@@ -74,6 +74,15 @@ public:
 		man.gear_switch = two_way_switch((int)TwoWay::gear_switch, CHANNEL_TWO_WAY_SWITCH, input_rc);
 		man.mission_switch = button((int)TwoWay::aux_button, input_rc);
 
+		if (!_param_rcmap_aux.get()) {
+			// aux is not mapped: set everything to default
+			man.mission_switch = manual_control_setpoint_s::SWITCH_POS_OFF;
+
+		} else if (_param_rcmap_aux.get() == (int)RCMap::AUX::mission) {
+			// aux is set to mission/loiter
+			man.mission_switch = button((int)TwoWay::aux_button, input_rc);
+		}
+
 		// buttons
 		man.arm_switch = two_way_switch((int)TwoWay::arm_button, CHANNEL_TWO_WAY_SWITCH, input_rc);
 

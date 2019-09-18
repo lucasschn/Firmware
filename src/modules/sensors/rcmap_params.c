@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,57 +32,25 @@
  ****************************************************************************/
 
 /**
- * @file RCMap.hpp
+ * @file rcmap_params.c
  *
- * Base/interface class to map RC input data to manual_control_setpoint.
+ * Parameters for RCMap functionalities.
  *
  * @author Dennis Mannhart <dennis@yuneecresearch.com>
- * @author Matthias Grob <maetugr@gmail.com>
  */
 
-#pragma once
-
-#include "RCMap.hpp"
-
-#include <mathlib/mathlib.h>
-#include <drivers/drv_hrt.h>
-
-#include <uORB/topics/input_rc.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <px4_module_params.h>
-#include "../parameters.h"
-
-namespace sensors
-{
-
-class RCMap : public ModuleParams
-{
-
-public:
-	RCMap() : ModuleParams(nullptr)
-	{}
-
-	virtual ~RCMap() = default;
-
-	virtual int map(manual_control_setpoint_s &man, const input_rc_s &input_rc, const sensors::Parameters &parameters) = 0;
-
-	virtual void update_params() = 0;
-
-	enum class Error : int {
-		None = 0,
-		Version
-	};
-
-	enum class AUX : int {
-		nothing = 0,
-		mission
-	};
-
-protected:
-	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
-					(ParamInt<px4::params::RCMAP_AUX>) _param_rcmap_aux
-				       )
-
-};
-
-} // namespace sensors
+/**
+ * Set landing-gear state
+ *
+ * If set to 0 (default), then AUX has no effect
+ * If set to 1, then AUX is mapped to mission/loiter.
+ * If set to 2, TODO
+ *
+ * @value 0 Nothin
+ * @value 1 Mission/loiter
+ * @min 0
+ * @max 1
+ * @group RCMAP
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(RCMAP_AUX, 0);

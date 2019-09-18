@@ -150,6 +150,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				// only allow setting the following params
 				parameter_change_allowed = strcmp(name, "COM_LED_MODE") == 0 ||
 							   strcmp(name, "COM_RC_LOSS_MAN") == 0 ||
+							   strcmp(name, "COM_ARM_STK_TOL") == 0 ||
 							   strcmp(name, "EKF2_INDOOR_MODE") == 0 ||
 							   strcmp(name, "GF_ACTION") == 0 ||
 							   strcmp(name, "GF_MAX_HOR_DIST") == 0 ||
@@ -163,8 +164,10 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 							   strcmp(name, "RC_MODE") == 0 ||
 							   strcmp(name, "RTL_TO_GCS") == 0 ||
 							   strcmp(name, "SYS_HITL") == 0 ||
-							   strcmp(name, "MPC_GEAR_AUTO") == 0;
-#endif /* BUILD_WITH_RESTRICTED_SYSTEM_ACCESS */
+							   strcmp(name, "MPC_GEAR_AUTO") == 0 ||
+							   strcmp(name, "RCMAP_AUX") == 0 ||
+							   strcmp(name, "SYS_HITL") == 0;
+#endif
 
 #ifdef BUILD_EPISCI_FLAVOUR
 

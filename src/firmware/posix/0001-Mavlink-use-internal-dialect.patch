@@ -3,7 +3,7 @@ index 1e2a2c3..c358ed1 100644
 --- a/include/gazebo_geotagged_images_plugin.h
 +++ b/include/gazebo_geotagged_images_plugin.h
 @@ -18,7 +18,7 @@
- 
+
  #include <string>
  #include <opencv2/opencv.hpp>
 -#include <mavlink/v2.0/common/mavlink.h>

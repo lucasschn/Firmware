@@ -2338,7 +2338,7 @@ PARAM_DEFINE_INT32(RC_LINK_MODE, 0);
  * @min 0
  * @max 1
  * @value 0 Calibration
- * @value 1 ST16
+ * @value 1 Predefined Mapping
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_TYPE, 0);

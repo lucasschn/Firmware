@@ -135,6 +135,14 @@ public:
 		return (int)RCMap::Error::None;
 	}
 
+	/**
+	 * Update RCMapST related parameters
+	 */
+	virtual void update_params()
+	{
+		ModuleParams::updateParams();
+	}
+
 protected:
 	// 12-Bit channel value limits with offset
 	static constexpr int CALIBRATION_OFFSET = 95; // offset to make sure we reach all vlaues
@@ -265,6 +273,6 @@ private:
 	hrt_abstime _kill_hotkey_start_time = 0; // the time when the hotkey started to measure timeout
 	int _kill_hotkey_count = 0; //  how many times the button was pressed during the hotkey timeout
 	bool _arm_button_pressed_last = false; //if the button was pressed last time to detect a transition
-	Button _aux_button{false}; //aux button pusehd / not pushed
+	Button _aux_button{false}; //aux button pushed / not pushed
 };
 } // namespace sensors

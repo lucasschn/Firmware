@@ -57,9 +57,9 @@ private:
 
 	int handle_message(int len);
 
-	void buffer_init(void);
+	void buffer_init();
 
-	int buffer_check(void);
+	int buffer_check();
 
 	int buffer_push(uint8_t *buf, uint16_t len);
 

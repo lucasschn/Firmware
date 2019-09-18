@@ -430,9 +430,9 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	const bool data_link_loss_act_configured = data_link_loss_act > link_loss_actions_t::DISABLED;
 	const bool rc_loss_act_configured = rc_loss_act > link_loss_actions_t::DISABLED;
 	const bool rc_lost = rc_loss_act_configured && (status->rc_signal_lost);
-	int rcloss_sitl = 0;
-	param_t param_rcloss_sitl = param_find("COM_RC_LOSS_MAN");
-	param_get(param_rcloss_sitl, &rcloss_sitl);
+	int rc_always_required = 0;
+	param_t param_rc_always_required = param_find("COM_RC_LOSS_MAN");
+	param_get(param_rc_always_required, &rc_always_required);
 
 	bool is_armed = (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 	bool old_failsafe = status->failsafe;
@@ -833,7 +833,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	}
 
 	/* require RC for all modes if rcloss_sitl true*/
-	if (rc_lost && is_armed && rcloss_sitl) {
+	if (rc_lost && is_armed && rc_always_required) {
 		enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
 		// FIXME: this was added manually by Yuneec but the method is no longer available.
@@ -996,7 +996,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 		// main battery level
 		if (!status_flags.condition_battery_healthy) {
 			if (prearm_ok && reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: CHECK BATTERY");
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: low battery");
 			}
 
 			prearm_ok = false;

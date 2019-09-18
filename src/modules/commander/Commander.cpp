@@ -86,6 +86,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
@@ -288,10 +289,16 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 	return ret;
 }
 
-static bool inline rc_stick_centered(float stick_value, float center, float tolerance)
+static bool inline rc_stick_centered(float stick_value, float lower_bound, float upper_bound, const char *report_name)
 {
-	return stick_value <= (float)center + tolerance &&
-	       stick_value >= (float)center - tolerance;
+	bool pass = stick_value <= upper_bound &&
+		    stick_value >= lower_bound;
+
+	if (!pass && report_name != nullptr) {
+		mavlink_log_critical(&mavlink_log_pub, "Trying to arm with %s stick at %i %%", report_name, (int)(100 * stick_value));
+	}
+
+	return pass;
 }
 
 static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 = NAN)
@@ -580,9 +587,9 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 	if (arm) {
 		float tolerance;
 		param_get(param_find("COM_ARM_STK_TOL"), &tolerance);
-		const bool sticks_are_centered = rc_stick_centered(sp_man.x, 0.0f, tolerance) &&
-						 rc_stick_centered(sp_man.y, 0.0f, tolerance) &&
-						 rc_stick_centered(sp_man.r, 0.0f, tolerance);
+		const bool sticks_are_centered = rc_stick_centered(sp_man.x, 0.0f - tolerance, 0.0f + tolerance, "Pitch") &&
+						 rc_stick_centered(sp_man.y, 0.0f - tolerance, 0.0f + tolerance, "Roll") &&
+						 rc_stick_centered(sp_man.r, 0.0f - tolerance, 0.0f + tolerance, "Yaw");
 
 		if (!sticks_are_centered) {
 			arming_res = TRANSITION_DENIED;
@@ -590,11 +597,12 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 			return arming_res;
 		}
 
-		const bool throttle_is_low = sp_man.z <= 0.5f + tolerance;
+		// Throttle stick does not need to be centered, only <= center from a safety perspectve
+		const bool throttle_is_low = rc_stick_centered(sp_man.z, 0.0f, 0.5f + tolerance, "Throttle");
 
 		if (!throttle_is_low) {
 			arming_res = TRANSITION_DENIED;
-			print_reject_arm("Not arming: Throttle stick is above center");
+			print_reject_arm("Not arming: Throttle stick is too high");
 			return arming_res;
 		}
 	}
@@ -2445,15 +2453,14 @@ Commander::run()
 			    (stick_in_lower_right || (arm_button_pressed && arming_button_switch_allowed) || arm_switch_to_arm_transition)) {
 				if ((stick_on_counter == rc_arm_hyst) || arm_switch_to_arm_transition) {
 
-
 					// Yuneec-specific: Require all sticks to be centered when arming
 					float tolerance;
 					param_get(_param_arm_stick_tolerance, &tolerance);
-					const bool sticks_are_centered = rc_stick_centered(sp_man.x, 0.0f, tolerance) &&
-									 rc_stick_centered(sp_man.y, 0.0f, tolerance) &&
-									 rc_stick_centered(sp_man.r, 0.0f, tolerance);
+					bool sticks_are_centered = rc_stick_centered(sp_man.x, 0.0f - tolerance, 0.0f + tolerance, "Pitch");
+					sticks_are_centered &= rc_stick_centered(sp_man.y, 0.0f - tolerance, 0.0f + tolerance, "Roll");
+					sticks_are_centered &= rc_stick_centered(sp_man.r, 0.0f - tolerance, 0.0f + tolerance, "Yaw");
 
-					const bool throttle_is_low = sp_man.z <= 0.5f + tolerance;
+					const bool throttle_is_low = rc_stick_centered(sp_man.z, 0.0f, 0.5f + tolerance, "Throttle");
 
 					/* we check outside of the transition function here because the requirement
 					 * for being in manual mode only applies to manual arming actions.
@@ -2488,7 +2495,7 @@ Commander::run()
 						print_reject_arm("Not arming: One or more RC sticks not centered");
 
 					} else if (!throttle_is_low) {
-						print_reject_arm("Not arming: Throttle stick is above center");
+						print_reject_arm("Not arming: Throttle stick is too high");
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 						arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_ARMED, &armed,
@@ -3255,10 +3262,14 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	// we want to allow rc mode change to take precidence.  This is a safety
 	// feature, just in case offboard control goes crazy.
 
+	const bool gained_altitude_estimate = !status_flags.condition_last_local_altitude_valid
+					      && status_flags.condition_local_altitude_valid;
+	const bool gained_position_estimate = !status_flags.condition_last_home_position_valid
+					      && status_flags.condition_home_position_valid;
+
 	/* manual setpoint has not updated, do not re-evaluate it */
-	if (!(!status_flags.condition_last_local_altitude_valid &&
-	      status_flags.condition_local_altitude_valid) &&
-	    !(!status_flags.condition_last_home_position_valid && status_flags.condition_home_position_valid)
+	if (!gained_altitude_estimate
+	    && !gained_position_estimate
 	    && (((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man.timestamp)) ||
 		((_last_sp_man.offboard_switch == sp_man.offboard_switch) &&
 		 (_last_sp_man.return_switch == sp_man.return_switch) &&
@@ -3297,6 +3308,11 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 
 	control_mode.flag_control_updated = false;
 
+	// reevaluate and switch to the mode desired by RC when it became possible
+	if (gained_altitude_estimate || gained_position_estimate) {
+		_should_reevaluate_mode_slot = true;
+	}
+
 	// FIXME: this is an ugly workaround
 	// Before we save _last_sp_man, we need to remember if the mode slot has actually changed or not
 	const bool mode_slot_has_actually_changed = (sp_man.mode_slot != _last_sp_man.mode_slot);
@@ -3307,81 +3323,85 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	// the desired mode
 	reset_posvel_validity(changed);
 
-	/* offboard switch overrides main switch */
-	if (sp_man.offboard_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_OFFBOARD, status_flags, &internal_state);
+	// only consider switches if mode-slot has not changed
+	if (!mode_slot_has_actually_changed) {
 
-		if (res == TRANSITION_DENIED) {
-			print_reject_mode("OFFBOARD");
-			/* mode rejected, continue to evaluate the main system mode */
+		/* offboard switch overrides main switch */
+		if (sp_man.offboard_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_OFFBOARD, status_flags, &internal_state);
 
-		} else {
-			/* changed successfully or already in this state */
-			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
-			return res;
+			if (res == TRANSITION_DENIED) {
+				print_reject_mode("OFFBOARD");
+				/* mode rejected, continue to evaluate the main system mode */
+
+			} else {
+				/* changed successfully or already in this state */
+				_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
+				return res;
+			}
 		}
-	}
 
-	/* RTL switch overrides main switch */
-	if (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state);
+		/* RTL switch overrides main switch */
+		if (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state);
 
-		if (res == TRANSITION_DENIED) {
-			print_reject_mode("AUTO RTL");
+			if (res == TRANSITION_DENIED) {
+				print_reject_mode("AUTO RTL");
 
-			/* fallback to LOITER if home position not set */
+				/* fallback to LOITER if home position not set */
+				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
+
+			} else {
+				/* changed successfully or already in this state */
+				_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
+				return res;
+			}
+
+			/* if we get here mode was rejected, continue to evaluate the main system mode */
+		}
+
+		/* Loiter switch overrides main switch */
+		if (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+			// HOTFIX Yuneec: Reset warning action on button push, or we won't be able
+			// to switch out of loiter through RC stick inputs later on.
+			// This has been added specifically because of the ST10C support.
+			warning_action_on = false;
 			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
 
-		} else {
-			/* changed successfully or already in this state */
-			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
-			return res;
+			if (res == TRANSITION_DENIED) {
+				print_reject_mode("AUTO HOLD");
+
+			} else {
+				_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
+				return res;
+			}
 		}
 
-		/* if we get here mode was rejected, continue to evaluate the main system mode */
-	}
+		// Yuneec specific
+		// The mission button can be used to start a mission if the vehicle is already in air.
+		// If the vehicle is executing a mission, the mission button can be used to switch between loiter and misison.
+		if (sp_man.mission_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags, &internal_state);
 
-	/* Loiter switch overrides main switch */
-	if (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-		// HOTFIX Yuneec: Reset warning action on button push, or we won't be able
-		// to switch out of loiter through RC stick inputs later on.
-		// This has been added specifically because of the ST10C support.
-		warning_action_on = false;
-		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
+			if (res == TRANSITION_DENIED) {
+				print_reject_mode("MISSION");
 
-		if (res == TRANSITION_DENIED) {
-			print_reject_mode("AUTO HOLD");
+			} else {
+				_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
+				return res;
+			}
 
-		} else {
-			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
-			return res;
-		}
-	}
+		} else if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION
+			   && sp_man.mission_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
 
-	// Yuneec specific
-	// The mission button can be used to start a mission if the vehicle is already in air.
-	// If the vehicle is executing a mission, the mission button can be used to switch between loiter and misison.
-	if (sp_man.mission_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags, &internal_state);
+			if (res == TRANSITION_DENIED) {
+				print_reject_mode("LOITER");
 
-		if (res == TRANSITION_DENIED) {
-			print_reject_mode("MISSION");
-
-		} else {
-			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
-			return res;
-		}
-
-	} else if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION
-		   && sp_man.mission_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &internal_state);
-
-		if (res == TRANSITION_DENIED) {
-			print_reject_mode("LOITER");
-
-		} else {
-			_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
-			return res;
+			} else {
+				_should_reevaluate_mode_slot = false;  // Don't re-evaluate, we just switched modes
+				return res;
+			}
 		}
 	}
 

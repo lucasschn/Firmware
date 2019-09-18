@@ -11,6 +11,8 @@ branches:
   only:
   - develop
   - /^v[0-9].*$/
+  - /^release_[0-9].*$/
+  - /^release-[0-9].*$/
 
 env:
   global:
@@ -24,6 +26,16 @@ matrix:
       services:
         - docker
       env: BUILD_TARGET=autopilot
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=autopilot_episci
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=autopilot_3dr
     - os: linux
       sudo: required
       services:
@@ -53,6 +65,11 @@ matrix:
     #   sudo: true
     #   osx_image: xcode9.2
     #   env: BUILD_TARGET=tests
+      env: BUILD_TARGET=clang-tidy
+#     - os: osx
+#       sudo: true
+#       osx_image: xcode9.2
+#       env: BUILD_TARGET=tests
 
 cache:
   ccache: true

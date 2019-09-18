@@ -138,6 +138,7 @@ then
 		param set COM_RC_OVERRIDE 1
 		param set COM_RC_LOSS_T 3
 		param set COM_DL_LOSS_T 10
+		param set COM_ARM_STK_TOL 0.08
 		param set COM_ARM_SWISBTN 1
 
 		# allow receiving team mode input
@@ -173,7 +174,7 @@ then
 	#
 	# Mission settings
 	#
-	param set MIS_YAW_ERR 90
+	param set MIS_YAW_ERR 90.0
 	param set MIS_DIST_WPS 4000
 	param set MIS_DIST_1WP 4000
 	param set MIS_MNT_YAW_CTL 1

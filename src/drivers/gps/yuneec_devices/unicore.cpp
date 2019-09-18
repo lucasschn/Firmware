@@ -220,7 +220,7 @@ GPSDriverUnicore::waitforack(char *response, unsigned timeout)
 	return -1;
 }
 
-char * // 0 = not found comma; return address contain comma if not same as buf
+char * // nullptr = not found comma; return address contain comma if not same as buf
 GPSDriverUnicore::skipComma(char *buf, int num)
 {
 	if (num <= 0) {
@@ -237,7 +237,7 @@ GPSDriverUnicore::skipComma(char *buf, int num)
 		}
 	}
 
-	return 0;
+	return nullptr;
 }
 
 /*
@@ -458,7 +458,7 @@ GPSDriverUnicore::handle_message(int len)
 		*/
 
 		int64_t week = 0, second = 0, nanosecond = 0;
-		double lat = 0.0f, lon = 0.0f, hgt = 0.0f;
+		double lat = 0.0, lon = 0.0, hgt = 0.0;
 		bufptr += 3; //goto first comma
 		bufptr = skipComma(++bufptr, 14);
 
@@ -654,13 +654,13 @@ GPSDriverUnicore::handle_message(int len)
 
 
 void
-GPSDriverUnicore::buffer_init(void)
+GPSDriverUnicore::buffer_init()
 {
 	_rx_buffer.count = _rx_buffer.head = _rx_buffer.tail = 0;
 }
 
 int
-GPSDriverUnicore::buffer_check(void)
+GPSDriverUnicore::buffer_check()
 {
 	uint16_t i, tail;
 

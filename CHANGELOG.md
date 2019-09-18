@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 * Added new message for image EXIF (#3428)
 * Inform the pilot when manual_control_setpoint.data_source changes (#3461) [ch4547]
 * Add parameters to control the automatic operation of the landing gear (#3462)
+* Logging of component versions (readded after v1.8.0-1.6.17 removed it)
 
 
 
@@ -68,6 +69,10 @@ All notable changes to this project will be documented in this file.
 * Increased takeoff-ramp-speed (#3440)
 * Increase number of file descriptors in NuttX from 50 to 54 (#3438)
 * New changes for our partner "episci"
+* Allow disarm on crash (readded after v1.8.0-1.6.17 removed it)
+* Commander string improvments (readded after v1.8.0-1.6.17 removed it)
+
+
 
 
 
@@ -198,6 +203,29 @@ All notable changes to this project will be documented in this file.
 * ecl library updated to current upstream version to include alignment fixes (#3310)
 
 
+## [v1.8.0-1.6.18]
+### Changed
+* Require RC sticks to be centered also when a takeoff vehicle_command is issued. For example using the GUI. (#3372)
+
+### Changed
+* Don't require throttle to be centered, but only <= 50% for takeoff (#3389)
+* More detailed output for RC-center check and also less strict tolerance [ch3971]
+* Allow unrestricted modification of parameter COM_ARM_STK_TOL [ch3971]
+
+
+## [v1.8.0-1.6.17]
+### Changed
+* Revert: logging of component versions
+* Revert: commander string improvments
+* Revert: Feature/allow disarm on crash
+
+
+## [v1.8.0-1.6.16]
+### Changed
+* Reverted: Orbit radius increased to 400m
+* New changes for our partner "episci"
+
+
 ## [v1.8.0-1.6.15]
 ### Added
 * Log camera and gimbal versions in flight log (#3346)
@@ -215,7 +243,6 @@ All notable changes to this project will be documented in this file.
 ### Changed
 * Commander logging strings improved readability and consistency (#3315)
 * [PUBLIC] Improved understandability of info and warning messages (#3315) (DE:Verbesserte Verständlichkeit von Info-Meldungen und Warnungen)
-<!-- TODO: NEEDS CP! * [PUBLIC] Increased maximum radius in Orbit from 100m to 400m (#3355) (DE:Maximaler Radius für Orbit von 100m auf 400m erhöht) -->
 
 
 ## [v1.8.0-1.6.12]
@@ -245,10 +272,10 @@ All notable changes to this project will be documented in this file.
 
 ## [v1.8.0-1.6.7]
 ### Fixed
-<!-- TODO: NEEDS CP! * Allow unrestricted modification of parameter RCMAP_AUX (#3325) -->
+* Allow unrestricted modification of parameter RCMAP_AUX (#3325)
 
 ### Added
-<!-- TODO: NEEDS CP! * Parameter for AUX-button setting (#3325) -->
+* Parameter for AUX-button setting (#3325)
 
 
 ## [v1.8.0-1.6.6]
@@ -259,20 +286,21 @@ All notable changes to this project will be documented in this file.
 * [PUBLIC] Reconnecting RC now cancels RC Loss Alarm (#3297) (DE:RC Verbindungsalarm wird deaktiviert wenn Verbindung wiederhergestellt wurde)
 * [PUBLIC] Improved playback of RC Loss Alarm (#3297) (DE:Wiedergabe von RC Verbindungsalarm verbessert)
 * Tunes are no longer interrupted by themselves when sent multiple times (#3297)
-<!-- TODO: NEEDS CP! * [PUBLIC] Vehicle no longer rotates when mission is paused (#3307) (DE:Drohne behält Rotation bei wenn Missionen pausiert werden) -->
-<!-- TODO: NEEDS CP! * [PUBLIC] Vehicle no longer rotates when entering LOITER mode from mission (#3313) (DE:Drohne behält Orientierung bei wenn vom Flugmodus MISSION zu LOITER gewechselt wird) -->
+* [PUBLIC] Vehicle no longer rotates when mission is paused (#3307) (DE:Drohne behält Rotation bei wenn Missionen pausiert werden)
+* [PUBLIC] Vehicle no longer rotates when entering LOITER mode from mission (#3313) (DE:Drohne behält Orientierung bei wenn vom Flugmodus MISSION zu LOITER gewechselt wird)
+* Mission start and pause/continue through Aux-button (#3308)
 * Update description for COM_RC_LOSS_PARAM (#3317)
-<!-- TODO: NEEDS CP! * Position lock more conservative (#3319) -->
+* Position lock more conservative (#3319)
 
 ### Added
 * [Regression] Restored the "factory calibration by shaking the vehicle" feature (#3306)
-<!-- TODO: NEEDS CP! * Start/stop missions using the AUX button (#3308) -->
+* Start/stop missions using the AUX button (#3308)
 * Logging whether Firmware flashed was built using RESTRICTED_BUILD or not (#3318)
 
 
 ## [v1.8.0-1.6.5]
 ### Fixed
-(needs to be cherry-picked)
+* Structure Scan pitch working with HOTFIX (reinterpret_cast) (#3208)
 
 
 ## [v1.8.0-1.6.4]
@@ -316,14 +344,13 @@ All notable changes to this project will be documented in this file.
 * New (less annoying) tune for low-battery warning (#3095)
 * Only rotate gimbal to face towards ROI, not the entire drone (#3121)
 
-
 ### Fixed
 * The drone wouldn't face straight forward when flying a survey after a ROI mission (#3121)
 * Don't run motor-check in HITL (#3120, #3089)
-* Camera now has correct orientation in structure scan (#2322, #3121)
+* Camera now has correct orientation in structure scan (#2322)
 * [Regression] Play low-battery warning tunes only once (#3073)
+* [Regression] Wrong flight mode on bootup e.g. indoors (#2817, #3131)
 * Gimbal-lock within acceptance radius (#3137)
-
 
 ### Added
 * Added landing gear state to logger (#3111, #3117)

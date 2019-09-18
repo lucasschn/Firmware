@@ -216,10 +216,10 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
 PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 12.0f);
 
 /**
- * RC loss failsafe behavior switch
+ * RC-requirement for all modes.
  *
- * When disabled, RC loss triggers RTL only for manual mode.
- * When enabled RC loss triggers RTL in all flight modes.
+ * If enabled, then RC is always required (independent of flight-mode). If disabled, then RC-requirement depends on
+ * flight-mode.
  *
  * @group Commander
  * @boolean

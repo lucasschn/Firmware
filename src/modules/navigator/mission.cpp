@@ -88,6 +88,10 @@ Mission::on_inactive()
 		orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
 
 		if (offboard_updated) {
+			/* Missions that do not explicitly configure ROI would not override
+			   an existing ROI setting from previous missions */
+			_navigator->reset_vroi();
+
 			update_offboard_mission();
 
 			if (_mission_type == MISSION_TYPE_NONE && _offboard_mission.count > 0) {

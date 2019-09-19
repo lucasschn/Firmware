@@ -196,3 +196,14 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
  * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+
+/**
+ * Battery structure connect check.
+ *
+ * True if we support battery check
+ * We set this vale in the factory program to
+ * distinguish the hardware version without the battery detection structure.
+ * @boolean
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_INT32(BAT_LINK_CHECK, 0);

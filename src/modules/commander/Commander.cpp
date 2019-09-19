@@ -139,6 +139,7 @@ static volatile bool thread_should_exit = false;	/**< daemon exit flag */
 static volatile bool thread_running = false;		/**< daemon status flag */
 
 static hrt_abstime commander_boot_timestamp = 0;
+static hrt_abstime last_bat_con_fail_time = 0;	// The last time the battery connection was unreliable
 
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
@@ -4773,6 +4774,16 @@ void Commander::battery_status_check()
 			// save last value
 			_battery_warning = battery.warning;
 			_battery_current = battery.current_filtered_a;
+
+			/* Yuneec-specific: Check battery link status */
+			if (land_detector.landed && !battery.reliably_connected && hrt_elapsed_time(&commander_boot_timestamp) > 3_s) {
+				status_flags.condition_battery_healthy = false;
+
+			} else if (!land_detector.landed && !battery.reliably_connected && hrt_elapsed_time(&last_bat_con_fail_time) > 2_s) {
+				// just for log record
+				PX4_ERR("battery connect abnormal");
+				last_bat_con_fail_time = hrt_absolute_time();
+			}
 
 			/* Yuneec-specific: Update time estimate for RTL and perform RTL action if required */
 			orb_check(_rtl_time_estimate_sub, &updated);

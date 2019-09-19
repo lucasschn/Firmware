@@ -44,6 +44,7 @@
 #include <mathlib/mathlib.h>
 #include <cstring>
 #include <px4_defines.h>
+#include "board_config.h"
 
 Battery::Battery() :
 	ModuleParams(nullptr),
@@ -89,6 +90,16 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		determineWarning(connected);
 	}
 
+	bool reliably_connected = true;
+
+#ifdef BOARD_HAS_POWER_CHECK
+
+	if (_link_check.get()) {
+		reliably_connected = !stm32_gpioread(POWER_CHECK_GPIO);
+	}
+
+#endif
+
 	if (_voltage_filtered_v > 2.1f) {
 		_battery_initialized = true;
 		battery_status->voltage_v = voltage_v;
@@ -103,6 +114,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->connected = connected;
 		battery_status->system_source = selected_source;
 		battery_status->priority = priority;
+		battery_status->reliably_connected = reliably_connected;
 	}
 }
 

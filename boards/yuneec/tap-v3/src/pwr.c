@@ -156,6 +156,7 @@ void board_pwr_init(int stage)
 	if (stage == 0) {
 		stm32_configgpio(POWER_ON_GPIO);
 		stm32_configgpio(KEY_AD_GPIO);
+		stm32_configgpio(POWER_CHECK_GPIO);
 	}
 
 	if (stage == 1) {

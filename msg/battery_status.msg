@@ -32,3 +32,6 @@ uint8 BATTERY_WARNING_EMERGENCY = 3   # immediate landing required
 uint8 BATTERY_WARNING_FAILED = 4   # the battery has failed completely
 
 uint8 warning    # current battery warning
+
+#Yuneec special
+bool reliably_connected     # True if battery connect reliable,based on a battery installation location

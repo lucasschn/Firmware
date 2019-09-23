@@ -286,7 +286,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.3f);
+PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
 
 /**
  * Proportional gain for vertical trajectory position error

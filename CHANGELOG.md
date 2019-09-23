@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 * Add parameters to control the automatic operation of the landing gear (#3462)
 * Logging of component versions (readded after v1.8.0-1.6.17 removed it)
 * Add battery connection check over GPIO pin (#3463) [ch3597]
+* Increase the proportional gain of the horizontal track position error (#3483)
 
 
 

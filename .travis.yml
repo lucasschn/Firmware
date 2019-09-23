@@ -40,16 +40,6 @@ matrix:
       sudo: required
       services:
         - docker
-      env: BUILD_TARGET=autopilot_episci
-    - os: linux
-      sudo: required
-      services:
-        - docker
-      env: BUILD_TARGET=autopilot_3dr
-    - os: linux
-      sudo: required
-      services:
-        - docker
       env: BUILD_TARGET=check_format
     - os: linux
       sudo: required

@@ -282,7 +282,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
  * Proportional gain for horizontal trajectory position error
  *
  * @min 0.1
- * @max 5.0
+ * @max 1.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -292,7 +292,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
  * Proportional gain for vertical trajectory position error
  *
  * @min 0.1
- * @max 5.0
+ * @max 1.0
  * @decimal 1
  * @group Multicopter Position Control
  */

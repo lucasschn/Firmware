@@ -329,32 +329,6 @@ private:
 	void		task_main();
 };
 
-
-int MulticopterPositionControl::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-The controller has two loops: a P loop for position error and a PID loop for velocity error.
-Output of the velocity controller is thrust vector that is split to thrust direction
-(i.e. rotation matrix for multicopter orientation) and thrust scalar (i.e. multicopter thrust itself).
-
-The controller doesn't use Euler angles for its work, they are generated only for more human-friendly control and
-logging.
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("mc_pos_control", "controller");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
-}
-
-
 MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
@@ -407,13 +381,13 @@ MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_xy_cruise.set(_param_mpc_xy_vel_max.get());
 			_param_mpc_xy_cruise.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed")
+			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed");
 		}
 
 		if (_param_mpc_vel_manual.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_vel_manual.set(_param_mpc_xy_vel_max.get());
 			_param_mpc_vel_manual.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed")
+			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed");
 		}
 
 		if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
@@ -421,7 +395,7 @@ MulticopterPositionControl::parameters_update(bool force)
 			_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
 						 _param_mpc_thr_max.get()));
 			_param_mpc_thr_hover.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max")
+			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max");
 		}
 
 		_flight_tasks.handleParameterUpdate();
@@ -488,6 +462,7 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		vehicle_attitude_s att;
+
 		if (orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att) == PX4_OK && PX4_ISFINITE(att.q[0])) {
 			_states.yaw = Eulerf(Quatf(att.q)).psi();
 		}
@@ -828,6 +803,10 @@ MulticopterPositionControl::run()
 			// vehicle intention.
 			publish_local_pos_sp(local_pos_sp);
 
+			// Inform FlightTask about the input and output of the velocity controller
+			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
+			_flight_tasks.updateVelocityControllerIO(_control.getVelSp(), local_pos_sp.thrust);
+
 			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
 			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
@@ -904,9 +883,9 @@ MulticopterPositionControl::start_flight_task()
 
 	if (_vehicle_status.in_transition_mode) {
 		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
+		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Transition activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -931,9 +910,9 @@ MulticopterPositionControl::start_flight_task()
 		_control_mode.flag_control_acceleration_enabled)) {
 
 		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
+		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Offboard activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -950,9 +929,9 @@ MulticopterPositionControl::start_flight_task()
 	// Auto-follow me
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
 		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
+		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -968,7 +947,7 @@ MulticopterPositionControl::start_flight_task()
 	} else if (_control_mode.flag_control_auto_enabled) {
 		// Auto related maneuvers
 		should_disable_task = false;
-		int error = 0;
+		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_auto_mode.get()) {
 		case 1:
@@ -980,7 +959,7 @@ MulticopterPositionControl::start_flight_task()
 			break;
 		}
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -997,7 +976,7 @@ MulticopterPositionControl::start_flight_task()
 	// manual position control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL || task_failure) {
 		should_disable_task = false;
-		int error = 0;
+		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_pos_mode.get()) {
 		case 1:
@@ -1017,7 +996,7 @@ MulticopterPositionControl::start_flight_task()
 			break;
 		}
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -1034,7 +1013,7 @@ MulticopterPositionControl::start_flight_task()
 	// manual altitude control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL || task_failure) {
 		should_disable_task = false;
-		int error = 0;
+		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_pos_mode.get()) {
 		case 1:
@@ -1050,7 +1029,7 @@ MulticopterPositionControl::start_flight_task()
 			break;
 		}
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -1073,9 +1052,9 @@ MulticopterPositionControl::start_flight_task()
 
 		// for some reason no flighttask was able to start.
 		// go into failsafe flighttask
-		int error = _flight_tasks.switchTask(FlightTaskIndex::Failsafe);
+		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::Failsafe);
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			// No task was activated.
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
@@ -1193,9 +1172,11 @@ bool
 MulticopterPositionControl::use_obstacle_avoidance()
 {
 	if (_manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_ON
-		 || _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE) {
-		const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) > TRAJECTORY_STREAM_TIMEOUT_US;
-		const bool avoidance_point_valid = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
+	    || _manual.obsavoid_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE) {
+		const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) >
+						    TRAJECTORY_STREAM_TIMEOUT_US;
+		const bool avoidance_point_valid = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid ==
+						   true;
 		const bool in_mission = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 		const bool in_rtl = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 		const bool in_pos_ctl = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL;
@@ -1209,6 +1190,7 @@ MulticopterPositionControl::use_obstacle_avoidance()
 			return true;
 		}
 	}
+
 	return false;
 }
 
@@ -1345,6 +1327,30 @@ MulticopterPositionControl *MulticopterPositionControl::instantiate(int argc, ch
 int MulticopterPositionControl::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
+}
+
+int MulticopterPositionControl::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+The controller has two loops: a P loop for position error and a PID loop for velocity error.
+Output of the velocity controller is thrust vector that is split to thrust direction
+(i.e. rotation matrix for multicopter orientation) and thrust scalar (i.e. multicopter thrust itself).
+
+The controller doesn't use Euler angles for its work, they are generated only for more human-friendly control and
+logging.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("mc_pos_control", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
 }
 
 int mc_pos_control_main(int argc, char *argv[])

@@ -122,7 +122,8 @@ protected:
 					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,
 					(ParamInt<px4::params::MPC_OBS_AVOID>) _param_com_obs_avoid, // obstacle avoidance active
 					(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
-					(ParamFloat<px4::params::MPC_VEL_Z_AUTO>) _param_mpc_vel_z_auto // defines the vertical speed during Auto maneuvers
+					(ParamFloat<px4::params::MPC_VEL_Z_AUTO>) _param_mpc_vel_z_auto, // defines the vertical speed during Auto maneuvers
+					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err // yaw-error threshold
 				       );
 
 private:

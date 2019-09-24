@@ -123,7 +123,7 @@ All notable changes to this project will be documented in this file.
 * Critical orbit failsafe improvement. Prevents drone from crashing when RC is lost during orbit (#3446) [ch3072]
 * Set the minimum hover height parameter to -1 (#3454) [ch3997]
 * Default landing-gear up in takeoff mode (#3455)
-
+* Fix USB connection problem with QGC (#3467) [ch4811]
 
 
 

@@ -442,6 +442,11 @@ then
 		mavlink start -r ${MAV_RATE} -d ${OFDM_TTY} -m config -b ${BAUDRATE}
 		mavlink stream -d ${OFDM_TTY} -s SYSTEM_TIME -r 0.5
 	fi
+
+	# Give the stream a little time to come up...
+	# FIXME: This is only a temporary fix for [ch4811]
+	sleep 1
+
 	# mavlink instance for the USB port
 	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 else

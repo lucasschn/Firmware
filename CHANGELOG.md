@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 * Logging of component versions (readded after v1.8.0-1.6.17 removed it)
 * Add battery connection check over GPIO pin (#3463) [ch3597]
 * Increase the proportional gain of the horizontal track position error (#3483)
-
+* Added parameter for Yuneec product ID (#3477) [ch4994]
 
 
 

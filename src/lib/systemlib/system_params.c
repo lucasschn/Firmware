@@ -322,3 +322,22 @@ PARAM_DEFINE_FLOAT(SYS_CAL_ACC_TOL, -1);
  * @group System
  */
 PARAM_DEFINE_FLOAT(SYS_CAL_GYRO_TOL, -1);
+
+/**
+ * This is the product ids that for all yuneec products
+ *
+ * @min 0
+ * @max 100
+ * @value 0 H520's product id is 0
+ * @value 1 H520C's product id is 1
+ * @value 2 V18S's product id is 2
+ * @value 3 V18S02's product id is 3
+ * @value 4 Mobilicom's product id is 4
+ * @value 5 H520RTK(H520+Unicore RTK) is 5
+ * @value 6 H520RTK(H520+Fixposition RTK) is 6
+ * @value 7 H520E's(M7 + OFDM) product id is is 7
+ * @value 8 H920E's product id is 8
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(YUN_PRODUCT_ID, 0);

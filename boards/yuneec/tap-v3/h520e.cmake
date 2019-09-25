@@ -1,12 +1,13 @@
 add_definitions("-DENABLE_RC_HELPER")
+add_definitions("-DYUNEEC_PRODUCT_ID=7")
 
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR yuneec
 	MODEL tap-v3
-	LABEL ofdm
+	LABEL h520e
 	TOOLCHAIN arm-none-eabi
-	ARCHITECTURE cortex-m4
+	ARCHITECTURE cortex-m7
 	ROMFSROOT tap_common
 	# IO px4_io-v2_default  # TODO: Do we need this for copying the ESC firmware bin?
 	# TAP_ESC H520  # TODO:  Copy ESC firmware binary

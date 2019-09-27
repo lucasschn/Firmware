@@ -1001,6 +1001,14 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 			prearm_ok = false;
 		}
+
+		if (!status_flags.condition_battery_connect_healthy) {
+			if (prearm_ok && reportFailures) {
+				mavlink_log_emergency(mavlink_log_pub, "ARMING DENIED: battery connection unstable");
+			}
+
+			prearm_ok = false;
+		}
 	}
 
 	// Arm Requirements: mission

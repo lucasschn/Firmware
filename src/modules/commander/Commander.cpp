@@ -4777,12 +4777,15 @@ void Commander::battery_status_check()
 
 			/* Yuneec-specific: Check battery link status */
 			if (land_detector.landed && !battery.reliably_connected && hrt_elapsed_time(&commander_boot_timestamp) > 3_s) {
-				status_flags.condition_battery_healthy = false;
+				status_flags.condition_battery_connect_healthy = false;
 
 			} else if (!land_detector.landed && !battery.reliably_connected && hrt_elapsed_time(&last_bat_con_fail_time) > 2_s) {
 				// just for log record
 				PX4_ERR("battery connect abnormal");
 				last_bat_con_fail_time = hrt_absolute_time();
+
+			} else {
+				status_flags.condition_battery_connect_healthy = true;
 			}
 
 			/* Yuneec-specific: Update time estimate for RTL and perform RTL action if required */

@@ -16,6 +16,7 @@ bool condition_last_local_altitude_valid
 bool condition_local_altitude_valid
 bool condition_power_input_valid                # set if input power is valid
 bool condition_battery_healthy                # set if battery is available and not low
+bool condition_battery_connect_healthy
 
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check

@@ -15,7 +15,7 @@ All notable changes to this project will be documented in this file.
 * Add battery connection check over GPIO pin (#3463) [ch3597]
 * Increase the proportional gain of the horizontal track position error (#3483)
 * Added parameter for Yuneec product ID (#3477) [ch4994]
-
+* Increase battery failure reason notification (#3490) [ch3597]
 
 
 

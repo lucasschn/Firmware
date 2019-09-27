@@ -182,276 +182,9 @@ RTL::set_rtl_item()
 
 	_navigator->set_can_loiter_at_sp(false);
 
-	const home_position_s home = _return_location;
-	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
-
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	// Check if we are pretty close to home already.
-	const float home_dist = get_distance_to_next_waypoint(home.lat, home.lon, gpos.lat, gpos.lon);
-
-	// Compute the return altitude
-	float return_alt = get_rtl_altitude();
-
-	// We are close to home, limit climb to min
-	// if (home_dist < _param_rtl_min_dist.get()) {
-	// 	return_alt = home.alt + _param_descend_alt.get();
-	// }
-
-	bool home_close = (home_dist < _param_rtl_min_dist.get());
-	bool home_altitude_close = (fabsf(gpos.alt - home.alt) < _param_rtl_min_dist.get());
-
-	// Compute the loiter altitude.
-	const float loiter_altitude = math::min(home.alt + _param_descend_alt.get(), gpos.alt);
-
-	switch (_rtl_state) {
-	case RTL_STATE_BRAKE: {  // NOTE: Yuneec-specific state
-
-			/* slow down before climbing */
-			set_brake_item(&_mission_item);
-
-			break;
-
-		}
-
-	case RTL_STATE_CLIMB: {
-
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = gpos.lat;
-			_mission_item.lon = gpos.lon;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.altitude = return_alt;
-			_mission_item.yaw = _navigator->get_local_position()->yaw;
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
-			_mission_item.force_velocity = false;
-
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above home)",
-						     (int)ceilf(return_alt), (int)ceilf(return_alt - home.alt));
-			break;
-		}
-
-	case RTL_STATE_PRE_RETURN: {
-
-			_mission_item.lat = gpos.lat;
-			_mission_item.lon = gpos.lon;
-
-			if (home_close) {
-				_mission_item.yaw = home.yaw;
-
-			} else {
-				// use current heading to home
-				_mission_item.yaw = get_bearing_to_next_waypoint(
-							    gpos.lat, gpos.lon,
-							    home.lat, home.lon);
-
-			}
-
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
-			break;
-		}
-
-	case RTL_STATE_RETURN: {
-
-			// Don't change altitude.
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = home.lat;
-			_mission_item.lon = home.lon;
-			_mission_item.altitude = return_alt;
-			_mission_item.altitude_is_relative = false;
-
-			// Use home yaw if close to home
-			if (home_close) {
-				_mission_item.yaw = home.yaw;
-
-			} else {
-				// Use current heading to home.
-				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, home.lat, home.lon);
-			}
-
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
-
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above home)",
-						     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - home.alt));
-
-			break;
-		}
-
-	case RTL_STATE_AFTER_RETURN: {
-			_mission_item.lat = home.lat;
-			_mission_item.lon = home.lon;
-			// don't change altitude
-			_mission_item.yaw = home.yaw;
-
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
-			break;
-		}
-
-	case RTL_STATE_TRANSITION_TO_MC: {
-			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-			break;
-		}
-
-	case RTL_STATE_DESCEND: {
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = home.lat;
-			_mission_item.lon = home.lon;
-			_mission_item.altitude = loiter_altitude;
-			_mission_item.altitude_is_relative = false;
-
-			// Except for vtol which might be still off here and should point towards this location.
-			const float d_current = get_distance_to_next_waypoint(gpos.lat, gpos.lon, _mission_item.lat, _mission_item.lon);
-
-			if (_navigator->get_vstatus()->is_vtol && (d_current > _navigator->get_acceptance_radius())) {
-				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _mission_item.lat, _mission_item.lon);
-
-			} else {
-				_mission_item.yaw = home.yaw;
-			}
-
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
-
-			// Disable previous setpoint to prevent drift.
-			pos_sp_triplet->previous.valid = false;
-			break;
-		}
-
-	case RTL_STATE_LOITER: {
-			const bool autoland = (_param_land_delay.get() > FLT_EPSILON);
-
-			// Don't change altitude.
-			_mission_item.lat = home.lat;
-			_mission_item.lon = home.lon;
-			_mission_item.altitude = loiter_altitude;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.yaw = home.yaw;
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-
-			// _mission_item.time_inside = math::max(_param_land_delay.get(), 0.0f);
-			// _mission_item.autocontinue = autoland;
-			// _mission_item.origin = ORIGIN_ONBOARD;
-
-			// Loiter to deploy landing gear if up
-			if ((int)_navigator->get_landing_gear()->landing_gear == (int)landing_gear_s::GEAR_DOWN) {
-				// NOTE(Yuneec): If landing gear is down, we don't want to loiter at all.
-				// However, loitering for 0 seconds means loitering indefinitely
-				// in upstream. Hence we set the time very close to zero:
-				_mission_item.time_inside = 2 * FLT_EPSILON;
-
-			} else {
-				_mission_item.time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();
-			}
-
-			if (autoland && (get_time_inside(_mission_item) > FLT_EPSILON)) {
-				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
-				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs",
-							     (double)get_time_inside(_mission_item));
-
-			} else {
-				_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering");
-			}
-
-			_mission_item.autocontinue = autoland;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.landing_gear = landing_gear_s::GEAR_DOWN;
-
-			vehicle_command_s cmd_configure{};
-			// Set gimbal to
-			cmd_configure.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
-			cmd_configure.param1 = 2.0f; // VEHICLE_MOUNT_MODE_MAVLINK_TARGETING
-			cmd_configure.param2 = 0.0f; // don't stabilize roll
-			cmd_configure.param3 = 0.0f; // don't stabilize pitch
-			cmd_configure.param4 = 0.0f; // don't stabilize yaw (for now this works, later this is done using param7)
-			cmd_configure.timestamp = hrt_absolute_time();
-			_navigator->publish_vehicle_cmd(&cmd_configure);
-
-			vehicle_command_s cmd_control{};
-			// Set gimbal to default orientation
-			cmd_control.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
-			cmd_control.param1 = 0.0f; // pitch
-			cmd_control.param2 = 0.0f; // roll
-			cmd_control.param3 = 0.0f; // yaw
-			cmd_control.param7 = 2.0f; // VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
-			cmd_control.timestamp = hrt_absolute_time();
-			_navigator->publish_vehicle_cmd(&cmd_control);
-
-			_navigator->set_can_loiter_at_sp(true);
-
-			break;
-		}
-
-	case RTL_STATE_LAND: {
-			// Land at home position.
-			_mission_item.nav_cmd = NAV_CMD_LAND;
-			_mission_item.lat = home.lat;
-			_mission_item.lon = home.lon;
-			_mission_item.yaw = home.yaw;
-			_mission_item.altitude = home.alt;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.landing_gear = landing_gear_s::GEAR_DOWN;
-
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at home");
-			break;
-		}
-
-	case RTL_STATE_LANDED: {
-			set_idle_item(&_mission_item);
-			set_return_alt_min(false);
-			break;
-		}
-
-	case RTL_STATE_HOME: {
-
-			_mission_item.lat = home.lat;
-			_mission_item.lon = home.lon;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.altitude = return_alt;
-			_mission_item.yaw = NAN;
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
-			_mission_item.force_velocity = false;
-
-			break;
-
-		}
-
-	default:
-		break;
-	}
+	fill_item(_mission_item, _rtl_state);
+	int next_rtl_state = (_rtl_state == RTL_STATE_HOME) ? RTL_STATE_HOME : _rtl_state + 1;
+	fill_item(_mission_item_next, next_rtl_state);
 
 	// it will not set mission yaw setpoint when the vehicle enter fault tolerant control(yaw control tracking is not good)
 	if (_navigator->get_esc_report()->motor_state_flags != OK) {
@@ -467,8 +200,13 @@ RTL::set_rtl_item()
 
 	// Convert mission item to current position setpoint and make it valid.
 	mission_apply_limitation(_mission_item);
+	mission_apply_limitation(_mission_item_next);
+
+	// convert to current triplet
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	if (mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current)) {
+		mission_item_to_position_setpoint(_mission_item_next, &pos_sp_triplet->next);
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
@@ -770,4 +508,273 @@ RTL::calc_and_pub_rtl_time_estimate()
 	// Publish message
 	_rtl_time_estimate.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(rtl_time_estimate), _rtl_time_estimate_pub, &_rtl_time_estimate);
+}
+
+void RTL::fill_item(mission_item_s &item, const int rtl_state)
+{
+
+	//current global position
+	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
+
+	// Check if we are pretty close to home already.
+	const float home_dist = get_distance_to_next_waypoint(_return_location.lat, _return_location.lon, gpos.lat, gpos.lon);
+
+	// Compute the return altitude
+	float return_alt = get_rtl_altitude();
+
+	// We are close to home, limit climb to min
+	// if (home_dist < _param_rtl_min_dist.get()) {
+	// 	return_alt = home.alt + _param_descend_alt.get();
+	// }
+
+	bool home_close = (home_dist < _param_rtl_min_dist.get());
+	bool home_altitude_close = (fabsf(gpos.alt - _return_location.alt) < _param_rtl_min_dist.get());
+
+	// Compute the loiter altitude.
+	const float loiter_altitude = math::min(_return_location.alt + _param_descend_alt.get(), gpos.alt);
+
+	switch (rtl_state) {
+	case RTL_STATE_BRAKE: {  // NOTE: Yuneec-specific state
+
+			/* slow down before climbing */
+			set_brake_item(&item);
+
+			break;
+
+		}
+
+	case RTL_STATE_CLIMB: {
+
+			item.nav_cmd = NAV_CMD_WAYPOINT;
+			item.lat = gpos.lat;
+			item.lon = gpos.lon;
+			item.altitude_is_relative = false;
+			item.altitude = return_alt;
+			item.yaw = _navigator->get_local_position()->yaw;
+			item.acceptance_radius = _navigator->get_acceptance_radius();
+			item.time_inside = 0.0f;
+			item.autocontinue = true;
+			item.origin = ORIGIN_ONBOARD;
+			item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
+			item.force_velocity = false;
+
+			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above home)",
+						     (int)ceilf(return_alt), (int)ceilf(return_alt - _return_location.alt));
+			break;
+		}
+
+	case RTL_STATE_PRE_RETURN: {
+
+			item.lat = gpos.lat;
+			item.lon = gpos.lon;
+
+			if (home_close) {
+				item.yaw = _return_location.yaw;
+
+			} else {
+				// use current heading to home
+				item.yaw = get_bearing_to_next_waypoint(
+						   gpos.lat, gpos.lon,
+						   _return_location.lat, _return_location.lon);
+
+			}
+
+			item.loiter_radius = _navigator->get_loiter_radius();
+			item.nav_cmd = NAV_CMD_WAYPOINT;
+			item.acceptance_radius = _navigator->get_acceptance_radius();
+			item.time_inside = 0.0f;
+			item.autocontinue = true;
+			item.origin = ORIGIN_ONBOARD;
+			item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
+			break;
+		}
+
+	case RTL_STATE_RETURN: {
+
+			// Don't change altitude.
+			item.nav_cmd = NAV_CMD_WAYPOINT;
+			item.lat = _return_location.lat;
+			item.lon = _return_location.lon;
+			item.altitude = return_alt;
+			item.altitude_is_relative = false;
+
+			// Use home yaw if close to home
+			if (home_close) {
+				item.yaw = _return_location.yaw;
+
+			} else {
+				// Use current heading to home.
+				item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _return_location.lat, _return_location.lon);
+			}
+
+			item.acceptance_radius = _navigator->get_acceptance_radius();
+			item.time_inside = 0.0f;
+			item.autocontinue = true;
+			item.origin = ORIGIN_ONBOARD;
+			item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
+
+			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above home)",
+						     (int)ceilf(item.altitude), (int)ceilf(item.altitude - _return_location.alt));
+
+			break;
+		}
+
+	case RTL_STATE_AFTER_RETURN: {
+			item.lat = _return_location.lat;
+			item.lon = _return_location.lon;
+			// don't change altitude
+			item.yaw = _return_location.yaw;
+
+			item.loiter_radius = _navigator->get_loiter_radius();
+			item.nav_cmd = NAV_CMD_WAYPOINT;
+			item.acceptance_radius = _navigator->get_acceptance_radius();
+			item.time_inside = 0.0f;
+			item.autocontinue = true;
+			item.origin = ORIGIN_ONBOARD;
+			item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
+			break;
+		}
+
+	case RTL_STATE_TRANSITION_TO_MC: {
+			set_vtol_transition_item(&item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+			break;
+		}
+
+	case RTL_STATE_DESCEND: {
+			item.nav_cmd = NAV_CMD_WAYPOINT;
+			item.lat = _return_location.lat;
+			item.lon = _return_location.lon;
+			item.altitude = loiter_altitude;
+			item.altitude_is_relative = false;
+
+			// Except for vtol which might be still off here and should point towards this location.
+			const float d_current = get_distance_to_next_waypoint(gpos.lat, gpos.lon, item.lat, item.lon);
+
+			if (_navigator->get_vstatus()->is_vtol && (d_current > _navigator->get_acceptance_radius())) {
+				item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, item.lat, item.lon);
+
+			} else {
+				item.yaw = _return_location.yaw;
+			}
+
+			item.acceptance_radius = _navigator->get_acceptance_radius();
+			item.time_inside = 0.0f;
+			item.autocontinue = true;
+			item.origin = ORIGIN_ONBOARD;
+			item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
+			break;
+		}
+
+	case RTL_STATE_LOITER: {
+			const bool autoland = (_param_land_delay.get() > FLT_EPSILON);
+
+			// Don't change altitude.
+			item.lat = _return_location.lat;
+			item.lon = _return_location.lon;
+			item.altitude = loiter_altitude;
+			item.altitude_is_relative = false;
+			item.yaw = _return_location.yaw;
+			item.loiter_radius = _navigator->get_loiter_radius();
+			item.acceptance_radius = _navigator->get_acceptance_radius();
+
+			// item.time_inside = math::max(_param_land_delay.get(), 0.0f);
+			// item.autocontinue = autoland;
+			// item.origin = ORIGIN_ONBOARD;
+
+			// Loiter to deploy landing gear if up
+			if ((int)_navigator->get_landing_gear()->landing_gear == (int)landing_gear_s::GEAR_DOWN) {
+				// NOTE(Yuneec): If landing gear is down, we don't want to loiter at all.
+				// However, loitering for 0 seconds means loitering indefinitely
+				// in upstream. Hence we set the time very close to zero:
+				item.time_inside = 2 * FLT_EPSILON;
+
+			} else {
+				item.time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();
+			}
+
+			if (autoland && (get_time_inside(item) > FLT_EPSILON)) {
+				item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
+				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs",
+							     (double)get_time_inside(item));
+
+			} else {
+				item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering");
+			}
+
+			item.autocontinue = autoland;
+			item.origin = ORIGIN_ONBOARD;
+			item.landing_gear = landing_gear_s::GEAR_DOWN;
+
+			vehicle_command_s cmd_configure{};
+			// Set gimbal to
+			cmd_configure.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
+			cmd_configure.param1 = 2.0f; // VEHICLE_MOUNT_MODE_MAVLINK_TARGETING
+			cmd_configure.param2 = 0.0f; // don't stabilize roll
+			cmd_configure.param3 = 0.0f; // don't stabilize pitch
+			cmd_configure.param4 = 0.0f; // don't stabilize yaw (for now this works, later this is done using param7)
+			cmd_configure.timestamp = hrt_absolute_time();
+			_navigator->publish_vehicle_cmd(&cmd_configure);
+
+			vehicle_command_s cmd_control{};
+			// Set gimbal to default orientation
+			cmd_control.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
+			cmd_control.param1 = 0.0f; // pitch
+			cmd_control.param2 = 0.0f; // roll
+			cmd_control.param3 = 0.0f; // yaw
+			cmd_control.param7 = 2.0f; // VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+			cmd_control.timestamp = hrt_absolute_time();
+			_navigator->publish_vehicle_cmd(&cmd_control);
+
+			_navigator->set_can_loiter_at_sp(true);
+
+			break;
+		}
+
+	case RTL_STATE_LAND: {
+			// Land at home position.
+			item.nav_cmd = NAV_CMD_LAND;
+			item.lat = _return_location.lat;
+			item.lon = _return_location.lon;
+			item.yaw = _return_location.yaw;
+			item.altitude = _return_location.alt;
+			item.altitude_is_relative = false;
+			item.acceptance_radius = _navigator->get_acceptance_radius();
+			item.time_inside = 0.0f;
+			item.autocontinue = true;
+			item.origin = ORIGIN_ONBOARD;
+			item.landing_gear = landing_gear_s::GEAR_DOWN;
+
+			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at home");
+			break;
+		}
+
+	case RTL_STATE_LANDED: {
+			set_idle_item(&item);
+			set_return_alt_min(false);
+			break;
+		}
+
+	case RTL_STATE_HOME: {
+
+			item.lat = _return_location.lat;
+			item.lon = _return_location.lon;
+			item.altitude_is_relative = false;
+			item.altitude = return_alt;
+			item.yaw = NAN;
+			item.loiter_radius = _navigator->get_loiter_radius();
+			item.nav_cmd = NAV_CMD_WAYPOINT;
+			item.acceptance_radius = _navigator->get_acceptance_radius();
+			item.time_inside = 0.0f;
+			item.autocontinue = true;
+			item.origin = ORIGIN_ONBOARD;
+			item.landing_gear = (home_close && home_altitude_close) ? landing_gear_s::GEAR_DOWN : landing_gear_s::GEAR_UP;
+			item.force_velocity = false;
+
+			break;
+		}
+
+	default:
+		break;
+	}
 }

@@ -124,7 +124,7 @@ All notable changes to this project will be documented in this file.
 * Set the minimum hover height parameter to -1 (#3454) [ch3997]
 * Default landing-gear up in takeoff mode (#3455)
 * Fix USB connection problem with QGC (#3467) [ch4811]
-
+* Fix unnecessary delay when performing RTL right before the landing (#3443) [ch4014]
 
 
 

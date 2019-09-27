@@ -82,6 +82,11 @@ private:
 	void		set_rtl_item();
 
 	/**
+	 * Fill item
+	 */
+	void 		fill_item(mission_item_s &item, const int rtl_state);
+
+	/**
 	 * Move to next RTL item
 	 */
 	void		advance_rtl();

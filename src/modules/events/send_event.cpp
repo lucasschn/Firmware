@@ -84,6 +84,8 @@ SendEvent::SendEvent() : ModuleParams(nullptr)
 		_shake_calibration = new yuneec_factory_calib::ShakeCalibration(_subscriber_handler);
 	}
 
+	_yuneec_flexigraph = new yuneec_flexigraph::YuneecFlexigraph(_subscriber_handler);
+
 	_version_query = new yuneec_version_query::VersionQuery(_subscriber_handler);
 }
 
@@ -103,6 +105,10 @@ SendEvent::~SendEvent()
 
 	if (_shake_calibration != nullptr) {
 		delete _shake_calibration;
+	}
+
+	if (_yuneec_flexigraph != nullptr) {
+		delete _yuneec_flexigraph;
 	}
 
 	if (_version_query != nullptr) {
@@ -171,6 +177,10 @@ void SendEvent::cycle()
 
 	if (_shake_calibration != nullptr) {
 		_shake_calibration->process();
+	}
+
+	if (_yuneec_flexigraph != nullptr) {
+		_yuneec_flexigraph->process();
 	}
 
 	if (_version_query != nullptr) {

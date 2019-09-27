@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
 
 px4_add_module(
 	MODULE modules__events
@@ -48,6 +49,7 @@ px4_add_module(
 		temperature_calibration/task.cpp
 		vehicle_inverted.cpp
 		yuneec_factory_calib.cpp
+		yuneec_flexigraph.cpp
 		yuneec_version_query.cpp
 	DEPENDS
 		modules__uORB

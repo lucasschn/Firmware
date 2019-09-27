@@ -144,6 +144,9 @@ then
 		# allow receiving team mode input
 		param set RC_LINK_MODE 3
 
+		# set aux-button to flexi-release
+		param set RCMAP_AUX 2
+
 		# Altitude (manual) mode parameters
 		param set MPC_MAN_TILT_MAX 24
 

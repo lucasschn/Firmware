@@ -57,6 +57,8 @@ All notable changes to this project will be documented in this file.
 
 
 
+* Send specific vehicle_command for Flexigraph payload (#3402)
+* [PUBLIC] Support for Flexigraph payload release mechanism (#3402) (DE: Unterstützung für Flexigraph Payload Abwurfsystem)
 
 ### Changed
 * Don't require throttle to be centered, but only <= 50% for takeoff (#3389)

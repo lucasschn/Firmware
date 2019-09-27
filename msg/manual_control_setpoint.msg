@@ -67,4 +67,5 @@ uint8 stab_switch 		 # stabilize switch (only relevant for fixed wings, optional
 uint8 man_switch		 # manual switch (only relevant for fixed wings, optional): _STABILIZED_, MANUAL
 uint8 gimbal_pitch_mode	 # possible modes: angle setpoint, angular velocity setpoint
 uint8 gimbal_yaw_mode	 # possible modes: heading same as vehicle (yaw = 0), angular velocity wrt vehicle frame, angular velocity wrt world frame
-uint8 mission_switch	 # If not in mission, start mission. If in mission, switch between loiter and mission.
+uint8 mission_button	 # If not in mission, start mission. If in mission, switch between loiter and mission.
+uint8 flexi_release	 # If on, the external payload is asked to trigger its external functionality.

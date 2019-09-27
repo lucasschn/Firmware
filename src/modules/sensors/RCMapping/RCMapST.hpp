@@ -78,7 +78,7 @@ public:
 			}
 
 		} else {
-			// button was pushde when going from true (high) to false (low)
+			// button was pushed when going from true (high) to false (low)
 			if (_prev_pushed && !pushed) {
 				_state = !_state;
 			}
@@ -91,6 +91,14 @@ public:
 	{
 		return _state;
 	}
+
+	void reset_button()
+	{
+		_state = _trigger_high;
+		_prev_pushed = _state;
+	}
+
+
 
 private:
 	bool _state;
@@ -132,6 +140,10 @@ public:
 		man.kill_switch = updateKillSwitch(man); // process kill switch shortcut
 		man.timestamp = input_rc.timestamp_last_signal;
 
+		// reset state of previous _param_rc_map_aux
+		rcmap_aux_changed = (int)_param_rcmap_aux.get() != _param_rcmap_aux_prev;
+		_param_rcmap_aux_prev = _param_rcmap_aux.get();
+
 		return (int)RCMap::Error::None;
 	}
 
@@ -156,6 +168,8 @@ protected:
 	static constexpr int CHANNEL_RIGHT_STICK_RIGHT = (4 - 1);
 	static constexpr int CHANNEL_THREE_WAY_SWITCH = (8 - 1);
 	static constexpr int CHANNEL_TWO_WAY_SWITCH = (9 - 1);
+
+	bool rcmap_aux_changed = false; //if purpose of _param_rc_map_aux has changed
 
 	/**
 	 * Convert 12-Bit M4 channel values to unit floats
@@ -211,6 +225,12 @@ protected:
 		}
 	}
 
+	/**
+	 * Convert an unlocked button into a locked button that keeps its state.
+	 * @param offset_count bit offset of the channel data
+	 * @param input_rc RC channel data
+	 * return state of button
+	 */
 	int button(int offset_count, const input_rc_s &input_rc)
 	{
 		if ((input_rc.values[CHANNEL_TWO_WAY_SWITCH] >> offset_count) & 0x1) {
@@ -226,6 +246,14 @@ protected:
 		} else {
 			return manual_control_setpoint_s::SWITCH_POS_OFF;
 		}
+	}
+
+	/**
+	 * Reset button to its initial state
+	 */
+	void reset_button()
+	{
+		_aux_button.reset_button();
 	}
 
 	/**
@@ -273,6 +301,7 @@ private:
 	hrt_abstime _kill_hotkey_start_time = 0; // the time when the hotkey started to measure timeout
 	int _kill_hotkey_count = 0; //  how many times the button was pressed during the hotkey timeout
 	bool _arm_button_pressed_last = false; //if the button was pressed last time to detect a transition
-	Button _aux_button{false}; //aux button pushed / not pushed
+	Button _aux_button{false}; //aux button pressed / not pressed
+	int _param_rcmap_aux_prev = 0; //previous state of _param_rc_map_aux
 };
 } // namespace sensors

@@ -75,7 +75,8 @@ public:
 
 	enum class AUX : int {
 		nothing = 0,
-		mission
+		mission,
+		flexi_release
 	};
 
 protected:

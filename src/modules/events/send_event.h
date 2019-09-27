@@ -37,8 +37,9 @@
 #include "status_display.h"
 #include "rc_loss_alarm.h"
 #include "vehicle_inverted.h"
-#include "yuneec_version_query.h"
 #include "yuneec_factory_calib.h"
+#include "yuneec_flexigraph.h"
+#include "yuneec_version_query.h"
 
 #include <px4_workqueue.h>
 #include <px4_module.h>
@@ -141,6 +142,9 @@ private:
 
 	/** @var _version_query Pointer to the version query routine objct */
 	yuneec_version_query::VersionQuery *_version_query = nullptr;
+
+	/** @cvar _yuneec_flexigraph Pointer to the flexigraph query routine obj */
+	yuneec_flexigraph::YuneecFlexigraph *_yuneec_flexigraph = nullptr;
 
 	/** @var _command_ack_pub The command ackowledgement topic. */
 	orb_advert_t _command_ack_pub = nullptr;

@@ -197,7 +197,10 @@ float FlightTaskAutoMapper2::_getLandSpeed()
 
 	float speed = 0;
 
-	if (_alt_above_ground > _param_mpc_land_alt1.get()) {
+	if (_param_land_delay.get() > 0.1f) {
+		speed = _param_mpc_land_speed.get();
+
+	} else if (_alt_above_ground > _param_mpc_land_alt1.get()) {
 		speed = _constraints.speed_down;
 
 	} else {

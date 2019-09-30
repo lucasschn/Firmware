@@ -16,8 +16,7 @@ All notable changes to this project will be documented in this file.
 * Increase the proportional gain of the horizontal track position error (#3483)
 * Added parameter for Yuneec product ID (#3477) [ch4994]
 * Increase battery failure reason notification (#3490) [ch3597]
-
-
+* Fixed RTL too aggressively during the second last section (#3482) [ch4016]
 
 
 

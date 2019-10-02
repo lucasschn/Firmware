@@ -68,13 +68,6 @@ bool FlightTaskAutotuneVel::activate()
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN);
 	_position_setpoint(2) = _position(2);
 	_velocity_setpoint(2) = 0.0f;
-	_setDefaultConstraints();
-
-	_ku = 1.5f;
-	_period_u = 0.f;
-	_convergence_counter = 0;
-	_peak_counter = 0;
-	_peak_counter_state = SignalState::unknown;
 	_done = false;
 
 	return ret;
@@ -91,86 +84,45 @@ bool FlightTaskAutotuneVel::_checkSticks()
 	}
 }
 
-void FlightTaskAutotuneVel::_updateSetpoints()
+void FlightTaskAutotuneVel::_applystep()
 {
-	_thrust = -_velocity(0) * _ku;
-
-	// Saturation block
-	if (_thrust_sat > _thrust_max) {
-		_thrust_sat = _thrust_max;
-
-	} else if (_thrust_sat < -_thrust_max) {
-		_thrust_sat = -_thrust_max;
-
-	} else {
-		_thrust_sat = _thrust;
-	}
-
-	_thrust_setpoint(0) = _thrust_sat;
+	start_step_time = hrt_absolute_time()/1e6;
+	_thrust_setpoint(0) = 0.5;
 	_thrust_setpoint(1) = 0.f;
 	_thrust_setpoint(2) = NAN;
-}
+	if (_velocity(0) < prev_velocity - epsilon || _velocity(0) > prev_velocity + epsilon){
 
-void FlightTaskAutotuneVel::_updateUltimateGain()
-{
-	// epsilon << alpha
-	float ku_dot = -_alpha * fabsf(_thrust - _thrust_sat) + _epsilon;
-	printf("ku = %.3f\n, ku_dot = %.3f\n", (double)_ku, (double)ku_dot);
-	_ku += ku_dot;
+		stable_count ++;
+	}
 
-	if (fabs(ku_dot) < 0.002f && _ku < 1.4f) {
-		_convergence_counter++;
-
-	} else {
-		_convergence_counter = 0;
+	if (stable_count > 1.5f){
+		_thrust_setpoint(0) = 0.f;
+		_done = true;
 	}
 }
 
-void FlightTaskAutotuneVel::_measureUltimatePeriod()
+void FlightTaskAutotuneVel::_measureoutput()
 {
-	switch (_peak_counter_state) {
-	case SignalState::unknown:
-		if (_thrust > 0.9f * _thrust_max) {
-			_peak_counter_state = SignalState::high;
-			_start_time = hrt_absolute_time();
-
-		} else if (_thrust < -0.9f * _thrust_max) {
-			_peak_counter_state = SignalState::low;
-			_start_time = hrt_absolute_time();
-		}
-
-		break;
-
-	case SignalState::high:
-		if (_thrust < -0.9f * _thrust_max) {
-			_peak_counter_state = SignalState::low;
-			_peak_counter++;
-		}
-
-		break;
-
-	case SignalState::low:
-		if (_thrust > 0.9f * _thrust_max) {
-			_peak_counter_state = SignalState::high;
-			_peak_counter++;
-		}
-
-		break;
+	time = hrt_absolute_time()/1e6;
+	a = _velocity(0) - prev_velocity / time - prev_time;
+	if (a>maxa){
+		maxa = a;
+		velocity_a = _velocity(0);
+		time_elapsed = time - start_step_time;
+		// velocity_maxa - time_elapsed*a = -aL
+		L = time_elapsed - velocity_a/a;
 	}
 
-	if (_peak_counter == 11) {
-		// 5 periods
-		_period_u = hrt_elapsed_time(&_start_time) * 2e-7;
-		printf("Period: %.3f seconds\n", (double)_period_u);
-	}
+	prev_velocity = _velocity(0);
+	prev_time = time;
 }
 
 void FlightTaskAutotuneVel::_computeControlGains()
 {
 	// Compute Kp, Ki and Kd using robust Ziegler-Nichols rules
-	float kp = 0.3375f * _ku;
-	float ki = 0.3f * _ku / _period_u;
-	float kd = _ku * _period_u * 0.0375f;
+	float kp = 1.2f/(maxa*L);
+	float ki = 2.f*L;
+	float kd = 0.5f*L;
 	printf("Kp = %.3f\tKi =%.3f\tKd = %.3f\n", (double)kp, (double)ki, (double)kd);
 
 	if (kp > 0.f && kp < 1.f && ki > 0.f && ki < 4.f && kd > 0.f && kd < 0.1f) {
@@ -204,21 +156,11 @@ bool FlightTaskAutotuneVel::update()
 		return false;
 	}
 
-	_updateSetpoints();
+	_applystep();
+	_measureoutput();
 
-	if (_convergence_counter < 500) {
-		_updateUltimateGain();
-
-	} else {
-		_measureUltimatePeriod();
-	}
-
-	if (_peak_counter >= 11) {
-		// Ultimate gain found, start counting peaks
+	if (_done) {
 		_computeControlGains();
-		// Done, exit flight task
-		_exit();
-		return false;
 	}
 
 	return true;

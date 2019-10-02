@@ -52,7 +52,6 @@ public:
 	bool update() override;
 
 protected:
-	virtual void _updateSetpoints(); /**< updates all setpoints */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManual,
 					(ParamBool<px4::params::MPC_XY_VEL_ATUNE>) _param_mpc_xy_vel_atune,
@@ -62,21 +61,27 @@ protected:
 				       )
 private:
 	bool _checkSticks(); /**< check if the user wants to abort the autotuning */
-	void _updateUltimateGain();
-	void _measureUltimatePeriod();
+	void _applystep();
+	void _measureoutput();
 	void _computeControlGains();
 	void _exit();
 
 	float _thrust{};
 	float _thrust_sat{};
 	float _thrust_max{0.1f}; /**< maximum allowed thrust amplitude **/
-	float _ku{1.5f}; /**< ultimate gain of the controller */
-	float _period_u{}; /**< ultimate period is seconds **/
-	float _epsilon{0.0001};
-	float _alpha{0.05f};
+	hrt_abstime time{};
+	hrt_abstime prev_time{};
+	hrt_abstime start_step_time;
+	float time_elapsed{0};
+	float prev_velocity{};
+	float velocity_a{};
+	float a{0};
+	float L{};
+	float maxa{0.f};
+	float epsilon{0.1f};
 	bool _done{false};
 
-	int _convergence_counter{}; /**< counts how many times the exit criteria has been true **/
+	int stable_count{}; /**< counts how many times the exit criteria has been true **/
 
 	/* Period counter */
 	int _peak_counter{};

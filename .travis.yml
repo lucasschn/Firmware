@@ -86,11 +86,13 @@ after_success:
 
       mkdir -p s3autopilot;
       ./Tools/generate_yuneec.py build/yuneec_tap-v2_default/yuneec_tap-v2_default.px4 s3autopilot/autopilot.yuneec ${AUTOPILOT_AES_KEY};
-      fwversion=$(git describe --tags);
+      fwversion=$(./yuneec_version.sh);
+      gitversion=$(git describe --always --tags);
       echo "$fwversion" > s3autopilot/version;
       echo "$TRAVIS_COMMIT" > s3autopilot/git;
       date > s3autopilot/timestamp;
       cp CHANGELOG.md s3autopilot/changelog;
+      git log -50 > s3autopilot/gitlog;
       sha256sum s3autopilot/autopilot.yuneec | head -c 64 > s3autopilot/hash;
       openssl aes-256-cbc -in build/yuneec_tap-v2_default/yuneec_tap-v2_default.elf -out s3autopilot/autopilot.elf.encrypted -k ${AUTOPILOT_AES_KEY}
 
@@ -99,51 +101,46 @@ after_success:
       is_rc=`echo "$TRAVIS_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+-[0-9]\+.[0-9]\+.[0-9]\+rc[0-9]\+$' | wc -l`;
       is_release=`echo "$TRAVIS_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+-[0-9]\+.[0-9]\+.[0-9]\+$' | wc -l`;
 
-      function upload_to_s3 { s3cmd --add-header=x-amz-meta-firmware-version:${TRAVIS_TAG} -m $3 --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} --add-header="Cache-Control:public, max-age=0" put $1 s3://${S3_BUCKET_NAME}/$2; };
-
-      release_type="unspecified";
-
-      if [[ is_rc -eq 1 ]]; then
-          echo "Deploying release candidate ...";
-          release_type="rc";
-      elif [[ is_alpha -eq 1 ]]; then
-          echo "Deploying alpha version ...";
-          release_type="alpha";
-      elif [[ is_beta -eq 1 ]]; then
-          echo "Deploying beta version ...";
-          release_type="beta";
-      elif [[ is_release -eq 1 ]]; then
-          echo "Deploying release version ...";
-          release_type="release";
-      else
-          echo "Deploying developer version ...";
-          release_type="developer";
-      fi;
+      function upload_to_s3 { s3cmd --add-header=x-amz-meta-firmware-version:${TRAVIS_TAG} -m $3 --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} --add-header="Cache-Control:public, max-age=0" put $1 $2; };
 
       if [[ ! -z "${TRAVIS_PULL_REQUEST_BRANCH}" ]]; then
-        upload_to_s3 s3autopilot/autopilot.yuneec ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/autopilot.yuneec application/octet-stream;
-        upload_to_s3 s3autopilot/version          ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/version text/plain;
-        upload_to_s3 s3autopilot/hash             ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/hash text/plain;
-        upload_to_s3 s3autopilot/git              ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/git text/plain;
-        upload_to_s3 s3autopilot/timestamp        ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/timestamp text/plain;
-        upload_to_s3 s3autopilot/changelog        ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/changelog text/plain;
-        upload_to_s3 s3autopilot/autopilot.elf.encrypted    ${BUILD_TARGET}/${TRAVIS_BRANCH}/$release_type/${TRAVIS_PULL_REQUEST_BRANCH}/${TRAVIS_COMMIT}/autopilot.elf.encrypted text/plain;
+        upload_to_s3 s3autopilot/autopilot.yuneec           s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion}/autopilot.yuneec application/octet-stream;
+        upload_to_s3 s3autopilot/version                    s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion}/version text/plain;
+        upload_to_s3 s3autopilot/hash                       s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion}/hash text/plain;
+        upload_to_s3 s3autopilot/git                        s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion}/git text/plain;
+        upload_to_s3 s3autopilot/gitlog                     s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion}/gitlog text/plain;
+        upload_to_s3 s3autopilot/timestamp                  s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion}/timestamp text/plain;
+        upload_to_s3 s3autopilot/changelog                  s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion}/changelog text/plain;
+        upload_to_s3 s3autopilot/autopilot.elf.encrypted    s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion}/autopilot.elf.encrypted text/plain;
       else
-        upload_to_s3 s3autopilot/autopilot.yuneec ${BUILD_TARGET}/${BRANCH}/$release_type/latest/autopilot.yuneec application/octet-stream;
-        upload_to_s3 s3autopilot/version          ${BUILD_TARGET}/${BRANCH}/$release_type/latest/version text/plain;
-        upload_to_s3 s3autopilot/hash             ${BUILD_TARGET}/${BRANCH}/$release_type/latest/hash text/plain;
-        upload_to_s3 s3autopilot/git              ${BUILD_TARGET}/${BRANCH}/$release_type/latest/git text/plain;
-        upload_to_s3 s3autopilot/timestamp        ${BUILD_TARGET}/${BRANCH}/$release_type/latest/timestamp text/plain;
-        upload_to_s3 s3autopilot/changelog        ${BUILD_TARGET}/${BRANCH}/$release_type/latest/changelog text/plain;
-        upload_to_s3 s3autopilot/autopilot.elf.encrypted    ${BUILD_TARGET}/${BRANCH}/$release_type/latest/autopilot.elf.encrypted text/plain;
+        if [[ "${TRAVIS_BRANCH}" = "develop" ]]; then
+          upload_to_s3 s3autopilot/autopilot.yuneec           s3://cf2e449e-50b3-48b5-ad6c-47abfa70e116/H520-develop/${BUILD_TARGET}/autopilot.yuneec application/octet-stream;
+          upload_to_s3 s3autopilot/version                    s3://cf2e449e-50b3-48b5-ad6c-47abfa70e116/H520-develop/${BUILD_TARGET}/version text/plain;
+          upload_to_s3 s3autopilot/hash                       s3://cf2e449e-50b3-48b5-ad6c-47abfa70e116/H520-develop/${BUILD_TARGET}/hash text/plain;
+          upload_to_s3 s3autopilot/git                        s3://cf2e449e-50b3-48b5-ad6c-47abfa70e116/H520-develop/${BUILD_TARGET}/git text/plain;
+          upload_to_s3 s3autopilot/gitlog                     s3://cf2e449e-50b3-48b5-ad6c-47abfa70e116/H520-develop/${BUILD_TARGET}/gitlog text/plain;
+          upload_to_s3 s3autopilot/timestamp                  s3://cf2e449e-50b3-48b5-ad6c-47abfa70e116/H520-develop/${BUILD_TARGET}/timestamp text/plain;
+          upload_to_s3 s3autopilot/changelog                  s3://cf2e449e-50b3-48b5-ad6c-47abfa70e116/H520-develop/${BUILD_TARGET}/changelog text/plain;
+          upload_to_s3 s3autopilot/autopilot.elf.encrypted    s3://cf2e449e-50b3-48b5-ad6c-47abfa70e116/H520-develop/${BUILD_TARGET}/autopilot.elf.encrypted text/plain;
+        fi;
 
-        upload_to_s3 s3autopilot/autopilot.yuneec ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/autopilot.yuneec application/octet-stream;
-        upload_to_s3 s3autopilot/version          ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/version text/plain;
-        upload_to_s3 s3autopilot/hash             ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/hash text/plain;
-        upload_to_s3 s3autopilot/git              ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/git text/plain;
-        upload_to_s3 s3autopilot/timestamp        ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/timestamp text/plain;
-        upload_to_s3 s3autopilot/changelog        ${BUILD_TARGET}/${BRANCH}/$release_type/${fwversion}/changelog text/plain;
-        upload_to_s3 s3autopilot/autopilot.elf.encrypted    ${BUILD_TARGET}/${BRANCH}/$release_type/latest/autopilot.elf.encrypted text/plain;
+        upload_to_s3 s3autopilot/autopilot.yuneec           s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/latest/autopilot.yuneec application/octet-stream;
+        upload_to_s3 s3autopilot/version                    s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/latest/version text/plain;
+        upload_to_s3 s3autopilot/hash                       s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/latest/hash text/plain;
+        upload_to_s3 s3autopilot/git                        s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/latest/git text/plain;
+        upload_to_s3 s3autopilot/gitlog                     s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/latest/gitlog text/plain;
+        upload_to_s3 s3autopilot/timestamp                  s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/latest/timestamp text/plain;
+        upload_to_s3 s3autopilot/changelog                  s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/latest/changelog text/plain;
+        upload_to_s3 s3autopilot/autopilot.elf.encrypted    s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/latest/autopilot.elf.encrypted text/plain;
+
+        upload_to_s3 s3autopilot/autopilot.yuneec           s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/${gitversion}/autopilot.yuneec application/octet-stream;
+        upload_to_s3 s3autopilot/version                    s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/${gitversion}/version text/plain;
+        upload_to_s3 s3autopilot/hash                       s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/${gitversion}/hash text/plain;
+        upload_to_s3 s3autopilot/git                        s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/${gitversion}/git text/plain;
+        upload_to_s3 s3autopilot/gitlog                     s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/${gitversion}/gitlog text/plain;
+        upload_to_s3 s3autopilot/timestamp                  s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/${gitversion}/timestamp text/plain;
+        upload_to_s3 s3autopilot/changelog                  s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/${gitversion}/changelog text/plain;
+        upload_to_s3 s3autopilot/autopilot.elf.encrypted    s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${BRANCH}/${gitversion}/autopilot.elf.encrypted text/plain;
       fi;
 
       if [[ is_release -eq 1 && "${BUILD_TARGET}" = "autopilot" ]]; then

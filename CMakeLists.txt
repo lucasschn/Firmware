@@ -112,7 +112,11 @@ list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake)
 include(px4_git)
 
 execute_process(
-	COMMAND git describe --always --tags
+	# Yuneec-specific:
+	# Convert v1.8.0-1.7-1-g32f8478879 to 1.8.0-1.7.1
+	# This requires tags without the patch version, since the number of commits
+	# will be appended as the the patch version.
+	COMMAND bash "-c" "./yuneec_version.sh"
 	OUTPUT_VARIABLE PX4_GIT_TAG
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}

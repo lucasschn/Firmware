@@ -304,6 +304,13 @@ if( "$ENV{PX4_3DR_BUILD}" STREQUAL "1")
 	add_definitions(-DBUILD_3DR_FLAVOUR)
 endif()
 
+if( "$ENV{PX4_NFIRC_BUILD}" STREQUAL "1")
+	message("=======================")
+	message("BUILDING NFIRC FLAVOUR")
+	message("=======================")
+	add_definitions(-DBUILD_NFIRC_FLAVOUR)
+endif()
+
 # Setup install paths
 if (${PX4_PLATFORM} STREQUAL "posix")
 

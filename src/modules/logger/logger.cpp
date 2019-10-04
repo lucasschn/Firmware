@@ -2132,6 +2132,10 @@ void Logger::write_version(LogType type)
 	write_info(type, "custom_build_for_3dr", true);
 #endif
 
+#ifdef BUILD_NFIRC_FLAVOUR
+	write_info(type, "custom_build_for_nfirc", true);
+#endif
+
 	// Yuneec-specific: Log camera and gimbal versions
 	char version_str[5];
 	sprintf(&version_str[0], "%u", _camera_version.firmware_version);

@@ -187,6 +187,11 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				parameter_change_allowed = true;
 #endif
 
+#ifdef BUILD_NFIRC_FLAVOUR
+				// Open all parameters for NFIRC (drkimgoh@nfirc.com)
+				parameter_change_allowed = true;
+#endif
+
 				if (!parameter_change_allowed) {
 					PX4_INFO("Parameter modification not allowed");
 					return;

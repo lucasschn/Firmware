@@ -207,3 +207,22 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  * @group Battery Calibration
  */
 PARAM_DEFINE_INT32(BAT_LINK_CHECK, 0);
+
+/**
+ * Tethered voltage
+ *
+ * Defines the total voltage when using a tether to power the drone
+ * from an infinite power supply. Voltages above the tether voltage
+ * are automatically assumed to come from an infinite supply and
+ * battery estimation won't be running.
+ *
+ * @group Battery Calibration
+ * @unit V
+ * @value -1.0 Disabled
+ * @min -1.0
+ * @max 100
+ * @decimal 2
+ * @increment 0.01
+ * @reboot_required false
+ */
+PARAM_DEFINE_FLOAT(BAT_V_TETHER, -1.0f);

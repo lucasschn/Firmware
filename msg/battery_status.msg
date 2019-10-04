@@ -35,3 +35,4 @@ uint8 warning    # current battery warning
 
 #Yuneec special
 bool reliably_connected     # True if battery connect reliable,based on a battery installation location
+bool tethered

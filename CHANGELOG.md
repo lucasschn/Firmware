@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 * Added parameter for Yuneec product ID (#3477) [ch4994]
 * Increase battery failure reason notification (#3490) [ch3597]
 * Fixed RTL too aggressively during the second last section (#3482) [ch4016]
+* Detect tethered power supply when voltage is above 19.5V (#3489) [ch4207]
 
 
 

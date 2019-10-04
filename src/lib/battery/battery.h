@@ -97,6 +97,7 @@ private:
 	void computeRemainingTime(float current_a);
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::BAT_V_TETHER>) _v_tether,
 		(ParamFloat<px4::params::BAT_V_EMPTY>) _v_empty,
 		(ParamFloat<px4::params::BAT_V_CHARGED>) _v_charged,
 		(ParamInt<px4::params::BAT_N_CELLS>) _n_cells,
@@ -122,4 +123,6 @@ private:
 	float _time_remaining_s = -1.f;
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
+	bool _tethered = false;
+	orb_advert_t _mavlink_log_pub = nullptr;
 };

@@ -46,6 +46,9 @@
 #include <px4_defines.h>
 #include "board_config.h"
 
+// Yuneec-specific
+#include <systemlib/mavlink_log.h>
+
 Battery::Battery() :
 	ModuleParams(nullptr),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
@@ -115,7 +118,29 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->system_source = selected_source;
 		battery_status->priority = priority;
 		battery_status->reliably_connected = reliably_connected;
+		battery_status->tethered = _tethered;
 	}
+
+	// Yuneec-specific [ch4207]: Consider voltage above usual battery voltrage
+	// as an infinite power supply. Can be used for tethering for example.
+	if (_v_tether.get() >= 0.0f && _voltage_filtered_v >= _v_tether.get()) {
+		if (!_tethered) {
+			_tethered = true;
+			mavlink_log_info(&_mavlink_log_pub, "Tethered power supply: enabled");
+		}
+
+		// Override battery estimate while thethered
+		battery_status->time_remaining_s = -1.f;
+		battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
+		battery_status->remaining = 1.f;
+	}
+
+	// For now we don't support switching from thethering to a backup battery
+	// else if (_tethered) {
+	// 	_tethered  = false;
+	// 	_discharged_mah = 0;  // reset internal state when tether disconnects
+	// 	mavlink_log_info(&_mavlink_log_pub, "Tethered power supply: disabled");
+	// }
 }
 
 void

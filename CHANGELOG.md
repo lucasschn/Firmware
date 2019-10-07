@@ -3,21 +3,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
-* Set GPS driver baudrate to 115200 when Fixposition RTK is enabled (#3365)
-* Require RC sticks to be centered also when a takeoff vehicle_command is issued. For example using the GUI (#3372)
-* Deploy encrypted firmware elf file to AWS for release debugging
-* Added yuneec-specific Unicore GPS driver (#3424)
-* Added "gps_event" message for camera-RTK synchronization (#3424)
-* Added new message for image EXIF (#3428)
-* Inform the pilot when manual_control_setpoint.data_source changes (#3461) [ch4547]
-* Add parameters to control the automatic operation of the landing gear (#3462)
-* Logging of component versions (readded after v1.8.0-1.6.17 removed it)
-* Add battery connection check over GPIO pin (#3463) [ch3597]
-* Increase the proportional gain of the horizontal track position error (#3483)
-* Added parameter for Yuneec product ID (#3477) [ch4994]
-* Increase battery failure reason notification (#3490) [ch3597]
-* Fixed RTL too aggressively during the second last section (#3482) [ch4016]
-* Detect tethered power supply when voltage is above 19.5V (#3489) [ch4207]
 
 
 
@@ -57,23 +42,10 @@ All notable changes to this project will be documented in this file.
 
 
 
-* Send specific vehicle_command for Flexigraph payload (#3402)
-* [PUBLIC] Support for Flexigraph payload release mechanism (#3402) (DE: Unterstützung für Flexigraph Payload Abwurfsystem)
+
 
 ### Changed
-* Don't require throttle to be centered, but only <= 50% for takeoff (#3389)
-* Force landing gear up above 10m when manual control(#3398)
-* Updated mavlink and gazebo to latest (#3430)
-* Tighten the requirements for a reached mission waypoint (#3417)
-* Delay next mission item after MAV_CMD_IMAGE_CAPTURE_START via MIS_DELAY_ITEM (#3417)
-* Allow loiter mode to be interrupted by stick movement
-* Tuned the PID gains for attitude and position controller for Typhoon H480 (#3437)
-* Changed the priority of dual uplink and add new message for rc & slave rc (#3419)
-* Increased takeoff-ramp-speed (#3440)
-* Increase number of file descriptors in NuttX from 50 to 54 (#3438)
-* New changes for our partner "episci"
-* Allow disarm on crash (readded after v1.8.0-1.6.17 removed it)
-* Commander string improvments (readded after v1.8.0-1.6.17 removed it)
+- Moved s3 deployment out of travis yaml into separate shell script (#3498) [ch5085]
 
 
 
@@ -119,14 +91,6 @@ All notable changes to this project will be documented in this file.
 
 
 ### Fixed
-* rc-stick tolerance to throttle stick (#3423)
-* Acceleration for up/down direction for FlighttaskAutoline (#3423)
-* Vehicle no longer rotates 180 during mission pause (#3432)
-* Critical orbit failsafe improvement. Prevents drone from crashing when RC is lost during orbit (#3446) [ch3072]
-* Set the minimum hover height parameter to -1 (#3454) [ch3997]
-* Default landing-gear up in takeoff mode (#3455)
-* Fix USB connection problem with QGC (#3467) [ch4811]
-* Fix unnecessary delay when performing RTL right before the landing (#3443) [ch4014]
 
 
 
@@ -194,16 +158,9 @@ All notable changes to this project will be documented in this file.
 
 
 
-## [v1.8.2-1.7.0]
-### Changed
-* Re-ordered startup scripts into board specific files for tap-v1/2/3/4 (#3284)
 
-### Fixed
-* [PUBLIC] H520 HITL functional even without battery plugged in (#3164)
-* Improved corner case handling when ESC firmware update fails (#2907)
-* `free` command working again in nuttx shell. Have to mount `/proc` on startup. (#3302)
-* [Regression] Fix unreliable RC binding on H520C (tap-v3) (#3304)
-* ecl library updated to current upstream version to include alignment fixes (#3310)
+## [v1.8.2-1.7.x]
+Tracked separately: https://github.com/YUNEEC/Firmware/blob/release-1.7/CHANGELOG.md
 
 
 ## [v1.8.0-1.6.18]

@@ -11,8 +11,6 @@
 
 #include "yuneec_flexigraph.h"
 
-#include <v2.0/yuneec/mavlink.h>
-
 #include <px4_defines.h>
 #include <stdint.h>
 
@@ -61,7 +59,7 @@ void YuneecFlexigraph::request_payload_drop()
 	_cmd.param2 = 0; // Interval time [seconds]
 	_cmd.param3 = 1; // Count
 	_cmd.target_system = 1;
-	_cmd.target_component = MAV_COMP_ID_PERIPHERAL;
+	_cmd.target_component = 158; // MAV_COMP_ID_PERIPHERAL
 
 	if (_vehicle_command_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_command), _vehicle_command_pub, &_cmd);

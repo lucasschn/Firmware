@@ -45,7 +45,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Changed
-- Moved s3 deployment out of travis yaml into separate shell script (#3498) [ch5085]
+* Moved s3 deployment out of travis yaml into separate shell script (#3498) [ch5085]
 
 
 
@@ -91,7 +91,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Fixed
-
+* Make uploads to new S3 test-bucket public
 
 
 

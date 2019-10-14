@@ -25,26 +25,26 @@ if [[ "${BUILD_TARGET}" = *"autopilot"* && "${TRAVIS_BRANCH}" != "coverity" ]]; 
 	openssl aes-256-cbc -in build/yuneec_tap-v2_default/yuneec_tap-v2_default.elf -out s3autopilot/autopilot.elf.encrypted -k ${AUTOPILOT_AES_KEY}
 
 	function upload_file {
-		s3cmd --add-header=x-amz-meta-firmware-version:${TRAVIS_TAG} -m $3 --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} --add-header="Cache-Control:public, max-age=0" put $1 $2;
+		s3cmd $4 --add-header=x-amz-meta-firmware-version:${TRAVIS_TAG} -m $3 --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} --add-header="Cache-Control:public, max-age=0" put $1 $2;
 	}
 	
 	function upload_package {
 		echo "uploading firmware package to $1..."
-		upload_file s3autopilot/autopilot.yuneec           $1/autopilot.yuneec application/octet-stream;
-		upload_file s3autopilot/version                    $1/version text/plain;
-		upload_file s3autopilot/hash                       $1/hash text/plain;
-		upload_file s3autopilot/git                        $1/git text/plain;
-		upload_file s3autopilot/gitlog                     $1/gitlog text/plain;
-		upload_file s3autopilot/timestamp                  $1/timestamp text/plain;
-		upload_file s3autopilot/changelog                  $1/changelog text/plain;
-		upload_file s3autopilot/autopilot.elf.encrypted    $1/autopilot.elf.encrypted text/plain;
+		upload_file s3autopilot/autopilot.yuneec           $1/autopilot.yuneec application/octet-stream $2;
+		upload_file s3autopilot/version                    $1/version text/plain $2;
+		upload_file s3autopilot/hash                       $1/hash text/plain $2;
+		upload_file s3autopilot/git                        $1/git text/plain $2;
+		upload_file s3autopilot/gitlog                     $1/gitlog text/plain $2;
+		upload_file s3autopilot/timestamp                  $1/timestamp text/plain $2;
+		upload_file s3autopilot/changelog                  $1/changelog text/plain $2;
+		upload_file s3autopilot/autopilot.elf.encrypted    $1/autopilot.elf.encrypted text/plain $2;
 	};
 
 	if [[ ! -z "${TRAVIS_PULL_REQUEST_BRANCH}" ]]; then
 	upload_package s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion};
 	else
 		if [[ "${TRAVIS_BRANCH}" = "develop" ]]; then
-			upload_package s3://$S3_DEVEL_BUCKET/H520-develop/${BUILD_TARGET}
+			upload_package s3://$S3_DEVEL_BUCKET/H520-develop/${BUILD_TARGET} --acl-public
 		fi;
 
 		upload_package s3://${S3_BUCKET_NAME}/${BUILD_TARGET}/${TRAVIS_BRANCH}/latest

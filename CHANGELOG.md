@@ -92,7 +92,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 * Make uploads to new S3 test-bucket public
-
+* Fixed compiling on MacOS by cherry-picking commit from upstream (#3503)
 
 
 

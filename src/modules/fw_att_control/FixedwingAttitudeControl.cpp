@@ -392,7 +392,7 @@ FixedwingAttitudeControl::vehicle_rates_setpoint_poll()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_rates_setpoint), _rates_sp_sub, &_rates_sp);
 
-		if (_parameters.vtol_type == vtol_type::TAILSITTER) {
+		if (static_cast<vtol_type>(_parameters.vtol_type) == vtol_type::TAILSITTER) {
 			float tmp = _rates_sp.roll;
 			_rates_sp.roll = -_rates_sp.yaw;
 			_rates_sp.yaw = tmp;
@@ -559,7 +559,7 @@ void FixedwingAttitudeControl::run()
 			/* get current rotation matrix and euler angles from control state quaternions */
 			matrix::Dcmf R = matrix::Quatf(_att.q);
 
-			if (_vehicle_status.is_vtol && _parameters.vtol_type == vtol_type::TAILSITTER) {
+			if (_vehicle_status.is_vtol && static_cast<vtol_type>(_parameters.vtol_type) == vtol_type::TAILSITTER) {
 				/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 				 *
 				 * Since the VTOL airframe is initialized as a multicopter we need to

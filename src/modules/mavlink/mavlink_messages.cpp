@@ -1388,7 +1388,7 @@ protected:
 		if (_gps_sub->update(&_gps_time, &gps)) {
 			mavlink_gps_raw_int_t msg = {};
 
-			msg.time_usec = gps.timestamp;
+			msg.time_usec = gps.time_utc_usec;
 			msg.fix_type = gps.fix_type;
 			msg.lat = gps.lat;
 			msg.lon = gps.lon;

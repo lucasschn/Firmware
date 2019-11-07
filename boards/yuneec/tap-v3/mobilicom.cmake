@@ -1,11 +1,11 @@
 add_definitions("-DENABLE_RC_HELPER")
-add_definitions("-DYUNEEC_PRODUCT_ID=7")
+add_definitions("-DYUNEEC_PRODUCT_ID=4")
 
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR yuneec
 	MODEL tap-v3
-	LABEL h520e
+	LABEL mobilicom
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT tap_common

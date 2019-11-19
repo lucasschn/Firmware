@@ -19,12 +19,14 @@ Author: Julian Oes <julian@yuneecresearch.com>
 from Crypto.Cipher import AES
 import binascii
 import argparse
-import px_uploader
 import json
 import base64
 import zlib
 import struct
 import os
+import sys
+sys.path.insert(1, os.path.dirname(os.path.abspath(os.path.join(__file__,'..'))))
+import px_uploader
 
 
 def pad(blob, chunk_size):

@@ -72,6 +72,11 @@ Descend::on_activation()
 	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();
 
+	// Overwrite la/lon if local position is not valid in xy
+	if (!_navigator->get_local_position()->xy_valid) {
+		_mission_item.lat = _mission_item.lon = (double)NAN;
+	}
+
 	/* convert mission item to current setpoint */
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->previous.valid = false;
@@ -86,6 +91,15 @@ Descend::on_activation()
 void
 Descend::on_active()
 {
+	// Overwrite la/lon if local position is not valid in xy
+	if (!_navigator->get_local_position()->xy_valid) {
+		_mission_item.lat = (double)NAN;
+		_mission_item.lon = (double)NAN;
+		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+		_navigator->set_position_setpoint_triplet_updated();
+	}
+
 	if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
 		_navigator->get_mission_result()->finished = true;
 		_navigator->set_mission_result_updated();

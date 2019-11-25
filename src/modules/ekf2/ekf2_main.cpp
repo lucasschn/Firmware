@@ -1359,9 +1359,14 @@ void Ekf2::run()
 				lpos.az = vel_deriv[2];
 
 				// TODO: better status reporting
-				lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
+				lpos.xy_valid = lpos.v_xy_valid = false;
+
+				if (_indoor_mode.get() == 0) {
+					lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
+					lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
+				}
+
 				lpos.z_valid = !_preflt_vert_fail;
-				lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
 				lpos.v_z_valid = !_preflt_vert_fail;
 
 				// Position of local NED origin in GPS / WGS84 frame

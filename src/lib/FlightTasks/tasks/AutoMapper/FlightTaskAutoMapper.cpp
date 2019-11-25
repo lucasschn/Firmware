@@ -63,10 +63,9 @@ bool FlightTaskAutoMapper::update()
 	}
 
 	// The only time a thrust set-point is sent out is during
-	// idle. Hence, reset thrust set-point to NAN in case the
+	// idle or descend (failsafe). Hence, reset thrust set-point to NAN in case the
 	// vehicle exits idle.
-
-	if (_type_previous == WaypointType::idle) {
+	if (_type_previous == WaypointType::idle || _type_previous == WaypointType::land) {
 		_thrust_setpoint = Vector3f(NAN, NAN, NAN);
 	}
 
@@ -116,8 +115,18 @@ void FlightTaskAutoMapper::_generateIdleSetpoints()
 
 void FlightTaskAutoMapper::_generateLandSetpoints()
 {
-	// Keep xy-position and go down with landspeed
-	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
+	if (!PX4_ISFINITE(_target(0)) || !PX4_ISFINITE(_target(1))) {
+		// Keep attitude and go down with landspeed
+		_thrust_setpoint(0) = _thrust_setpoint(1) = 0.0f;
+		_position_setpoint(0) = _position_setpoint(1) = NAN;
+		_velocity_setpoint(0) = _velocity_setpoint(2) = NAN;
+
+	} else {
+		// Keep xy-position and go down with landspeed
+		_position_setpoint = Vector3f(_target(0), _target(1), NAN);
+	}
+
+	_position_setpoint(2) = NAN;
 	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, _param_mpc_land_speed.get()));
 	// set constraints
 	_constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());

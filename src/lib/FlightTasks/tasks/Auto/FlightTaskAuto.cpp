@@ -80,12 +80,19 @@ bool FlightTaskAuto::updateInitialize()
 	// require valid reference and valid target
 	ret = ret && _evaluateGlobalReference() && _evaluateTriplets();
 	// require valid position
-	ret = ret && PX4_ISFINITE(_position(0))
-	      && PX4_ISFINITE(_position(1))
-	      && PX4_ISFINITE(_position(2))
-	      && PX4_ISFINITE(_velocity(0))
-	      && PX4_ISFINITE(_velocity(1))
-	      && PX4_ISFINITE(_velocity(2));
+
+	// landing only requires to have a valid velocity estimate
+	if (_type == WaypointType::land) {
+		ret = ret &&  PX4_ISFINITE(_velocity(2));
+
+	} else {
+		ret = ret && PX4_ISFINITE(_position(0))
+		      && PX4_ISFINITE(_position(1))
+		      && PX4_ISFINITE(_position(2))
+		      && PX4_ISFINITE(_velocity(0))
+		      && PX4_ISFINITE(_velocity(1))
+		      && PX4_ISFINITE(_velocity(2));
+	}
 
 	return ret;
 }
@@ -170,8 +177,13 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	if (!PX4_ISFINITE(_sub_triplet_setpoint->get().current.lat)
 	    || !PX4_ISFINITE(_sub_triplet_setpoint->get().current.lon)) {
-		// No position provided in xy. Lock position
-		if (!PX4_ISFINITE(_lock_position_xy(0))) {
+
+		// type landing does not require a valid xy-setpoint
+		if (_type == WaypointType::land) {
+			tmp_target(0) = tmp_target(1) = NAN;
+
+		} else if (!PX4_ISFINITE(_lock_position_xy(0))) {
+			// No position provided in xy. Lock position
 			tmp_target(0) = _lock_position_xy(0) = _position(0);
 			tmp_target(1) = _lock_position_xy(1) = _position(1);
 
@@ -190,6 +202,28 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	tmp_target(2) = -(_sub_triplet_setpoint->get().current.alt - _reference_altitude);
+
+	if (!PX4_ISFINITE(tmp_target(2))) {
+		// There needs to be a valid altitude
+		return false;
+	}
+
+	if ((!PX4_ISFINITE(tmp_target(0)) || !PX4_ISFINITE(tmp_target(1))) && !(_type == WaypointType::land)) {
+		// For non-land type, a valid xy setpoint is required
+		return false;
+
+	}
+
+	if (!PX4_ISFINITE(tmp_target(0)) || !PX4_ISFINITE(tmp_target(1))) {
+		// We are in descend
+		_current_state = State::none;
+		_triplet_target(0) = _triplet_target(1) = NAN;
+		_triplet_target(2) = tmp_target(2);
+		_target = _triplet_target;
+		_prev_wp = _target;
+		_next_wp = _target;
+		return true;
+	}
 
 	// Check if anything has changed. We do that by comparing the temporary target
 	// to the internal _triplet_target.

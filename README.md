@@ -21,3 +21,46 @@ The original readme can be found [here](https://github.com/PX4/Firmware/blob/mas
     - develop
     - /^v[0-9].*$/
   ```
+
+## Version
+
+**USB vendor-id**: [0x2EA9](https://www.the-sz.com/products/usbid/index.php?v=0x2EA9]&p=&n=)
+
+**USB product-id**:
+
+| USB product-id  |  board        |
+| ------------- |:-------------:|
+| 0x0483 | tap-v1 |
+| 0x0010      | tap-v2 |
+| 0x0032    | tap-v3  |
+
+Defined in the `defconfig`-file of the board.
+
+**board-id**
+
+| board-id  |  board        |
+| ------------- |:-------------:|
+| 10 | tap-v1 |
+| 66 | tap-v2 |
+| 96 | tap-v3 |
+
+TODO: where are these numbers come from? Why do they have to be different than `USB product_id`?
+
+**Vehicle Products**
+
+| Label | product-id | board |
+| ------------- |:-------------:| :-------------:|
+| H520  | 0x0010 | tap-v2
+| H520-2 | 0x0032 | tap-v3
+| Mobilicom  | 0x0033  | tap-v3
+
+The rule for creating a product-id:
+- products defined in `default.cmake`:  `
+```
+product-id = USB product-id
+```
+
+- products defined in `non-default.cmake`:
+```
+product-id = (USB product-id) + (number of additional products)
+```

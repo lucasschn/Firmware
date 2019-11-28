@@ -55,10 +55,11 @@ if [[ "${BUILD_FLAVOR}" = *"autopilot"* && "${TRAVIS_BRANCH}" != "coverity" ]]; 
 				# root / board / label / flavor / base-branch / PR-branch / git-version
 				upload_package ${folder_name} s3://${S3_BUCKET_NAME}/${root}/${board}/${label}/${flavor}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion};
 			else
-		if [[ "${TRAVIS_BRANCH}" = "develop" ]]; then
+				if [[ "${TRAVIS_BRANCH}" = "develop" ]] && [[ "${flavor}" = "yuneec" ]]; then
 					# Folder structure
-					# release-name / root / board / label / flavor
-					upload_package ${folder_name} s3://$S3_DEVEL_BUCKET/H520-develop/${root}/${board}/${label}/${flavor} --acl-public
+					# H520-develop/
+					# ├── autopilot
+					upload_package ${folder_name} s3://$S3_DEVEL_BUCKET/H520-develop/autopilot --acl-public
 				fi;
 
 				# root / board / label / flavor / branch / latest

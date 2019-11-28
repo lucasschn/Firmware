@@ -95,7 +95,7 @@ All notable changes to this project will be documented in this file.
 * Make uploads to new S3 test-bucket public
 * Fixed compiling on MacOS by cherry-picking commit from upstream (#3503)
 * Fix for failsafe when losing GPS during RTL or LAND (#3128) [ch983]
-
+* S3 deployment path for developer CI bucket, where we accidentally changed the structure in 1.7.14 (#3532) (#3531)
 
 
 

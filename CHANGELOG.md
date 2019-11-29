@@ -47,6 +47,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 * Moved s3 deployment out of travis yaml into separate shell script (#3498) [ch5085]
+* Upload H520mk2 to s3-develop bucket (#3535)
 
 
 
@@ -96,7 +97,7 @@ All notable changes to this project will be documented in this file.
 * Fixed compiling on MacOS by cherry-picking commit from upstream (#3503)
 * Fix for failsafe when losing GPS during RTL or LAND (#3128) [ch983]
 * S3 deployment path for developer CI bucket, where we accidentally changed the structure in 1.7.14 (#3532) (#3531)
-
+* S3 deployment path fix: Don't upload H520, H520-2 and H520-mobilicom into same folder (#3535)
 
 
 

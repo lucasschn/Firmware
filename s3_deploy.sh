@@ -55,11 +55,20 @@ if [[ "${BUILD_FLAVOR}" = *"autopilot"* && "${TRAVIS_BRANCH}" != "coverity" ]]; 
 				# root / board / label / flavor / base-branch / PR-branch / git-version
 				upload_package ${folder_name} s3://${S3_BUCKET_NAME}/${root}/${board}/${label}/${flavor}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion};
 			else
-				if [[ "${TRAVIS_BRANCH}" = "develop" ]] && [[ "${flavor}" = "yuneec" ]]; then
+			    # H520
+				if [[ "${TRAVIS_BRANCH}" = "develop" ]] && [[ "${board}" = "tap-v2" ]] && [[ "${label}" = "h520" ]] && [[ "${flavor}" = "yuneec" ]]; then
 					# Folder structure
 					# H520-develop/
 					# ├── autopilot
 					upload_package ${folder_name} s3://$S3_DEVEL_BUCKET/H520-develop/autopilot --acl-public
+				fi;
+
+				# H520-2
+				if [[ "${TRAVIS_BRANCH}" = "develop" ]] && [[ "${board}" = "tap-v3" ]] && [[ "${label}" = "h520mk2" ]] && [[ "${flavor}" = "yuneec" ]]; then
+					# Folder structure
+					# H520mk2-develop/
+					# ├── autopilot
+					upload_package ${folder_name} s3://$S3_DEVEL_BUCKET/H520mk2-develop/autopilot --acl-public
 				fi;
 
 				# root / board / label / flavor / branch / latest

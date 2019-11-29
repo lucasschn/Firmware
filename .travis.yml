@@ -68,13 +68,13 @@ script:
     # Exit if one of the scripts fails.
   - set -e
   - if [[ "${BUILD_FLAVOR}" = "autopilot_yuneec" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      ./Tools/docker_run.sh 'PX4_RESTRICTED_BUILD=1 make check_yuneec_tap-v2_default check_yuneec_tap-v3_default check_yuneec_tap-v3_mobilicom';
+      ./Tools/docker_run.sh 'PX4_RESTRICTED_BUILD=1 make check_yuneec_tap-v2_h520 check_yuneec_tap-v3_h520mk2 check_yuneec_tap-v3_mobilicom';
     elif [[ "${BUILD_FLAVOR}" = "autopilot_episci" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      ./Tools/docker_run.sh 'PX4_RESTRICTED_BUILD=1 PX4_EPISCI_BUILD=1 make check_yuneec_tap-v2_default check_yuneec_tap-v3_default';
+      ./Tools/docker_run.sh 'PX4_RESTRICTED_BUILD=1 PX4_EPISCI_BUILD=1 make check_yuneec_tap-v2_h520 check_yuneec_tap-v3_h520mk2';
     elif [[ "${BUILD_FLAVOR}" = "autopilot_3dr" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-    ./Tools/docker_run.sh 'PX4_3DR_BUILD=1 make check_yuneec_tap-v2_default check_yuneec_tap-v3_default';
+    ./Tools/docker_run.sh 'PX4_3DR_BUILD=1 make check_yuneec_tap-v2_h520 check_yuneec_tap-v3_h520mk2';
     elif [[ "${BUILD_FLAVOR}" = "autopilot_nfirc" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-    ./Tools/docker_run.sh 'PX4_NFIRC_BUILD=1 make check_yuneec_tap-v2_default check_yuneec_tap-v3_default';
+    ./Tools/docker_run.sh 'PX4_NFIRC_BUILD=1 make check_yuneec_tap-v2_h520 check_yuneec_tap-v3_h520mk2';
     elif [[ "${BUILD_FLAVOR}" = "check_format" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'make check_format';
     elif [[ "${BUILD_FLAVOR}" = "tests_linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then

@@ -593,6 +593,7 @@ Sensors::adc_poll()
 					orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
 
 					battery_status_s battery_status;
+					// t is the current timestamp hrt_absolute_time
 					_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
 									connected, selected_source == b, b,
 									ctrl.control[actuator_controls_s::INDEX_THROTTLE],
@@ -784,7 +785,7 @@ int Sensors::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("sensors",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_SENSOR_HUB,
-				      2000,
+				      3000, // stack size
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 

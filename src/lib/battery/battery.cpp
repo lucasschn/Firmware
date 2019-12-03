@@ -40,11 +40,8 @@
  */
 
 #include "battery.h"
-#include <float.h>
-#include <mathlib/mathlib.h>
-#include <cstring>
-#include <px4_defines.h>
-#include "board_config.h"
+
+using namespace matrix;
 
 // Yuneec-specific
 #include <systemlib/mavlink_log.h>
@@ -75,40 +72,78 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 			     float throttle_normalized,
 			     bool armed, battery_status_s *battery_status)
 {
-	reset(battery_status);
-	battery_status->timestamp = timestamp;
-	filterVoltage(voltage_v);
-	filterThrottle(throttle_normalized);
-	filterCurrent(current_a);
-	sumDischarged(timestamp, current_a);
-	estimateRemaining(_voltage_filtered_v, _current_filtered_a, _throttle_filtered, armed);
-	computeScale();
-	computeRemainingTime(current_a);
+	if (_use_kf.get()) {
 
-	if (_battery_initialized) {
-		determineWarning(connected);
-	}
+		if (_init_kf) {
+			this->kfInit(voltage_v);
+			_init_kf = false; // mark the Kalman filter initialization as don
+		}
 
-	if (_battery_initialized) {
-		determineWarning(connected);
-	}
+		reset(battery_status);
+		battery_status->timestamp = timestamp;
 
-	bool reliably_connected = true;
+		filterVoltage(voltage_v);
+		filterCurrent(current_a);
+
+		if (_voltage_filtered_v / _n_cells.get() < 3.4f) {
+			PX4_WARN("Battery is dangerously low. Land immediately to avoid deep discharge.");
+		}
+
+		kfUpdate(timestamp, _current_filtered_a, voltage_v);
+		// do estimateRemaining anyways, case is determined inside it.
+		estimateRemaining(_voltage_filtered_v, _current_filtered_a, _throttle_filtered, armed);
+
+		bool reliably_connected = true;
 
 #ifdef BOARD_HAS_POWER_CHECK
 
-	if (_link_check.get()) {
-		reliably_connected = !stm32_gpioread(POWER_CHECK_GPIO);
-	}
+		if (_link_check.get()) {
+			reliably_connected = !stm32_gpioread(POWER_CHECK_GPIO);
+		}
 
 #endif
+
+	} else {
+
+		reset(battery_status);
+		battery_status->timestamp = timestamp;
+
+		filterVoltage(voltage_v);
+		filterCurrent(current_a);
+		filterThrottle(throttle_normalized);
+
+		if (_voltage_filtered_v / _n_cells.get() < 3.4f) {
+			PX4_WARN("Battery is dangerously low. Land immediately to avoid deep discharge.");
+		}
+
+
+		sumDischarged(timestamp, current_a); // computes _discharged_mah
+
+		// PX4_INFO("current : %f", (double) _current_filtered_a);
+		// do estimateRemaining anyways, case is determined inside it.
+		estimateRemaining(_voltage_filtered_v, _current_filtered_a, _throttle_filtered, armed);
+		computeScale(); // can't figure out what that is
+		computeRemainingTime(current_a);
+
+		if (_battery_initialized) {
+			determineWarning(connected);
+		}
+
+		bool reliably_connected = true;
+
+#ifdef BOARD_HAS_POWER_CHECK
+
+		if (_link_check.get()) {
+			reliably_connected = !stm32_gpioread(POWER_CHECK_GPIO);
+		}
+
+#endif
+	}
 
 	if (_voltage_filtered_v > 2.1f) {
 		_battery_initialized = true;
 		battery_status->voltage_v = voltage_v;
 		battery_status->voltage_filtered_v = _voltage_filtered_v;
-		battery_status->scale = _scale;
-		battery_status->time_remaining_s = _time_remaining_s;
 		battery_status->current_a = current_a;
 		battery_status->current_filtered_a = _current_filtered_a;
 		battery_status->discharged_mah = _discharged_mah;
@@ -119,6 +154,26 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->priority = priority;
 		battery_status->reliably_connected = reliably_connected;
 		battery_status->tethered = _tethered;
+
+		if (_use_kf) {
+			battery_status->covx[0] = _covx(0, 0);
+			battery_status->covx[1] = _covx(0, 1);
+			battery_status->covx[2] = _covx(1, 0);
+			battery_status->covx[3] = _covx(1, 1);
+			battery_status->covw[0] = _covw(0, 0);
+			battery_status->covw[1] = _covw(0, 1);
+			battery_status->covw[2] = _covw(1, 0);
+			battery_status->covw[3] = _covw(1, 1);
+			battery_status->kalman_gain[0] = _kalman_gain(0, 0);
+			battery_status->kalman_gain[1] = _kalman_gain(1, 0);
+			battery_status->innovation = _innovation;
+			battery_status->unsaturated_innovation = _y - _yhat;
+			battery_status->resistor_current = _xhat(1);
+
+		} else {
+			battery_status->scale = _scale;
+			battery_status->time_remaining_s = _time_remaining_s;
+		}
 	}
 
 	// Yuneec-specific [ch4207]: Consider voltage above usual battery voltrage
@@ -143,18 +198,176 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	// }
 }
 
+float Battery::ocv_from_soc(float SOC)
+{
+	float OCV = 0;
+
+	for (int poly_expo = 0; poly_expo <= sizeof(_poly_coeff) - 1; poly_expo++) {
+		OCV += _poly_coeff[sizeof(_poly_coeff) - 1 - poly_expo] * powf(SOC, (float) poly_expo);
+	}
+
+	return OCV;
+
+}
+
+float Battery::soc_from_ocv(float OCV)
+{
+	float SOC = -1;
+
+	/* The OCV(SOC) curve is linearized by parts in three segments. Those values are stored in the _OCV_array and _SOC_array variables. The SOC is computed by linear interpolation, once the OCV has been identified to belong to one of these three segments through the if statements.
+	*/
+	if (OCV >= _OCV_array[0] and OCV <= _OCV_array[3]) {
+		if (OCV >= _OCV_array[0] and OCV <= _OCV_array[1]) {
+			SOC = (_SOC_array[1] - _SOC_array[0]) / (_OCV_array[1] - _OCV_array[0]) * (OCV - _OCV_array[0]);
+
+		} else if (OCV > _OCV_array[1] and OCV <= _OCV_array[2]) {
+			SOC = (_SOC_array[2] - _SOC_array[1]) / (_OCV_array[2] - _OCV_array[1]) * (OCV - _OCV_array[1]) + _SOC_array[1];
+
+		} else if (OCV > _OCV_array[2] and OCV <= _OCV_array[3]) {
+			SOC = (_SOC_array[3] - _SOC_array[2]) / (_OCV_array[3] - _OCV_array[2]) * (OCV - _OCV_array[2]) + _SOC_array[2];
+		}
+	}
+
+	static bool doprint = true;
+
+	if (doprint) {
+		PX4_INFO("Initial voltage : %.2f", (double) v);
+		PX4_INFO("Initial SOC : %.2f", (double) SOC);
+
+		if (SOC >= -1) {
+			doprint = false;
+		}
+	}
+
+	return SOC;
+}
+
+float Battery::getSlope(float z)
+{
+	using math::min;
+	using math::max;
+	float const dSOC = min(1.0f, z + 0.01f) - max(0.0f, z - 0.01f);
+	// min(1.0,z+0.01) is used to prevent z+0.01 exceeding 1 in case z>0.99. Having SOC>1 does not make any sense. Same on the other end of the curve.
+	// +/-0.01 is an arbitrary value that give decent slope predictions in Jupyter notebook implementation.
+	float const dOCV = this->ocv_from_soc(min(1.0f, z + 0.01f)) - this->ocv_from_soc(max(0.0f, z - 0.01f));
+	float slope = dOCV / dSOC;
+
+	return slope;
+}
+
+void Battery::recompute_statespace(float timedelta)
+{
+	_batmat_A(1, 1) = exp(-timedelta / (_R1.get() * _C1.get()));
+	_batmat_B(0) = timedelta / (_capacity_mAh * 3.6f); // 3.6 converts from mAh to Coulombs
+	_batmat_B(1) = 1 - exp(-timedelta / (_R1.get() * _C1.get()));
+	_batmat_C(0, 0) = this->getSlope(_xhat(0));
+}
+
+void Battery::kfInit(float voltage_v)
+{
+	_yhat = voltage_v / _n_cells.get();
+	// Battery is considered at equilibrium when booting up (if last value from last time could be saved would be nice). That means the sensed voltage is assumed to be equal to the Open Circuit Voltage (OCV).
+	_z0 = this->soc_from_ocv(voltage_v / _n_cells.get());
+	_iR10 = 0.0f;
+	// Matrices initialization
+	_batmat_A(0, 0) = 1.0f;
+	_batmat_A(0, 1) = 0.0f;
+	_batmat_A(1, 0) = 0.0f;
+	_batmat_A(1, 1) = exp(-_deltatime / (_R1.get() * _C1.get()));
+	_batmat_C(0, 0) = this->getSlope(_z0);
+	_batmat_C(0, 1) = -_R1.get();
+	_xhat(0) = _z0;
+	_xhat(1) = _iR10;
+	_covx(0, 0) = 0.1f;
+	_covx(0, 1) = 0.f;
+	_covx(1, 0) = 0.f;
+	_covx(1, 1) = 0.f;
+	_covw(0, 0) = 1e-3f;
+	_covw(0, 1) = 0.0f;
+	_covw(1, 0) = 0.0f;
+	_covw(1, 1) = 1e-4f;
+	PX4_INFO("Kalman filter has been initialized.");
+}
+
+void Battery::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
+{
+	_u = current_a;
+	_y = voltage_v / _n_cells.get(); // Voltage per cell is required
+	_deltatime = (timestamp - _last_timestamp) / 1e6;
+	this->recompute_statespace(_deltatime);
+	SquareMatrix<float, 1> tmp;
+
+	// 1c Computation of future yhat using future state and last input would not make sense !
+	_yhat = ocv_from_soc(_xhat(0)) - _R1.get() * _xhat(1) - _R0.get() * _u;
+
+	// 1b
+	_covx = _batmat_A * _covx * _batmat_A.T() + _covw; // (numerical robustness) no risk of losing symetry here
+
+	// 2a
+	covxy = _covx * _batmat_C.T();
+	tmp = _batmat_C * _covx * _batmat_C.T();
+	_covy = tmp(0, 0) + _covv; // scalar, so not computationally demanding
+	_kalman_gain = covxy / _covy;
+
+
+	_innovation = _y - _yhat;
+
+	// Innovation saturation
+	if (_innovation > 0.05f) {
+		_innovation = 0.05f;
+
+	} else if (_innovation < -0.05f) {
+		_innovation = -0.05f;
+	}
+
+	// 1a & 2b Computation of xhat using last input
+	_xhat = _batmat_A * _xhat + _batmat_B * _u + _kalman_gain * _innovation;
+
+	/* Is it really the best way to constraint the state ?
+	We could also project the unconstrainted state space
+	onto a constrained one using a clever projection
+	*/
+	if (_xhat(0) > 1.0f) {
+		_xhat(0) = 1.0f;
+
+	} else if (_xhat(0) < 0.0f) {
+		_xhat(0) = 0.0f;
+	}
+
+	// 2c (Joseph-form covariance update for improved numerical robustness)
+	_covx = (I - _kalman_gain * _batmat_C) * _covx * (I - _kalman_gain * _batmat_C).T() + _kalman_gain * _covv *
+		_kalman_gain.T(); // puts nonzero values in the antidiagonal of covx
+	_last_timestamp = timestamp;
+}
+
+// For now we don't support switching from thethering to a backup battery
+// else if (_tethered) {
+// 	_tethered  = false;
+// 	_discharged_mah = 0;  // reset internal state when tether disconnects
+// 	mavlink_log_info(&_mavlink_log_pub, "Tethered power supply: disabled");
+// }
+
+
 void
 Battery::filterVoltage(float voltage_v)
 {
 	if (!_battery_initialized) {
+		PX4_INFO("Battery has not been initialized yet.");
 		_voltage_filtered_v = voltage_v;
+
+	} else {
 	}
+
 
 	// TODO: inspect that filter performance
 	const float filtered_next = _voltage_filtered_v * 0.99f + voltage_v * 0.01f;
 
+	// static size_t kfilterVoltage = 0;
 	if (PX4_ISFINITE(filtered_next)) {
 		_voltage_filtered_v = filtered_next;
+		// if (kfilterVoltage++ % 100 == 0){
+		// 	PX4_INFO("Voltage filtered : %f V", (double) _voltage_filtered_v);
+		// }
 	}
 }
 
@@ -168,8 +381,14 @@ Battery::filterCurrent(float current_a)
 	// ADC poll is at 100Hz, this will perform a low pass over approx 500ms
 	const float filtered_next = _current_filtered_a * 0.98f + current_a * 0.02f;
 
+	// static size_t kfilterCurrent = 0;
+
 	if (PX4_ISFINITE(filtered_next)) {
 		_current_filtered_a = filtered_next;
+
+		// if (kfilterCurrent++ % 10 == 0) {
+		// 	PX4_INFO("Current filtered : %f A", (double) _current_filtered_a);
+		// }
 	}
 }
 
@@ -186,6 +405,7 @@ void Battery::filterThrottle(float throttle)
 	}
 }
 
+// not executed if use_kf=true
 void
 Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 {
@@ -199,9 +419,9 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 
 	// Ignore first update because we don't know dt.
 	if (_last_timestamp != 0) {
-		const float dt = (timestamp - _last_timestamp) / 1e6;
+		_deltatime = (timestamp - _last_timestamp) / 1e6;
 		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
-		_discharged_mah_loop = (current_a * 1e3f) * (dt / 3600.f);
+		_discharged_mah_loop = (current_a * 1e3f) * (_deltatime / 3600.f);
 		_discharged_mah += _discharged_mah_loop;
 	}
 
@@ -211,39 +431,46 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 void
 Battery::estimateRemaining(float voltage_v, float current_a, float throttle, bool armed)
 {
-	// remaining battery capacity based on voltage
-	float cell_voltage = voltage_v / _n_cells.get();
+	if (_use_kf.get()) {
+		_remaining = _xhat(0);
+		// PX4_INFO("SOC : %f", (double)  _remaining);
 
-	// correct battery voltage locally for load drop to avoid estimation fluctuations
-	if (_r_internal.get() >= 0.f) {
-		cell_voltage += _r_internal.get() * current_a;
+	} else { // if the Kalman filter is not used
+		// remaining battery capacity based on voltage
+		float cell_voltage = voltage_v / _n_cells.get();
 
-	} else {
-		// assume linear relation between throttle and voltage drop
-		cell_voltage += throttle * _v_load_drop.get();
-	}
-
-	_remaining_voltage = math::gradual(cell_voltage, _v_empty.get(), _v_charged.get(), 0.f, 1.f);
-
-	// choose which quantity we're using for final reporting
-	if (_capacity.get() > 0.f) {
-		// if battery capacity is known, fuse voltage measurement with used capacity
-		if (!_battery_initialized) {
-			// initialization of the estimation state
-			_remaining = _remaining_voltage;
+		// correct battery voltage locally for load drop to avoid estimation fluctuations
+		if (_r_internal.get() >= 0.f) {
+			cell_voltage += _r_internal.get() * current_a;
 
 		} else {
-			// The lower the voltage the more adjust the estimate with it to avoid deep discharge
-			const float weight_v = 3e-4f * (1 - _remaining_voltage);
-			_remaining = (1 - weight_v) * _remaining + weight_v * _remaining_voltage;
-			// directly apply current capacity slope calculated using current
-			_remaining -= _discharged_mah_loop / _capacity.get();
-			_remaining = math::max(_remaining, 0.f);
+			// assume linear relation between throttle and voltage drop
+			cell_voltage += throttle * _v_load_drop.get();
 		}
 
-	} else {
-		// else use voltage
-		_remaining = _remaining_voltage;
+		_remaining_voltage = math::gradual(cell_voltage, _v_empty.get(), _v_charged.get(), 0.f, 1.f);
+
+		// choose which quantity we're using for final reporting
+		if (_capacity.get() > 0.f) {
+			// if battery capacity is known, fuse voltage measurement with used capacity
+			if (!_battery_initialized) {
+				// initialization of the estimation state
+				_remaining = _remaining_voltage;
+
+			} else {
+				// The lower the voltage the more adjust the estimate with it to avoid deep discharge
+				const float weight_v = 3e-4f * (1 - _remaining_voltage);
+				_remaining = (1 - weight_v) * _remaining + weight_v * _remaining_voltage;
+				// directly apply current capacity slope calculated using current
+				_remaining -= _discharged_mah_loop / _capacity.get();
+				_remaining = math::max(_remaining, 0.f);
+			}
+
+		} else {
+			// else use voltage
+			_remaining = _remaining_voltage;
+			// PX4_INFO("Remaining battery : %f", (double) _remaining);
+		}
 	}
 }
 

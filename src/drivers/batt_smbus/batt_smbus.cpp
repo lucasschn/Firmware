@@ -245,7 +245,7 @@ void BATT_SMBUS::cycle()
 		}
 	}
 
-	// Read battery temperature and covert to Celsius.
+	// Read battery temperature and convert to Celsius.
 	ret |= _interface->read_word(BATT_SMBUS_TEMP, &result);
 	new_report.temperature = ((float)result / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 

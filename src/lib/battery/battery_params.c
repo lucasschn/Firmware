@@ -226,3 +226,74 @@ PARAM_DEFINE_INT32(BAT_LINK_CHECK, 0);
  * @reboot_required false
  */
 PARAM_DEFINE_FLOAT(BAT_V_TETHER, -1.0f);
+
+/**
+ * Battery estimator type.
+ *
+ * Defines the type of battery state estimator to be used.
+ * Value 0 is legacy battery state of charge estimator, value 1 is a extended kalman filter
+ *
+ * @group Battery Calibration
+ * @decimal 0
+ * @min 0
+ * @max 1
+ * @increment 1
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(BAT_USE_KF, 1);
+
+/**
+ * Battery Equivalent Circuit Parameter R0
+ *
+ * Defines the resistance R0 to be used in the equivalent circuit modelling the battery.
+ * The equivalent circuit is in the Thevenin form :
+ *              ____
+ *          |--|____|--|   ____
+ *       |--|    R1    |--|____|--
+ *       |  |----||----|    R0    ^
+ *       /\      C1
+ *       \/ OCV                  v(t)
+ *       |
+ *       |________________________v
+ *
+ * @group Battery Calibration
+ * @unit Ohm
+ * @min 0
+ * @max 1
+ * @decimal 3
+ * @increment 0.001
+ * @reboot_required false
+ */
+PARAM_DEFINE_FLOAT(BAT_PARAM_R0, 0.015f);
+
+/**
+* Battery Equivalent Circuit Parameter R1
+*
+* Defines the resistance R1 to be used in the equivalent circuit modelling the battery.
+* The equivalent circuit is in the Thevenin form, see R0.
+*
+* @group Battery Calibration
+* @unit Ohm
+* @min 0
+* @max 1
+* @decimal 3
+* @increment 0.001
+* @reboot_required false
+*/
+PARAM_DEFINE_FLOAT(BAT_PARAM_R1, 0.01f);
+
+/**
+* Battery Equivalent Circuit Parameter C1
+*
+* Defines the C1 capacitance to be used in the equivalent circuit modelling the battery.
+* The equivalent circuit is in the Thevenin form, see R0.
+*
+* @group Battery Calibration
+* @unit Farad
+* @min 0
+* @max 5000
+* @decimal 0
+* @increment 50
+* @reboot_required false
+*/
+PARAM_DEFINE_FLOAT(BAT_PARAM_C1, 1100.0f);

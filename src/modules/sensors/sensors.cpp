@@ -71,7 +71,7 @@
 #include <parameters/param.h>
 #include <systemlib/err.h>
 #include <perf/perf_counter.h>
-#include <battery/battery.h>
+#include <battery/throttle_bat.hpp>
 
 #include <conversion/rotation.h>
 
@@ -177,7 +177,7 @@ private:
 #if BOARD_NUMBER_BRICKS > 0
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
 
-	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
+	BatteryThrottle		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
 #endif /* BOARD_NUMBER_BRICKS > 0 */
 
 #if BOARD_NUMBER_BRICKS > 1
@@ -594,10 +594,10 @@ Sensors::adc_poll()
 
 					battery_status_s battery_status;
 					// t is the current timestamp hrt_absolute_time
-					_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
-									connected, selected_source == b, b,
-									ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-									_armed, &battery_status);
+					_battery[b].update(t, bat_voltage_v[b], bat_current_a[b],
+							   connected, selected_source == b, b,
+							   ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+							   _armed, &battery_status);
 					int instance;
 					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_DEFAULT);
 				}

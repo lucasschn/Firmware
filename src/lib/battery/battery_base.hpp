@@ -66,17 +66,17 @@ public:
 	/**
 	 * Get the battery cell count
 	 */
-	int get_cell_count() { return _n_cells.get(); }
+	int cell_count() { return _n_cells.get(); }
 
 	/**
 	 * Get the empty voltage per cell
 	 */
-	float get_empty_cell_voltage() { return _v_empty.get(); }
+	float empty_cell_voltage() { return _v_empty.get(); }
 
 	/**
 	 * Get the full voltage per cell
 	 */
-	float get_full_cell_voltage() { return _v_charged.get(); }
+	float full_cell_voltage() { return _v_charged.get(); }
 
 
 	void update(hrt_abstime timestamp,

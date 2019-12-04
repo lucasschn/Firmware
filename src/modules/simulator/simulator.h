@@ -61,7 +61,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <perf/perf_counter.h>
-#include <battery/battery.h>
+#include <battery/throttle_bat.hpp>
 #include <uORB/uORB.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
@@ -353,7 +353,7 @@ private:
 	hrt_abstime _last_sitl_timestamp;
 
 	// Lib used to do the battery calculations.
-	Battery _battery;
+	BatteryThrottle _battery;
 	battery_status_s _battery_status{};
 
 	// class methods

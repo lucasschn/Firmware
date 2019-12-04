@@ -610,7 +610,7 @@ Sensors::adc_poll()
 					_battery_ekf[b].update(t, bat_voltage_v[b], bat_current_a[b],
 							       connected, selected_source == b, b,
 							       ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-							       _armed, &battery_status_elf);
+							       _armed, &battery_status_ekf);
 
 					int instance;
 					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_LOW);

@@ -72,6 +72,7 @@
 #include <systemlib/err.h>
 #include <perf/perf_counter.h>
 #include <battery/throttle_bat.hpp>
+#include <battery/ekf_bat.hpp>
 
 #include <conversion/rotation.h>
 
@@ -178,6 +179,7 @@ private:
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
 
 	BatteryThrottle		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
+	BatteryEKF		_battery_ekf[BOARD_NUMBER_BRICKS]; /**< This battery is currently only for testing ekf */
 #endif /* BOARD_NUMBER_BRICKS > 0 */
 
 #if BOARD_NUMBER_BRICKS > 1
@@ -257,6 +259,7 @@ Sensors::Sensors(bool hil_enabled) :
 
 	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 		_battery[b].setParent(this);
+		_battery_ekf[b].setParent(this);
 	}
 
 #endif /* BOARD_NUMBER_BRICKS > 0 */
@@ -598,8 +601,19 @@ Sensors::adc_poll()
 							   connected, selected_source == b, b,
 							   ctrl.control[actuator_controls_s::INDEX_THROTTLE],
 							   _armed, &battery_status);
+
 					int instance;
 					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_DEFAULT);
+
+					// for test ekf
+					battery_status_s battery_status_ekf;
+					_battery_ekf[b].update(t, bat_voltage_v[b], bat_current_a[b],
+							       connected, selected_source == b, b,
+							       ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+							       _armed, &battery_status_elf);
+
+					int instance;
+					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_LOW);
 				}
 			}
 

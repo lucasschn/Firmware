@@ -97,7 +97,7 @@ public:
 			    battery_status_s *status) = 0;
 
 protected:
-	void filter1order(float &signal_filtered, const float signal, const float alpha);
+	void filter1order(float &signal_filtered, const float signal_raw, const float alpha);
 	void determineWarning(uint8_t &warning, const bool &connected, const float &remaining);
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,

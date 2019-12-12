@@ -57,10 +57,10 @@ Battery::reset(battery_status_s *battery_status)
 }
 
 void
-Battery::filter1order(float &signal_filtered, const float signal, const float alpha)
+Battery::filter1order(float &signal_filtered, const float signal_raw, const float alpha)
 {
 
-	const float filtered = signal_filtered * (1.f - alpha) + signal * alpha;
+	const float filtered = signal_filtered * (1.f - alpha) + signal_raw * alpha;
 
 	if (PX4_ISFINITE(filtered)) {
 		signal_filtered = filtered;

@@ -1,22 +1,87 @@
 #include "throttle_bat.hpp"
 #include <lib/mathlib/mathlib.h>
+// Yuneec-specific
+#include <systemlib/mavlink_log.h>
 
 void
-BatteryThrottle::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
-				     bool connected, bool selected_source, int priority,
-				     float throttle_normalized,
-				     bool armed, battery_status_s *battery_status)
+BatteryThrottle::update(hrt_abstime timestamp,
+			float voltage_v,
+			float current_a,
+			bool connected,
+			bool selected_source,
+			int priority,
+			float throttle_normalized,
+			bool armed,
+			battery_status_s *battery_status)
 {
-	sumDischarged(timestamp, current_a); // computes _discharged_mah
 
-	// do estimateRemaining anyways, case is determined inside it.
+	reset(battery_status);
+	battery_status->timestamp = timestamp;
+
+	if (!_battery_initialized) {
+		filter1order(_voltage_filtered_v, voltage_v, 0.01f);
+		filter1order(_current_filtered_a, current_a, 0.02f);
+		filter1order(_throttle_filtered, throttle_normalized, 0.01f);
+
+	}
+
+	sumDischarged(timestamp, current_a);
 	estimateRemaining(_voltage_filtered_v, _current_filtered_a, _throttle_filtered, armed);
-	computeScale(); // can't figure out what that is
+	computeScale();
 	computeRemainingTime(current_a);
 
-	battery_status->discharged_mah = _discharged_mah;
-	battery_status->scale = _scale;
+	if (_battery_initialized) {
+		determineWarning(connected, _remaining);
+	}
 
+	bool reliably_connected = true;
+
+#ifdef BOARD_HAS_POWER_CHECK
+
+	if (_link_check.get()) {
+		reliably_connected = !stm32_gpioread(POWER_CHECK_GPIO);
+	}
+
+#endif
+
+	if (_voltage_filtered_v > 2.1f) {
+		_battery_initialized = true;
+		battery_status->voltage_v = voltage_v;
+		battery_status->voltage_filtered_v = _voltage_filtered_v;
+		battery_status->scale = _scale;
+		battery_status->time_remaining_s = _time_remaining_s;
+		battery_status->current_a = current_a;
+		battery_status->current_filtered_a = _current_filtered_a;
+		battery_status->discharged_mah = _discharged_mah;
+		battery_status->warning = _warning;
+		battery_status->remaining = _remaining;
+		battery_status->connected = connected;
+		battery_status->system_source = selected_source;
+		battery_status->priority = priority;
+		battery_status->reliably_connected = reliably_connected;
+		battery_status->tethered = _tethered;
+	}
+
+	// Yuneec-specific [ch4207]: Consider voltage above usual battery voltrage
+	// as an infinite power supply. Can be used for tethering for example.
+	if (_v_tether.get() >= 0.0f && _voltage_filtered_v >= _v_tether.get()) {
+		if (!_tethered) {
+			_tethered = true;
+			mavlink_log_info(&_mavlink_log_pub, "Tethered power supply: enabled");
+		}
+
+		// Override battery estimate while thethered
+		battery_status->time_remaining_s = -1.f;
+		battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
+		battery_status->remaining = 1.f;
+	}
+
+	// For now we don't support switching from thethering to a backup battery
+	// else if (_tethered) {
+	// 	_tethered  = false;
+	// 	_discharged_mah = 0;  // reset internal state when tether disconnects
+	// 	mavlink_log_info(&_mavlink_log_pub, "Tethered power supply: disabled");
+	// }
 }
 
 void
@@ -57,7 +122,6 @@ BatteryThrottle::estimateRemaining(float voltage_v, float current_a, float throt
 		_remaining = _remaining_voltage;
 		// PX4_INFO("Remaining battery : %f", (double) _remaining);
 	}
-
 }
 
 void

@@ -51,9 +51,7 @@ class Battery : public ModuleParams
 public:
 
 	Battery() :
-		ModuleParams(nullptr),
-		_warning(battery_status_s::BATTERY_WARNING_NONE),
-		_last_timestamp(0)
+		ModuleParams(nullptr)
 	{}
 
 	virtual ~Battery() = default;
@@ -78,18 +76,6 @@ public:
 	 */
 	float full_cell_voltage() { return _v_charged.get(); }
 
-
-	void update(hrt_abstime timestamp,
-		    float voltage_v,
-		    float current_a,
-		    bool connected,
-		    bool selected_source,
-		    int priority,
-		    float throttle_normalized,
-		    bool armed,
-		    battery_status_s *status);
-
-protected:
 	/**
 	 * Update current battery status message.
 	 *
@@ -100,55 +86,28 @@ protected:
 	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
 	 * @param throttle_normalized: throttle from 0 to 1
 	 */
-	virtual void updateBatteryStatus(
-		hrt_abstime timestamp,
-		float voltage_v,
-		float current_a,
-		bool connected,
-		bool selected_source,
-		int priority,
-		float throttle_normalized,
-		bool armed,
-		battery_status_s *status) = 0;
+	virtual void update(hrt_abstime timestamp,
+			    float voltage_v,
+			    float current_a,
+			    bool connected,
+			    bool selected_source,
+			    int priority,
+			    float throttle_normalized,
+			    bool armed,
+			    battery_status_s *status) = 0;
 
+protected:
+	void filter1order(float &signal_filtered, const float signal, const float alpha);
+	void determineWarning(const bool &connected, const float &remaining);
 
-	virtual void estimateRemaining(const float voltage_v, const float current_a, const float throttle,
-				       const bool armed) = 0;
-
-	void filterVoltage(float voltage_v);
-	void filterThrottle(float throttle);
-	void filterCurrent(float current_a);
-	void determineWarning(bool connected);
-
-
-	bool _battery_initialized = false;
-	float _voltage_filtered_v = -1.f;
-	float _throttle_filtered = -1.f;
-	float _current_filtered_a = -1.f;
-	float _remaining_voltage = -1.f;		///< normalized battery charge level remaining based on voltage
-	float _remaining = -1.f;			///< normalized battery charge level, selected based on config param
-	float _deltatime = 0.1f;
-
-	float _current_filtered_a_for_time = -1.f;
-	float _time_remaining_s = -1.f;
-
-	uint8_t _warning;
+	uint8_t _warning = battery_status_s::BATTERY_WARNING_NONE;
 	hrt_abstime _last_timestamp = 0.0f;
 
-	bool _tethered = false;
-	orb_advert_t _mavlink_log_pub = nullptr;
-
-
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
-					(ParamFloat<px4::params::BAT_V_TETHER>) _v_tether,
 					(ParamFloat<px4::params::BAT_V_EMPTY>) _v_empty,
 					(ParamFloat<px4::params::BAT_V_CHARGED>) _v_charged,
 					(ParamInt<px4::params::BAT_N_CELLS>) _n_cells,
-					(ParamFloat<px4::params::BAT_CAPACITY>) _capacity,
-					(ParamFloat<px4::params::BAT_V_LOAD_DROP>) _v_load_drop,
-					(ParamFloat<px4::params::BAT_R_INTERNAL>) _r_internal,
 					(ParamFloat<px4::params::BAT_LOW_THR>) _low_thr,
 					(ParamFloat<px4::params::BAT_CRIT_THR>) _crit_thr,
-					(ParamFloat<px4::params::BAT_EMERGEN_THR>) _emergency_thr,
-					(ParamInt<px4::params::BAT_LINK_CHECK>) _link_check)
+					(ParamFloat<px4::params::BAT_EMERGEN_THR>) _emergency_thr)
 };

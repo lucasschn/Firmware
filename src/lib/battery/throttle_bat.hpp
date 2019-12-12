@@ -49,27 +49,43 @@ public:
 
 	virtual ~BatteryThrottle() = default;
 
-	virtual void updateBatteryStatus(hrt_abstime timestamp,
-					 float voltage_v,
-					 float current_a,
-					 bool connected,
-					 bool selected_source,
-					 int priority,
-					 float throttle_normalized,
-					 bool armed,
-					 battery_status_s *status) override;
-
-	virtual void estimateRemaining(float voltage_v, float current_a, float throttle, bool armed) override;
-
-
-
+	virtual void update(hrt_abstime timestamp,
+			    float voltage_v,
+			    float current_a,
+			    bool connected,
+			    bool selected_source,
+			    int priority,
+			    float throttle_normalized,
+			    bool armed,
+			    battery_status_s *status) override;
 
 private:
 	void sumDischarged(hrt_abstime timestamp, float current_a);
 	void computeScale();
 	void computeRemainingTime(float current_a);
+	void estimateRemaining(float voltage_v, float current_a, float throttle, bool armed);
 
 	float _discharged_mah = 0.f;
 	float _discharged_mah_loop = 0.f;
 	float _scale = 1.f;
+	bool _battery_initialized = false;
+	float _voltage_filtered_v = -1.f;
+	float _throttle_filtered = -1.f;
+	float _current_filtered_a = -1.f;
+	float _remaining_voltage = -1.f;		///< normalized battery charge level remaining based on voltage
+	float _remaining = -1.f;			///< normalized battery charge level, selected based on config param
+	float _deltatime = 0.1f;
+
+	float _current_filtered_a_for_time = -1.f;
+	float _time_remaining_s = -1.f;
+
+	bool _tethered = false;
+	orb_advert_t _mavlink_log_pub = nullptr;
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(Battery,
+					(ParamFloat<px4::params::BAT_V_TETHER>) _v_tether,
+					(ParamFloat<px4::params::BAT_CAPACITY>) _capacity,
+					(ParamFloat<px4::params::BAT_V_LOAD_DROP>) _v_load_drop,
+					(ParamFloat<px4::params::BAT_R_INTERNAL>) _r_internal,
+					(ParamInt<px4::params::BAT_LINK_CHECK>) _link_check)
 };

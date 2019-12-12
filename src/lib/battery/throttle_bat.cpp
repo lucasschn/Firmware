@@ -18,11 +18,15 @@ BatteryThrottle::update(hrt_abstime timestamp,
 	reset(battery_status);
 	battery_status->timestamp = timestamp;
 
-	if (!_battery_initialized) {
+	if (_battery_initialized) {
 		filter1order(_voltage_filtered_v, voltage_v, 0.01f);
 		filter1order(_current_filtered_a, current_a, 0.02f);
 		filter1order(_throttle_filtered, throttle_normalized, 0.01f);
 
+	} else {
+		_voltage_filtered_v = voltage_v;
+		_current_filtered_a = current_a;
+		_throttle_filtered = throttle_normalized;
 	}
 
 	sumDischarged(timestamp, current_a);

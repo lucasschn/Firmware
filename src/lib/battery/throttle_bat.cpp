@@ -1,5 +1,5 @@
 #include "throttle_bat.hpp"
-#include <lib/mathlib/mathlib.h>
+#include <mathlib/mathlib.h>
 // Yuneec-specific
 #include <systemlib/mavlink_log.h>
 
@@ -31,7 +31,7 @@ BatteryThrottle::update(hrt_abstime timestamp,
 	computeRemainingTime(current_a);
 
 	if (_battery_initialized) {
-		determineWarning(connected, _remaining);
+		determineWarning(_warning, connected, _remaining);
 	}
 
 	bool reliably_connected = true;
@@ -85,6 +85,28 @@ BatteryThrottle::update(hrt_abstime timestamp,
 }
 
 void
+BatteryThrottle::sumDischarged(hrt_abstime timestamp, float current_a)
+{
+	// Not a valid measurement
+	if (current_a < 0.f) {
+		// Because the measurement was invalid we need to stop integration
+		// and re-initialize with the next valid measurement
+		_last_timestamp = 0;
+		return;
+	}
+
+	// Ignore first update because we don't know dt.
+	if (_last_timestamp != 0) {
+		const float dt = (timestamp - _last_timestamp) / 1e6;
+		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
+		_discharged_mah_loop = (current_a * 1e3f) * (dt / 3600.f);
+		_discharged_mah += _discharged_mah_loop;
+	}
+
+	_last_timestamp = timestamp;
+}
+
+void
 BatteryThrottle::estimateRemaining(float voltage_v, float current_a, float throttle, bool armed)
 {
 	// remaining battery capacity based on voltage
@@ -120,30 +142,25 @@ BatteryThrottle::estimateRemaining(float voltage_v, float current_a, float throt
 	} else {
 		// else use voltage
 		_remaining = _remaining_voltage;
-		// PX4_INFO("Remaining battery : %f", (double) _remaining);
 	}
 }
 
 void
-BatteryThrottle::sumDischarged(hrt_abstime timestamp, float current_a)
+BatteryThrottle::computeScale()
 {
-	// Not a valid measurement
-	if (current_a < 0.f) {
-		// Because the measurement was invalid we need to stop integration
-		// and re-initialize with the next valid measurement
-		_last_timestamp = 0;
-		return;
-	}
+	const float voltage_range = (_v_charged.get() - _v_empty.get());
 
-	// Ignore first update because we don't know dt.
-	if (_last_timestamp != 0) {
-		_deltatime = (timestamp - _last_timestamp) / 1e6;
-		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
-		_discharged_mah_loop = (current_a * 1e3f) * (_deltatime / 3600.f);
-		_discharged_mah += _discharged_mah_loop;
-	}
+	// reusing capacity calculation to get single cell voltage before drop
+	const float bat_v = _v_empty.get() + (voltage_range * _remaining_voltage);
 
-	_last_timestamp = timestamp;
+	_scale = _v_charged.get() / bat_v;
+
+	if (_scale > 1.3f) { // Allow at most 30% compensation
+		_scale = 1.3f;
+
+	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) { // Shouldn't ever be more than the power at full battery
+		_scale = 1.f;
+	}
 }
 
 void
@@ -171,23 +188,5 @@ BatteryThrottle::computeRemainingTime(float current_a)
 	} else {
 		_current_filtered_a_for_time = -1.f;
 		_time_remaining_s = -1.f;
-	}
-}
-
-void
-BatteryThrottle::computeScale()
-{
-	const float voltage_range = (_v_charged.get() - _v_empty.get());
-
-	// reusing capacity calculation to get single cell voltage before drop
-	const float bat_v = _v_empty.get() + (voltage_range * _remaining_voltage);
-
-	_scale = _v_charged.get() / bat_v;
-
-	if (_scale > 1.3f) { // Allow at most 30% compensation
-		_scale = 1.3f;
-
-	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) { // Shouldn't ever be more than the power at full battery
-		_scale = 1.f;
 	}
 }

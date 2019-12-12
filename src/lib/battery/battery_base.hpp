@@ -98,10 +98,7 @@ public:
 
 protected:
 	void filter1order(float &signal_filtered, const float signal, const float alpha);
-	void determineWarning(const bool &connected, const float &remaining);
-
-	uint8_t _warning = battery_status_s::BATTERY_WARNING_NONE;
-	hrt_abstime _last_timestamp = 0.0f;
+	void determineWarning(uint8_t &warning, const bool &connected, const float &remaining);
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamFloat<px4::params::BAT_V_EMPTY>) _v_empty,

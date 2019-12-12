@@ -65,20 +65,19 @@ private:
 	void computeRemainingTime(float current_a);
 	void estimateRemaining(float voltage_v, float current_a, float throttle, bool armed);
 
-	float _discharged_mah = 0.f;
-	float _discharged_mah_loop = 0.f;
-	float _scale = 1.f;
 	bool _battery_initialized = false;
 	float _voltage_filtered_v = -1.f;
 	float _throttle_filtered = -1.f;
 	float _current_filtered_a = -1.f;
+	float _discharged_mah = 0.f;
+	float _discharged_mah_loop = 0.f;
 	float _remaining_voltage = -1.f;		///< normalized battery charge level remaining based on voltage
 	float _remaining = -1.f;			///< normalized battery charge level, selected based on config param
-	float _deltatime = 0.1f;
-
+	float _scale = 1.f;
 	float _current_filtered_a_for_time = -1.f;
 	float _time_remaining_s = -1.f;
-
+	uint8_t _warning = battery_status_s::BATTERY_WARNING_NONE;
+	hrt_abstime _last_timestamp = 0.0f;
 	bool _tethered = false;
 	orb_advert_t _mavlink_log_pub = nullptr;
 

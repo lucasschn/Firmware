@@ -620,6 +620,7 @@ void Logger::add_default_topics()
 	add_topic("actuator_outputs", 100);
 	add_topic("airspeed", 200);
 	add_topic("battery_status", 50);
+	add_topic("battery_status_ekf",50);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
 	add_topic("cpuload");

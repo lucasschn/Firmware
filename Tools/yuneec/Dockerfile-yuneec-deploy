@@ -1,0 +1,30 @@
+#
+# PX4 base development environment
+#
+
+FROM ubuntu:18.04
+
+ENV DEBIAN_FRONTEND noninteractive
+
+LABEL maintainer="Alessandro <alessandro@yuneec.ch>"
+
+
+RUN apt-get update && apt-get -y --quiet --no-install-recommends install \
+		git \
+		s3cmd \
+		python3-dev \
+		python3-pip \
+		python3-setuptools \ 
+	&& apt-get -y autoremove \
+	&& apt-get clean autoclean \
+	&& rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
+
+# Python Crypto library needed for encrypting the Autopilot firmware
+# python3 dependencies installed by pip
+RUN python3 -m pip install --upgrade pip \
+	&& pip3 install pycryptodome pyyaml serial wheel
+
+# Install AWS CLI
+RUN pip3 install awscli --upgrade
+
+CMD ["/bin/bash"]

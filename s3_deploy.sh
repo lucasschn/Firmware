@@ -3,14 +3,23 @@
 # exit 1 on error
 set -e
 
-S3_BUCKET_NAME=eaa9124f-6497-4f9f-a408-78eac05b5744
-S3_DEVEL_BUCKET=cf2e449e-50b3-48b5-ad6c-47abfa70e116
+ARG_GIT_COMMIT=$1 		# commit hash
+ARG_GIT_BRANCH=$2 		# base branch
+ARG_BUILD_FLAVOR=$3 		# autopilot build flavor
+
+# Check environemnt variables
+if [ -z ${AWS_ACCESS_KEY} ]; then echo "AWS_ACCESS_KEY is unset" && exit 1; fi
+if [ -z ${AWS_SECRET_ACCESS_KEY} ]; then echo "AWS_SECRET_ACCESS_KEY is unset" && exit 1; fi
+if [ -z ${AUTOPILOT_TAP_V2_KEY} ]; then echo "AUTOPILOT_TAP_V2_KEY is unset" && exit 1; fi
+if [ -z ${AUTOPILOT_TAP_V3_KEY} ]; then echo "AUTOPILOT_TAP_V3_KEY is unset" && exit 1; fi
+if [ -z ${S3_BUCKET_CI_ARCHIVE} ]; then echo "S3_BUCKET_CI_ARCHIVE is unset" && exit 1; fi
+if [ -z ${S3_BUCKET_DEVELOPMENT} ]; then echo "S3_BUCKET_DEVELOPMENT is unset" && exit 1; fi
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+echo "build target: ${ARG_BUILD_FLAVOR}"
 
-echo "build target: $BUILD_FLAVOR"
-
-if [[ "${BUILD_FLAVOR}" = *"autopilot"* && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+if [[ "${ARG_BUILD_FLAVOR}" = *"autopilot"* ]]; then
 
 	./Tools/yuneec/check_deploy.sh;
 
@@ -26,10 +35,10 @@ if [[ "${BUILD_FLAVOR}" = *"autopilot"* && "${TRAVIS_BRANCH}" != "coverity" ]]; 
 		if [[ "${folder_name:0:6}" == "yuneec" ]]
 		then
 			# add travis commit
-			echo "$TRAVIS_COMMIT" > ${SCRIPT_DIR}/s3autopilot/${folder_name}/git;
+			echo "$ARG_GIT_COMMIT" > ${SCRIPT_DIR}/s3autopilot/${folder_name}/git;
 
 			function upload_file {
-				s3cmd $4 --add-header=x-amz-meta-firmware-version:${TRAVIS_TAG} -m $3 --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} --add-header="Cache-Control:public, max-age=0" put $1 $2;
+				s3cmd $4 -m $3 --access_key=${AWS_ACCESS_KEY} --secret_key=${AWS_SECRET_ACCESS_KEY} --add-header="Cache-Control:public, max-age=0" put $1 $2;
 			}
 
 			function upload_package {
@@ -47,35 +56,21 @@ if [[ "${BUILD_FLAVOR}" = *"autopilot"* && "${TRAVIS_BRANCH}" != "coverity" ]]; 
 			board_label=${folder_name#*_}
 			label=${board_label#*_}
 			board=${board_label%_*}
-			flavor=${BUILD_FLAVOR#*_}
+			flavor=${ARG_BUILD_FLAVOR#*_}
 			root=autopilot
 
-			if [[ ! -z "${TRAVIS_PULL_REQUEST_BRANCH}" ]]; then
-				# Folder structure
-				# root / board / label / flavor / base-branch / PR-branch / git-version
-				upload_package ${folder_name} s3://${S3_BUCKET_NAME}/${root}/${board}/${label}/${flavor}/${TRAVIS_BRANCH}/${TRAVIS_PULL_REQUEST_BRANCH}/${gitversion};
-			else
-			    # H520
-				if [[ "${TRAVIS_BRANCH}" = "develop" ]] && [[ "${board}" = "tap-v2" ]] && [[ "${label}" = "h520" ]] && [[ "${flavor}" = "yuneec" ]]; then
-					# Folder structure
-					# H520-develop/
-					# ├── autopilot
-					upload_package ${folder_name} s3://$S3_DEVEL_BUCKET/H520-develop/autopilot --acl-public
-				fi;
-
-				# H520-2
-				if [[ "${TRAVIS_BRANCH}" = "develop" ]] && [[ "${board}" = "tap-v3" ]] && [[ "${label}" = "h520mk2" ]] && [[ "${flavor}" = "yuneec" ]]; then
-					# Folder structure
-					# H520mk2-develop/
-					# ├── autopilot
-					upload_package ${folder_name} s3://$S3_DEVEL_BUCKET/H520mk2-develop/autopilot --acl-public
-				fi;
-
-				# root / board / label / flavor / branch / latest
-				upload_package ${folder_name} s3://${S3_BUCKET_NAME}/${root}/${board}/${label}/${flavor}/${TRAVIS_BRANCH}/latest
-				# root / board / label / flavor / branch / git-version
-				upload_package ${folder_name} s3://${S3_BUCKET_NAME}/${root}/${board}/${label}/${flavor}/${TRAVIS_BRANCH}/${gitversion}
+			# Deployments to S3_BUCKET_DEVELOPMENT
+			if [[ "${ARG_GIT_BRANCH}" = "develop" ]] && [[ "${board}" = "tap-v2" ]] && [[ "${label}" = "h520" ]] && [[ "${flavor}" = "yuneec" ]]; then
+				upload_package ${folder_name} s3://$S3_BUCKET_DEVELOPMENT/H520-develop/autopilot --acl-public
 			fi;
+
+			if [[ "${ARG_GIT_BRANCH}" = "develop" ]] && [[ "${board}" = "tap-v3" ]] && [[ "${label}" = "h520mk2" ]] && [[ "${flavor}" = "yuneec" ]]; then
+				upload_package ${folder_name} s3://$S3_BUCKET_DEVELOPMENT/H520mk2-develop/autopilot --acl-public
+			fi;
+
+			# Deployments to S3_BUCKET_CI_ARCHIVE
+			upload_package ${folder_name} s3://${S3_BUCKET_CI_ARCHIVE}/${root}/${board}/${label}/${flavor}/${ARG_GIT_BRANCH}/latest
+			upload_package ${folder_name} s3://${S3_BUCKET_CI_ARCHIVE}/${root}/${board}/${label}/${flavor}/${ARG_GIT_BRANCH}/${gitversion}
 		fi
 	done
 fi;

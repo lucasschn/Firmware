@@ -26,10 +26,10 @@ for d in $3/*; do
 		mkdir -p $destination_dir/${build_name}
 
 		if [[ "${board}" == "tap-v2" ]]; then
-			${script_dir}/generate_yuneec.py $3/${build_name}/${build_name}.px4 $destination_dir/${build_name}/autopilot.yuneec $1
+			python3 ${script_dir}/generate_yuneec.py $3/${build_name}/${build_name}.px4 $destination_dir/${build_name}/autopilot.yuneec $1
 			openssl aes-256-cbc -in $3/${build_name}/${build_name}.elf -out $destination_dir/${build_name}/autopilot.elf.encrypted -k $1
 		elif [[ "${board}" == "tap-v3" ]]; then
-			${script_dir}/generate_yuneec.py $3/${build_name}/${build_name}.px4 $destination_dir/${build_name}/autopilot.yuneec $2;
+			python3 ${script_dir}/generate_yuneec.py $3/${build_name}/${build_name}.px4 $destination_dir/${build_name}/autopilot.yuneec $2;
 			openssl aes-256-cbc -in $3/${build_name}/${build_name}.elf -out $destination_dir/${build_name}/autopilot.elf.encrypted -k $2
 		fi
 

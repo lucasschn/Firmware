@@ -1,0 +1,349 @@
+// Documentation
+//
+// 0. On Jenkins, add the necessary credentials:
+//   - yuneec-ci github user name and password
+//   - Secret text credentials for AWS S3 (one for key, one for pass)
+//   - yuneec-ci SSH credentials for accessing github
+// 1. Create a multi-branch pipeline
+// 2. Branch Sources settings:
+//   - In Branch Sources, select credentails and enter repository HTTPS URL
+//   - Adjust Discover behaviour
+//   - Add "Discover Tags" behaviour (not sure if really needed)
+//   - Add "Advanced clone behaviours" and select "Fetch tags"
+//   - Add "Advanced sub-modules behaviours" and select "Recursively update submodules" and "USe credentails from default remote of parent repository"
+//   - Add "Checkout over SSH" behavior and select the SSH credentials from step 0. This allows fetching the submodules with the SSH key provided in Jenkins master without having to configure SSH on the slave.
+//   - Optional: Add "Custom Github Notification Context" and chose a custom label. Check "Apply Suffix" to avoid confusion as multiple CI jobs can run on the same commit (PR, branch, tag discover)
+// 7. Build Configuration
+//   - Select "By Jenkinsfile" and as script path the path to this file here
+
+pipeline {
+  agent none
+
+  environment {
+    CCACHE_DIR = '/tmp/ccache'
+    CI = true
+    AWS_ACCESS_KEY = credentials('jenkins-aws-key-id')
+    AWS_SECRET_ACCESS_KEY = credentials('jenkins-aws-key-secret')
+    AUTOPILOT_TAP_V2_KEY = credentials('tap-v2-bl-key')
+    AUTOPILOT_TAP_V3_KEY = credentials('tap-v3-bl-key')
+    S3_BUCKET_CI_ARCHIVE = 'eaa9124f-6497-4f9f-a408-78eac05b5744/alessandro_tests/ci'
+    S3_BUCKET_DEVELOPMENT = 'eaa9124f-6497-4f9f-a408-78eac05b5744/alessandro_tests/devel'
+  }
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '30'))
+    timeout(time: 60, unit: 'MINUTES')
+  }
+
+  stages {
+
+    stage('Analysis') {
+      parallel {
+        stage('Style check') {
+          agent {
+            docker { image 'px4io/px4-dev-base-bionic:2019-10-24' }
+          }
+          steps {
+            sh 'make check_format'
+          }
+          post {
+            always {
+              sh 'rm -rf catkin_ws'
+            }
+          }
+        }
+
+        // Clang-tidy is currently not working.
+        // Image px4io/px4-dev-clang:2018-03-30 has problems with jenkins and never starts
+        // The newest image, px4io/px4-dev-clang:2019-10-24, works, but produces a lot of new warning-errors.
+        // stage('Clang tidy') {
+        //   agent {
+        //     docker {
+        //       // image 'px4io/px4-dev-clang:2018-03-30'
+        //       image 'px4io/px4-dev-clang:2019-10-24'
+        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+        //     }
+        //   }
+        //   steps {
+        //     sh 'export'
+        //     sh 'make distclean'
+        //     retry (3) {
+        //       sh 'make clang-tidy-quiet'
+        //     }
+        //   }
+        //   post {
+        //     always {
+        //       sh 'make distclean'
+        //     }
+        //   }
+        // }
+
+      } // parallel
+    } // Analysis
+
+    stage ('Build') {
+      parallel {
+
+        stage('yuneec_tap-v2_h520') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-10-24'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git describe --tags'  // Important: In Jenkins, add "Advanced clone behavior" with "fetch tags" enabled
+            sh 'PX4_RESTRICTED_BUILD=1 make yuneec_tap-v2_h520'
+            sh 'make sizes'
+            stash includes: 'build/yuneec_tap-v2_h520/yuneec_tap-v2_h520.elf, build/yuneec_tap-v2_h520/yuneec_tap-v2_h520.px4', name: 'yuneec_tap-v2_h520-binaries'
+            sh 'ccache -s'
+
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
+        stage('yuneec_tap-v2_h520 3DR-Flavor') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-10-24'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git describe --tags'  // Important: In Jenkins, add "Advanced clone behavior" with "fetch tags" enabled
+            sh 'PX4_3DR_BUILD=1 make yuneec_tap-v2_h520'
+            sh 'make sizes'
+            stash includes: 'build/yuneec_tap-v2_h520/yuneec_tap-v2_h520.elf, build/yuneec_tap-v2_h520/yuneec_tap-v2_h520.px4', name: 'yuneec_tap-v2_h520-3dr-binaries'
+            sh 'ccache -s'
+
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
+        stage('yuneec_tap-v2_h520 NFIRC-Flavor') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-10-24'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git describe --tags'  // Important: In Jenkins, add "Advanced clone behavior" with "fetch tags" enabled
+            sh 'PX4_NFIRC_BUILD=1 make yuneec_tap-v2_h520'
+            sh 'make sizes'
+            stash includes: 'build/yuneec_tap-v2_h520/yuneec_tap-v2_h520.elf, build/yuneec_tap-v2_h520/yuneec_tap-v2_h520.px4', name: 'yuneec_tap-v2_h520-nfirc-binaries'
+            sh 'ccache -s'
+
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
+        stage('yuneec_tap-v2_h520 EpiSci-Flavor') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-10-24'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git describe --tags'  // Important: In Jenkins, add "Advanced clone behavior" with "fetch tags" enabled
+            sh 'PX4_RESTRICTED_BUILD=1 PX4_EPISCI_BUILD=1 make yuneec_tap-v2_h520'
+            sh 'make sizes'
+            stash includes: 'build/yuneec_tap-v2_h520/yuneec_tap-v2_h520.elf, build/yuneec_tap-v2_h520/yuneec_tap-v2_h520.px4', name: 'yuneec_tap-v2_h520-episci-binaries'
+            sh 'ccache -s'
+
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
+        stage('yuneec_tap-v3_h520mk2') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-10-24'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git describe --tags'  // Important: In Jenkins, add "Advanced clone behavior" with "fetch tags" enabled
+            sh 'PX4_RESTRICTED_BUILD=1 make yuneec_tap-v3_h520mk2'
+            sh 'make sizes'
+            stash includes: 'build/yuneec_tap-v3_h520mk2/yuneec_tap-v3_h520mk2.elf, build/yuneec_tap-v3_h520mk2/yuneec_tap-v3_h520mk2.px4', name: 'yuneec_tap-v3_h520mk2-binaries'
+            sh 'ccache -s'
+
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
+        stage('yuneec_tap-v3_mobilicom') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-10-24'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git describe --tags'  // Important: In Jenkins, add "Advanced clone behavior" with "fetch tags" enabled
+            sh 'PX4_RESTRICTED_BUILD=1 make yuneec_tap-v3_mobilicom'
+            sh 'make sizes'
+            stash includes: 'build/yuneec_tap-v3_mobilicom/yuneec_tap-v3_mobilicom.elf, build/yuneec_tap-v3_mobilicom/yuneec_tap-v3_mobilicom.px4', name: 'yuneec_tap-v3_mobilicom-binaries'
+            sh 'ccache -s'
+
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
+      } // parallel
+    } // Build
+
+    stage('Deploy') {
+      parallel {
+
+        stage('yuneec_tap-v2_h520') {
+          agent {
+            dockerfile {
+              filename 'Dockerfile-yuneec-deploy'
+              dir './Tools/yuneec'
+              args '-e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY'
+            }
+          }
+          steps {
+            unstash('yuneec_tap-v2_h520-binaries')
+            sh 'aws ecr get-login --no-include-email --region eu-central-1 '
+            sh('export')
+            sh 'ls build'
+            sh './s3_deploy.sh ${GIT_COMMIT} ${GIT_BRANCH} autopilot_yuneec'
+          }
+        }
+
+        stage('yuneec_tap-v2_h520-3dr') {
+          agent {
+            dockerfile {
+              filename 'Dockerfile-yuneec-deploy'
+              dir './Tools/yuneec'
+              args '-e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY'
+            }
+          }
+          steps {
+            unstash('yuneec_tap-v2_h520-3dr-binaries')
+            sh 'aws ecr get-login --no-include-email --region eu-central-1 '
+            sh('export')
+            sh 'ls build'
+            sh './s3_deploy.sh ${GIT_COMMIT} ${GIT_BRANCH} autopilot_3dr'
+          }
+        }
+
+        stage('yuneec_tap-v2_h520-nfirc') {
+          agent {
+            dockerfile {
+              filename 'Dockerfile-yuneec-deploy'
+              dir './Tools/yuneec'
+              args '-e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY'
+            }
+          }
+          steps {
+            unstash('yuneec_tap-v2_h520-nfirc-binaries')
+            sh 'aws ecr get-login --no-include-email --region eu-central-1 '
+            sh('export')
+            sh 'ls build'
+            sh './s3_deploy.sh ${GIT_COMMIT} ${GIT_BRANCH} autopilot_nfirc'
+          }
+        }
+
+        stage('yuneec_tap-v2_h520-episci') {
+          agent {
+            dockerfile {
+              filename 'Dockerfile-yuneec-deploy'
+              dir './Tools/yuneec'
+              args '-e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY'
+            }
+          }
+          steps {
+            unstash('yuneec_tap-v2_h520-episci-binaries')
+            sh 'aws ecr get-login --no-include-email --region eu-central-1 '
+            sh('export')
+            sh 'ls build'
+            sh './s3_deploy.sh ${GIT_COMMIT} ${GIT_BRANCH} autopilot_episci'
+          }
+        }
+
+        stage('yuneec_tap-v3_h520mk2') {
+          agent {
+            dockerfile {
+              filename 'Dockerfile-yuneec-deploy'
+              dir './Tools/yuneec'
+              args '-e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY'
+            }
+          }
+          steps {
+            unstash('yuneec_tap-v3_h520mk2-binaries')
+            sh 'aws ecr get-login --no-include-email --region eu-central-1 '
+            sh('export')
+            sh 'ls build'
+            sh './s3_deploy.sh ${GIT_COMMIT} ${GIT_BRANCH} autopilot_yuneec'
+          }
+        }
+
+        stage('yuneec_tap-v3_mobilicom') {
+          agent {
+            dockerfile {
+              filename 'Dockerfile-yuneec-deploy'
+              dir './Tools/yuneec'
+              args '-e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY'
+            }
+          }
+          steps {
+            unstash('yuneec_tap-v3_mobilicom-binaries')
+            sh 'aws ecr get-login --no-include-email --region eu-central-1 '
+            sh('export')
+            sh 'ls build'
+            sh './s3_deploy.sh ${GIT_COMMIT} ${GIT_BRANCH} autopilot_yuneec'
+          }
+        }
+        
+      }
+    } // Deploy
+  } // stages
+
+}

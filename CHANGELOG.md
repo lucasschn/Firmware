@@ -48,7 +48,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 * Moved s3 deployment out of travis yaml into separate shell script (#3498) [ch5085]
 * Upload H520mk2 to s3-develop bucket (#3535)
-
+* Build AutoPilot on jenkins (#3540) [ch6352]
 
 
 

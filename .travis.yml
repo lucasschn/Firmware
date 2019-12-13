@@ -87,4 +87,4 @@ script:
 
 after_success:
   - set -ev
-  - source ./s3_deploy.sh
+#   - source ./s3_deploy.sh $TRAVIS_COMMIT $TRAVIS_BRANCH $BUILD_FLAVOR

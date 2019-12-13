@@ -160,18 +160,6 @@ BatteryEKF::soc_from_ocv(float OCV)
 			SOC = (_SOC_array[3] - _SOC_array[2]) / (_OCV_array[3] - _OCV_array[2]) * (OCV - _OCV_array[2]) + _SOC_array[2];
 		}
 	}
-
-	static bool doprint = true;
-
-	if (doprint) {
-		PX4_INFO("Initial voltage : %.2f", (double) OCV);
-		PX4_INFO("Initial SOC : %.2f", (double) SOC);
-
-		if (SOC >= -1) {
-			doprint = false;
-		}
-	}
-
 	return SOC;
 }
 

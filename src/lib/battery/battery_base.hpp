@@ -76,6 +76,9 @@ public:
 	 */
 	float full_cell_voltage() { return _v_charged.get(); }
 
+	float _remaining = -1.f;			///< normalized battery charge level, selected based on config param
+	uint8_t _warning = battery_status_s::BATTERY_WARNING_NONE;
+
 	/**
 	 * Update current battery status message.
 	 *

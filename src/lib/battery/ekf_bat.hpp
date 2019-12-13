@@ -60,9 +60,6 @@ public:
 					 bool armed,
 					 battery_status_s *status) override;
 
-	virtual void estimateRemaining(float voltage_v, float current_a, float throttle, bool armed) override;
-
-
 protected:
 	void kfInit(float voltage_v);
 	void kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v);
@@ -78,11 +75,15 @@ protected:
 	// for the Kalman filter
 	bool _init_kf = true;
 	float _deltatime = 0.1f;
+	hrt_abstime _last_timestamp = 0.0f; //us
 	float _z0;
 	float _u; // input
 	float _y; // output
 	float _capacity_mAh = 6500; // mAh battery capacity
 	float _iR10; // battery is considered at equilibrium at bootup
+	bool _battery_initialized = false;
+	float _voltage_filtered_v = -1.f;
+	float _current_filtered_a = -1.f;
 
 	// 2x2 identity matrix
 	matrix::SquareMatrix<float, 2> I = matrix::eye<float, 2>();

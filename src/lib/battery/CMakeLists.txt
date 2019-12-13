@@ -34,4 +34,5 @@
 px4_add_library(battery
 				battery_base.cpp
 				throttle_bat.cpp
+				ekf_bat.cpp
 )

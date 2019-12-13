@@ -4,7 +4,7 @@
 using namespace matrix;
 
 void
-BatteryEKF::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
+BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a,
 				bool connected, bool selected_source, int priority,
 				float throttle_normalized,
 				bool armed, battery_status_s *battery_status)
@@ -14,11 +14,27 @@ BatteryEKF::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float cu
 		_init_kf = false; // mark the Kalman filter initialization as done
 	}
 
+	if (_battery_initialized) {
+		filter1order(_voltage_filtered_v, voltage_v, 0.01f);
+		filter1order(_current_filtered_a, current_a, 0.02f);
+
+	} else {
+		_voltage_filtered_v = voltage_v;
+		_current_filtered_a = current_a;
+	}
+
 	kfUpdate(timestamp, _current_filtered_a, voltage_v);
-	// do estimateRemaining anyways, case is determined inside it.
-	estimateRemaining(_voltage_filtered_v, _current_filtered_a, _throttle_filtered, armed);
+
+	_remaining = _xhat(0);
+
+	if (_battery_initialized) {
+		determineWarning(_warning, connected, _remaining);
+	}
 
 	// for logging purpose
+	if (_voltage_filtered_v > 2.1f) {
+		_battery_initialized = true;
+	}
 	battery_status->covx[0] = _covx(0, 0);
 	battery_status->covx[1] = _covx(0, 1);
 	battery_status->covx[2] = _covx(1, 0);
@@ -182,8 +198,3 @@ BatteryEKF::recompute_statespace(float timedelta)
 	_batmat_C(0, 0) = this->getSlope(_xhat(0));
 }
 
-void
-BatteryEKF::estimateRemaining(float voltage_v, float current_a, float throttle, bool armed)
-{
-	_remaining = _xhat(0);
-}

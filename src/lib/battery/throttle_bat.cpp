@@ -4,7 +4,7 @@
 #include <systemlib/mavlink_log.h>
 
 void
-BatteryThrottle::update(hrt_abstime timestamp,
+BatteryThrottle::updateStatus(hrt_abstime timestamp,
 			float voltage_v,
 			float current_a,
 			bool connected,

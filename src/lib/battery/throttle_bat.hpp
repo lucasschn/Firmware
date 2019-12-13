@@ -49,7 +49,7 @@ public:
 
 	virtual ~BatteryThrottle() = default;
 
-	void update(hrt_abstime timestamp,
+	void updateStatus(hrt_abstime timestamp,
 		    float voltage_v,
 		    float current_a,
 		    bool connected,

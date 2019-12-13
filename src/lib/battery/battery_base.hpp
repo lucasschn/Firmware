@@ -86,7 +86,7 @@ public:
 	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
 	 * @param throttle_normalized: throttle from 0 to 1
 	 */
-	virtual void update(hrt_abstime timestamp,
+	virtual void updateStatus(hrt_abstime timestamp,
 			    float voltage_v,
 			    float current_a,
 			    bool connected,

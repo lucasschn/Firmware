@@ -50,7 +50,7 @@ public:
 
 	virtual ~BatteryEKF() = default;
 
-	virtual void updateBatteryStatus(hrt_abstime timestamp,
+	virtual void updateStatus(hrt_abstime timestamp,
 					 float voltage_v,
 					 float current_a,
 					 bool connected,

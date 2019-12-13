@@ -597,7 +597,7 @@ Sensors::adc_poll()
 
 					battery_status_s battery_status;
 					// t is the current timestamp hrt_absolute_time
-					_battery[b].update(t, bat_voltage_v[b], bat_current_a[b],
+					_battery[b].updateStatus(t, bat_voltage_v[b], bat_current_a[b],
 							   connected, selected_source == b, b,
 							   ctrl.control[actuator_controls_s::INDEX_THROTTLE],
 							   _armed, &battery_status);

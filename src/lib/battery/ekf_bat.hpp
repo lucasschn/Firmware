@@ -63,8 +63,8 @@ public:
 protected:
 	void kfInit(float voltage_v);
 	void kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v);
-	float getSlope(float z);
-	float ocv_from_soc(float z);
+	float getSlope(float SOC);
+	float ocv_from_soc(float SOC);
 	float soc_from_ocv(float OCV);
 	void recompute_statespace(float dt);
 
@@ -76,7 +76,7 @@ protected:
 	bool _init_kf = true;
 	float _deltatime = 0.1f;
 	hrt_abstime _last_timestamp = 0.0f; //us
-	float _z0;
+	float _SOC0;
 	float _u; // input
 	float _y; // output
 	float _capacity_mAh = 6500; // mAh battery capacity

@@ -72,6 +72,7 @@ private:
 	float _discharged_mah = 0.f;
 	float _discharged_mah_loop = 0.f;
 	float _remaining_voltage = -1.f;		///< normalized battery charge level remaining based on voltage
+	float _remaining = -1.f;			///< normalized battery charge level, selected based on config param
 	float _scale = 1.f;
 	float _current_filtered_a_for_time = -1.f;
 	float _time_remaining_s = -1.f;

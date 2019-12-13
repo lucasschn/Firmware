@@ -25,11 +25,10 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 
 	kfUpdate(timestamp, _current_filtered_a, voltage_v);
 
-	_remaining = _xhat(0);
-
-	if (_battery_initialized) {
-		determineWarning(_warning, connected, _remaining);
-	}
+	// To be uncommented when the estimator will be reliable
+	// if (_battery_initialized) {
+	// 	determineWarning(_warning, connected, _remaining_ekf);
+	// }
 
 	// for logging purpose
 	if (_voltage_filtered_v > 2.1f) {
@@ -47,6 +46,7 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 	battery_status->kalman_gain[1] = _kalman_gain(1, 0);
 	battery_status->innovation = _innovation;
 	battery_status->unsaturated_innovation = _y - _yhat;
+	battery_status->remaining = _xhat(0);
 	battery_status->resistor_current = _xhat(1);
 }
 
@@ -55,16 +55,16 @@ BatteryEKF::kfInit(float voltage_v)
 {
 	_yhat = voltage_v / _n_cells.get();
 	// Battery is considered at equilibrium when booting up (if last value from last time could be saved would be nice). That means the sensed voltage is assumed to be equal to the Open Circuit Voltage (OCV).
-	_z0 = this->soc_from_ocv(voltage_v / _n_cells.get());
+	_SOC0 = this->soc_from_ocv(voltage_v / _n_cells.get());
 	_iR10 = 0.0f;
 	// Matrices initialization
 	_batmat_A(0, 0) = 1.0f;
 	_batmat_A(0, 1) = 0.0f;
 	_batmat_A(1, 0) = 0.0f;
 	_batmat_A(1, 1) = exp(-_deltatime / (_R1.get() * _C1.get()));
-	_batmat_C(0, 0) = this->getSlope(_z0);
+	_batmat_C(0, 0) = this->getSlope(_SOC0);
 	_batmat_C(0, 1) = -_R1.get();
-	_xhat(0) = _z0;
+	_xhat(0) = _SOC0;
 	_xhat(1) = _iR10;
 	_covx(0, 0) = 0.1f;
 	_covx(0, 1) = 0.f;
@@ -164,14 +164,14 @@ BatteryEKF::soc_from_ocv(float OCV)
 }
 
 float
-BatteryEKF::getSlope(float z)
+BatteryEKF::getSlope(float SOC)
 {
 	using math::min;
 	using math::max;
-	float const dSOC = min(1.0f, z + 0.01f) - max(0.0f, z - 0.01f);
+	float const dSOC = min(1.0f, SOC + 0.01f) - max(0.0f, SOC - 0.01f);
 	// min(1.0,z+0.01) is used to prevent z+0.01 exceeding 1 in case z>0.99. Having SOC>1 does not make any sense. Same on the other end of the curve.
 	// +/-0.01 is an arbitrary value that give decent slope predictions in Jupyter notebook implementation.
-	float const dOCV = this->ocv_from_soc(min(1.0f, z + 0.01f)) - this->ocv_from_soc(max(0.0f, z - 0.01f));
+	float const dOCV = this->ocv_from_soc(min(1.0f, SOC + 0.01f)) - this->ocv_from_soc(max(0.0f, SOC - 0.01f));
 	float slope = dOCV / dSOC;
 
 	return slope;

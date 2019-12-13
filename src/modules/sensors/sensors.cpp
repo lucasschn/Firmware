@@ -612,7 +612,7 @@ Sensors::adc_poll()
 					//		       ctrl.control[actuator_controls_s::INDEX_THROTTLE],
 					//		       _armed, &battery_status_ekf);
 //
-					//orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_LOW);
+					//orb_publish_auto(ORB_ID(battery_status_ekf), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_LOW);
 				}
 			}
 

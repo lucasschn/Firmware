@@ -26,8 +26,8 @@ pipeline {
     AWS_SECRET_ACCESS_KEY = credentials('jenkins-aws-key-secret')
     AUTOPILOT_TAP_V2_KEY = credentials('tap-v2-bl-key')
     AUTOPILOT_TAP_V3_KEY = credentials('tap-v3-bl-key')
-    S3_BUCKET_CI_ARCHIVE = 'eaa9124f-6497-4f9f-a408-78eac05b5744/alessandro_tests/ci'
-    S3_BUCKET_DEVELOPMENT = 'eaa9124f-6497-4f9f-a408-78eac05b5744/alessandro_tests/devel'
+    S3_BUCKET_CI_ARCHIVE = 'eaa9124f-6497-4f9f-a408-78eac05b5744'
+    S3_BUCKET_DEVELOPMENT = 'cf2e449e-50b3-48b5-ad6c-47abfa70e116'
   }
 
   options {

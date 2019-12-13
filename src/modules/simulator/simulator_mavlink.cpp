@@ -336,7 +336,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 				vbatt *= _battery.cell_count();
 
 				const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
-				_battery.update(now_us, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);
+				_battery.updateStatus(now_us, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);
 
 
 				// publish the battery voltage

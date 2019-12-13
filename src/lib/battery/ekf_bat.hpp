@@ -50,15 +50,15 @@ public:
 
 	virtual ~BatteryEKF() = default;
 
-	virtual void updateStatus(hrt_abstime timestamp,
-					 float voltage_v,
-					 float current_a,
-					 bool connected,
-					 bool selected_source,
-					 int priority,
-					 float throttle_normalized,
-					 bool armed,
-					 battery_status_s *status) override;
+	void updateStatus(hrt_abstime timestamp,
+			float voltage_v,
+			float current_a,
+			bool connected,
+			bool selected_source,
+			int priority,
+			float throttle_normalized,
+			bool armed,
+			battery_status_s *battery_status) override;
 
 protected:
 	void kfInit(float voltage_v);

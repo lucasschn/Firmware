@@ -213,12 +213,14 @@ bool BatteryEKF::init(hrt_abstime timestamp, float voltage, float current)
 	// Ensure that we can compute deltatime
 	if (!PX4_ISFINITE(_last_timestamp) || (_last_timestamp == 0)) {
 		_last_timestamp = timestamp;
-		_deltatime = (timestamp - _last_timestamp) / 1e6;
 		return false;
 	}
 
+	// We have a valid last_timestamp: initialize delta-time
+	_deltatime = (timestamp - _last_timestamp) / 1e6;
+
 	// Ensure that voltage is above 2.1 (TODO: add better criteria)
-	if (voltage / cell_count() < 2.1f) {
+	if (voltage  < 2.1f) {
 		_voltage_filtered_v = voltage;
 		return false;
 	}

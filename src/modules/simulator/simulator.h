@@ -62,6 +62,7 @@
 #include <drivers/drv_rc_input.h>
 #include <perf/perf_counter.h>
 #include <battery/throttle_bat.hpp>
+#include <battery/ekf_bat.hpp>
 #include <uORB/uORB.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
@@ -340,6 +341,7 @@ private:
 	orb_advert_t _visual_odometry_pub;
 	orb_advert_t _dist_pub;
 	orb_advert_t _battery_pub;
+	orb_advert_t _battery_ekf_pub;
 	orb_advert_t _irlock_report_pub;
 
 	int				_param_sub;
@@ -354,7 +356,10 @@ private:
 
 	// Lib used to do the battery calculations.
 	BatteryThrottle _battery;
+	BatteryEKF _battery_ekf;
+
 	battery_status_s _battery_status{};
+	battery_status_s _battery_status_ekf{};
 
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);

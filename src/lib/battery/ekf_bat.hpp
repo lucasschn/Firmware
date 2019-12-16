@@ -62,7 +62,7 @@ public:
 
 private:
 
-	bool init(hrt_abstime timestamp, float voltage_v, float current_a);
+	bool inputsValid(hrt_abstime timestamp, float voltage_v, float current_a);
 	void kfInit(float voltage_v, const float current_a);
 	void kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v);
 	float getSlope(float SOC);
@@ -75,7 +75,7 @@ private:
 	float _OCV_array[4] = {3.297f, 3.629464f, 3.90068f, 4.342f};
 
 	// for the Kalman filter
-	bool _init_kf = true;
+	bool _initialized = false;
 	float _deltatime = 0.1f;
 	hrt_abstime _last_timestamp = 0; //us
 	float _SOC0;

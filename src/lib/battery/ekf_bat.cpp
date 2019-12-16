@@ -11,16 +11,26 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 			 float throttle_normalized,
 			 bool armed, battery_status_s *battery_status)
 {
-	// update deltatime
-	_deltatime = (timestamp - _last_timestamp) / 1e6;
 
-	// Check battery-estimation prerequisite
-	if (!connected || !init(timestamp, voltage_v, current_a)) {
+	// Check wheter the estimator has all required information
+	if (!connected || !inputsValid(timestamp, voltage_v, current_a)) {
 		reset(battery_status);
+		_last_timestamp = timestamp;
 		return;
 	}
 
-	// filter measurements
+	// update deltatime
+	_deltatime = (timestamp - _last_timestamp) / 1e6;
+
+	// Initialize filter states
+	if (!_initialized) {
+		_voltage_filtered_v = voltage_v;
+		_current_filtered_a = current_a;
+		kfInit(voltage_v, current_a);
+		_initialized = true;
+	}
+
+	// Everything is ready. Update filters.
 	filter1order(_voltage_filtered_v, voltage_v, 0.01f);
 	filter1order(_current_filtered_a, current_a, 0.02f);
 
@@ -74,7 +84,6 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 
 	// update last timestamp
 	_last_timestamp = timestamp;
-
 }
 
 void
@@ -213,7 +222,7 @@ BatteryEKF::recompute_statespace(float timedelta)
 	_batmat_C(0, 0) = this->getSlope(_xhat(0));
 }
 
-bool BatteryEKF::init(hrt_abstime timestamp, float voltage_v, float current_a)
+bool BatteryEKF::inputsValid(hrt_abstime timestamp, float voltage_v, float current_a)
 {
 	// Ensure that we can compute deltatime
 	if (!PX4_ISFINITE(_last_timestamp) || (_last_timestamp == 0)) {
@@ -234,11 +243,6 @@ bool BatteryEKF::init(hrt_abstime timestamp, float voltage_v, float current_a)
 	if (_n_cells.get() <= 0 || !PX4_ISFINITE(_n_cells.get())) {
 		return false;
 	}
-
-	// Everything is ready. Initialize filters and return.
-	_voltage_filtered_v = voltage_v;
-	_current_filtered_a = current_a;
-	kfInit(voltage_v, current_a);
 
 	return true;
 }

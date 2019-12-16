@@ -24,7 +24,7 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 	// update kalman
 	kfUpdate(timestamp, _current_filtered_a, voltage_v);
 
-	// update warining
+	// update warning
 	determineWarning(_warning, _xhat(0));
 
 	// check if battery has "reliably-connected-feature"

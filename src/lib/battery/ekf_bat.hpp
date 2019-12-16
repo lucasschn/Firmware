@@ -79,8 +79,9 @@ private:
 	float _deltatime = 0.1f;
 	hrt_abstime _last_timestamp = 0; //us
 	float _SOC0;
-	float _u = 0.0f; // input (=current)
-	float _y = 0.0f; // output (=voltage)
+	// Using Control Systems notation
+	float _u = 0.0f; // input (= current)
+	float _y = 0.0f; // output (= voltage)
 	float _capacity_mAh = 6500; // mAh battery capacity
 	float _iR10; // battery is considered at equilibrium at bootup
 	bool _battery_initialized = false;

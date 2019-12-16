@@ -102,10 +102,10 @@ BatteryEKF::kfInit(const float voltage_v, const float current_a)
 	_batmat_C(0, 1) = -_R1.get();
 	_xhat(0) = SOC0;
 	_xhat(1) = iR10;
-	_covx(0, 0) = 0.3f;
+	_covx(0, 0) = 0.1f;
 	_covx(0, 1) = 0.f;
 	_covx(1, 0) = 0.f;
-	_covx(1, 1) = 0.f;
+	_covx(1, 1) = 0.01f;
 	_covw(0, 0) = 1e-3f;
 	_covw(0, 1) = 0.0f;
 	_covw(1, 0) = 0.0f;
@@ -115,7 +115,7 @@ BatteryEKF::kfInit(const float voltage_v, const float current_a)
 
 void
 BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
-{
+{	
 	_u = current_a;
 	_y = voltage_v / _n_cells.get(); // Voltage per cell is required
 	recompute_statespace(_deltatime);

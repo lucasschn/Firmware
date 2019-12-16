@@ -11,6 +11,9 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 			 float throttle_normalized,
 			 bool armed, battery_status_s *battery_status)
 {
+	// update deltatime
+	_deltatime = (timestamp - _last_timestamp) / 1e6;
+
 	// Check battery-estimation prerequisite
 	if (!connected || !init(timestamp, voltage_v, current_a)) {
 		reset(battery_status);
@@ -68,6 +71,10 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 	battery_status->unsaturated_innovation = _y - _yhat;
 	battery_status->remaining = _xhat(0);
 	battery_status->resistor_current = _xhat(1);
+
+	// update last timestamp
+	_last_timestamp = timestamp;
+
 }
 
 void
@@ -102,7 +109,6 @@ BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
 {
 	_u = current_a;
 	_y = voltage_v / _n_cells.get(); // Voltage per cell is required
-	_deltatime = (timestamp - _last_timestamp) / 1e6;
 	recompute_statespace(_deltatime);
 	SquareMatrix<float, 1> tmp;
 
@@ -211,13 +217,8 @@ bool BatteryEKF::init(hrt_abstime timestamp, float voltage_v, float current_a)
 {
 	// Ensure that we can compute deltatime
 	if (!PX4_ISFINITE(_last_timestamp) || (_last_timestamp == 0)) {
-		_last_timestamp = timestamp;
 		return false;
 	}
-
-	// We have a valid last_timestamp: initialize deltatime
-	_deltatime = (timestamp - _last_timestamp) / 1e6;
-	_last_timestamp = timestamp;
 
 	// Ensure that voltage is above 2.1 (TODO: add better criteria)
 	if (voltage_v  < 2.1f) {

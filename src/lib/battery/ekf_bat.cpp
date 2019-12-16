@@ -71,22 +71,22 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 }
 
 void
-BatteryEKF::kfInit(float voltage_v)
+BatteryEKF::kfInit(const float voltage_v, const float current_a)
 {
 	_yhat = voltage_v / _n_cells.get();
 	// Battery is considered at equilibrium when booting up (if last value from last time could be saved would be nice). That means the sensed voltage is assumed to be equal to the Open Circuit Voltage (OCV).
-	_SOC0 = soc_from_ocv(voltage_v / _n_cells.get());
-	_iR10 = 0.0f;
+	float SOC0 = soc_from_ocv(voltage_v / _n_cells.get() + (_R0.get() + _R1.get()) * current_a);
+	float iR10 = 0.0f; // battery is considered at equilibrium at bootup
 	// Matrices initialization
 	_batmat_A(0, 0) = 1.0f;
 	_batmat_A(0, 1) = 0.0f;
 	_batmat_A(1, 0) = 0.0f;
 	_batmat_A(1, 1) = exp(-_deltatime / (_R1.get() * _C1.get()));
-	_batmat_C(0, 0) = getSlope(_SOC0);
+	_batmat_C(0, 0) = getSlope(SOC0);
 	_batmat_C(0, 1) = -_R1.get();
-	_xhat(0) = _SOC0;
-	_xhat(1) = _iR10;
-	_covx(0, 0) = 0.1f;
+	_xhat(0) = SOC0;
+	_xhat(1) = iR10;
+	_covx(0, 0) = 0.3f;
 	_covx(0, 1) = 0.f;
 	_covx(1, 0) = 0.f;
 	_covx(1, 1) = 0.f;
@@ -207,34 +207,38 @@ BatteryEKF::recompute_statespace(float timedelta)
 	_batmat_C(0, 0) = this->getSlope(_xhat(0));
 }
 
-bool BatteryEKF::init(hrt_abstime timestamp, float voltage, float current)
+bool BatteryEKF::init(hrt_abstime timestamp, float voltage_v, float current_a)
 {
-
 	// Ensure that we can compute deltatime
 	if (!PX4_ISFINITE(_last_timestamp) || (_last_timestamp == 0)) {
 		_last_timestamp = timestamp;
 		return false;
 	}
 
-	// We have a valid last_timestamp: initialize delta-time
+	// We have a valid last_timestamp: initialize deltatime
 	_deltatime = (timestamp - _last_timestamp) / 1e6;
+	_last_timestamp = timestamp;
 
 	// Ensure that voltage is above 2.1 (TODO: add better criteria)
-	if (voltage  < 2.1f) {
-		_voltage_filtered_v = voltage;
+	if (voltage_v  < 2.1f) {
 		return false;
 	}
 
 	// Ensure that current is positive
-	if (current < 0.0f) {
-		_current_filtered_a = current;
+	if (current_a < 0.0f) {
 		return false;
 	}
 
-	// Initialize kalman
-	kfInit(voltage);
+	// Check if cell count is valid
+	if (_n_cells.get() <= 0 || !PX4_ISFINITE(_n_cells.get())) {
+		return false;
+	}
+
+	// Everything is ready. Initialize filters and return.
+	_voltage_filtered_v = voltage_v;
+	_current_filtered_a = current_a;
+	kfInit(voltage_v, current_a);
 
 	return true;
-
 }
 

@@ -62,8 +62,8 @@ public:
 
 private:
 
-	bool init(hrt_abstime timestamp, float voltage, float current);
-	void kfInit(float voltage_v);
+	bool init(hrt_abstime timestamp, float voltage_v, float current_a);
+	void kfInit(float voltage_v, const float current_a);
 	void kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v);
 	float getSlope(float SOC);
 	float ocv_from_soc(float SOC);

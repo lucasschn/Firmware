@@ -89,14 +89,14 @@ public:
 	 * @param throttle_normalized: throttle from 0 to 1
 	 */
 	virtual void updateStatus(hrt_abstime timestamp,
-			    float voltage_v,
-			    float current_a,
-			    bool connected,
-			    bool selected_source,
-			    int priority,
-			    float throttle_normalized,
-			    bool armed,
-			    battery_status_s *status) = 0;
+				  float voltage_v,
+				  float current_a,
+				  bool connected,
+				  bool selected_source,
+				  int priority,
+				  float throttle_normalized,
+				  bool armed,
+				  battery_status_s *status) = 0;
 
 protected:
 	void filter1order(float &signal_filtered, const float signal_raw, const float alpha);

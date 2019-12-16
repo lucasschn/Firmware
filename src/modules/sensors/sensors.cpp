@@ -598,9 +598,9 @@ Sensors::adc_poll()
 					battery_status_s battery_status;
 					// t is the current timestamp hrt_absolute_time
 					_battery[b].updateStatus(t, bat_voltage_v[b], bat_current_a[b],
-							   connected, selected_source == b, b,
-							   ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-							   _armed, &battery_status);
+								 connected, selected_source == b, b,
+								 ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+								 _armed, &battery_status);
 
 					int instance;
 					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_DEFAULT);
@@ -608,9 +608,9 @@ Sensors::adc_poll()
 					// for test ekf
 					battery_status_s battery_status_ekf;
 					_battery_ekf[b].updateStatus(t, bat_voltage_v[b], bat_current_a[b],
-							       connected, selected_source == b, b,
-							       ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-							       _armed, &battery_status_ekf);
+								     connected, selected_source == b, b,
+								     ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+								     _armed, &battery_status_ekf);
 
 					orb_publish_auto(ORB_ID(battery_status_ekf), &_battery_ekf_pub[b], &battery_status_ekf, &instance, ORB_PRIO_LOW);
 				}

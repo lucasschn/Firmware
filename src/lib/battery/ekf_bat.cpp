@@ -5,12 +5,12 @@ using namespace matrix;
 
 void
 BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a,
-				bool connected, bool selected_source, int priority,
-				float throttle_normalized,
-				bool armed, battery_status_s *battery_status)
+			 bool connected, bool selected_source, int priority,
+			 float throttle_normalized,
+			 bool armed, battery_status_s *battery_status)
 {
 	if (_init_kf) {
-		this->kfInit(voltage_v);
+		kfInit(voltage_v);
 		_init_kf = false; // mark the Kalman filter initialization as done
 	}
 
@@ -26,28 +26,56 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 	kfUpdate(timestamp, _current_filtered_a, voltage_v);
 
 	// To be uncommented when the estimator will be reliable
-	// if (_battery_initialized) {
-	// 	determineWarning(_warning, connected, _remaining_ekf);
-	// }
+	if (_battery_initialized) {
+		determineWarning(_warning, connected, _xhat(0));
+	}
+
+	bool reliably_connected = true;
+
+#ifdef BOARD_HAS_POWER_CHECK
+
+	if (_link_check.get()) {
+		reliably_connected = !stm32_gpioread(POWER_CHECK_GPIO);
+	}
+
+#endif
 
 	// for logging purpose
 	if (_voltage_filtered_v > 2.1f) {
 		_battery_initialized = true;
+
+		// general
+		battery_status->voltage_v = voltage_v;
+		battery_status->voltage_filtered_v = _voltage_filtered_v;
+		battery_status->scale = NAN; // unused
+		battery_status->time_remaining_s = NAN; //unused
+		battery_status->current_a = current_a;
+		battery_status->current_filtered_a = _current_filtered_a;
+		battery_status->warning = _warning;
+		battery_status->discharged_mah = NAN; //unused
+		battery_status->connected = connected;
+		battery_status->system_source = selected_source;
+		battery_status->priority = priority;
+		battery_status->tethered = false;
+		battery_status->reliably_connected = reliably_connected;
+
+
+		// kalman
+		battery_status->covx[0] = _covx(0, 0);
+		battery_status->covx[1] = _covx(0, 1);
+		battery_status->covx[2] = _covx(1, 0);
+		battery_status->covx[3] = _covx(1, 1);
+		battery_status->covw[0] = _covw(0, 0);
+		battery_status->covw[1] = _covw(0, 1);
+		battery_status->covw[2] = _covw(1, 0);
+		battery_status->covw[3] = _covw(1, 1);
+		battery_status->kalman_gain[0] = _kalman_gain(0, 0);
+		battery_status->kalman_gain[1] = _kalman_gain(1, 0);
+		battery_status->innovation = _innovation;
+		battery_status->unsaturated_innovation = _y - _yhat;
+		battery_status->remaining = _xhat(0);
+		battery_status->resistor_current = _xhat(1);
 	}
-	battery_status->covx[0] = _covx(0, 0);
-	battery_status->covx[1] = _covx(0, 1);
-	battery_status->covx[2] = _covx(1, 0);
-	battery_status->covx[3] = _covx(1, 1);
-	battery_status->covw[0] = _covw(0, 0);
-	battery_status->covw[1] = _covw(0, 1);
-	battery_status->covw[2] = _covw(1, 0);
-	battery_status->covw[3] = _covw(1, 1);
-	battery_status->kalman_gain[0] = _kalman_gain(0, 0);
-	battery_status->kalman_gain[1] = _kalman_gain(1, 0);
-	battery_status->innovation = _innovation;
-	battery_status->unsaturated_innovation = _y - _yhat;
-	battery_status->remaining = _xhat(0);
-	battery_status->resistor_current = _xhat(1);
 }
 
 void
@@ -55,14 +83,14 @@ BatteryEKF::kfInit(float voltage_v)
 {
 	_yhat = voltage_v / _n_cells.get();
 	// Battery is considered at equilibrium when booting up (if last value from last time could be saved would be nice). That means the sensed voltage is assumed to be equal to the Open Circuit Voltage (OCV).
-	_SOC0 = this->soc_from_ocv(voltage_v / _n_cells.get());
+	_SOC0 = soc_from_ocv(voltage_v / _n_cells.get());
 	_iR10 = 0.0f;
 	// Matrices initialization
 	_batmat_A(0, 0) = 1.0f;
 	_batmat_A(0, 1) = 0.0f;
 	_batmat_A(1, 0) = 0.0f;
 	_batmat_A(1, 1) = exp(-_deltatime / (_R1.get() * _C1.get()));
-	_batmat_C(0, 0) = this->getSlope(_SOC0);
+	_batmat_C(0, 0) = getSlope(_SOC0);
 	_batmat_C(0, 1) = -_R1.get();
 	_xhat(0) = _SOC0;
 	_xhat(1) = _iR10;
@@ -83,7 +111,7 @@ BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
 	_u = current_a;
 	_y = voltage_v / _n_cells.get(); // Voltage per cell is required
 	_deltatime = (timestamp - _last_timestamp) / 1e6;
-	this->recompute_statespace(_deltatime);
+	recompute_statespace(_deltatime);
 	SquareMatrix<float, 1> tmp;
 
 	// 1c Computation of future yhat using future state and last input would not make sense !
@@ -160,6 +188,7 @@ BatteryEKF::soc_from_ocv(float OCV)
 			SOC = (_SOC_array[3] - _SOC_array[2]) / (_OCV_array[3] - _OCV_array[2]) * (OCV - _OCV_array[2]) + _SOC_array[2];
 		}
 	}
+
 	return SOC;
 }
 

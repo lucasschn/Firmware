@@ -9,21 +9,20 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 			 float throttle_normalized,
 			 bool armed, battery_status_s *battery_status)
 {
-	if (_init_kf) {
-		kfInit(voltage_v);
-		_init_kf = false; // mark the Kalman filter initialization as done
-	}
 
 	if (_battery_initialized) {
+		if (_init_kf) {
+		this->kfInit(voltage_v);
+		_init_kf = false; // mark the Kalman filter initialization as done
+		}
 		filter1order(_voltage_filtered_v, voltage_v, 0.01f);
 		filter1order(_current_filtered_a, current_a, 0.02f);
+		kfUpdate(timestamp, _current_filtered_a, voltage_v);
 
 	} else {
 		_voltage_filtered_v = voltage_v;
 		_current_filtered_a = current_a;
 	}
-
-	kfUpdate(timestamp, _current_filtered_a, voltage_v);
 
 	// To be uncommented when the estimator will be reliable
 	if (_battery_initialized) {

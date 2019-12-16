@@ -100,7 +100,7 @@ public:
 
 protected:
 	void filter1order(float &signal_filtered, const float signal_raw, const float alpha);
-	void determineWarning(uint8_t &warning, const bool &connected, const float &remaining);
+	void determineWarning(uint8_t &warning, const float &remaining);
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamFloat<px4::params::BAT_V_EMPTY>) _v_empty,

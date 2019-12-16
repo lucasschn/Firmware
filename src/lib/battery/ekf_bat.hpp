@@ -60,7 +60,9 @@ public:
 			  bool armed,
 			  battery_status_s *battery_status) override;
 
-protected:
+private:
+
+	bool init(hrt_abstime timestamp, float voltage, float current);
 	void kfInit(float voltage_v);
 	void kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v);
 	float getSlope(float SOC);
@@ -75,10 +77,10 @@ protected:
 	// for the Kalman filter
 	bool _init_kf = true;
 	float _deltatime = 0.1f;
-	hrt_abstime _last_timestamp = 0.0f; //us
+	hrt_abstime _last_timestamp = 0; //us
 	float _SOC0;
-	float _u; // input
-	float _y; // output
+	float _u = 0.0f; // input (=current)
+	float _y = 0.0f; // output (=voltage)
 	float _capacity_mAh = 6500; // mAh battery capacity
 	float _iR10; // battery is considered at equilibrium at bootup
 	bool _battery_initialized = false;
@@ -127,4 +129,6 @@ protected:
 					(ParamFloat<px4::params::BAT_PARAM_R1>) _R1,
 					(ParamFloat<px4::params::BAT_PARAM_C1>) _C1
 				       )
+
+
 };

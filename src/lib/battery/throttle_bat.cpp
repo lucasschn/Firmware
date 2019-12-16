@@ -34,8 +34,8 @@ BatteryThrottle::updateStatus(hrt_abstime timestamp,
 	computeScale();
 	computeRemainingTime(current_a);
 
-	if (_battery_initialized) {
-		determineWarning(_warning, connected, _remaining);
+	if (_battery_initialized && connected) {
+		determineWarning(_warning, _remaining);
 	}
 
 	bool reliably_connected = true;

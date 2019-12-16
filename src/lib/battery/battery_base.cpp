@@ -43,6 +43,7 @@
 #include <px4_defines.h>
 #include <cstring>
 
+// TODO: update reset-method to new fields
 void
 Battery::reset(battery_status_s *battery_status)
 {
@@ -68,18 +69,17 @@ Battery::filter1order(float &signal_filtered, const float signal_raw, const floa
 }
 
 void
-Battery::determineWarning(uint8_t &warning, const bool &connected, const float &remaining)
+Battery::determineWarning(uint8_t &warning, const float &remaining)
 {
-	if (connected) {
-		// propagate warning state only if the state is higher, otherwise remain in current warning state
-		if (remaining < _emergency_thr.get() || (warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
-			warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+	// propagate warning state only if the state is higher, otherwise remain in current warning state
+	if (remaining < _emergency_thr.get() || (warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
+		warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-		} else if (remaining < _crit_thr.get() || (warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
-			warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+	} else if (remaining < _crit_thr.get() || (warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
+		warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-		} else if (remaining < _low_thr.get() || (warning == battery_status_s::BATTERY_WARNING_LOW)) {
-			warning = battery_status_s::BATTERY_WARNING_LOW;
-		}
+	} else if (remaining < _low_thr.get() || (warning == battery_status_s::BATTERY_WARNING_LOW)) {
+		warning = battery_status_s::BATTERY_WARNING_LOW;
 	}
+
 }

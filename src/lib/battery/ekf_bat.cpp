@@ -3,32 +3,31 @@
 
 using namespace matrix;
 
+
+
 void
 BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a,
 			 bool connected, bool selected_source, int priority,
 			 float throttle_normalized,
 			 bool armed, battery_status_s *battery_status)
 {
-
-	if (_battery_initialized) {
-		if (_init_kf) {
-		this->kfInit(voltage_v);
-		_init_kf = false; // mark the Kalman filter initialization as done
-		}
-		filter1order(_voltage_filtered_v, voltage_v, 0.01f);
-		filter1order(_current_filtered_a, current_a, 0.02f);
-		kfUpdate(timestamp, _current_filtered_a, voltage_v);
-
-	} else {
-		_voltage_filtered_v = voltage_v;
-		_current_filtered_a = current_a;
+	// Check battery-estimation prerequisite
+	if (!connected || !init(timestamp, voltage_v, current_a)) {
+		reset(battery_status);
+		return;
 	}
 
-	// To be uncommented when the estimator will be reliable
-	if (_battery_initialized) {
-		determineWarning(_warning, connected, _xhat(0));
-	}
+	// filter measurements
+	filter1order(_voltage_filtered_v, voltage_v, 0.01f);
+	filter1order(_current_filtered_a, current_a, 0.02f);
 
+	// update kalman
+	kfUpdate(timestamp, _current_filtered_a, voltage_v);
+
+	// update warining
+	determineWarning(_warning, _xhat(0));
+
+	// check if battery has "reliably-connected-feature"
 	bool reliably_connected = true;
 
 #ifdef BOARD_HAS_POWER_CHECK
@@ -39,42 +38,36 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 
 #endif
 
-	// for logging purpose
-	if (_voltage_filtered_v > 2.1f) {
-		_battery_initialized = true;
-
-		// general
-		battery_status->voltage_v = voltage_v;
-		battery_status->voltage_filtered_v = _voltage_filtered_v;
-		battery_status->scale = NAN; // unused
-		battery_status->time_remaining_s = NAN; //unused
-		battery_status->current_a = current_a;
-		battery_status->current_filtered_a = _current_filtered_a;
-		battery_status->warning = _warning;
-		battery_status->discharged_mah = NAN; //unused
-		battery_status->connected = connected;
-		battery_status->system_source = selected_source;
-		battery_status->priority = priority;
-		battery_status->tethered = false;
-		battery_status->reliably_connected = reliably_connected;
-
-
-		// kalman
-		battery_status->covx[0] = _covx(0, 0);
-		battery_status->covx[1] = _covx(0, 1);
-		battery_status->covx[2] = _covx(1, 0);
-		battery_status->covx[3] = _covx(1, 1);
-		battery_status->covw[0] = _covw(0, 0);
-		battery_status->covw[1] = _covw(0, 1);
-		battery_status->covw[2] = _covw(1, 0);
-		battery_status->covw[3] = _covw(1, 1);
-		battery_status->kalman_gain[0] = _kalman_gain(0, 0);
-		battery_status->kalman_gain[1] = _kalman_gain(1, 0);
-		battery_status->innovation = _innovation;
-		battery_status->unsaturated_innovation = _y - _yhat;
-		battery_status->remaining = _xhat(0);
-		battery_status->resistor_current = _xhat(1);
-	}
+	// set battery_status_s
+	// general
+	battery_status->voltage_v = voltage_v;
+	battery_status->voltage_filtered_v = _voltage_filtered_v;
+	battery_status->scale = NAN; // unused
+	battery_status->time_remaining_s = NAN; //unused
+	battery_status->current_a = current_a;
+	battery_status->current_filtered_a = _current_filtered_a;
+	battery_status->warning = _warning;
+	battery_status->discharged_mah = NAN; //unused
+	battery_status->connected = connected;
+	battery_status->system_source = selected_source;
+	battery_status->priority = priority;
+	battery_status->tethered = false;
+	battery_status->reliably_connected = reliably_connected;
+	// kalman
+	battery_status->covx[0] = _covx(0, 0);
+	battery_status->covx[1] = _covx(0, 1);
+	battery_status->covx[2] = _covx(1, 0);
+	battery_status->covx[3] = _covx(1, 1);
+	battery_status->covw[0] = _covw(0, 0);
+	battery_status->covw[1] = _covw(0, 1);
+	battery_status->covw[2] = _covw(1, 0);
+	battery_status->covw[3] = _covw(1, 1);
+	battery_status->kalman_gain[0] = _kalman_gain(0, 0);
+	battery_status->kalman_gain[1] = _kalman_gain(1, 0);
+	battery_status->innovation = _innovation;
+	battery_status->unsaturated_innovation = _y - _yhat;
+	battery_status->remaining = _xhat(0);
+	battery_status->resistor_current = _xhat(1);
 }
 
 void
@@ -129,12 +122,12 @@ BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
 	_innovation = _y - _yhat;
 
 	// Innovation saturation
-	if (_innovation > 0.05f) {
-		_innovation = 0.05f;
-
-	} else if (_innovation < -0.05f) {
-		_innovation = -0.05f;
-	}
+	//if (_innovation > 0.05f) {
+	//	_innovation = 0.05f;
+//
+	//} else if (_innovation < -0.05f) {
+	//	_innovation = -0.05f;
+	//}
 
 	// 1a & 2b Computation of xhat using last input
 	_xhat = _batmat_A * _xhat + _batmat_B * _u + _kalman_gain * _innovation;
@@ -212,5 +205,34 @@ BatteryEKF::recompute_statespace(float timedelta)
 	_batmat_B(0) = timedelta / (_capacity_mAh * 3.6f); // 3.6 converts from mAh to Coulombs
 	_batmat_B(1) = 1 - exp(-timedelta / (_R1.get() * _C1.get()));
 	_batmat_C(0, 0) = this->getSlope(_xhat(0));
+}
+
+bool BatteryEKF::init(hrt_abstime timestamp, float voltage, float current)
+{
+
+	// Ensure that we can compute deltatime
+	if (!PX4_ISFINITE(_last_timestamp) || (_last_timestamp == 0)) {
+		_last_timestamp = timestamp;
+		_deltatime = (timestamp - _last_timestamp) / 1e6;
+		return false;
+	}
+
+	// Ensure that voltage is above 2.1 (TODO: add better criteria)
+	if (voltage / cell_count() < 2.1f) {
+		_voltage_filtered_v = voltage;
+		return false;
+	}
+
+	// Ensure that current is positive
+	if (current < 0.0f) {
+		_current_filtered_a = current;
+		return false;
+	}
+
+	// Initialize kalman
+	kfInit(voltage);
+
+	return true;
+
 }
 

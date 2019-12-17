@@ -66,7 +66,7 @@ private:
 	void kfInit(float voltage_v, const float current_a);
 	void kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v);
 	float getSlope(float SOC);
-	float ocv_from_soc(float SOC);
+	float ocv_from_soc(const float SOC, const float *poly_coeff, const unsigned int poly_length);
 	float soc_from_ocv(float OCV);
 	void recompute_statespace(float dt);
 
@@ -118,6 +118,7 @@ private:
 	matrix::Matrix<float, 2, 1> _kalman_gain;
 	float _yhat = 4.34f; // value only used as start value in simulation
 	float _innovation;
+	int _error_count = 0; // counts iterations before bumping up the covariance
 	float _covy;
 
 	// Definition of the coefficient of the 11th-degree polynomial defining the OCV(SOC) curve. Coeffs are ordered in descending degree.

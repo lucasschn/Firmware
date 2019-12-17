@@ -66,7 +66,8 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 	battery_status->priority = priority;
 	battery_status->tethered = false;
 	battery_status->reliably_connected = reliably_connected;
-	// kalman
+	// extended Kalman filter 
+	battery_status->voltage_estimate = _yhat;
 	battery_status->covx[0] = _covx(0, 0);
 	battery_status->covx[1] = _covx(0, 1);
 	battery_status->covx[2] = _covx(1, 0);
@@ -122,7 +123,7 @@ BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
 	SquareMatrix<float, 1> tmp;
 
 	// 1c Computation of future yhat using future state and last input would not make sense !
-	_yhat = ocv_from_soc(_xhat(0)) - _R1.get() * _xhat(1) - _R0.get() * _u;
+	_yhat = ocv_from_soc(_xhat(0), _poly_coeff, 12u) - _R1.get() * _xhat(1) - _R0.get() * _u;
 
 	// 1b
 	_covx = _batmat_A * _covx * _batmat_A.T() + _covw; // (numerical robustness) no risk of losing symetry here
@@ -135,6 +136,16 @@ BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
 
 
 	_innovation = _y - _yhat;
+
+	if (abs(_innovation>2.0f)){
+		_error_count++;
+	} else {
+		_error_count = 0;
+	}
+	if (_error_count >= 200){
+		_covx = _covx*5.0f;
+		_error_count = 0;
+	}
 
 	// Innovation saturation
 	//if (_innovation > 0.05f) {
@@ -166,12 +177,12 @@ BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
 
 
 float
-BatteryEKF::ocv_from_soc(float SOC)
+BatteryEKF::ocv_from_soc(const float SOC, const float *poly_coeff, unsigned int poly_length)
 {
 	float OCV = 0;
 
-	for (unsigned int poly_expo = 0; poly_expo <= sizeof(_poly_coeff) - 1; poly_expo++) {
-		OCV += _poly_coeff[sizeof(_poly_coeff) - 1 - poly_expo] * powf(SOC, (float) poly_expo);
+	for (unsigned int poly_expo = 0; poly_expo <= poly_length - 1; poly_expo++) {
+		OCV += poly_coeff[poly_length - 1u - poly_expo] * powf(SOC, (float) poly_expo);
 	}
 
 	return OCV;
@@ -207,7 +218,7 @@ BatteryEKF::getSlope(float SOC)
 	float const dSOC = min(1.0f, SOC + 0.01f) - max(0.0f, SOC - 0.01f);
 	// min(1.0,z+0.01) is used to prevent z+0.01 exceeding 1 in case z>0.99. Having SOC>1 does not make any sense. Same on the other end of the curve.
 	// +/-0.01 is an arbitrary value that give decent slope predictions in Jupyter notebook implementation.
-	float const dOCV = this->ocv_from_soc(min(1.0f, SOC + 0.01f)) - this->ocv_from_soc(max(0.0f, SOC - 0.01f));
+	float const dOCV = ocv_from_soc(min(1.0f, SOC + 0.01f), _poly_coeff, 12u) - ocv_from_soc(max(0.0f, SOC - 0.01f), _poly_coeff, 12u);
 	float slope = dOCV / dSOC;
 
 	return slope;

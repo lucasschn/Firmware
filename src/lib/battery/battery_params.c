@@ -264,7 +264,7 @@ PARAM_DEFINE_INT32(BAT_USE_KF, 1);
  * @increment 0.001
  * @reboot_required false
  */
-PARAM_DEFINE_FLOAT(BAT_PARAM_R0, 0.015f);
+PARAM_DEFINE_FLOAT(BAT_PARAM_R0, 0.012f);
 
 /**
 * Battery Equivalent Circuit Parameter R1

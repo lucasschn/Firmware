@@ -8,6 +8,7 @@ float32 discharged_mah		# Discharged amount in mAh, -1 if unknown
 float32 remaining		# From 1 to 0, -1 if unknown
 float32 resistor_current 		# current flowing through resistance R1 in equivalent circuit model
 float32 scale		# Power scaling factor, >= 1, or -1 if unknown
+float32 voltage_estimate # EKF estimate of the voltage, usually called yhat
 float32[4] covx		# Covariance matrix of battery Kalman filter states
 float32[4] covw		# Covariance matrix of battery Kalman filter model uncertainty
 float32 time_remaining_s	# remaining battery usage time under current load in seconds, -1 if unknown

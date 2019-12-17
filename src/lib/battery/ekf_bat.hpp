@@ -78,12 +78,10 @@ private:
 	bool _initialized = false;
 	float _deltatime = 0.1f;
 	hrt_abstime _last_timestamp = 0; //us
-	float _SOC0;
 	// Using Control Systems notation
 	float _u = 0.0f; // input (= current)
 	float _y = 0.0f; // output (= voltage)
 	float _capacity_mAh = 6500; // mAh battery capacity
-	float _iR10; // battery is considered at equilibrium at bootup
 	bool _battery_initialized = false;
 	float _voltage_filtered_v = -1.f;
 	float _current_filtered_a = -1.f;

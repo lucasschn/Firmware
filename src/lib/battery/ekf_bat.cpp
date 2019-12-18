@@ -66,7 +66,7 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 	battery_status->priority = priority;
 	battery_status->tethered = false;
 	battery_status->reliably_connected = reliably_connected;
-	// extended Kalman filter 
+	// extended Kalman filter
 	battery_status->voltage_estimate = _yhat;
 	battery_status->covx[0] = _covx(0, 0);
 	battery_status->covx[1] = _covx(0, 1);
@@ -92,13 +92,13 @@ BatteryEKF::kfInit(const float voltage_v, const float current_a)
 {
 	_yhat = voltage_v / _n_cells.get();
 	// Battery is considered at equilibrium when booting up (if last value from last time could be saved would be nice). That means the sensed voltage is assumed to be equal to the Open Circuit Voltage (OCV).
-	float SOC0 = soc_from_ocv(voltage_v / _n_cells.get() + (_R0.get() + _R1.get()) * current_a);
+	float SOC0 = socFromOcv(voltage_v / _n_cells.get() + (_R0.get() + _R1.get()) * current_a);
 	float iR10 = 0.0f; // battery is considered at equilibrium at bootup
 	// Matrices initialization
 	_batmat_A(0, 0) = 1.0f;
 	_batmat_A(0, 1) = 0.0f;
 	_batmat_A(1, 0) = 0.0f;
-	_batmat_A(1, 1) = exp(-_deltatime / (_R1.get() * _C1.get()));
+	_batmat_A(1, 1) = expf(-_deltatime / (_R1.get() * _C1.get()));
 	_batmat_C(0, 0) = getSlope(SOC0);
 	_batmat_C(0, 1) = -_R1.get();
 	_xhat(0) = SOC0;
@@ -116,14 +116,14 @@ BatteryEKF::kfInit(const float voltage_v, const float current_a)
 
 void
 BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
-{	
+{
 	_u = current_a;
 	_y = voltage_v / _n_cells.get(); // Voltage per cell is required
-	recompute_statespace(_deltatime);
+	recomputeStatespace(_deltatime);
 	SquareMatrix<float, 1> tmp;
 
 	// 1c Computation of future yhat using future state and last input would not make sense !
-	_yhat = ocv_from_soc(_xhat(0), _poly_coeff, 12u) - _R1.get() * _xhat(1) - _R0.get() * _u;
+	_yhat = ocvFromSoc(_xhat(0), _poly_coeff, 12u) - _R1.get() * _xhat(1) - _R0.get() * _u;
 
 	// 1b
 	_covx = _batmat_A * _covx * _batmat_A.T() + _covw; // (numerical robustness) no risk of losing symetry here
@@ -137,13 +137,15 @@ BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
 
 	_innovation = _y - _yhat;
 
-	if (abs(_innovation>2.0f)){
+	if (abs(_innovation > 2.0f)) {
 		_error_count++;
+
 	} else {
 		_error_count = 0;
 	}
-	if (_error_count >= 200){
-		_covx = _covx*5.0f;
+
+	if (_error_count >= 200) {
+		_covx = _covx * 5.0f;
 		_error_count = 0;
 	}
 
@@ -172,12 +174,11 @@ BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
 	// 2c (Joseph-form covariance update for improved numerical robustness)
 	_covx = (I - _kalman_gain * _batmat_C) * _covx * (I - _kalman_gain * _batmat_C).T() + _kalman_gain * _covv *
 		_kalman_gain.T(); // puts nonzero values in the antidiagonal of covx
-	_last_timestamp = timestamp;
 }
 
 
 float
-BatteryEKF::ocv_from_soc(const float SOC, const float *poly_coeff, unsigned int poly_length)
+BatteryEKF::ocvFromSoc(const float SOC, const float *poly_coeff, unsigned int poly_length)
 {
 	float OCV = 0;
 
@@ -189,7 +190,7 @@ BatteryEKF::ocv_from_soc(const float SOC, const float *poly_coeff, unsigned int 
 }
 
 float
-BatteryEKF::soc_from_ocv(float OCV)
+BatteryEKF::socFromOcv(float OCV)
 {
 	float SOC = -1;
 
@@ -218,19 +219,20 @@ BatteryEKF::getSlope(float SOC)
 	float const dSOC = min(1.0f, SOC + 0.01f) - max(0.0f, SOC - 0.01f);
 	// min(1.0,z+0.01) is used to prevent z+0.01 exceeding 1 in case z>0.99. Having SOC>1 does not make any sense. Same on the other end of the curve.
 	// +/-0.01 is an arbitrary value that give decent slope predictions in Jupyter notebook implementation.
-	float const dOCV = ocv_from_soc(min(1.0f, SOC + 0.01f), _poly_coeff, 12u) - ocv_from_soc(max(0.0f, SOC - 0.01f), _poly_coeff, 12u);
+	float const dOCV = ocvFromSoc(min(1.0f, SOC + 0.01f), _poly_coeff, 12u) - ocvFromSoc(max(0.0f, SOC - 0.01f),
+			   _poly_coeff, 12u);
 	float slope = dOCV / dSOC;
 
 	return slope;
 }
 
 void
-BatteryEKF::recompute_statespace(float timedelta)
+BatteryEKF::recomputeStatespace(float timedelta)
 {
-	_batmat_A(1, 1) = exp(-timedelta / (_R1.get() * _C1.get()));
+	_batmat_A(1, 1) = expf(-timedelta / (_R1.get() * _C1.get()));
 	_batmat_B(0) = timedelta / (_capacity_mAh * 3.6f); // 3.6 converts from mAh to Coulombs
-	_batmat_B(1) = 1 - exp(-timedelta / (_R1.get() * _C1.get()));
-	_batmat_C(0, 0) = this->getSlope(_xhat(0));
+	_batmat_B(1) = 1 - expf(-timedelta / (_R1.get() * _C1.get()));
+	_batmat_C(0, 0) = getSlope(_xhat(0));
 }
 
 bool BatteryEKF::inputsValid(hrt_abstime timestamp, float voltage_v, float current_a)

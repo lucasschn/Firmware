@@ -66,9 +66,9 @@ private:
 	void kfInit(float voltage_v, const float current_a);
 	void kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v);
 	float getSlope(float SOC);
-	float ocv_from_soc(const float SOC, const float *poly_coeff, const unsigned int poly_length);
-	float soc_from_ocv(float OCV);
-	void recompute_statespace(float dt);
+	float ocvFromSoc(const float SOC, const float *poly_coeff, const unsigned int poly_length);
+	float socFromOcv(float OCV);
+	void recomputeStatespace(float dt);
 
 	// For the state of charge initialization (points for interpolation)
 	float _SOC_array[4] = {0.0f, 0.04f, 0.6f, 1.0f};
@@ -93,7 +93,7 @@ private:
 	matrix::SquareMatrix<float, 2> _batmat_A;
 
 	// Definition of B vector
-	matrix::Vector2f _batmat_B{_deltatime / (_capacity_mAh * 3.6f), 1.0f - (float) exp(-_deltatime / (_R1.get() * _C1.get()))}; //3.6 converts from mAh to C
+	matrix::Vector2f _batmat_B{_deltatime / (_capacity_mAh * 3.6f), 1.0f - (float) expf(-_deltatime / (_R1.get() * _C1.get()))}; //3.6 converts from mAh to C
 	// Defintion of C matrix
 	matrix::Matrix<float, 1, 2> _batmat_C;
 
@@ -122,7 +122,7 @@ private:
 	float _covy;
 
 	// Definition of the coefficient of the 11th-degree polynomial defining the OCV(SOC) curve. Coeffs are ordered in descending degree.
-	float _poly_coeff[12] = {1.54079666e+04, -8.79957879e+04, 2.19186396e+05, -3.12687981e+05, 2.82109975e+05, -1.67743633e+05, 6.64413360e+04, -1.73142475e+04, 2.86290965e+03, -2.80825943e+02, 1.48923600e+01, 3.33948616e+00};
+	float _poly_coeff[12] = {1.54079666e+04f, -8.79957879e+04f, 2.19186396e+05f, -3.12687981e+05f, 2.82109975e+05f, -1.67743633e+05f, 6.64413360e+04f, -1.73142475e+04f, 2.86290965e+03f, -2.80825943e+02f, 1.48923600e+01f, 3.33948616e+00f};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(Battery,
 					(ParamFloat<px4::params::BAT_PARAM_R0>) _R0,

@@ -120,7 +120,7 @@ private:
 	float _innovation;
 	int _error_count = 0; // counts iterations before bumping up the covariance
 	float _covy;
-
+	float _chisquare = 0.015791; // Upper bound of chi-square pdf for a probability of 90% and 1 degree of freedom
 	// Definition of the coefficient of the 11th-degree polynomial defining the OCV(SOC) curve. Coeffs are ordered in descending degree.
 	float _poly_coeff[12] = {1.54079666e+04f, -8.79957879e+04f, 2.19186396e+05f, -3.12687981e+05f, 2.82109975e+05f, -1.67743633e+05f, 6.64413360e+04f, -1.73142475e+04f, 2.86290965e+03f, -2.80825943e+02f, 1.48923600e+01f, 3.33948616e+00f};
 

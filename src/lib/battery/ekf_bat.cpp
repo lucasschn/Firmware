@@ -35,7 +35,7 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 	filter1order(_current_filtered_a, current_a, 0.02f);
 
 	// update kalman
-	kfUpdate(timestamp, _current_filtered_a, voltage_v);
+	kfUpdate(timestamp, current_a, voltage_v);
 
 	// update warning
 	determineWarning(_warning, _xhat(0));
@@ -107,10 +107,10 @@ BatteryEKF::kfInit(const float voltage_v, const float current_a)
 	_covx(0, 1) = 0.f;
 	_covx(1, 0) = 0.f;
 	_covx(1, 1) = 0.01f;
-	_covw(0, 0) = 1e-3f;
+	_covw(0, 0) = 1e-2f;
 	_covw(0, 1) = 0.0f;
 	_covw(1, 0) = 0.0f;
-	_covw(1, 1) = 1e-4f;
+	_covw(1, 1) = 1e-2f;
 	PX4_INFO("Kalman filter has been initialized.");
 }
 
@@ -132,10 +132,18 @@ BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
 	covxy = _covx * _batmat_C.T();
 	tmp = _batmat_C * _covx * _batmat_C.T();
 	_covy = tmp(0, 0) + _covv; // scalar, so not computationally demanding
-	_kalman_gain = covxy / _covy;
-
-
 	_innovation = _y - _yhat;
+
+	{
+		float nees = _innovation * 1/_covy * _innovation;
+
+		if (nees < _chisquare){
+			_kalman_gain = covxy / _covy;
+		} else {
+			_kalman_gain = matrix::Vector2f{0.0f,0.0f};
+		}
+	}
+
 
 	if (abs(_innovation > 2.0f)) {
 		_error_count++;

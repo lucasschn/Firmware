@@ -72,7 +72,10 @@
 #include <systemlib/err.h>
 #include <perf/perf_counter.h>
 #include <battery/throttle_bat.hpp>
+
+#ifdef YUNEEC_TAP_V3
 #include <battery/ekf_bat.hpp>
+#endif
 
 #include <conversion/rotation.h>
 
@@ -179,7 +182,9 @@ private:
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
 	orb_advert_t	_battery_ekf_pub[BOARD_NUMBER_BRICKS] {};
 	BatteryThrottle		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
+#ifdef YUNEEC_TAP_V3
 	BatteryEKF		_battery_ekf[BOARD_NUMBER_BRICKS]; /**< This battery is currently only for testing ekf */
+#endif /* YUNEEC_TAP_V3 */
 #endif /* BOARD_NUMBER_BRICKS > 0 */
 
 #if BOARD_NUMBER_BRICKS > 1
@@ -259,7 +264,9 @@ Sensors::Sensors(bool hil_enabled) :
 
 	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 		_battery[b].setParent(this);
+#ifdef YUNEEC_TAP_V3
 		_battery_ekf[b].setParent(this);
+#endif /* YUNEEC_TAP_V3 */
 	}
 
 #endif /* BOARD_NUMBER_BRICKS > 0 */
@@ -605,6 +612,7 @@ Sensors::adc_poll()
 					int instance;
 					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_DEFAULT);
 
+#ifdef YUNEEC_TAP_V3
 					// for test ekf
 					battery_status_s battery_status_ekf;
 					_battery_ekf[b].updateStatus(t, bat_voltage_v[b], bat_current_a[b],
@@ -613,6 +621,7 @@ Sensors::adc_poll()
 								     _armed, &battery_status_ekf);
 
 					orb_publish_auto(ORB_ID(battery_status_ekf), &_battery_ekf_pub[b], &battery_status_ekf, &instance, ORB_PRIO_LOW);
+#endif /* YUNEEC_TAP_V3 */
 				}
 			}
 

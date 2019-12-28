@@ -318,7 +318,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			// battery simulation (limit update to 100Hz)
 			if (hrt_elapsed_time(&_battery_status.timestamp) >= 10000) {
 
-				const float discharge_interval_us = _battery_drain_interval_s.get() * 1000 * 1000;
+				//const float discharge_interval_us = _battery_drain_interval_s.get() * 1000 * 1000;
 
 				bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
@@ -326,14 +326,24 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 					batt_sim_start = now_us;
 				}
 
-				float ibatt = -1.0f; // no current sensor in simulation
+				float ibatt;
 
-				/* Simulate the voltage of a linearly draining battery but stop at the minimum percentage */
-				float battery_percentage = 1.0f - (now_us - batt_sim_start) / discharge_interval_us;
+				if (_actuators[0].output[0] < 1190) {
+					ibatt = 0.0f;
 
-				battery_percentage = math::max(battery_percentage, _battery_min_percentage.get() / 100);
-				float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
-				vbatt *= _battery.cell_count();
+				} else {
+					ibatt = powf(_actuators[0].output[0] - 1190, 4) / 1e9;
+				}
+
+				if (ibatt < 0) {
+					ibatt = 0.0f;
+				}
+
+				if (ibatt > 150) {
+					ibatt = 150.0f;
+				}
+				float vbatt = _battery_ekf.get_voltage_estimate() * _battery.cell_count();
+
 
 				const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
 				_battery.updateStatus(now_us, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);

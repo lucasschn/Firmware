@@ -60,6 +60,8 @@ public:
 			  bool armed,
 			  battery_status_s *battery_status) override;
 
+	float get_voltage_estimate() { return _yhat;}
+
 private:
 
 	bool inputsValid(hrt_abstime timestamp, float voltage_v, float current_a);
@@ -69,10 +71,21 @@ private:
 	float ocvFromSoc(const float SOC, const float *poly_coeff, const unsigned int poly_length);
 	float socFromOcv(float OCV);
 	void recomputeStatespace(float dt);
+	void computeInternalResistance(hrt_abstime timestamp, float current_a, float voltage_v, bool armed);
 
 	// For the state of charge initialization (points for interpolation)
 	float _SOC_array[4] = {0.0f, 0.04f, 0.6f, 1.0f};
 	float _OCV_array[4] = {3.297f, 3.629464f, 3.90068f, 4.342f};
+
+	// For the internal resistance computation
+	hrt_abstime _arming_time = 0;
+	hrt_abstime _time_elapsed_since_arming = 0;
+	hrt_abstime _timestamp_initialized = 0;
+	float _voltage_boot = 0.0f;;
+	float _current_boot = 0.0f;
+	float _voltage_arm = 0.0f;
+	float _current_arm = 0.0f;
+	bool _set_R0 = true;
 
 	// for the Kalman filter
 	bool _initialized = false;
@@ -85,6 +98,7 @@ private:
 	bool _battery_initialized = false;
 	float _voltage_filtered_v = -1.f;
 	float _current_filtered_a = -1.f;
+	orb_advert_t _mavlink_log_pub = nullptr;
 
 	// 2x2 identity matrix
 	matrix::SquareMatrix<float, 2> I = matrix::eye<float, 2>();

@@ -1,9 +1,11 @@
 #include "ekf_bat.hpp"
 #include <lib/mathlib/mathlib.h>
+#include <systemlib/mavlink_log.h>
 
 using namespace matrix;
 
-
+static const int BOOTING_DELAY = 3; //s
+static const int ARMING_DELAY = 2; //s
 
 void
 BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a,
@@ -20,19 +22,21 @@ BatteryEKF::updateStatus(hrt_abstime timestamp, float voltage_v, float current_a
 	}
 
 	// update deltatime
-	_deltatime = (timestamp - _last_timestamp) / 1e6;
+	_deltatime = (timestamp - _last_timestamp) / 1e6; // in s
 
 	// Initialize filter states
 	if (!_initialized) {
-		_voltage_filtered_v = voltage_v;
-		_current_filtered_a = current_a;
+		_timestamp_initialized = timestamp;
+		_voltage_filtered_v = NAN;
+		_current_filtered_a = NAN;
+		_voltage_boot = _yhat;
+
 		kfInit(voltage_v, current_a);
 		_initialized = true;
 	}
 
-	// Everything is ready. Update filters.
-	filter1order(_voltage_filtered_v, voltage_v, 0.01f);
-	filter1order(_current_filtered_a, current_a, 0.02f);
+	// Internal resistance estimation
+	computeInternalResistance(timestamp, current_a, voltage_v, armed);
 
 	// update kalman
 	kfUpdate(timestamp, current_a, voltage_v);
@@ -92,7 +96,7 @@ BatteryEKF::kfInit(const float voltage_v, const float current_a)
 {
 	_yhat = voltage_v / _n_cells.get();
 	// Battery is considered at equilibrium when booting up (if last value from last time could be saved would be nice). That means the sensed voltage is assumed to be equal to the Open Circuit Voltage (OCV).
-	float SOC0 = socFromOcv(voltage_v / _n_cells.get() + (_R0.get() + _R1.get()) * current_a);
+	float SOC0 = socFromOcv(voltage_v / _n_cells.get());
 	float iR10 = 0.0f; // battery is considered at equilibrium at bootup
 	// Matrices initialization
 	_batmat_A(0, 0) = 1.0f;
@@ -135,12 +139,13 @@ BatteryEKF::kfUpdate(hrt_abstime timestamp, float current_a, float voltage_v)
 	_innovation = _y - _yhat;
 
 	{
-		float nees = _innovation * 1/_covy * _innovation;
+		float nees = _innovation * 1 / _covy * _innovation;
 
-		if (nees < _chisquare){
+		if (nees < _chisquare) {
 			_kalman_gain = covxy / _covy;
+
 		} else {
-			_kalman_gain = matrix::Vector2f{0.0f,0.0f};
+			_kalman_gain = matrix::Vector2f{0.0f, 0.0f};
 		}
 	}
 
@@ -268,3 +273,53 @@ bool BatteryEKF::inputsValid(hrt_abstime timestamp, float voltage_v, float curre
 	return true;
 }
 
+void
+BatteryEKF::computeInternalResistance(hrt_abstime timestamp, float current_a, float voltage_v, bool armed)
+{
+	if (!armed) {
+		_voltage_boot = (float)_last_timestamp / (float)timestamp * _voltage_boot + (_deltatime * 1e6f) / timestamp * voltage_v
+				/ _n_cells.get(); // recursive average
+		_current_boot = (float)_last_timestamp / (float)timestamp * _current_boot + (_deltatime * 1e6f) / timestamp * current_a;
+		_arming_time = timestamp;
+		_set_R0 = true;
+
+		PX4_INFO("voltage_boot: %.5f, last timestamp: %d, timestamp: %d, w1: %.5f, w2: %.5f", (double)_voltage_boot,
+			 (int)_last_timestamp, (int)timestamp, (double)((float)_last_timestamp / (float)timestamp),
+			 (double)((_deltatime * 1e6f) / timestamp));
+
+	} else {
+
+		// PX4_INFO("arming time: %d, timestamp: %d, _arming_time + delay: %d",(int)_arming_time, (int)timestamp, (int)(_arming_time + (hrt_abstime)(ARMING_DELAY*1000000)) );
+		if (_time_elapsed_since_arming < (hrt_abstime)(ARMING_DELAY * 1000000)) {
+			_time_elapsed_since_arming = timestamp - _arming_time;
+			_voltage_arm = (1.0f - (_deltatime * 1e6f) / _time_elapsed_since_arming) * _voltage_arm +
+				       (_deltatime * 1e6f) / _time_elapsed_since_arming * voltage_v / _n_cells.get();
+			_current_arm = (1.0f - (_deltatime * 1e6f) / _time_elapsed_since_arming) * _current_arm +
+				       (_deltatime * 1e6f) / _time_elapsed_since_arming * current_a;
+			PX4_INFO("Voltage arm : %.3f", (double) _voltage_arm);
+
+		} else if (_set_R0) {
+			float voltage_drop = _voltage_boot - _voltage_arm;
+			float delta_current = _current_arm - _current_boot;
+			float Rint = voltage_drop / delta_current; // sum of R0 and R1
+			PX4_INFO("current boot: %.5f, current arm: %.5f ", (double)_current_boot, (double)_current_arm);
+
+			mavlink_log_info(&_mavlink_log_pub, "delta current = %.5f", (double) delta_current);
+			mavlink_log_info(&_mavlink_log_pub, "voltage drop = %.5f", (double) voltage_drop);
+			mavlink_log_info(&_mavlink_log_pub, "time elapsed since arming = %.3f, should be above %d",
+					 (double) _time_elapsed_since_arming, ARMING_DELAY);
+			mavlink_log_info(&_mavlink_log_pub, "Rint = %f", (double) Rint);
+
+			if (Rint > _R1.get()) {
+				_R0.set(Rint - _R1.get());
+				_R0.commit();
+				mavlink_log_info(&_mavlink_log_pub, "R0 has been reset");
+
+			} else {
+				mavlink_log_warning(&_mavlink_log_pub, "R1 is too high, lower R1 and rearm for optimal performance.");
+			}
+
+			_set_R0 = false;
+		}
+	}
+}
